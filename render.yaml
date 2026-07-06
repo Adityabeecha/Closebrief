@@ -1,0 +1,42 @@
+# Render Blueprint (Infrastructure as Code). Import via Render dashboard ->
+# New -> Blueprint, pointed at your GitHub repo. Secrets (sync:false) are set
+# once in the Render dashboard, never committed here.
+services:
+  - type: web
+    name: closebrief
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: starter            # free tier also works; starter avoids cold-start sleeps
+    branch: main
+    autoDeploy: true
+    healthCheckPath: /health
+    # Apply DB migrations before each deploy goes live (idempotent; DDL over the
+    # Supabase session pooler). --no-reindex avoids needing embeddings at deploy.
+    preDeployCommand: python -m app.db migrate --no-copy --no-reindex
+    envVars:
+      - key: APP_ENV
+        value: prod
+      - key: LLM_PROVIDER
+        value: openai
+      - key: VECTOR_BACKEND
+        value: pgvector
+      - key: AUTH_ENABLED
+        value: "true"
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o
+      - key: OPENAI_EMBEDDING_MODEL
+        value: text-embedding-3-small
+      - key: DATABASE_URL
+        sync: false          # Supabase transaction pooler (port 6543)
+      - key: REDIS_URL
+        sync: false          # Upstash rediss:// URL
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      - key: SENTRY_DSN
+        sync: false

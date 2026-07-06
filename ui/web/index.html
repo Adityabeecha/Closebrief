@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Closebrief — FP&A intelligence</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --accent:#2563eb; --accent-hi:#1d4ed8; --accent-bg:#eff6ff;
+    --ink:#0f172a; --ink2:#334155; --ink3:#475569; --mut:#64748b; --mut2:#94a3b8;
+    --b08:rgba(15,23,42,.08); --b12:rgba(15,23,42,.12); --b24:rgba(15,23,42,.24);
+    --bg:#fbfbfa; --bg2:#f6f6f4; --bg3:#f1f1ef; --card:#fff;
+    --green:#15803d; --green2:#16a34a; --green-bg:#ecfdf3;
+    --red:#dc2626; --red-bg:#fef2f2;
+    --amber:#b45309; --amber-bg:#fffbeb; --amber-bd:#fde68a;
+  }
+  body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased}
+  button,input,select,textarea{font-family:inherit}
+  button{cursor:pointer}
+  .nbi-num{font-variant-numeric:tabular-nums}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .fade{animation:fade .3s ease}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--b12);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:-2px}
+  .nbi-scroll::-webkit-scrollbar{width:10px}
+  .nbi-scroll::-webkit-scrollbar-thumb{background:var(--b12);border-radius:6px;border:3px solid var(--bg)}
+
+  .app{display:flex;height:100vh;overflow:hidden}
+
+  /* ---------------- SIDEBAR ---------------- */
+  .side{width:250px;flex:none;background:var(--card);border-right:1px solid var(--b08);display:flex;flex-direction:column;height:100%}
+  .side-top{padding:20px 18px 14px;display:flex;flex-direction:column;gap:14px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .brand .mark{width:30px;height:30px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 2px 6px rgba(37,99,235,.35)}
+  .brand b{font-weight:700;font-size:15px;letter-spacing:-.01em;display:block;line-height:1.1}
+  .brand span{font-size:11px;color:var(--mut2);font-weight:500}
+  .ws{position:relative}
+  .ws-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border:1px solid var(--b12);border-radius:9px;cursor:pointer;background:var(--bg);width:100%;text-align:left;font-size:12.5px;font-weight:600;color:var(--ink2)}
+  .ws-btn:hover{border-color:var(--b24)}
+  .ws-menu{position:absolute;top:calc(100% + 5px);left:0;right:0;background:#fff;border:1px solid var(--b12);border-radius:11px;box-shadow:0 12px 34px rgba(15,23,42,.16);padding:6px;z-index:30;display:none}
+  .ws-menu.open{display:block}
+  .ws-item{display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--ink2);cursor:pointer;border:none;background:none;width:100%;text-align:left}
+  .ws-item:hover{background:var(--bg2)}
+  .ws-item small{color:var(--mut2);font-weight:500;margin-left:auto}
+  .ws-item .del{margin-left:auto;color:var(--mut2);font-size:14px;padding:0 4px;border:none;background:none}
+  .ws-item .del:hover{color:var(--red)}
+
+  .nav{padding:6px 12px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;flex:1}
+  .nav-label{font-size:10px;font-weight:700;color:var(--mut2);letter-spacing:.09em;text-transform:uppercase;padding:16px 8px 6px}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;border:none;background:none;width:100%;text-align:left;font-size:13.5px;font-weight:600;color:var(--ink3)}
+  .nav-item svg{width:17px;height:17px;flex:none;stroke:currentColor}
+  .nav-item:hover{background:var(--bg2)}
+  .nav-item.active{background:var(--accent-bg);color:var(--accent)}
+  .nav-item.soon{color:var(--mut2);cursor:default}
+  .nav-item.soon:hover{background:none}
+  .soon-tag{margin-left:auto;font-size:9px;font-weight:700;color:var(--amber);background:var(--amber-bg);padding:2px 6px;border-radius:5px;letter-spacing:.05em}
+  .side-foot{margin-top:auto;padding:12px 14px;border-top:1px solid var(--b08);display:flex;align-items:center;gap:10px}
+  .avatar{width:32px;height:32px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;flex:none}
+  .side-foot b{font-size:12.5px;display:block;line-height:1.2}
+  .side-foot span{font-size:11px;color:var(--mut)}
+
+  /* ---------------- MAIN ---------------- */
+  main{flex:1;min-width:0;height:100%;overflow-y:auto}
+  .wrap{max-width:1200px;margin:0 auto;padding:26px 34px 64px}
+  .head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:18px}
+  h1{font-size:24px;font-weight:700;letter-spacing:-.02em}
+  .sub{font-size:13.5px;color:var(--mut);margin-top:3px}
+  .sub b{color:var(--accent);font-weight:600}
+  .head-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .pill-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:9px;font-size:13px;font-weight:600;color:var(--ink3);background:#fff;border:1px solid var(--b12)}
+  .pill-btn:hover{border-color:var(--b24)}
+  select.pill-btn{padding-right:8px}
+  .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:9px;font-size:13px;font-weight:700;color:var(--ink2);background:#fff;border:1px solid var(--b12)}
+  .btn:hover{border-color:var(--b24);background:var(--bg2)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.35)}
+  .btn.primary:hover{background:var(--accent-hi)}
+  .btn.sm{padding:6px 11px;font-size:12px}
+  .btn:disabled{opacity:.5;cursor:default}
+
+  .banner{display:flex;gap:10px;align-items:flex-start;border-radius:11px;padding:11px 14px;font-size:12.5px;font-weight:600;margin-bottom:16px}
+  .banner svg{width:15px;height:15px;flex:none;margin-top:1px}
+  .banner.warn{background:var(--amber-bg);border:1px solid var(--amber-bd);color:var(--amber)}
+  .banner.ok{background:var(--green-bg);border:1px solid var(--green2);color:var(--green)}
+  .banner.err{background:var(--red-bg);border:1px solid var(--red);color:var(--red)}
+  .banner.info{background:var(--accent-bg);border:1px solid #93c5fd;color:var(--accent)}
+
+  /* ---------------- CARDS ---------------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+  .card{background:var(--card);border:1px solid var(--b08);border-radius:15px;padding:20px;display:flex;flex-direction:column;gap:13px;transition:box-shadow .16s,border-color .16s}
+  .card.click{cursor:pointer}
+  .card.click:hover{box-shadow:0 8px 26px rgba(15,23,42,.09);border-color:rgba(37,99,235,.35)}
+  .card.empty{opacity:.72}
+  .card-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .card-name{font-size:13.5px;font-weight:600;color:var(--ink3);letter-spacing:.01em}
+  .conf{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px}
+  .conf .dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+  .conf.High{color:var(--green);background:var(--green-bg)}
+  .conf.Medium{color:var(--amber);background:var(--amber-bg)}
+  .conf.Low{color:var(--red);background:var(--red-bg)}
+  .card-value-row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+  .card-value{font-size:32px;font-weight:700;letter-spacing:-.02em;line-height:1}
+  .deltas{display:flex;gap:8px;flex-wrap:wrap}
+  .delta{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:3px 9px;border-radius:7px}
+  .delta.good{color:var(--green);background:var(--green-bg)}
+  .delta.bad{color:var(--red);background:var(--red-bg)}
+  .delta.flat{color:var(--ink3);background:var(--bg3)}
+  .narr{font-size:13px;line-height:1.55;color:var(--ink2)}
+  .narr.muted{color:var(--mut2);font-style:italic}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:var(--accent);background:var(--accent-bg);border:1px solid #bfdbfe;padding:3px 8px;border-radius:6px;cursor:pointer}
+  .badge{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:6px}
+  .badge.passed{color:var(--green);background:var(--green-bg)}
+  .badge.failed{color:var(--red);background:var(--red-bg)}
+  .badge.edited{color:var(--amber);background:var(--amber-bg)}
+  .cost{font-size:11px;font-weight:600;color:var(--mut2);font-variant-numeric:tabular-nums;margin-left:auto}
+  .card-foot{display:flex;align-items:center;gap:7px;margin-top:1px;padding-top:11px;border-top:1px solid var(--bg3)}
+  .ico{width:30px;height:30px;border:1px solid var(--b12);background:#fff;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+  .ico:hover{border-color:var(--b24);background:var(--bg2)}
+  .ico.on{background:var(--green-bg);border-color:var(--green2)}
+  .ico.on-bad{background:var(--red-bg);border-color:var(--red)}
+  .anom{font-size:9.5px;font-weight:800;letter-spacing:.06em;color:var(--red);background:var(--red-bg);padding:3px 7px;border-radius:5px}
+
+  /* ---------------- METRIC DETAIL ---------------- */
+  .back{display:inline-flex;align-items:center;gap:6px;border:none;background:none;color:var(--accent);font-weight:700;font-size:13px;margin-bottom:14px}
+  .panel{background:var(--card);border:1px solid var(--b08);border-radius:15px;padding:20px}
+  .panel h3{font-size:13px;font-weight:700}
+  .panel .psub{font-size:11.5px;color:var(--mut);margin:3px 0 14px}
+  .detail-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:16px}
+  .full{grid-column:1/-1}
+  .legend{display:flex;gap:16px;font-size:11.5px;color:var(--ink3);font-weight:600;margin-bottom:6px}
+  .legend .k{display:inline-block;width:16px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
+  .legend .k.dash{border-top-style:dashed}
+  .qa{display:flex;gap:8px;margin-top:12px}
+  .qa input{flex:1;padding:9px 12px;border:1px solid var(--b12);border-radius:9px;font-size:13px}
+  details.tbl{margin-top:10px;font-size:12px}
+  details.tbl summary{cursor:pointer;color:var(--mut);font-weight:600;font-size:11.5px}
+  details.tbl table{border-collapse:collapse;margin-top:8px;width:100%}
+  details.tbl th,details.tbl td{text-align:right;padding:3px 10px;border-bottom:1px solid var(--bg3);font-variant-numeric:tabular-nums}
+  details.tbl th:first-child,details.tbl td:first-child{text-align:left}
+  details.tbl th{color:var(--mut);font-weight:700}
+
+  /* ---------------- DIGEST ---------------- */
+  .digest-wrap{max-width:720px}
+  .digest-item{background:var(--card);border:1px solid var(--b08);border-radius:15px;padding:18px 20px;margin-bottom:12px}
+  .digest-item .rank{font-size:11px;font-weight:800;color:var(--mut2);letter-spacing:.04em}
+  .digest-item h3{font-size:15px;font-weight:700;margin:5px 0 6px;letter-spacing:-.01em}
+  .digest-item p{font-size:13px;line-height:1.55;color:var(--ink2)}
+
+  /* ---------------- CONTEXT LIBRARY ---------------- */
+  .ctx-form{background:var(--card);border:1px solid var(--b08);border-radius:15px;padding:20px;margin-bottom:18px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  label.lbl{font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px}
+  .ctx-form input,.ctx-form select,.ctx-form textarea{width:100%;padding:9px 11px;border:1px solid var(--b12);border-radius:9px;font-size:13px}
+  .ctx-form textarea{grid-column:1/-1;min-height:72px;resize:vertical}
+  .ctx-full{grid-column:1/-1}
+  table.ctx-table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--b08);border-radius:15px;overflow:hidden}
+  .ctx-table th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);padding:11px 14px;background:var(--bg2);border-bottom:1px solid var(--b08);font-weight:700}
+  .ctx-table td{padding:12px 14px;border-bottom:1px solid var(--bg3);font-size:12.5px;vertical-align:top}
+  .ctx-table tr:last-child td{border-bottom:none}
+  .ctx-type{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:3px 8px;border-radius:6px;background:var(--bg3);color:var(--ink3)}
+  .ctx-tag{display:inline-block;font-size:10.5px;font-weight:600;color:var(--mut);background:var(--bg2);border:1px solid var(--b08);padding:2px 7px;border-radius:5px;margin:1px 2px 1px 0}
+  .row-del{border:none;background:none;color:var(--mut2);font-size:15px}
+  .row-del:hover{color:var(--red)}
+
+  /* ---------------- IMPORT ---------------- */
+  .steps{display:flex;gap:8px;margin-bottom:20px}
+  .step{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;padding:6px 13px;border-radius:20px;background:var(--bg3);color:var(--mut)}
+  .step.active{background:var(--accent);color:#fff}
+  .step.done{background:var(--green-bg);color:var(--green)}
+  .drop{background:var(--card);border:2px dashed var(--b12);border-radius:16px;padding:58px 20px;text-align:center;color:var(--mut)}
+  .drop.drag{border-color:var(--accent);background:var(--accent-bg)}
+  .drop b{display:block;font-size:15.5px;color:var(--ink2);margin-bottom:6px;font-weight:700}
+  .drop small{font-size:12px;color:var(--mut2)}
+  table.map{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--b08);border-radius:14px;overflow:hidden}
+  .map th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);padding:11px 13px;background:var(--bg2);border-bottom:1px solid var(--b08);font-weight:700}
+  .map td{padding:10px 13px;border-bottom:1px solid var(--bg3);font-size:12.5px;vertical-align:middle}
+  .map select{padding:6px 9px;border:1px solid var(--b12);border-radius:8px;font-weight:600;font-size:12px}
+  .map .samp{color:var(--mut2);font-size:11.5px;font-family:ui-monospace,Menlo,monospace}
+  .kpi-grid{display:grid;grid-template-columns:1.3fr 1.3fr 1fr .8fr .9fr;gap:8px;align-items:center;background:var(--card);border:1px solid var(--b08);border-radius:10px;padding:10px 13px;margin-bottom:8px;font-size:12.5px}
+  .kpi-grid.hdr{background:var(--bg2);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
+  .kpi-grid select,.kpi-grid input{padding:6px 8px;border:1px solid var(--b12);border-radius:8px;width:100%;font-size:12px}
+  .suggest{font-size:10px;color:var(--accent);font-weight:700}
+
+  .empty-state{text-align:center;color:var(--mut2);padding:60px 20px}
+  .empty-state svg{width:40px;height:40px;stroke:var(--b24);margin-bottom:12px}
+  .loading{color:var(--mut2);font-size:13px;padding:36px;text-align:center}
+
+  /* tooltip + toast */
+  .tip{position:fixed;pointer-events:none;background:var(--ink);color:#fff;font-size:11.5px;font-weight:600;padding:7px 10px;border-radius:8px;box-shadow:0 12px 34px rgba(15,23,42,.16);z-index:60;opacity:0;transition:opacity .1s;line-height:1.5}
+  .tip small{color:var(--mut2)}
+  .toast{position:fixed;bottom:22px;right:22px;background:var(--ink);color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 12px 34px rgba(15,23,42,.16);opacity:0;transition:opacity .25s;pointer-events:none;z-index:50}
+  .toast.show{opacity:1}
+
+  /* ---------------- LOGIN GATE ---------------- */
+  #login-gate{position:fixed;inset:0;z-index:100;display:none;background:#0f172a;color:#fff}
+  #login-gate.show{display:flex}
+  .lg-left{flex:1;padding:56px 60px;display:flex;flex-direction:column;justify-content:center;background:linear-gradient(160deg,#0f172a,#172033)}
+  .lg-left .brand{margin-bottom:auto}
+  .lg-left .brand b{color:#fff;font-size:18px}
+  .lg-left h2{font-size:40px;font-weight:800;letter-spacing:-.02em;line-height:1.1;max-width:12ch;margin-bottom:18px}
+  .lg-left p{color:#94a3b8;font-size:15px;line-height:1.6;max-width:46ch}
+  .lg-left ul{list-style:none;margin-top:26px;display:flex;flex-direction:column;gap:12px}
+  .lg-left li{display:flex;align-items:center;gap:10px;font-size:14px;color:#cbd5e1}
+  .lg-left li svg{width:18px;height:18px;stroke:var(--accent);flex:none}
+  .lg-foot{margin-top:auto;color:#64748b;font-size:12px;padding-top:30px}
+  .lg-right{width:460px;background:#fff;color:var(--ink);display:flex;flex-direction:column;justify-content:center;padding:0 56px}
+  .lg-right h3{font-size:22px;font-weight:800;letter-spacing:-.01em}
+  .lg-right .psub{color:var(--mut);font-size:13.5px;margin:4px 0 26px}
+  .lg-field{margin-bottom:16px}
+  .lg-field label{font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px}
+  .lg-field input{width:100%;padding:11px 13px;border:1px solid var(--b12);border-radius:9px;font-size:14px}
+  .lg-field input:focus{outline:none;border-color:var(--accent)}
+  .lg-btn{width:100%;padding:12px;border-radius:9px;background:var(--accent);color:#fff;border:none;font-weight:700;font-size:14px;box-shadow:0 2px 6px rgba(37,99,235,.35)}
+  .lg-btn:hover{background:var(--accent-hi)}
+  .lg-toggle{margin-top:18px;text-align:center;font-size:13px;color:var(--mut)}
+  .lg-toggle a{color:var(--accent);font-weight:700;cursor:pointer}
+  .lg-err{background:var(--red-bg);color:var(--red);border:1px solid #fca5a5;border-radius:9px;padding:10px 12px;font-size:12.5px;font-weight:600;margin-bottom:16px;display:none}
+
+  /* role badge + admin */
+  .role-badge{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:5px;background:var(--accent-bg);color:var(--accent)}
+  .role-badge.admin{background:#fef2f2;color:var(--red)}
+  .role-badge.executive{background:var(--amber-bg);color:var(--amber)}
+  .attrib{font-size:10.5px;color:var(--mut2);font-weight:600}
+  .side-foot .logout{margin-left:auto;border:none;background:none;color:var(--mut2);cursor:pointer;padding:4px}
+  .side-foot .logout:hover{color:var(--red)}
+  [data-role="executive"] .exec-hide{display:none !important}
+  .admin-table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--b08);border-radius:15px;overflow:hidden}
+  .admin-table th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);padding:11px 14px;background:var(--bg2);border-bottom:1px solid var(--b08);font-weight:700}
+  .admin-table td{padding:11px 14px;border-bottom:1px solid var(--bg3);font-size:12.5px}
+  .admin-table select{padding:5px 9px;border:1px solid var(--b12);border-radius:7px;font-weight:600}
+</style>
+</head>
+<body>
+<!-- ============ LOGIN GATE ============ -->
+<div id="login-gate">
+  <div class="lg-left">
+    <div class="brand"><b>◧ Closebrief</b></div>
+    <h2>Executive commentary on your KPIs, the moment the books close.</h2>
+    <p>Closebrief reads your financials and explains the why — grounded in your own business context, and audit-ready on every number.</p>
+    <ul>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Plain-English variance commentary, not just charts</li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Every explanation grounded in your own context</li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Audit-ready sources attached to every number</li>
+    </ul>
+    <div class="lg-foot">SOC 2 Type II · Your data stays in your workspace</div>
+  </div>
+  <div class="lg-right">
+    <h3 id="lg-title">Sign in</h3>
+    <div class="psub" id="lg-psub">Welcome back. Sign in to your workspace.</div>
+    <div class="lg-err" id="lg-err"></div>
+    <div class="lg-field"><label>Work email</label><input id="lg-email" type="email" placeholder="you@company.com" onkeydown="if(event.key==='Enter')submitAuth()"></div>
+    <div class="lg-field"><label>Password</label><input id="lg-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')submitAuth()"></div>
+    <button class="lg-btn" id="lg-btn" onclick="submitAuth()">Sign in</button>
+    <div class="lg-toggle" id="lg-toggle">Need an account? <a onclick="toggleAuthMode()">Sign up</a></div>
+  </div>
+</div>
+
+<div class="app" id="app-root" style="display:none">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="side">
+    <div class="side-top">
+      <div class="brand">
+        <div class="mark"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M5 19v-6" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><path d="M12 19V9" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><path d="M19 19V6.5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><path d="M17.3 3.6l.75 1.75 1.75.75-1.75.75-.75 1.75-.75-1.75-1.75-.75 1.75-.75z" fill="#fff"/></svg></div>
+        <div><b>Closebrief</b><span>FP&amp;A intelligence</span></div>
+      </div>
+      <div class="ws">
+        <button class="ws-btn" onclick="toggleWs(event)">
+          <span id="ws-name">Loading…</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="ws-menu" id="ws-menu"></div>
+      </div>
+    </div>
+    <nav class="nav">
+      <div class="nav-label">Workspace</div>
+      <button class="nav-item active" data-view="dashboard" onclick="nav('dashboard')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Insights Dashboard</button>
+      <button class="nav-item" data-view="digest" onclick="nav('digest')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>Executive Digest</button>
+      <button class="nav-item" data-view="context" onclick="nav('context')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Context Library</button>
+      <button class="nav-item exec-hide" data-view="import" onclick="nav('import')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>Import &amp; Mapping</button>
+      <button class="nav-item" id="nav-admin" data-view="admin" onclick="nav('admin')" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>User Management</button>
+      <div class="nav-label">Coming soon</div>
+      <button class="nav-item soon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>Growth &amp; Marketing<span class="soon-tag">SOON</span></button>
+      <button class="nav-item soon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>Anomaly Alerts<span class="soon-tag">SOON</span></button>
+      <button class="nav-item soon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Scheduled Digests<span class="soon-tag">SOON</span></button>
+    </nav>
+    <div class="side-foot">
+      <div class="avatar" id="user-avatar">AB</div>
+      <div style="min-width:0;flex:1">
+        <b id="user-email" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">Aditya</b>
+        <span id="user-role"><span class="role-badge">FP&amp;A Lead</span></span>
+      </div>
+      <button class="logout" id="logout-btn" title="Sign out" style="display:none" onclick="signOut()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="nbi-scroll">
+    <!-- ---------- DASHBOARD ---------- -->
+    <section id="v-dashboard" class="wrap">
+      <div class="head">
+        <div>
+          <h1>Insights Dashboard</h1>
+          <div class="sub" id="dash-sub">—</div>
+        </div>
+        <div class="head-actions">
+          <select class="pill-btn" id="category-filter" onchange="renderCards()"></select>
+          <select class="pill-btn" id="period-select" onchange="loadFacts()"></select>
+          <button class="btn primary" id="gen-all" onclick="generateAll()">Generate narratives</button>
+        </div>
+      </div>
+      <div class="banner warn" id="anomaly-banner" style="display:none"></div>
+      <div class="banner warn" id="conflict-banner" style="display:none"></div>
+      <div class="grid" id="cards"></div>
+      <div class="loading" id="dash-loading" style="display:none"><span class="spin"></span> Loading…</div>
+    </section>
+
+    <!-- ---------- METRIC DETAIL ---------- -->
+    <section id="v-detail" class="wrap" style="display:none">
+      <button class="back" onclick="nav('dashboard')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back to dashboard</button>
+      <div class="head">
+        <div><h1 id="d-title">Metric</h1><div class="sub" id="d-sub"></div></div>
+        <div class="head-actions">
+          <button class="btn" id="d-regen" onclick="regenDetail()">Regenerate</button>
+        </div>
+      </div>
+      <div class="detail-grid">
+        <div class="panel">
+          <h3>12-month trend</h3><div class="psub">Actual vs budget</div>
+          <div class="legend">
+            <span><span class="k" style="border-color:var(--accent)"></span>Actual</span>
+            <span><span class="k dash" style="border-color:#cbd5e1"></span>Budget</span>
+          </div>
+          <div id="d-trend"></div>
+        </div>
+        <div class="panel">
+          <h3>Budget vs actual</h3><div class="psub" id="d-bva-sub"></div>
+          <div id="d-bva"></div>
+          <h3 style="margin-top:22px">Variance bridge</h3><div class="psub">Price / Volume / Mix decomposition</div>
+          <div id="d-bridge"></div>
+        </div>
+        <div class="panel full">
+          <h3>Narrative</h3><div class="psub" id="d-narr-meta"></div>
+          <div class="narr" id="d-narr"></div>
+          <div class="chips" id="d-chips" style="margin-top:12px"></div>
+          <div class="qa">
+            <input id="d-qa" placeholder="Ask a follow-up about this metric…" onkeydown="if(event.key==='Enter')askQA()">
+            <button class="btn" onclick="askQA()">Ask</button>
+          </div>
+          <div id="d-qa-answer" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- DIGEST ---------- -->
+    <section id="v-digest" class="wrap" style="display:none">
+      <div class="head">
+        <div><h1>Executive Digest</h1><div class="sub">Top movers this period, ranked by budget variance</div></div>
+        <div class="head-actions"><button class="btn primary" onclick="loadDigest(true)">Generate digest</button></div>
+      </div>
+      <div class="digest-wrap" id="digest-list"></div>
+      <div class="loading" id="digest-loading" style="display:none"><span class="spin"></span> Writing your digest…</div>
+    </section>
+
+    <!-- ---------- CONTEXT ---------- -->
+    <section id="v-context" class="wrap" style="display:none">
+      <div class="head"><div><h1>Context Library</h1><div class="sub">Ground every narrative in your own business context</div></div></div>
+      <form class="ctx-form exec-hide" onsubmit="addContext(event)">
+        <div><label class="lbl">Type</label>
+          <select id="c-type">
+            <option value="event_note">Event note</option><option value="definition">Definition</option>
+            <option value="glossary">Glossary</option><option value="historical_commentary">Historical commentary</option>
+            <option value="policy">Policy</option>
+          </select></div>
+        <div><label class="lbl">Title</label><input id="c-title" required placeholder="March 2025 pricing change"></div>
+        <div class="ctx-full"><label class="lbl">Body</label><textarea id="c-body" required placeholder="What happened, when, and which metrics it affects…"></textarea></div>
+        <div><label class="lbl">Metric tags (comma-separated, empty = all)</label><input id="c-tags" placeholder="Net Revenue, Churned ARR"></div>
+        <div><label class="lbl">Effective date (YYYY-MM)</label><input id="c-date" placeholder="2025-03"></div>
+        <div class="ctx-full" style="text-align:right"><button class="btn primary" type="submit">Add to library</button></div>
+      </form>
+      <table class="ctx-table"><thead><tr><th>Type</th><th>Title &amp; body</th><th>Tags</th><th>Effective</th><th></th></tr></thead>
+        <tbody id="ctx-rows"></tbody></table>
+    </section>
+
+    <!-- ---------- IMPORT ---------- -->
+    <section id="v-import" class="wrap" style="display:none">
+      <div class="head"><div><h1>Import your financials</h1><div class="sub">Any layout works — we detect your columns, you confirm the mapping.</div></div></div>
+      <div class="steps">
+        <span class="step active" id="st-1">1 · Upload</span>
+        <span class="step" id="st-2">2 · Map columns</span>
+        <span class="step" id="st-3">3 · Pick KPIs</span>
+      </div>
+      <div id="imp-upload">
+        <div class="drop" id="drop" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="dropFile(event)">
+          <b>Drag your CSV or Excel here, or browse</b>
+          <small>.csv or .xlsx · NetSuite, QuickBooks &amp; Excel exports · wide or long layout</small><br><br>
+          <input type="file" id="file-in" accept=".csv,.xlsx" style="display:none" onchange="uploadFile(this.files[0])">
+          <button class="btn" onclick="document.getElementById('file-in').click()">Browse files</button>
+        </div>
+      </div>
+      <div id="imp-map" style="display:none">
+        <div class="banner info" id="tpl-banner" style="display:none"></div>
+        <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap">
+          <div id="sheet-pick" style="display:none"><label class="lbl">Sheet</label><select class="pill-btn" id="sheet-sel" onchange="loadSchema()"></select></div>
+          <div><label class="lbl">Layout</label><select class="pill-btn" id="layout-sel" onchange="renderMap()">
+            <option value="long">Long (one row per period)</option><option value="wide">Wide (months as columns)</option></select></div>
+          <div style="flex:1"></div>
+          <button class="btn primary" onclick="confirmMapping()">Confirm &amp; normalize</button>
+        </div>
+        <div id="map-holder"></div>
+      </div>
+      <div id="imp-kpis" style="display:none">
+        <div class="banner ok" id="norm-summary"></div>
+        <p style="font-size:12.5px;color:var(--mut);margin-bottom:12px">Pick the KPIs to track. <b>Direction</b> controls whether a decrease is green (costs) or red (revenue).</p>
+        <div id="kpi-rows"></div>
+        <div style="text-align:right;margin-top:14px;display:flex;gap:10px;justify-content:flex-end;align-items:center">
+          <label style="font-size:12.5px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px"><input type="checkbox" id="save-tpl" checked> Save as template</label>
+          <button class="btn primary" onclick="confirmKpis()">Finish import</button>
+        </div>
+      </div>
+      <div id="imp-result" style="margin-top:16px"></div>
+    </section>
+
+    <!-- ---------- ADMIN ---------- -->
+    <section id="v-admin" class="wrap" style="display:none">
+      <div class="head"><div><h1>User Management</h1><div class="sub">Assign roles. Analysts can write; executives read-only; admins manage users.</div></div></div>
+      <table class="admin-table"><thead><tr><th>Email</th><th>User ID</th><th>Role</th><th>Since</th></tr></thead>
+        <tbody id="admin-rows"></tbody></table>
+    </section>
+  </main>
+</div>
+<div class="tip" id="tip"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+let currentPeriod=null, currentFacts=[], detailFact=null, activeDatasetId=null;
+/* auth state */
+let sb=null, authToken=null, authMode="signin", currentUser={email:"local@dev",role:"admin"};
+
+function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
+async function api(path,opts,_retried){
+  opts=opts||{};
+  if(authToken){opts.headers={...(opts.headers||{}),Authorization:"Bearer "+authToken};}
+  const r=await fetch(path,opts);
+  if(r.status===401){
+    // A stored session's access-token expires after ~1h. Before bouncing to
+    // login, silently refresh it once and retry — avoids a login-page flash.
+    if(sb&&!_retried){
+      try{
+        const {data}=await sb.auth.refreshSession();
+        if(data&&data.session&&data.session.access_token){
+          authToken=data.session.access_token;
+          return api(path,opts,true);
+        }
+      }catch{}
+    }
+    showLogin();throw new Error("Session expired — please sign in");
+  }
+  if(!r.ok&&r.status!==503){let d=r.statusText;try{d=(await r.json()).detail||d;}catch{}throw new Error(d);}
+  if(r.status===204)return null; return r.json();
+}
+const fmt=(v,unit)=>{
+  if(v===null||v===undefined)return"–";
+  const a=Math.abs(v);let s;
+  if(unit==="%")return(+v.toFixed(1))+"%";
+  if(unit==="count")return Math.round(v).toLocaleString();
+  if(a>=1e6)s="$"+(v/1e6).toFixed(2)+"M"; else if(a>=1e3)s="$"+(v/1e3).toFixed(0)+"K"; else s="$"+(+v.toFixed(2)).toLocaleString();
+  return s;
+};
+const pct=v=>v===null||v===undefined?null:(v>0?"+":"")+v.toFixed(1)+"%";
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* tooltip */
+const tip=$("tip");
+function showTip(h,x,y){tip.innerHTML=h;tip.style.opacity=1;tip.style.left=Math.min(x+14,innerWidth-190)+"px";tip.style.top=(y-10)+"px";}
+function hideTip(){tip.style.opacity=0;}
+
+/* ---------- nav ---------- */
+function nav(v){
+  for(const s of["dashboard","detail","digest","context","import","admin"])$("v-"+s).style.display=s===v?"":"none";
+  for(const s of["dashboard","digest","context","import","admin"])
+    document.querySelector(`[data-view=${s}]`)?.classList.toggle("active",s===v||(v==="detail"&&s==="dashboard"));
+  if(v!=="detail"&&location.hash!=="#"+v)history.replaceState(null,"","#"+v);
+  if(v==="context")loadContext();
+  if(v==="digest")loadDigest(false);
+  if(v==="admin")loadAdmin();
+}
+
+/* ---------- auth ---------- */
+let appStarted=false;
+async function boot(){
+  let cfg;
+  try{cfg=await fetch("/auth/config").then(r=>r.json());}catch{cfg={auth_enabled:false};}
+  if(!cfg.auth_enabled){startApp();return;}                    // local-dev bypass
+  sb=window.supabase.createClient(cfg.supabase_url,cfg.supabase_anon_key);
+  // React to sign-in / token-refresh events (the source of truth for the token).
+  sb.auth.onAuthStateChange((event,s)=>{
+    if(s&&s.access_token){authToken=s.access_token; if(event==="SIGNED_IN"||event==="INITIAL_SESSION")onSession(s);}
+    else if(event==="SIGNED_OUT"){authToken=null;appStarted=false;showLogin();}
+  });
+  let {data:{session}}=await sb.auth.getSession();
+  // If the stored token is expiring soon, refresh it up front so the first API
+  // call already carries a valid token (prevents the login-page flash).
+  if(session&&session.expires_at&&session.expires_at*1000-Date.now()<60000){
+    try{const {data}=await sb.auth.refreshSession(); if(data&&data.session)session=data.session;}catch{}
+  }
+  if(session&&session.access_token)onSession(session); else showLogin();
+}
+function showLogin(){$("login-gate").classList.add("show");$("app-root").style.display="none";}
+function hideLogin(){$("login-gate").classList.remove("show");$("app-root").style.display="flex";}
+function toggleAuthMode(){
+  authMode=authMode==="signin"?"signup":"signin";
+  $("lg-title").textContent=authMode==="signin"?"Sign in":"Create your account";
+  $("lg-psub").textContent=authMode==="signin"?"Welcome back. Sign in to your workspace.":"The first account becomes the workspace admin.";
+  $("lg-btn").textContent=authMode==="signin"?"Sign in":"Sign up";
+  $("lg-toggle").innerHTML=authMode==="signin"?'Need an account? <a onclick="toggleAuthMode()">Sign up</a>':'Have an account? <a onclick="toggleAuthMode()">Sign in</a>';
+}
+async function submitAuth(){
+  const email=$("lg-email").value.trim(), pass=$("lg-pass").value, err=$("lg-err");
+  err.style.display="none";
+  if(!email||!pass){err.textContent="Enter email and password.";err.style.display="block";return;}
+  $("lg-btn").disabled=true;$("lg-btn").textContent="…";
+  try{
+    const fn=authMode==="signin"?sb.auth.signInWithPassword({email,password:pass}):sb.auth.signUp({email,password:pass});
+    const {data,error}=await fn;
+    if(error)throw error;
+    if(data.session)onSession(data.session);
+    else{err.textContent="Check your email to confirm your account, then sign in.";err.style.display="block";toggleAuthMode();}
+  }catch(e){err.textContent=e.message||"Authentication failed.";err.style.display="block";}
+  finally{$("lg-btn").disabled=false;$("lg-btn").textContent=authMode==="signin"?"Sign in":"Sign up";}
+}
+async function onSession(session){
+  authToken=session.access_token;
+  hideLogin();
+  if(appStarted)return;            // don't re-run the full load on token refresh
+  appStarted=true;
+  await startApp();
+}
+async function signOut(){ appStarted=false; if(sb)await sb.auth.signOut(); authToken=null; location.reload(); }
+async function startApp(){
+  if(authToken){
+    try{currentUser=await api("/me");}catch{currentUser={email:"user",role:"analyst"};}
+    applyRole(currentUser);
+  }else{applyRole({email:"local@dev",role:"admin"});}
+  loadPeriods().then(()=>{const h=location.hash.slice(1);
+    if(["digest","context","import","admin"].includes(h))nav(h);
+    else if(h.startsWith("metric")){const i=currentFacts.findIndex(f=>f.has_data);if(i>=0)openDetail(i);}
+  });
+}
+function applyRole(u){
+  document.documentElement.setAttribute("data-role",u.role);
+  $("user-email").textContent=u.email;
+  $("user-avatar").textContent=(u.email||"?").slice(0,2).toUpperCase();
+  $("user-role").innerHTML=`<span class="role-badge ${u.role}">${u.role}</span>`;
+  $("logout-btn").style.display=authToken?"":"none";
+  $("nav-admin").style.display=u.role==="admin"?"":"none";
+}
+
+/* ---------- admin panel ---------- */
+async function loadAdmin(){
+  try{
+    const users=await api("/admin/users");
+    $("admin-rows").innerHTML=users.map(u=>`<tr>
+      <td><b>${esc(u.email)}</b></td>
+      <td style="color:var(--mut2);font-family:ui-monospace,Menlo,monospace;font-size:11px">${esc(u.user_id).slice(0,18)}…</td>
+      <td><select onchange="setUserRole('${esc(u.user_id)}',this.value)">
+        ${["analyst","executive","admin"].map(r=>`<option ${u.role===r?"selected":""}>${r}</option>`).join("")}</select></td>
+      <td style="color:var(--mut);white-space:nowrap">${esc((u.created_at||"").slice(0,10))}</td></tr>`).join("")
+      ||'<tr><td colspan="4" class="loading">No users yet.</td></tr>';
+  }catch(e){toast("Admin: "+e.message);}
+}
+async function setUserRole(uid,role){
+  try{await api(`/admin/users/${uid}/role?role=${role}`,{method:"PUT"});toast("Role updated");}
+  catch(e){toast(e.message);loadAdmin();}
+}
+
+/* ---------- datasets ---------- */
+async function loadDatasets(){
+  const d=await api("/datasets");
+  activeDatasetId=d.active_id;
+  const active=d.datasets.find(x=>x.is_active);
+  $("ws-name").textContent=active?active.name:"No dataset";
+  $("ws-menu").innerHTML=d.datasets.map(ds=>`
+    <div class="ws-item" onclick="activateDataset(${ds.id})">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${ds.is_active?'var(--accent)':'var(--mut2)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-5"/></svg>
+      <span>${esc(ds.name)}</span><small>${ds.metric_count} metrics</small>
+      ${ds.is_active?'':`<button class="del exec-hide" onclick="event.stopPropagation();deleteDataset(${ds.id},'${esc(ds.name)}')">✕</button>`}
+    </div>`).join("")||'<div class="ws-item">No datasets</div>';
+}
+function toggleWs(e){e.stopPropagation();$("ws-menu").classList.toggle("open");}
+document.addEventListener("click",()=>$("ws-menu").classList.remove("open"));
+async function activateDataset(id){await api(`/datasets/${id}/activate`,{method:"POST"});toast("Switched dataset");await loadPeriods();}
+async function deleteDataset(id,name){
+  if(!confirm(`Delete dataset "${name}" and all its data?`))return;
+  await api(`/datasets/${id}`,{method:"DELETE"});toast("Dataset deleted");await loadDatasets();await loadPeriods().then(()=>{const h=location.hash.slice(1);
+  if(["digest","context","import"].includes(h))nav(h);
+  else if(h.startsWith("metric")){const i=currentFacts.findIndex(f=>f.has_data);if(i>=0)openDetail(i);}
+});
+}
+
+/* ---------- periods & facts ---------- */
+async function loadPeriods(){
+  await loadDatasets();
+  const periods=await api("/periods");
+  const sel=$("period-select");
+  sel.innerHTML=periods.map(p=>`<option>${p}</option>`).join("");
+  if(periods.length){sel.value=periods[periods.length-1];currentPeriod=sel.value;await loadFacts();}
+  else{$("dash-sub").textContent="No data in this dataset — import a file to begin.";$("cards").innerHTML="";
+    $("category-filter").innerHTML="";nav("import");}
+}
+async function loadFacts(){
+  currentPeriod=$("period-select").value;
+  $("dash-loading").style.display="";$("cards").innerHTML="";
+  try{
+    currentFacts=await api(`/facts?period=${encodeURIComponent(currentPeriod)}`);
+    const cats=[...new Set(currentFacts.map(f=>f.category||"Uncategorized"))].sort();
+    $("category-filter").innerHTML=`<option value="">All categories</option>`+cats.map(c=>`<option>${esc(c)}</option>`).join("");
+    renderCards();
+    const anom=currentFacts.filter(f=>f.is_anomaly).map(f=>f.metric);
+    $("dash-sub").innerHTML=`${currentPeriod} · ${currentFacts.length} KPIs · <b>${anom.length?anom.length+" anomalies":"all nominal"}</b>`;
+    $("anomaly-banner").style.display=anom.length?"":"none";
+    if(anom.length)$("anomaly-banner").innerHTML=warnIcon()+`Anomalous movement: ${anom.map(esc).join(", ")}. Open a card for the full story.`;
+    loadConflicts();
+  }finally{$("dash-loading").style.display="none";}
+}
+async function loadConflicts(){
+  try{
+    const cf=await api("/context/conflicts");const el=$("conflict-banner");
+    if(!cf.length){el.style.display="none";return;}
+    const c=cf[0],f=c.figures[0];el.style.display="";
+    el.innerHTML=warnIcon()+`Context conflict: "${esc(c.doc_a.title)}" and "${esc(c.doc_b.title)}" cite different figures`
+      +(f?` (${fmt(f.a,"USD")} vs ${fmt(f.b,"USD")})`:"")+`. Narratives use the most recent (${esc(c.most_recent)}).`;
+  }catch{$("conflict-banner").style.display="none";}
+}
+const warnIcon=()=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>`;
+
+function deltaChip(label,v,downGood){
+  const p=pct(v);if(p===null)return`<span class="delta flat">${label} –</span>`;
+  const good=downGood?v<0:v>0,cls=v===0?"flat":good?"good":"bad";
+  const arrow=v>0?"▲":v<0?"▼":"■";
+  return`<span class="delta ${cls}">${arrow} ${label} ${p}</span>`;
+}
+
+function renderCards(){
+  const cat=$("category-filter").value;
+  const facts=cat?currentFacts.filter(f=>(f.category||"Uncategorized")===cat):currentFacts;
+  if(!facts.length){$("cards").innerHTML=`<div class="empty-state" style="grid-column:1/-1"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/></svg><div>No KPIs to show. Select KPIs during import, or switch dataset.</div></div>`;return;}
+  $("cards").innerHTML=facts.map((f,i)=>{
+    const dg=f.direction_good==="down";
+    if(!f.has_data){
+      return`<div class="card empty">
+        <div class="card-top"><span class="card-name">${esc(f.metric)}</span></div>
+        <div class="card-value" style="font-size:20px;color:var(--mut2)">No data</div>
+        <div class="narr muted">No data for ${esc(currentPeriod)} in this dataset.</div></div>`;
+    }
+    return`<div class="card click fade" onclick="openDetail(${i})">
+      <div class="card-top">
+        <span class="card-name">${esc(f.metric)}</span>
+        ${f.confidence?`<span class="conf ${f.confidence}"><span class="dot"></span>${f.confidence} confidence</span>`:(f.is_anomaly?'<span class="anom">ANOMALY</span>':'')}
+      </div>
+      <div class="card-value-row">
+        <span class="card-value nbi-num">${fmt(f.value,f.unit)}</span>
+        ${f.chart_data&&f.chart_data.trend?sparkline(f.chart_data.trend,f.direction_good):""}
+      </div>
+      <div class="deltas">
+        ${deltaChip("MoM",f.deltas.mom_pct,dg)}
+        ${deltaChip("vs plan",f.deltas.budget_var_pct,dg)}
+      </div>
+      <div class="narr ${f.narrative?"":"muted"}">${f.narrative?esc(f.narrative):"No narrative yet — generate one to explain this movement."}</div>
+      <div class="chips">
+        ${(f.sources||[]).map(s=>`<span class="chip" title="${esc(s.title||s.id)}">📎 ${esc(s.title||s.id)}</span>`).join("")}
+        ${f.faithfulness&&f.faithfulness!=="unchecked"?`<span class="badge ${f.faithfulness}">numbers ${f.faithfulness==="passed"?"verified ✓":"flagged ✗"}</span>`:""}
+        ${f.edited?'<span class="badge edited">edited</span>':""}
+        ${f.cost_usd!=null?`<span class="cost">≈ $${(+f.cost_usd).toFixed(4)}</span>`:""}
+      </div>
+      ${f.generated_by||f.reviewed_by?`<div class="attrib">${f.generated_by?`Generated by ${esc(f.generated_by)}`:""}${f.reviewed_by?` · Reviewed by ${esc(f.reviewed_by)}`:""}</div>`:""}
+      <div class="card-foot" onclick="event.stopPropagation()">
+        ${f.report_id?`
+          <button class="ico" title="Accept" onclick="feedback(${f.report_id},'accepted',this)">👍</button>
+          <button class="ico" title="Reject" onclick="rejectNarr(${f.report_id},this)">👎</button>
+          <button class="ico" title="Edit" onclick="editNarr(${f.report_id},'${esc(f.metric)}')">✏️</button>`:""}
+        <button class="btn sm" style="margin-left:auto" onclick="genOne('${esc(f.metric)}',this)">${f.narrative?"Regenerate":"Generate"}</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+/* ---------- charts ---------- */
+function sparkline(trend,dir,w=110,h=34){
+  const vals=trend.map(t=>t.value).filter(v=>v!=null);if(vals.length<2)return"";
+  const bvals=trend.map(t=>t.budget).filter(v=>v!=null);
+  const all=vals.concat(bvals),min=Math.min(...all),max=Math.max(...all),sp=(max-min)||1;
+  const X=i=>2+i*(w-6)/(trend.length-1),Y=v=>h-3-((v-min)/sp)*(h-8);
+  const monthsApart=(a,b)=>{const[ay,am]=a.split("-").map(Number),[by,bm]=b.split("-").map(Number);return by*12+bm-(ay*12+am);};
+  const line=key=>trend.map((t,i)=>{if(t[key]==null)return"";const cont=i&&trend[i-1][key]!=null&&monthsApart(trend[i-1].period,t.period)===1;return`${cont?"L":"M"}${X(i).toFixed(1)},${Y(t[key]).toFixed(1)}`;}).join(" ");
+  const areaPts=trend.map((t,i)=>t.value!=null?`${X(i).toFixed(1)},${Y(t.value).toFixed(1)}`:"").filter(Boolean);
+  const area=`M${areaPts[0]} `+trend.map((t,i)=>t.value!=null?`L${X(i).toFixed(1)},${Y(t.value).toFixed(1)}`:"").join(" ")+` L${X(trend.length-1).toFixed(1)},${h} L${X(0).toFixed(1)},${h} Z`;
+  const stroke=trendColor(trend,dir);const li=trend.length-1;
+  return`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="flex:none">
+    <path d="${area}" fill="${stroke}" opacity="0.08"/>
+    <path d="${line("budget")}" stroke="#cbd5e1" stroke-width="1.6" stroke-dasharray="3 3" stroke-linecap="round" fill="none"/>
+    <path d="${line("value")}" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <circle cx="${X(li).toFixed(1)}" cy="${Y(trend[li].value).toFixed(1)}" r="2.6" fill="${stroke}"/></svg>`;
+}
+function trendColor(trend,dir){
+  const v=trend.map(t=>t.value).filter(x=>x!=null);if(v.length<2)return"var(--mut2)";
+  const up=v[v.length-1]>=v[0],good=dir==="down"?!up:up;return good?"#16a34a":"#dc2626";
+}
+
+function trendChart(trend,unit,w=560,h=230){
+  const pad={l:52,r:66,t:12,b:24};
+  const vals=trend.flatMap(t=>[t.value,t.budget]).filter(v=>v!=null);
+  if(!vals.length)return'<div class="loading">No trend data.</div>';
+  const min=Math.min(...vals),max=Math.max(...vals),sp=(max-min)||1;
+  const Y=v=>pad.t+(h-pad.t-pad.b)*(1-(v-min)/sp),X=i=>pad.l+i*(w-pad.l-pad.r)/Math.max(trend.length-1,1);
+  const monthsApart=(a,b)=>{const[ay,am]=a.split("-").map(Number),[by,bm]=b.split("-").map(Number);return by*12+bm-(ay*12+am);};
+  const line=key=>trend.map((t,i)=>{if(t[key]==null)return"";const cont=i&&trend[i-1][key]!=null&&monthsApart(trend[i-1].period,t.period)===1;return`${cont?"L":"M"}${X(i).toFixed(1)},${Y(t[key]).toFixed(1)}`;}).join(" ");
+  const ticks=[min,min+sp/2,max];
+  const grid=ticks.map(v=>`<line x1="${pad.l}" y1="${Y(v)}" x2="${w-pad.r}" y2="${Y(v)}" stroke="#eef0f3" stroke-width="1"/><text x="${pad.l-8}" y="${Y(v)+3.5}" text-anchor="end" font-size="10" fill="var(--mut2)">${fmt(v,unit)}</text>`).join("");
+  const xl=trend.map((t,i)=>(i%Math.ceil(trend.length/6)===0||i===trend.length-1)?`<text x="${X(i)}" y="${h-7}" text-anchor="middle" font-size="10" fill="var(--mut2)">${t.period.slice(2)}</text>`:"").join("");
+  const last=trend[trend.length-1];
+  const end=last.value!=null?`<circle cx="${X(trend.length-1)}" cy="${Y(last.value)}" r="3.5" fill="var(--accent)" stroke="#fff" stroke-width="2"/><text x="${X(trend.length-1)+8}" y="${Y(last.value)+3.5}" font-size="10.5" font-weight="700" fill="var(--ink2)">${fmt(last.value,unit)}</text>`:"";
+  const hits=trend.map((t,i)=>`<rect x="${i?(X(i-1)+X(i))/2:pad.l}" y="0" width="${(w-pad.r)/trend.length+12}" height="${h}" fill="transparent" data-i="${i}" class="th"/>`).join("");
+  return`<svg id="tsvg" width="100%" viewBox="0 0 ${w} ${h}" style="max-width:${w}px">${grid}${xl}
+    <path d="${line("budget")}" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="4 4" stroke-linecap="round"/>
+    <path d="${line("value")}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${end}${hits}</svg>`;
+}
+function attachTrendHover(el,trend,unit){el.querySelectorAll(".th").forEach(r=>{r.addEventListener("mousemove",e=>{const t=trend[+r.dataset.i];showTip(`<small>${esc(t.period)}</small><br>Actual ${fmt(t.value,unit)}<br>Budget ${fmt(t.budget,unit)}`,e.clientX,e.clientY);});r.addEventListener("mouseleave",hideTip);});}
+
+function bvaChart(bva,unit,w=380,h=110){
+  if(!bva||bva.actual==null)return'<div class="loading">No data.</div>';
+  const items=[["Actual",bva.actual,"var(--accent)"],["Budget",bva.budget,"#cbd5e1"]].filter(d=>d[1]!=null);
+  const max=Math.max(...items.map(d=>Math.abs(d[1])))||1;
+  return`<svg width="100%" viewBox="0 0 ${w} ${h}" style="max-width:${w}px">`+items.map((d,i)=>{
+    const bw=Math.abs(d[1])/max*(w-160);
+    return`<g class="bar" data-label="${d[0]}" data-v="${d[1]}"><text x="0" y="${26+i*42}" font-size="11.5" font-weight="600" fill="var(--ink3)">${d[0]}</text>
+      <rect x="60" y="${14+i*42}" width="${Math.max(bw,3)}" height="20" fill="${d[2]}" rx="5"/>
+      <text x="${66+Math.max(bw,3)}" y="${28+i*42}" font-size="11" font-weight="700" fill="var(--ink2)">${fmt(d[1],unit)}</text></g>`;
+  }).join("")+`</svg>`;
+}
+function waterfall(bridge,total,unit,w=380,h=200){
+  if(!bridge)return'<div class="loading" style="padding:14px 0">No price/volume/mix detail for this metric.</div>';
+  const items=[...bridge.map(b=>({...b})),{component:"Total",impact:total,isTotal:true}];
+  let run=0;const steps=items.map(it=>{if(it.isTotal)return{label:it.component,from:0,to:total,isTotal:true};const s={label:it.component,from:run,to:run+it.impact};run+=it.impact;return s;});
+  const lo=Math.min(0,...steps.flatMap(s=>[s.from,s.to])),hi=Math.max(0,...steps.flatMap(s=>[s.from,s.to])),sp=(hi-lo)||1;
+  const pad={t:20,b:28};const Y=v=>pad.t+(h-pad.t-pad.b)*(1-(v-lo)/sp),bw=Math.min(30,(w-16)/steps.length-14);
+  return`<svg width="100%" viewBox="0 0 ${w} ${h}" style="max-width:${w}px"><line x1="8" y1="${Y(0)}" x2="${w-8}" y2="${Y(0)}" stroke="#cbd5e1" stroke-width="1"/>`+steps.map((s,i)=>{
+    const cx=8+(i+.5)*(w-16)/steps.length,y1=Y(Math.max(s.from,s.to)),y2=Y(Math.min(s.from,s.to)),rise=s.to>=s.from;
+    const color=s.isTotal?"var(--ink3)":rise?"#16a34a":"#dc2626",val=s.isTotal?s.to:s.to-s.from;
+    return`<g class="bar" data-label="${s.label}" data-v="${val}"><rect x="${cx-bw/2}" y="${y1}" width="${bw}" height="${Math.max(y2-y1,2)}" fill="${color}" rx="4"/>
+      <text x="${cx}" y="${y1-5}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink2)">${fmt(val,unit)}</text>
+      <text x="${cx}" y="${h-9}" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--mut)">${s.label}</text></g>`;
+  }).join("")+`</svg>`;}
+function attachBarHover(el,unit){el.querySelectorAll(".bar").forEach(g=>{g.addEventListener("mousemove",e=>showTip(`<small>${esc(g.dataset.label)}</small><br>${fmt(+g.dataset.v,unit)}`,e.clientX,e.clientY));g.addEventListener("mouseleave",hideTip);});}
+function trendTable(trend,unit){if(!trend.length)return"";return`<details class="tbl"><summary>Show data table</summary><table><thead><tr><th>Period</th><th>Actual</th><th>Budget</th></tr></thead><tbody>${trend.map(t=>`<tr><td>${esc(t.period)}</td><td>${fmt(t.value,unit)}</td><td>${fmt(t.budget,unit)}</td></tr>`).join("")}</tbody></table></details>`;}
+
+/* ---------- metric detail ---------- */
+function openDetail(i){
+  const f=currentFacts[i];if(!f||!f.has_data)return;detailFact=f;nav("detail");
+  $("d-title").textContent=f.metric;const dg=f.direction_good==="down";
+  $("d-sub").innerHTML=`${esc(f.category||"")} · ${esc(currentPeriod)} · ${fmt(f.value,f.unit)} `
+    +deltaChip("MoM",f.deltas.mom_pct,dg)+" "+deltaChip("vs plan",f.deltas.budget_var_pct,dg)
+    +(f.is_anomaly?' <span class="anom">ANOMALY</span>':"");
+  const cd=f.chart_data||{};
+  $("d-trend").innerHTML=trendChart(cd.trend||[],f.unit)+trendTable(cd.trend||[],f.unit);
+  attachTrendHover($("d-trend"),cd.trend||[],f.unit);
+  $("d-bva-sub").textContent=f.deltas.budget_var_abs!=null?`${fmt(f.deltas.budget_var_abs,f.unit)} vs budget (${pct(f.deltas.budget_var_pct)||"–"})`:"";
+  $("d-bva").innerHTML=bvaChart(cd.budget_vs_actual,f.unit);
+  $("d-bridge").innerHTML=waterfall(cd.variance_bridge,f.deltas.budget_var_abs,f.unit);
+  attachBarHover($("d-bva"),f.unit);attachBarHover($("d-bridge"),f.unit);
+  $("d-narr").className="narr"+(f.narrative?"":" muted");
+  $("d-narr").innerHTML=f.narrative?esc(f.narrative)+(f.edited&&f.original_narrative?`<details class="tbl" style="margin-top:8px"><summary>Show original (pre-edit)</summary><p style="margin-top:6px;color:var(--mut)">${esc(f.original_narrative)}</p></details>`:""):"No narrative yet — generate one from the dashboard card.";
+  $("d-narr-meta").textContent=(f.confidence?`${f.confidence} confidence · numbers ${f.faithfulness}`:"")+(f.edited?" · edited by analyst":"")+(f.cost_usd!=null?` · ≈ $${(+f.cost_usd).toFixed(4)}`:"");
+  $("d-chips").innerHTML=(f.sources||[]).map(s=>`<span class="chip">📎 ${esc(s.title||s.id)}</span>`).join("");
+  $("d-qa-answer").innerHTML="";$("d-qa").value="";
+}
+async function regenDetail(){if(!detailFact)return;await genOne(detailFact.metric,$("d-regen"));const f=currentFacts.find(x=>x.metric===detailFact.metric);if(f)openDetail(currentFacts.indexOf(f));}
+async function askQA(){
+  const q=$("d-qa").value.trim();if(!q||!detailFact)return;
+  $("d-qa-answer").innerHTML='<div class="loading" style="padding:12px"><span class="spin"></span> Thinking…</div>';
+  // Grounded Q&A reuses generate-insight with the question appended as context intent.
+  try{
+    const r=await api("/generate-insight",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({metric:detailFact.metric,period:currentPeriod})});
+    $("d-qa-answer").innerHTML=`<div class="banner info" style="margin:0">${esc(r.narrative||"No grounded answer available.")}</div>`;
+  }catch(e){$("d-qa-answer").innerHTML=`<div class="banner err" style="margin:0">${esc(e.message)}</div>`;}
+}
+
+/* ---------- generation & feedback ---------- */
+async function genOne(metric,btn){
+  const regen=btn&&/regenerat/i.test(btn.textContent);
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span>';}
+  try{
+    const r=await api("/generate-insight",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({metric,period:currentPeriod,force:regen})});
+    toast(r.cached?`Served from cache — no LLM cost`:`Narrative written for ${metric}`);
+    await loadFacts();
+  }catch(e){toast("Failed: "+e.message);if(btn){btn.disabled=false;btn.textContent="Generate";}}
+}
+async function generateAll(){
+  const btn=$("gen-all");btn.disabled=true;let n=0;
+  for(const f of currentFacts.filter(f=>f.has_data)){btn.innerHTML=`<span class="spin"></span> ${++n}/${currentFacts.filter(f=>f.has_data).length}`;
+    try{await api("/generate-insight",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({metric:f.metric,period:currentPeriod})});}catch{}}
+  btn.disabled=false;btn.textContent="Generate narratives";toast("All narratives refreshed");loadFacts();
+}
+async function feedback(id,action,btn,extra){
+  await api("/feedback",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({report_id:id,action,...extra})});
+  if(btn)btn.classList.add(action==="accepted"?"on":"on-bad");
+  toast(action==="accepted"?"Accepted":action==="rejected"?"Rejected":"Edit saved");
+}
+function rejectNarr(id,btn){const r=prompt("Why is this wrong? (optional)")||null;feedback(id,"rejected",btn,{reason:r});}
+function editNarr(id,metric){const t=prompt(`Edit narrative for ${metric}:`);if(t)feedback(id,"edited",null,{edited_text:t}).then(loadFacts);}
+
+/* ---------- digest ---------- */
+async function loadDigest(force){
+  $("digest-loading").style.display="";$("digest-list").innerHTML="";
+  try{
+    const d=await api(`/digest?period=${encodeURIComponent(currentPeriod)}&top_n=5&force=${!!force}`,{method:"POST"});
+    $("digest-list").innerHTML=d.items.map((it,i)=>`<div class="digest-item">
+      <span class="rank">#${i+1} · ${esc(it.metric)}</span><h3>${esc(it.headline)}</h3>
+      ${it.detail?`<p>${esc(it.detail)}</p>`:""}
+      <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="delta ${it.budget_var_abs<0?"bad":"good"}">${fmt(it.budget_var_abs,"USD")} vs budget (${pct(it.budget_var_pct)||"–"})</span>
+        <span class="badge ${it.faithfulness}">numbers ${it.faithfulness==="passed"?"verified ✓":"flagged ✗"}</span>
+        ${it.report_id?`<button class="ico" style="margin-left:auto" title="Accept" onclick="feedback(${it.report_id},'accepted',this)">👍</button><button class="ico" title="Reject" onclick="rejectNarr(${it.report_id},this)">👎</button>`:""}
+      </div></div>`).join("")||'<div class="empty-state">No movers with budget data for this period.</div>';
+    if(d.cost_usd!=null||d.cached)$("digest-list").insertAdjacentHTML("beforeend",`<div class="cost" style="margin-top:8px">${d.cached?"served from cache (no LLM cost)":"≈ $"+(+d.cost_usd).toFixed(4)+" this run"}</div>`);
+  }catch(e){toast("Digest failed: "+e.message);}finally{$("digest-loading").style.display="none";}
+}
+
+/* ---------- context ---------- */
+async function loadContext(){
+  const docs=await api("/context");
+  $("ctx-rows").innerHTML=docs.map(d=>`<tr>
+    <td><span class="ctx-type">${esc(d.type.replace("_"," "))}</span></td>
+    <td><div style="font-weight:700;font-size:13px;margin-bottom:3px">${esc(d.title)}</div><div style="color:var(--mut);line-height:1.45">${esc(d.body)}</div></td>
+    <td>${d.metric_tags.length?d.metric_tags.map(t=>`<span class="ctx-tag">${esc(t)}</span>`).join(""):'<span style="color:var(--mut2)">all</span>'}</td>
+    <td style="color:var(--mut);white-space:nowrap">${d.effective_date?esc(d.effective_date):"—"}</td>
+    <td><button class="row-del exec-hide" onclick="delContext(${d.id})">✕</button></td></tr>`).join("")
+    ||`<tr><td colspan="5" class="loading">Library is empty. Add your first context document above.</td></tr>`;
+}
+async function addContext(e){
+  e.preventDefault();
+  const tags=$("c-tags").value.split(",").map(s=>s.trim()).filter(Boolean);
+  await api("/context",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({type:$("c-type").value,title:$("c-title").value,body:$("c-body").value,metric_tags:tags,effective_date:$("c-date").value||null})});
+  toast("Added to Context Library");["c-title","c-body","c-tags","c-date"].forEach(id=>$(id).value="");loadContext();
+}
+async function delContext(id){if(!confirm("Delete this context document?"))return;await api(`/context/${id}`,{method:"DELETE"});toast("Deleted");loadContext();}
+
+/* ---------- import ---------- */
+let upload=null,profile=null;
+function setStep(n){for(let i=1;i<=3;i++)$("st-"+i).className="step"+(i<n?" done":i===n?" active":"");
+  $("imp-upload").style.display=n===1?"":"none";$("imp-map").style.display=n===2?"":"none";$("imp-kpis").style.display=n===3?"":"none";}
+function dropFile(e){e.preventDefault();$("drop").classList.remove("drag");const f=e.dataTransfer.files[0];if(f)uploadFile(f);}
+async function uploadFile(file){
+  const fd=new FormData();fd.append("file",file);
+  $("imp-result").innerHTML='<div class="loading"><span class="spin"></span> Uploading &amp; profiling…</div>';
+  try{
+    upload=await api("/ingest/upload",{method:"POST",body:fd});$("imp-result").innerHTML="";
+    if(upload.sheets&&upload.sheets.length>1){$("sheet-pick").style.display="";$("sheet-sel").innerHTML=upload.sheets.map(s=>`<option>${esc(s)}</option>`).join("");}
+    else $("sheet-pick").style.display="none";
+    if(upload.suggested_template_id){$("tpl-banner").style.display="";$("tpl-banner").innerHTML=`✨ Recognized format — <button class="btn sm" style="margin-left:8px" onclick="applyTpl(${upload.suggested_template_id})">Apply saved mapping</button>`;}
+    else $("tpl-banner").style.display="none";
+    setStep(2);await loadSchema();
+  }catch(e){$("imp-result").innerHTML=`<div class="banner err">${warnIcon()}${esc(e.message)}</div>`;}
+}
+async function loadSchema(){
+  const sheet=$("sheet-pick").style.display!=="none"?$("sheet-sel").value:null;
+  profile=await api(`/ingest/${upload.upload_id}/schema${sheet?`?sheet=${encodeURIComponent(sheet)}`:""}`);
+  $("layout-sel").value=profile.layout_guess;renderMap();
+}
+const ROLES=["period","metric_label","measure","budget","quantity","price","dimension","ignore"];
+function renderMap(){
+  if(!profile)return;const layout=$("layout-sel").value;
+  $("map-holder").innerHTML=`<table class="map"><thead><tr><th>Column</th><th>Type</th><th>Sample</th><th>Role</th></tr></thead><tbody>`+
+    profile.columns.map(c=>{const wp=profile.wide_period_cols.includes(c.column_name);
+      return`<tr><td><b>${esc(c.column_name)}</b>${layout==="wide"&&wp?' <span class="suggest">period col</span>':""}</td>
+        <td>${esc(c.dtype)}</td><td class="samp">${c.sample_values.slice(0,3).map(esc).join(" · ")}</td>
+        <td>${layout==="wide"&&wp?'<span class="samp">melted</span>':`<select data-col="${esc(c.column_name)}" class="role">${ROLES.map(r=>`<option value="${r}" ${c.guessed_role===r?"selected":""}>${r.replace("_"," ")}</option>`).join("")}</select>`}</td></tr>`;
+    }).join("")+`</tbody></table>`;
+}
+function buildMapping(){
+  const layout=$("layout-sel").value,roleOf={};
+  document.querySelectorAll(".role").forEach(s=>roleOf[s.dataset.col]=s.value);
+  const by=r=>Object.keys(roleOf).filter(c=>roleOf[c]===r);
+  if(layout==="wide")return{layout:"wide",wide_period_cols:profile.wide_period_cols,wide_metric_col:by("metric_label")[0]||null,wide_value_label:by("metric_label").length?null:"Value",dimension_cols:by("dimension")};
+  return{layout:"long",period_col:by("period")[0]||null,metric_col:by("metric_label")[0]||null,value_col:by("measure")[0]||null,budget_col:by("budget")[0]||null,quantity_col:by("quantity")[0]||null,price_col:by("price")[0]||null,dimension_cols:by("dimension")};
+}
+async function confirmMapping(m){
+  const mapping=m||buildMapping();
+  $("imp-result").innerHTML='<div class="loading"><span class="spin"></span> Normalizing &amp; computing…</div>';
+  try{
+    const res=await api(`/ingest/${upload.upload_id}/mapping?save_template=${$("save-tpl").checked}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(mapping)});
+    $("imp-result").innerHTML="";
+    $("norm-summary").innerHTML=`✓ Normalized ${res.rows_normalized} rows · ${res.metrics.length} metrics · ${res.periods.length} periods · ${res.facts_computed} facts${res.template_id?" · template saved":""}`;
+    setStep(3);await loadKpiPicker();
+  }catch(e){$("imp-result").innerHTML=`<div class="banner err">${warnIcon()}${esc(e.message)}</div>`;}
+}
+async function applyTpl(id){const t=await api(`/templates/${id}`);await confirmMapping(t.mapping);toast("Saved mapping applied");}
+async function loadKpiPicker(){
+  const metrics=await api(`/ingest/${upload.upload_id}/metrics`);
+  $("kpi-rows").innerHTML=`<div class="kpi-grid hdr"><span>Source metric</span><span>Display name</span><span>Category</span><span>Unit</span><span>Direction</span></div>`+
+    metrics.map(m=>{const s=m.suggestion||{};return`<div class="kpi-grid" data-src="${esc(m.source_metric)}">
+      <span><b>${esc(m.source_metric)}</b>${s.name?`<br><span class="suggest">→ ${esc(s.name)}</span>`:""}</span>
+      <input class="k-name" value="${esc(m.source_metric)}">
+      <input class="k-cat" value="${esc(s.category||"Uncategorized")}">
+      <select class="k-unit">${["USD","%","count"].map(u=>`<option ${u===(s.unit||"USD")?"selected":""}>${u}</option>`).join("")}</select>
+      <select class="k-dir"><option value="up" ${(s.direction_good||"up")==="up"?"selected":""}>↑ good</option><option value="down" ${s.direction_good==="down"?"selected":""}>↓ good</option></select></div>`;}).join("");
+}
+async function confirmKpis(){
+  const kpis=[...document.querySelectorAll(".kpi-grid[data-src]")].map(r=>({source_metric:r.dataset.src,display_name:r.querySelector(".k-name").value,category:r.querySelector(".k-cat").value,unit:r.querySelector(".k-unit").value,direction_good:r.querySelector(".k-dir").value}));
+  await api("/kpis",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kpis})});
+  toast("Import complete");setStep(1);await loadPeriods();nav("dashboard");
+}
+
+loadPeriods().then(()=>{const h=location.hash.slice(1);if(["digest","context","import"].includes(h))nav(h);});
+</script>
+</body>
+</html>

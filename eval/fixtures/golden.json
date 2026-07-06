@@ -1,0 +1,217 @@
+{
+  "description": "Golden set for Closebrief eval (PRD Section 9). Each case: computed facts + context library + which context doc(s) retrieval must surface (recall@k) + cause keywords that a grounded narrative may only use if retrieved.",
+  "cases": [
+    {
+      "id": "case_01_revenue_pricing_drop",
+      "fact": {
+        "metric": "Net Revenue", "category": "Revenue", "period": "2025-03",
+        "value": 4200000, "prior_value": 4772727, "unit": "USD",
+        "deltas": {"mom_pct": -12.0, "yoy_pct": 4.5, "budget_var_abs": -370000, "budget_var_pct": -8.1},
+        "trend": "up", "is_anomaly": true
+      },
+      "context_docs": [
+        {"type": "event_note", "title": "March 2025 pricing change", "body": "On March 1 2025 enterprise prices rose 15 percent. Legacy enterprise accounts churned in response while new pricing attracted higher-value logos.", "metric_tags": ["Net Revenue"], "effective_date": "2025-03"},
+        {"type": "historical_commentary", "title": "Q1 seasonality", "body": "Q1 historically shows softer revenue due to enterprise budget cycles resetting.", "metric_tags": [], "effective_date": null}
+      ],
+      "expected_context_titles": ["March 2025 pricing change"],
+      "cause_keywords": ["pricing", "churn"]
+    },
+    {
+      "id": "case_02_opex_hiring_spike",
+      "fact": {
+        "metric": "Operating Expenses", "category": "Cost", "period": "2025-05",
+        "value": 2100000, "prior_value": 1850000, "unit": "USD",
+        "deltas": {"mom_pct": 13.5, "yoy_pct": 18.2, "budget_var_abs": 190000, "budget_var_pct": 9.9},
+        "trend": "up", "is_anomaly": true
+      },
+      "context_docs": [
+        {"type": "event_note", "title": "May 2025 engineering hiring wave", "body": "Fourteen engineers started in May 2025 as part of the platform team buildout, adding onboarding and equipment costs.", "metric_tags": ["Operating Expenses", "Headcount Cost"], "effective_date": "2025-05"}
+      ],
+      "expected_context_titles": ["May 2025 engineering hiring wave"],
+      "cause_keywords": ["hiring", "engineers"]
+    },
+    {
+      "id": "case_03_no_context_unexplained",
+      "fact": {
+        "metric": "Gross Profit", "category": "Revenue", "period": "2025-06",
+        "value": 2450000, "prior_value": 2700000, "unit": "USD",
+        "deltas": {"mom_pct": -9.3, "yoy_pct": -2.1, "budget_var_abs": -210000, "budget_var_pct": -7.9},
+        "trend": "flat", "is_anomaly": false
+      },
+      "context_docs": [],
+      "expected_context_titles": [],
+      "cause_keywords": []
+    },
+    {
+      "id": "case_04_first_period_no_deltas",
+      "fact": {
+        "metric": "New Bookings", "category": "Sales", "period": "2024-01",
+        "value": 910000, "prior_value": null, "unit": "USD",
+        "deltas": {"mom_pct": null, "yoy_pct": null, "budget_var_abs": 12000, "budget_var_pct": 1.3},
+        "trend": null, "is_anomaly": false
+      },
+      "context_docs": [
+        {"type": "definition", "title": "New Bookings definition", "body": "New Bookings is the annualized value of contracts signed by net-new customers in the month.", "metric_tags": ["New Bookings"], "effective_date": null}
+      ],
+      "expected_context_titles": ["New Bookings definition"],
+      "cause_keywords": []
+    },
+    {
+      "id": "case_05_churn_price_event",
+      "fact": {
+        "metric": "Churned ARR", "category": "Retention", "period": "2025-03",
+        "value": 216513, "prior_value": 134300, "unit": "USD",
+        "deltas": {"mom_pct": 61.2, "yoy_pct": 74.0, "budget_var_abs": 82263, "budget_var_pct": 61.3},
+        "trend": "up", "is_anomaly": true
+      },
+      "context_docs": [
+        {"type": "event_note", "title": "March 2025 pricing change", "body": "On March 1 2025 enterprise prices rose 15 percent. Legacy enterprise accounts churned in response while new pricing attracted higher-value logos.", "metric_tags": ["Net Revenue", "Churned ARR"], "effective_date": "2025-03"},
+        {"type": "historical_commentary", "title": "2024 churn baseline", "body": "Monthly churn averaged 120K to 140K ARR through 2024 with no structural drivers.", "metric_tags": ["Churned ARR"], "effective_date": "2024-12"}
+      ],
+      "expected_context_titles": ["March 2025 pricing change"],
+      "cause_keywords": ["pricing", "enterprise"]
+    },
+    {
+      "id": "case_06_marketing_campaign",
+      "fact": {
+        "metric": "Sales & Marketing Spend", "category": "Cost", "period": "2025-09",
+        "value": 940000, "prior_value": 760000, "unit": "USD",
+        "deltas": {"mom_pct": 23.7, "yoy_pct": 28.0, "budget_var_abs": 145000, "budget_var_pct": 18.2},
+        "trend": "up", "is_anomaly": true
+      },
+      "context_docs": [
+        {"type": "event_note", "title": "September 2025 brand campaign", "body": "A brand awareness campaign ran across September 2025 including conference sponsorship and paid media, approved as an off-budget initiative.", "metric_tags": ["Sales & Marketing Spend"], "effective_date": "2025-09"},
+        {"type": "policy", "title": "Marketing approval policy", "body": "Campaigns above 100K require CFO sign-off and are tracked as discrete line items.", "metric_tags": ["Sales & Marketing Spend"], "effective_date": null}
+      ],
+      "expected_context_titles": ["September 2025 brand campaign"],
+      "cause_keywords": ["campaign", "media"]
+    },
+    {
+      "id": "case_07_cash_runway",
+      "fact": {
+        "metric": "Cash Balance", "category": "Balance Sheet", "period": "2025-04",
+        "value": 10800000, "prior_value": 11300000, "unit": "USD",
+        "deltas": {"mom_pct": -4.4, "yoy_pct": -11.5, "budget_var_abs": -420000, "budget_var_pct": -3.7},
+        "trend": "down", "is_anomaly": false
+      },
+      "context_docs": [
+        {"type": "event_note", "title": "April 2025 annual insurance prepay", "body": "The annual D&O and cyber insurance premium of roughly 400K was prepaid in April 2025, a timing effect that reverses over the year.", "metric_tags": ["Cash Balance"], "effective_date": "2025-04"}
+      ],
+      "expected_context_titles": ["April 2025 annual insurance prepay"],
+      "cause_keywords": ["insurance", "prepaid"]
+    },
+    {
+      "id": "case_08_ebitda_compression",
+      "fact": {
+        "metric": "EBITDA", "category": "Profitability", "period": "2025-03",
+        "value": 756232, "prior_value": 1023000, "unit": "USD",
+        "deltas": {"mom_pct": -26.1, "yoy_pct": -14.8, "budget_var_abs": -267671, "budget_var_pct": -26.1},
+        "trend": "down", "is_anomaly": true
+      },
+      "context_docs": [
+        {"type": "event_note", "title": "March 2025 pricing change", "body": "On March 1 2025 enterprise prices rose 15 percent. Legacy enterprise accounts churned in response while new pricing attracted higher-value logos.", "metric_tags": [], "effective_date": "2025-03"}
+      ],
+      "expected_context_titles": ["March 2025 pricing change"],
+      "cause_keywords": ["pricing"]
+    },
+    {
+      "id": "case_09_future_context_excluded",
+      "fact": {
+        "metric": "Active Customers", "category": "Growth", "period": "2025-02",
+        "value": 2610, "prior_value": 2580, "unit": "count",
+        "deltas": {"mom_pct": 1.2, "yoy_pct": 9.0, "budget_var_abs": 15, "budget_var_pct": 0.6},
+        "trend": "up", "is_anomaly": false
+      },
+      "context_docs": [
+        {"type": "event_note", "title": "March 2025 pricing change", "body": "On March 1 2025 enterprise prices rose 15 percent causing churn.", "metric_tags": ["Active Customers"], "effective_date": "2025-03"},
+        {"type": "historical_commentary", "title": "Steady SMB growth", "body": "SMB self-serve signups have grown steadily around 1 percent monthly since mid-2024.", "metric_tags": ["Active Customers"], "effective_date": "2024-08"}
+      ],
+      "expected_context_titles": ["Steady SMB growth"],
+      "excluded_context_titles": ["March 2025 pricing change"],
+      "cause_keywords": ["SMB", "signups"]
+    },
+    {
+      "id": "case_10_headcount_flat",
+      "fact": {
+        "metric": "Headcount Cost", "category": "Cost", "period": "2025-07",
+        "value": 1012000, "prior_value": 1008000, "unit": "USD",
+        "deltas": {"mom_pct": 0.4, "yoy_pct": 6.8, "budget_var_abs": -3000, "budget_var_pct": -0.3},
+        "trend": "up", "is_anomaly": false
+      },
+      "context_docs": [
+        {"type": "definition", "title": "Headcount Cost definition", "body": "Headcount Cost includes salaries, benefits, and payroll taxes for all employees, excluding contractors.", "metric_tags": ["Headcount Cost"], "effective_date": null}
+      ],
+      "expected_context_titles": ["Headcount Cost definition"],
+      "cause_keywords": []
+    },
+    {
+      "id": "case_11_bookings_pricing_upside",
+      "fact": {
+        "metric": "New Bookings", "category": "Sales", "period": "2025-03",
+        "value": 1180000, "prior_value": 1025000, "unit": "USD",
+        "deltas": {"mom_pct": 15.1, "yoy_pct": 31.0, "budget_var_abs": 152000, "budget_var_pct": 14.8},
+        "trend": "up", "is_anomaly": false
+      },
+      "context_docs": [
+        {"type": "event_note", "title": "March 2025 pricing change", "body": "On March 1 2025 enterprise prices rose 15 percent. Legacy enterprise accounts churned in response while new pricing attracted higher-value logos.", "metric_tags": ["New Bookings"], "effective_date": "2025-03"},
+        {"type": "event_note", "title": "New enterprise sales team", "body": "Two senior enterprise AEs joined in February 2025 and began closing pipeline in March.", "metric_tags": ["New Bookings"], "effective_date": "2025-02"}
+      ],
+      "expected_context_titles": ["March 2025 pricing change", "New enterprise sales team"],
+      "cause_keywords": ["pricing", "enterprise"]
+    },
+    {
+      "id": "case_12_gross_profit_cogs_event",
+      "fact": {
+        "metric": "Gross Profit", "category": "Revenue", "period": "2025-08",
+        "value": 2890000, "prior_value": 2760000, "unit": "USD",
+        "deltas": {"mom_pct": 4.7, "yoy_pct": 12.4, "budget_var_abs": 95000, "budget_var_pct": 3.4},
+        "trend": "up", "is_anomaly": false
+      },
+      "context_docs": [
+        {"type": "event_note", "title": "August 2025 cloud cost renegotiation", "body": "The primary cloud provider contract was renegotiated in August 2025, cutting hosting unit costs about 8 percent and lifting gross margin.", "metric_tags": ["Gross Profit"], "effective_date": "2025-08"}
+      ],
+      "expected_context_titles": ["August 2025 cloud cost renegotiation"],
+      "cause_keywords": ["cloud", "hosting"]
+    },
+    {
+      "id": "case_13_zero_budget_variance",
+      "fact": {
+        "metric": "Headcount Cost", "category": "Cost", "period": "2025-02",
+        "value": 995000, "prior_value": 990000, "unit": "USD",
+        "deltas": {"mom_pct": 0.5, "yoy_pct": 5.9, "budget_var_abs": 0, "budget_var_pct": 0.0},
+        "trend": "up", "is_anomaly": false
+      },
+      "context_docs": [],
+      "expected_context_titles": [],
+      "cause_keywords": []
+    },
+    {
+      "id": "case_14_seasonal_dip_explained",
+      "fact": {
+        "metric": "New Bookings", "category": "Sales", "period": "2025-12",
+        "value": 820000, "prior_value": 1090000, "unit": "USD",
+        "deltas": {"mom_pct": -24.8, "yoy_pct": 2.2, "budget_var_abs": -95000, "budget_var_pct": -10.4},
+        "trend": "flat", "is_anomaly": true
+      },
+      "context_docs": [
+        {"type": "historical_commentary", "title": "December bookings seasonality", "body": "December bookings historically drop 20 to 30 percent as enterprise buyers defer signatures to January budgets.", "metric_tags": ["New Bookings"], "effective_date": "2024-12"}
+      ],
+      "expected_context_titles": ["December bookings seasonality"],
+      "cause_keywords": ["seasonality", "defer"]
+    },
+    {
+      "id": "case_15_negative_yoy_turnaround",
+      "fact": {
+        "metric": "Churned ARR", "category": "Retention", "period": "2025-10",
+        "value": 98000, "prior_value": 125000, "unit": "USD",
+        "deltas": {"mom_pct": -21.6, "yoy_pct": -18.0, "budget_var_abs": -32000, "budget_var_pct": -24.6},
+        "trend": "down", "is_anomaly": false
+      },
+      "context_docs": [
+        {"type": "event_note", "title": "Customer success playbook rollout", "body": "A proactive renewal playbook launched in September 2025 with health-score alerts and executive sponsor check-ins, reducing at-risk renewals.", "metric_tags": ["Churned ARR"], "effective_date": "2025-09"}
+      ],
+      "expected_context_titles": ["Customer success playbook rollout"],
+      "cause_keywords": ["renewal", "playbook"]
+    }
+  ]
+}
