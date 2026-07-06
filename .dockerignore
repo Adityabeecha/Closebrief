@@ -1,0 +1,17 @@
+# Keep the build context (and image) small and secret-free.
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.git/
+.github/
+graphify-out/
+data/
+.env
+.env.*
+!.env.example
+ui/mockup/
+tests/
+*.md
+!README.md
