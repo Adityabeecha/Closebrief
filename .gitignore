@@ -1,0 +1,19 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets & env profiles — NEVER commit these
+.env
+.env.*
+!.env.example
+
+# Local data & generated artifacts
+data/
+graphify-out/
+
+# OS / editor
+.DS_Store
