@@ -6,13 +6,15 @@ services:
     name: closebrief
     runtime: docker
     dockerfilePath: ./Dockerfile
-    plan: starter            # free tier also works; starter avoids cold-start sleeps
+    plan: free               # $0, sleeps after ~15 min idle (cold start ~50s).
+                             # Change to `starter` (~$7/mo) to avoid sleeps.
     branch: main
     autoDeploy: true
     healthCheckPath: /health
-    # Apply DB migrations before each deploy goes live (idempotent; DDL over the
-    # Supabase session pooler). --no-reindex avoids needing embeddings at deploy.
-    preDeployCommand: python -m app.db migrate --no-copy --no-reindex
+    # NOTE: free plan does not support preDeployCommand, so migrations are NOT
+    # applied automatically. Run once from your machine against the Supabase URL:
+    #   DATABASE_URL="<pooler url>" python -m app.db migrate --no-copy --no-reindex
+    # (On the paid `starter` plan you can restore preDeployCommand instead.)
     envVars:
       - key: APP_ENV
         value: prod
