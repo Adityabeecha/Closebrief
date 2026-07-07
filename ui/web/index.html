@@ -6,6 +6,7 @@
 <title>Closebrief — FP&A intelligence</title>
 <link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="%232563eb"/><path d="M8 24v-7M16 24V11M24 24V8" stroke="white" stroke-width="3.4" stroke-linecap="round"/></svg>'>
 <script src="/vendor/supabase.js"></script>
+<script src="/vendor/chart.min.js"></script>
 <style>
   /* Brand font, self-hosted (no CDN/network dependency — see /vendor/). */
   @font-face{font-family:'Plus Jakarta Sans';font-style:normal;font-weight:400;font-display:swap;src:url(/vendor/fonts/pjs-400.woff2) format('woff2')}
@@ -189,6 +190,15 @@
   .legend{display:flex;gap:16px;font-size:11.5px;color:var(--ink3);font-weight:600;margin-bottom:6px}
   .legend .k{display:inline-block;width:16px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
   .legend .k.dash{border-top-style:dashed}
+  .chart-box{position:relative;width:100%;margin-top:6px}
+  /* export dropdown */
+  .export{position:relative}
+  .export-menu{position:absolute;top:calc(100% + 6px);right:0;background:var(--card);border:1px solid var(--b12);border-radius:11px;box-shadow:0 12px 34px rgba(15,23,42,.18);padding:6px;z-index:30;min-width:200px;display:none;animation:fade .12s ease}
+  .export-menu.open{display:block}
+  .export-menu button{display:flex;flex-direction:column;gap:1px;width:100%;text-align:left;border:none;background:none;padding:9px 11px;border-radius:8px}
+  .export-menu button:hover{background:var(--bg2)}
+  .export-menu b{font-size:13px;color:var(--ink2);font-weight:700}
+  .export-menu span{font-size:11px;color:var(--mut2)}
   .qa{display:flex;gap:8px;margin-top:12px}
   .qa input{flex:1;padding:9px 12px;border:1px solid var(--b12);border-radius:9px;font-size:13px}
   details.tbl{margin-top:10px;font-size:12px}
@@ -289,6 +299,26 @@
   .admin-table th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);padding:11px 14px;background:var(--bg2);border-bottom:1px solid var(--b08);font-weight:700}
   .admin-table td{padding:11px 14px;border-bottom:1px solid var(--bg3);font-size:12.5px}
   .admin-table select{padding:5px 9px;border:1px solid var(--b12);border-radius:7px;font-weight:600}
+
+  /* ---------------- PRINT (PDF export) ---------------- */
+  #print-header{display:none}
+  @media print{
+    :root[data-theme="dark"]{--bg:#fff;--card:#fff;--ink:#0f172a;--ink2:#334155;--ink3:#475569;--mut:#64748b;--mut2:#94a3b8;--bg2:#f6f6f4;--bg3:#f1f1ef;--b08:rgba(15,23,42,.08);--b12:rgba(15,23,42,.12)}
+    @page{margin:14mm}
+    body{background:#fff!important}
+    .side,.head-actions,.filter-pills,.card-foot,.qa,#dash-loading,.theme-btn,.logout{display:none!important}
+    .app{display:block;height:auto;overflow:visible}
+    main{overflow:visible;height:auto}
+    .wrap{max-width:none;padding:0}
+    #print-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:18px}
+    #print-header b{font-size:20px}
+    #print-header .ph-r{text-align:right;font-size:12px;color:var(--mut)}
+    .head h1{font-size:20px}
+    .grid{grid-template-columns:1fr 1fr!important;gap:12px}
+    .card,.stat,.digest-item{box-shadow:none!important;break-inside:avoid;border:1px solid var(--b12)!important;transform:none!important;animation:none!important;opacity:1!important}
+    .statrow{grid-template-columns:repeat(4,1fr)}
+    a[href]:after{content:""}
+  }
 </style>
 </head>
 <body>
@@ -367,6 +397,10 @@
   <main class="nbi-scroll">
     <!-- ---------- DASHBOARD ---------- -->
     <section id="v-dashboard" class="wrap">
+      <div id="print-header">
+        <div><b>Closebrief · FP&amp;A Executive Report</b><div style="font-size:12px;color:var(--mut)" id="ph-period"></div></div>
+        <div class="ph-r" id="ph-date"></div>
+      </div>
       <div class="head">
         <div>
           <h1>Insights Dashboard</h1>
@@ -379,6 +413,17 @@
           </div>
           <select class="pill-btn" id="category-filter" onchange="renderCards()"></select>
           <select class="pill-btn" id="period-select" onchange="loadFacts()"></select>
+          <div class="export">
+            <button class="btn" onclick="toggleExport(event)" aria-haspopup="true" title="Export report">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+              Export
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="export-menu" id="export-menu">
+              <button onclick="exportPDF()"><b>PDF</b><span>Print-ready report</span></button>
+              <button onclick="exportPPTX()"><b>PowerPoint</b><span>Editable .pptx deck</span></button>
+            </div>
+          </div>
           <button class="btn primary" id="gen-all" onclick="generateAll()">Generate narratives</button>
         </div>
       </div>
@@ -405,15 +450,16 @@
           <h3>12-month trend</h3><div class="psub">Actual vs budget</div>
           <div class="legend">
             <span><span class="k" style="border-color:var(--accent)"></span>Actual</span>
-            <span><span class="k dash" style="border-color:#cbd5e1"></span>Budget</span>
+            <span><span class="k dash" style="border-color:var(--mut2)"></span>Budget</span>
           </div>
+          <div class="chart-box" id="box-c-trend" style="height:230px"><canvas id="c-trend"></canvas></div>
           <div id="d-trend"></div>
         </div>
         <div class="panel">
           <h3>Budget vs actual</h3><div class="psub" id="d-bva-sub"></div>
-          <div id="d-bva"></div>
+          <div class="chart-box" id="box-c-bva" style="height:110px"><canvas id="c-bva"></canvas></div>
           <h3 style="margin-top:22px">Variance bridge</h3><div class="psub">Price / Volume / Mix decomposition</div>
-          <div id="d-bridge"></div>
+          <div class="chart-box" id="box-c-bridge" style="height:210px"><canvas id="c-bridge"></canvas></div>
         </div>
         <div class="panel full">
           <h3>Narrative</h3><div class="psub" id="d-narr-meta"></div>
@@ -529,8 +575,71 @@ function initTheme(){
 function toggleTheme(){
   const t=document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark";
   localStorage.setItem("cb-theme",t);applyTheme(t);
+  // Chart.js bakes colors at build time — rebuild the open detail charts.
+  if(detailFact&&$("v-detail").style.display!=="none"){
+    const cd=detailFact.chart_data||{};
+    renderTrendChart(cd.trend||[],detailFact.unit);
+    renderBvaChart(cd.budget_vs_actual,detailFact.unit);
+    renderBridgeChart(cd.variance_bridge,detailFact.deltas.budget_var_abs,detailFact.unit);
+  }
 }
 initTheme();
+
+/* ---------- export (PDF / PPTX) ---------- */
+function toggleExport(e){e.stopPropagation();$("export-menu").classList.toggle("open");}
+function exportPDF(){
+  $("export-menu").classList.remove("open");
+  $("ph-period").textContent=`Period: ${currentPeriod||"—"}`;
+  $("ph-date").innerHTML=`Generated ${new Date().toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"})}<br>Confidential`;
+  window.print();
+}
+let _pptxLoading=null;
+function loadPptx(){
+  if(window.PptxGenJS)return Promise.resolve();
+  if(_pptxLoading)return _pptxLoading;
+  _pptxLoading=new Promise((res,rej)=>{const s=document.createElement("script");
+    s.src="/vendor/pptxgen.min.js";s.onload=res;s.onerror=()=>rej(new Error("Could not load PPTX library"));
+    document.head.appendChild(s);});
+  return _pptxLoading;
+}
+async function exportPPTX(){
+  $("export-menu").classList.remove("open");
+  try{
+    toast("Building PowerPoint…");
+    await loadPptx();
+    const facts=shownFacts.filter(f=>f.has_data);
+    const dark=document.documentElement.getAttribute("data-theme")==="dark";
+    const BG=dark?"151D2E":"FFFFFF",INK=dark?"F1F5F9":"0F172A",MUT=dark?"94A3B8":"64748B",ACC="2563EB";
+    const p=new PptxGenJS();p.defineLayout({name:"CB",width:10,height:5.63});p.layout="CB";
+    const bg={fill:{color:BG}};
+    // Title slide
+    let s=p.addSlide();s.background=bg;
+    s.addText("FP&A Executive Report",{x:0.6,y:1.8,w:8.8,h:0.8,fontSize:34,bold:true,color:INK,fontFace:"Segoe UI"});
+    s.addText(`${currentPeriod||""}`,{x:0.6,y:2.7,w:8.8,h:0.5,fontSize:20,color:ACC,fontFace:"Segoe UI"});
+    s.addText(`Generated ${new Date().toLocaleDateString()} · Powered by Closebrief`,{x:0.6,y:4.7,w:8.8,h:0.4,fontSize:12,color:MUT,fontFace:"Segoe UI"});
+    // Summary slide
+    const anom=facts.filter(f=>f.is_anomaly).length;
+    const mover=facts.filter(f=>f.deltas&&f.deltas.budget_var_pct!=null).sort((a,b)=>Math.abs(b.deltas.budget_var_pct)-Math.abs(a.deltas.budget_var_pct))[0];
+    s=p.addSlide();s.background=bg;
+    s.addText("Summary",{x:0.6,y:0.4,w:8.8,h:0.6,fontSize:24,bold:true,color:INK,fontFace:"Segoe UI"});
+    const rows=[["KPIs tracked",String(facts.length)],["Anomalies flagged",String(anom)],["Top mover vs plan",mover?`${mover.metric} (${pct(mover.deltas.budget_var_pct)||"–"})`:"—"]];
+    rows.forEach((r,i)=>{s.addText(r[0],{x:0.8,y:1.4+i*0.9,w:4,h:0.6,fontSize:16,color:MUT,fontFace:"Segoe UI"});
+      s.addText(r[1],{x:4.8,y:1.4+i*0.9,w:4.6,h:0.6,fontSize:16,bold:true,color:INK,fontFace:"Segoe UI"});});
+    // One slide per metric
+    facts.forEach(f=>{
+      const s=p.addSlide();s.background=bg;const dg=f.direction_good==="down";
+      s.addText(f.metric,{x:0.6,y:0.4,w:8.8,h:0.6,fontSize:22,bold:true,color:INK,fontFace:"Segoe UI"});
+      s.addText(esc(f.category||""),{x:0.6,y:0.95,w:8.8,h:0.35,fontSize:12,color:MUT,fontFace:"Segoe UI"});
+      s.addText(fmt(f.value,f.unit),{x:0.6,y:1.4,w:5,h:0.9,fontSize:40,bold:true,color:INK,fontFace:"Segoe UI"});
+      const mom=pct(f.deltas.mom_pct),bud=pct(f.deltas.budget_var_pct);
+      s.addText(`MoM ${mom||"–"}    vs plan ${bud||"–"}`,{x:0.6,y:2.4,w:8.8,h:0.4,fontSize:13,bold:true,color:ACC,fontFace:"Segoe UI"});
+      s.addText(f.narrative||"No narrative generated.",{x:0.6,y:2.95,w:8.8,h:2.2,fontSize:13,color:INK,fontFace:"Segoe UI",valign:"top"});
+      if(f.sources&&f.sources.length)s.addText("Sources: "+f.sources.map(x=>x.title||x.id).join(", "),{x:0.6,y:5.0,w:8.8,h:0.4,fontSize:10,italic:true,color:MUT,fontFace:"Segoe UI"});
+    });
+    await p.writeFile({fileName:`Closebrief_${(currentPeriod||"report").replace(/[^0-9A-Za-z_-]/g,"")}.pptx`});
+    toast("PowerPoint downloaded");
+  }catch(e){toast(e.message||"Export failed");}
+}
 
 /* ---------- search / highlight ---------- */
 let _searchT=null;
@@ -716,7 +825,7 @@ async function loadDatasets(){
     </div>`).join("")||'<div class="ws-item">No datasets</div>';
 }
 function toggleWs(e){e.stopPropagation();$("ws-menu").classList.toggle("open");}
-document.addEventListener("click",()=>$("ws-menu").classList.remove("open"));
+document.addEventListener("click",()=>{$("ws-menu").classList.remove("open");$("export-menu")?.classList.remove("open");});
 // Keyboard shortcuts. Ignore while typing in a field.
 document.addEventListener("keydown",e=>{
   const tag=(e.target.tagName||"").toLowerCase();
@@ -901,51 +1010,84 @@ function trendColor(trend,dir){
   const up=v[v.length-1]>=v[0],good=dir==="down"?!up:up;return good?"#16a34a":"#dc2626";
 }
 
-function trendChart(trend,unit,w=560,h=230){
-  const pad={l:52,r:66,t:12,b:24};
-  const vals=trend.flatMap(t=>[t.value,t.budget]).filter(v=>v!=null);
-  if(!vals.length)return'<div class="loading">No trend data.</div>';
-  const min=Math.min(...vals),max=Math.max(...vals),sp=(max-min)||1;
-  const Y=v=>pad.t+(h-pad.t-pad.b)*(1-(v-min)/sp),X=i=>pad.l+i*(w-pad.l-pad.r)/Math.max(trend.length-1,1);
-  const monthsApart=(a,b)=>{const[ay,am]=a.split("-").map(Number),[by,bm]=b.split("-").map(Number);return by*12+bm-(ay*12+am);};
-  const line=key=>trend.map((t,i)=>{if(t[key]==null)return"";const cont=i&&trend[i-1][key]!=null&&monthsApart(trend[i-1].period,t.period)===1;return`${cont?"L":"M"}${X(i).toFixed(1)},${Y(t[key]).toFixed(1)}`;}).join(" ");
-  const ticks=[min,min+sp/2,max];
-  const grid=ticks.map(v=>`<line x1="${pad.l}" y1="${Y(v)}" x2="${w-pad.r}" y2="${Y(v)}" stroke="#eef0f3" stroke-width="1"/><text x="${pad.l-8}" y="${Y(v)+3.5}" text-anchor="end" font-size="10" fill="var(--mut2)">${fmt(v,unit)}</text>`).join("");
-  const xl=trend.map((t,i)=>(i%Math.ceil(trend.length/6)===0||i===trend.length-1)?`<text x="${X(i)}" y="${h-7}" text-anchor="middle" font-size="10" fill="var(--mut2)">${t.period.slice(2)}</text>`:"").join("");
-  const last=trend[trend.length-1];
-  const end=last.value!=null?`<circle cx="${X(trend.length-1)}" cy="${Y(last.value)}" r="3.5" fill="var(--accent)" stroke="#fff" stroke-width="2"/><text x="${X(trend.length-1)+8}" y="${Y(last.value)+3.5}" font-size="10.5" font-weight="700" fill="var(--ink2)">${fmt(last.value,unit)}</text>`:"";
-  const hits=trend.map((t,i)=>`<rect x="${i?(X(i-1)+X(i))/2:pad.l}" y="0" width="${(w-pad.r)/trend.length+12}" height="${h}" fill="transparent" data-i="${i}" class="th"/>`).join("");
-  return`<svg id="tsvg" width="100%" viewBox="0 0 ${w} ${h}" style="max-width:${w}px">${grid}${xl}
-    <path d="${line("budget")}" fill="none" stroke="#cbd5e1" stroke-width="2" stroke-dasharray="4 4" stroke-linecap="round"/>
-    <path d="${line("value")}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${end}${hits}</svg>`;
+/* ---- Chart.js: interactive, theme-aware detail charts ---- */
+const chartReg={};                       // canvasId -> Chart instance
+function cssv(name){return getComputedStyle(document.documentElement).getPropertyValue(name).trim();}
+function chartTheme(){
+  return {ink:cssv("--ink2")||"#334155",mut:cssv("--mut2")||"#94a3b8",
+    grid:cssv("--b08")||"rgba(15,23,42,.08)",accent:cssv("--accent")||"#2563eb",
+    green:cssv("--green2")||"#16a34a",red:cssv("--red")||"#dc2626",card:cssv("--card")||"#fff"};
 }
-function attachTrendHover(el,trend,unit){el.querySelectorAll(".th").forEach(r=>{r.addEventListener("mousemove",e=>{const t=trend[+r.dataset.i];showTip(`<small>${esc(t.period)}</small><br>Actual ${fmt(t.value,unit)}<br>Budget ${fmt(t.budget,unit)}`,e.clientX,e.clientY);});r.addEventListener("mouseleave",hideTip);});}
-
-function bvaChart(bva,unit,w=380,h=110){
-  if(!bva||bva.actual==null)return'<div class="loading">No data.</div>';
-  const items=[["Actual",bva.actual,"var(--accent)"],["Budget",bva.budget,"#cbd5e1"]].filter(d=>d[1]!=null);
-  const max=Math.max(...items.map(d=>Math.abs(d[1])))||1;
-  return`<svg width="100%" viewBox="0 0 ${w} ${h}" style="max-width:${w}px">`+items.map((d,i)=>{
-    const bw=Math.abs(d[1])/max*(w-160);
-    return`<g class="bar" data-label="${d[0]}" data-v="${d[1]}"><text x="0" y="${26+i*42}" font-size="11.5" font-weight="600" fill="var(--ink3)">${d[0]}</text>
-      <rect x="60" y="${14+i*42}" width="${Math.max(bw,3)}" height="20" fill="${d[2]}" rx="5"/>
-      <text x="${66+Math.max(bw,3)}" y="${28+i*42}" font-size="11" font-weight="700" fill="var(--ink2)">${fmt(d[1],unit)}</text></g>`;
-  }).join("")+`</svg>`;
+if(window.Chart){
+  Chart.defaults.font.family="'Plus Jakarta Sans',system-ui,-apple-system,sans-serif";
+  Chart.defaults.font.size=11;
+  Chart.defaults.animation.duration=600;
+  Chart.defaults.animation.easing="easeOutQuart";
 }
-function waterfall(bridge,total,unit,w=380,h=200){
-  if(!bridge)return'<div class="loading" style="padding:14px 0">No price/volume/mix detail for this metric.</div>';
-  const items=[...bridge.map(b=>({...b})),{component:"Total",impact:total,isTotal:true}];
-  let run=0;const steps=items.map(it=>{if(it.isTotal)return{label:it.component,from:0,to:total,isTotal:true};const s={label:it.component,from:run,to:run+it.impact};run+=it.impact;return s;});
-  const lo=Math.min(0,...steps.flatMap(s=>[s.from,s.to])),hi=Math.max(0,...steps.flatMap(s=>[s.from,s.to])),sp=(hi-lo)||1;
-  const pad={t:20,b:28};const Y=v=>pad.t+(h-pad.t-pad.b)*(1-(v-lo)/sp),bw=Math.min(30,(w-16)/steps.length-14);
-  return`<svg width="100%" viewBox="0 0 ${w} ${h}" style="max-width:${w}px"><line x1="8" y1="${Y(0)}" x2="${w-8}" y2="${Y(0)}" stroke="#cbd5e1" stroke-width="1"/>`+steps.map((s,i)=>{
-    const cx=8+(i+.5)*(w-16)/steps.length,y1=Y(Math.max(s.from,s.to)),y2=Y(Math.min(s.from,s.to)),rise=s.to>=s.from;
-    const color=s.isTotal?"var(--ink3)":rise?"#16a34a":"#dc2626",val=s.isTotal?s.to:s.to-s.from;
-    return`<g class="bar" data-label="${s.label}" data-v="${val}"><rect x="${cx-bw/2}" y="${y1}" width="${bw}" height="${Math.max(y2-y1,2)}" fill="${color}" rx="4"/>
-      <text x="${cx}" y="${y1-5}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink2)">${fmt(val,unit)}</text>
-      <text x="${cx}" y="${h-9}" text-anchor="middle" font-size="10.5" font-weight="600" fill="var(--mut)">${s.label}</text></g>`;
-  }).join("")+`</svg>`;}
-function attachBarHover(el,unit){el.querySelectorAll(".bar").forEach(g=>{g.addEventListener("mousemove",e=>showTip(`<small>${esc(g.dataset.label)}</small><br>${fmt(+g.dataset.v,unit)}`,e.clientX,e.clientY));g.addEventListener("mouseleave",hideTip);});}
+function ensureCanvas(id){
+  // A prior "no data" state may have replaced the canvas with text; recreate it.
+  if($(id))return;
+  const box=$("box-"+id);if(!box)return;
+  box.innerHTML=`<canvas id="${id}"></canvas>`;
+}
+function mkChart(id,cfg){
+  if(chartReg[id]){chartReg[id].destroy();delete chartReg[id];}
+  const cv=$(id);if(!cv||!window.Chart)return;
+  chartReg[id]=new Chart(cv.getContext("2d"),cfg);
+}
+function tooltipCfg(unit,labeler){
+  const th=chartTheme();
+  return {enabled:true,backgroundColor:th.card,titleColor:th.ink,bodyColor:th.ink,
+    borderColor:th.grid,borderWidth:1,padding:9,cornerRadius:8,displayColors:true,boxPadding:4,
+    titleFont:{weight:"700"},bodyFont:{weight:"600"},
+    callbacks:labeler||{label:c=>` ${c.dataset.label||""}: ${fmt(c.parsed.y,unit)}`}};
+}
+function renderTrendChart(trend,unit){
+  ensureCanvas("c-trend");const box=$("box-c-trend");
+  const has=trend.some(t=>t.value!=null||t.budget!=null);
+  if(!has){if(chartReg["c-trend"]){chartReg["c-trend"].destroy();delete chartReg["c-trend"];}box.innerHTML='<div class="loading">No trend data.</div>';return;}
+  const th=chartTheme();
+  mkChart("c-trend",{type:"line",
+    data:{labels:trend.map(t=>t.period.slice(2)),datasets:[
+      {label:"Actual",data:trend.map(t=>t.value),borderColor:th.accent,borderWidth:2,tension:.35,
+        pointRadius:0,pointHoverRadius:4,pointBackgroundColor:th.accent,spanGaps:true,
+        fill:true,backgroundColor:ctx=>{const{chartArea,ctx:c}=ctx.chart;if(!chartArea)return"transparent";
+          const g=c.createLinearGradient(0,chartArea.top,0,chartArea.bottom);
+          g.addColorStop(0,th.accent+"33");g.addColorStop(1,th.accent+"03");return g;}},
+      {label:"Budget",data:trend.map(t=>t.budget),borderColor:th.mut,borderWidth:2,borderDash:[5,4],
+        tension:.35,pointRadius:0,pointHoverRadius:3,fill:false,spanGaps:true}]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+      plugins:{legend:{display:false},tooltip:tooltipCfg(unit)},
+      scales:{y:{grid:{color:th.grid},ticks:{color:th.mut,maxTicksLimit:5,callback:v=>fmt(v,unit)},border:{display:false}},
+        x:{grid:{display:false},ticks:{color:th.mut,maxRotation:0,autoSkip:true,maxTicksLimit:7},border:{color:th.grid}}}}});
+}
+function renderBvaChart(bva,unit){
+  ensureCanvas("c-bva");const box=$("box-c-bva");
+  if(!bva||bva.actual==null){if(chartReg["c-bva"]){chartReg["c-bva"].destroy();delete chartReg["c-bva"];}box.innerHTML='<div class="loading">No data.</div>';return;}
+  const th=chartTheme();
+  mkChart("c-bva",{type:"bar",
+    data:{labels:["Actual","Budget"],datasets:[{label:"",data:[bva.actual,bva.budget],
+      backgroundColor:[th.accent,th.mut],borderRadius:5,borderSkipped:false,barThickness:22}]},
+    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:tooltipCfg(unit,{label:c=>` ${c.label}: ${fmt(c.parsed.x,unit)}`})},
+      scales:{x:{grid:{color:th.grid},ticks:{color:th.mut,maxTicksLimit:5,callback:v=>fmt(v,unit)},border:{display:false}},
+        y:{grid:{display:false},ticks:{color:th.ink,font:{weight:"600"}},border:{display:false}}}}});
+}
+function renderBridgeChart(bridge,total,unit){
+  ensureCanvas("c-bridge");const box=$("box-c-bridge");
+  if(!bridge||!bridge.length){if(chartReg["c-bridge"]){chartReg["c-bridge"].destroy();delete chartReg["c-bridge"];}box.innerHTML='<div class="loading" style="padding:14px 0">No price/volume/mix detail for this metric.</div>';return;}
+  const th=chartTheme();
+  let run=0;const steps=bridge.map(b=>{const s={label:b.component,range:[run,run+b.impact],val:b.impact};run+=b.impact;return s;});
+  steps.push({label:"Total",range:[0,total],val:total,isTotal:true});
+  mkChart("c-bridge",{type:"bar",
+    data:{labels:steps.map(s=>s.label),datasets:[{label:"",data:steps.map(s=>s.range),
+      backgroundColor:steps.map(s=>s.isTotal?th.ink:s.val>=0?th.green:th.red),
+      borderRadius:4,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:tooltipCfg(unit,{label:c=>` ${c.label}: ${fmt(steps[c.dataIndex].val,unit)}`})},
+      scales:{y:{grid:{color:th.grid},ticks:{color:th.mut,maxTicksLimit:5,callback:v=>fmt(v,unit)},border:{display:false}},
+        x:{grid:{display:false},ticks:{color:th.ink,font:{weight:"600"}},border:{color:th.grid}}}}});
+}
 function trendTable(trend,unit){if(!trend.length)return"";return`<details class="tbl"><summary>Show data table</summary><table><thead><tr><th>Period</th><th>Actual</th><th>Budget</th></tr></thead><tbody>${trend.map(t=>`<tr><td>${esc(t.period)}</td><td>${fmt(t.value,unit)}</td><td>${fmt(t.budget,unit)}</td></tr>`).join("")}</tbody></table></details>`;}
 
 /* ---------- metric detail ---------- */
@@ -956,12 +1098,13 @@ function openDetail(i){
     +deltaChip("MoM",f.deltas.mom_pct,dg)+" "+deltaChip("vs plan",f.deltas.budget_var_pct,dg)
     +(f.is_anomaly?' <span class="anom">ANOMALY</span>':"");
   const cd=f.chart_data||{};
-  $("d-trend").innerHTML=trendChart(cd.trend||[],f.unit)+trendTable(cd.trend||[],f.unit);
-  attachTrendHover($("d-trend"),cd.trend||[],f.unit);
+  // Restore canvases (an earlier "no data" state may have replaced them with text).
+  $("d-trend").innerHTML=trendTable(cd.trend||[],f.unit);
+  ensureCanvas("c-trend");ensureCanvas("c-bva");ensureCanvas("c-bridge");
+  renderTrendChart(cd.trend||[],f.unit);
   $("d-bva-sub").textContent=f.deltas.budget_var_abs!=null?`${fmt(f.deltas.budget_var_abs,f.unit)} vs budget (${pct(f.deltas.budget_var_pct)||"–"})`:"";
-  $("d-bva").innerHTML=bvaChart(cd.budget_vs_actual,f.unit);
-  $("d-bridge").innerHTML=waterfall(cd.variance_bridge,f.deltas.budget_var_abs,f.unit);
-  attachBarHover($("d-bva"),f.unit);attachBarHover($("d-bridge"),f.unit);
+  renderBvaChart(cd.budget_vs_actual,f.unit);
+  renderBridgeChart(cd.variance_bridge,f.deltas.budget_var_abs,f.unit);
   $("d-narr").className="narr"+(f.narrative?"":" muted");
   $("d-narr").innerHTML=f.narrative?esc(f.narrative)+(f.edited&&f.original_narrative?`<details class="tbl" style="margin-top:8px"><summary>Show original (pre-edit)</summary><p style="margin-top:6px;color:var(--mut)">${esc(f.original_narrative)}</p></details>`:""):"No narrative yet — generate one from the dashboard card.";
   $("d-narr-meta").textContent=(f.confidence?`${f.confidence} confidence · numbers ${f.faithfulness}`:"")+(f.edited?" · edited by analyst":"")+(f.cost_usd!=null?` · ≈ $${(+f.cost_usd).toFixed(4)}`:"");
@@ -1110,7 +1253,7 @@ async function confirmKpis(){
 
 // Entry point: boot() handles auth (creates the Supabase client, checks the
 // session) and then calls startApp(), which loads periods and applies the hash.
-console.log("Closebrief UI build: v2.2.0 (dark mode, search, skeletons, animations)");
+console.log("Closebrief UI build: v2.3.0 (Chart.js interactive charts, PDF/PPTX export)");
 boot();
 </script>
 </body>
