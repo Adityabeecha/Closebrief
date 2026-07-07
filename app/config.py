@@ -73,6 +73,9 @@ class Settings(BaseSettings):
     smtp_pass: str = ""
     smtp_from: str = "Closebrief <no-reply@closebrief.app>"
     smtp_starttls: bool = True
+    # Resend HTTP API (recommended on cloud hosts that block outbound SMTP).
+    # When set, EmailChannel sends via https://api.resend.com instead of SMTP.
+    resend_api_key: str = ""
     webhook_secret: str = ""          # HMAC-SHA256 signing key for outbound webhooks
 
 
