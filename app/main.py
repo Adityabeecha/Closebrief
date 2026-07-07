@@ -9,6 +9,12 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from app.auth import CurrentUser, authenticate, get_current_user, invalidate_role_cache, require_role
 from app.cache import make_insight_key
+from app.compute.correlations import (
+    compare_periods,
+    compute_correlations,
+    correlations_for_metric,
+    detect_consecutive_trends,
+)
 from app.compute.kpis import compute_and_store
 from app.compute.pvm import bridge_for_metric_row
 from app.config import auth_active, resolved_vector_backend, settings
@@ -40,12 +46,14 @@ from app.schemas import (
     ContextDoc,
     ContextDocIn,
     ContextSnippet,
+    CorrelationPair,
     Deltas,
     FeedbackIn,
     GenerateInsightRequest,
     IngestSummary,
     InsightOutput,
     KPIConfigPayload,
+    TrendStreak,
 )
 
 # Error + performance monitoring (v2.0). No-op unless SENTRY_DSN is set, so it
@@ -274,6 +282,49 @@ def costs(_: CurrentUser = Depends(require_read)) -> dict:
     }
 
 
+@app.get("/correlations")
+def correlations_endpoint(
+    period: str | None = None, metric: str | None = None,
+    _: CurrentUser = Depends(require_read),
+) -> list[dict]:
+    """Metric pairs that move together over time (|Pearson r| >= 0.7) in the
+    active dataset. If `metric` is given, only pairs involving it (phrased with
+    that metric first)."""
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        if ds is None:
+            return []
+        if metric:
+            return correlations_for_metric(conn, ds, metric, period)
+        return compute_correlations(conn, ds, period)
+    finally:
+        conn.close()
+
+
+@app.get("/compare")
+def compare_endpoint(
+    metric: str, period_a: str, period_b: str,
+    _: CurrentUser = Depends(require_read),
+) -> dict:
+    """Side-by-side comparison of one metric across two periods, including the
+    delta-of-deltas (whether the MoM movement accelerated or decelerated)."""
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        mrow = conn.execute(
+            "SELECT id FROM metrics WHERE dataset_id = ? AND name = ?", (ds, metric)
+        ).fetchone() if ds is not None else None
+        if mrow is None:
+            raise HTTPException(status_code=404, detail=f"Unknown metric: {metric}")
+        result = compare_periods(conn, mrow["id"], period_a, period_b)
+        if result is None:
+            raise HTTPException(status_code=404, detail="No computed facts for both periods")
+        return result
+    finally:
+        conn.close()
+
+
 @app.get("/context/conflicts")
 def context_conflicts(_: CurrentUser = Depends(require_read)) -> list[dict]:
     """Pairs of context documents citing different figures about the same
@@ -481,6 +532,10 @@ def list_facts(period: str, include_charts: bool = True, _: CurrentUser = Depend
                 "chart_data": (
                     _chart_data(conn, r["metric_id"], r["metric"], period)
                     if include_charts and has_data else None
+                ),
+                "trend_streak": (
+                    detect_consecutive_trends(conn, r["metric_id"], period)
+                    if has_data else None
                 ),
             })
         return out
@@ -815,6 +870,23 @@ def generate_insight_endpoint(req: GenerateInsightRequest, user: CurrentUser = D
     try:
         fact = _load_computed_fact(conn, req.metric, req.period)
 
+        # Enriched deterministic analysis (v2.1): correlated metrics + trend streak.
+        correlations: list[CorrelationPair] = []
+        trend_streak: TrendStreak | None = None
+        ds = active_dataset_id(conn)
+        if ds is not None:
+            correlations = [
+                CorrelationPair(**c)
+                for c in correlations_for_metric(conn, ds, req.metric, req.period)
+            ]
+            mrow = conn.execute(
+                "SELECT id FROM metrics WHERE dataset_id = ? AND name = ?", (ds, req.metric)
+            ).fetchone()
+            if mrow is not None:
+                streak = detect_consecutive_trends(conn, mrow["id"], req.period)
+                if streak is not None:
+                    trend_streak = TrendStreak(**streak)
+
         context = req.context
         retrieval_scores: list[float] | None = None
         if not context and req.use_retrieval:
@@ -872,6 +944,7 @@ def generate_insight_endpoint(req: GenerateInsightRequest, user: CurrentUser = D
         insight = generate_insight(
             fact, context, llm_client, retrieval_scores,
             embedder_semantic=getattr(shared_embedder(), "semantic", True),
+            correlations=correlations, trend_streak=trend_streak,
         )
     except GenerationFailedFactsOnly as exc:
         return JSONResponse(status_code=503, content=exc.facts_only.model_dump())

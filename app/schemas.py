@@ -36,6 +36,40 @@ class ComputedFact(BaseModel):
     variance_bridge: Optional[dict[str, float]] = None
 
 
+class CorrelationPair(BaseModel):
+    """Two metrics whose values move together over time (v2.1)."""
+    metric_a: str
+    metric_b: str
+    r: float
+    months: int
+    direction: Literal["positive", "negative"]
+    strength: Literal["strong", "very_strong"]
+
+
+class TrendStreak(BaseModel):
+    """A run of consecutive months in the same MoM direction (v2.1)."""
+    metric: str
+    direction: Literal["growing", "declining"]
+    months: int
+    start_period: str
+    end_period: str
+
+
+class PeriodComparison(BaseModel):
+    """Side-by-side comparison of one metric across two periods (v2.1)."""
+    metric: str
+    period_a: str
+    period_b: str
+    value_a: float
+    value_b: float
+    abs_change: float
+    pct_change: Optional[float] = None
+    mom_pct_a: Optional[float] = None
+    mom_pct_b: Optional[float] = None
+    acceleration: Optional[float] = None
+    momentum: Optional[Literal["accelerating", "decelerating", "steady"]] = None
+
+
 class ContextSnippet(BaseModel):
     """A manually-pasted context string for Milestone 1 (no FAISS retrieval yet)."""
 
@@ -130,6 +164,9 @@ class InsightOutput(BaseModel):
     sources: list[SourceRef] = Field(default_factory=list)
     confidence: Confidence
     faithfulness: Faithfulness
+    # ── Enriched analysis (v2.1) ──
+    correlations: list[CorrelationPair] = Field(default_factory=list)
+    trend_streak: Optional[TrendStreak] = None
     # ── Telemetry (PRD Section 8: token/cost logging, latency) ──
     prompt_tokens: Optional[int] = None
     completion_tokens: Optional[int] = None

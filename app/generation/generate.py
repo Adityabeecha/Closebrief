@@ -57,9 +57,12 @@ def generate_insight(
     llm_client: LLMClient,
     retrieval_scores: list[float] | None = None,
     embedder_semantic: bool = True,
+    correlations=None,
+    trend_streak=None,
+    comparison=None,
 ) -> InsightOutput:
     system_prompt = SYSTEM_PROMPT
-    user_prompt = build_user_prompt(fact, context)
+    user_prompt = build_user_prompt(fact, context, correlations, trend_streak, comparison)
 
     t0 = time.perf_counter()
     try:
@@ -120,4 +123,6 @@ def generate_insight(
         cost_usd=usage.cost_usd,
         latency_ms=latency_ms,
         prompt_version=PROMPT_VERSION,
+        correlations=correlations or [],
+        trend_streak=trend_streak,
     )
