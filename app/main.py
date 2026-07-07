@@ -152,6 +152,9 @@ def auth_config() -> dict:
         "auth_enabled": auth_active(),
         "supabase_url": settings.supabase_url,
         "supabase_anon_key": settings.supabase_anon_key,
+        # Public by design (a DSN is not a secret); enables frontend error tracking.
+        "sentry_dsn": settings.sentry_dsn,
+        "environment": settings.environment,
     }
 
 
