@@ -14,6 +14,7 @@ import hashlib
 import hmac
 import json
 import smtplib
+import urllib.error
 import urllib.request
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -56,19 +57,51 @@ class EmailChannel(NotificationChannel):
         recipients = self.config.get("recipients") or []
         if not recipients:
             raise NotificationError("No recipients configured")
+        # Prefer Resend's HTTP API when configured — works on hosts that block
+        # outbound SMTP (Render, many PaaS). Falls back to raw SMTP otherwise.
+        if settings.resend_api_key:
+            self._send_resend(subject, html_body, recipients)
+            return
         if not settings.smtp_host:
-            raise NotificationError("SMTP is not configured (set SMTP_HOST)")
+            raise NotificationError(
+                "Email is not configured. Set RESEND_API_KEY (recommended) or SMTP_HOST."
+            )
+        self._send_smtp(subject, html_body, recipients)
+
+    def _send_resend(self, subject: str, html_body: str, recipients: list[str]) -> None:
+        payload = {
+            "from": settings.smtp_from,
+            "to": recipients,
+            "subject": subject,
+            "html": html_body,
+        }
+        try:
+            _http_post_json(
+                "https://api.resend.com/emails", payload,
+                headers={"Authorization": f"Bearer {settings.resend_api_key}"}, timeout=15,
+            )
+        except urllib.error.HTTPError as e:  # surface Resend's error body
+            detail = e.read().decode("utf-8", "replace")[:300]
+            raise NotificationError(f"Resend rejected the email ({e.code}): {detail}") from e
+
+    def _send_smtp(self, subject: str, html_body: str, recipients: list[str]) -> None:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
         msg["From"] = settings.smtp_from
         msg["To"] = ", ".join(recipients)
         msg.attach(MIMEText(html_body, "html"))
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as s:
-            if settings.smtp_starttls:
-                s.starttls()
-            if settings.smtp_user:
-                s.login(settings.smtp_user, settings.smtp_pass)
-            s.sendmail(settings.smtp_from, recipients, msg.as_string())
+        try:
+            with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=12) as s:
+                if settings.smtp_starttls:
+                    s.starttls()
+                if settings.smtp_user:
+                    s.login(settings.smtp_user, settings.smtp_pass)
+                s.sendmail(settings.smtp_from, recipients, msg.as_string())
+        except (OSError, smtplib.SMTPException) as e:
+            raise NotificationError(
+                f"Could not reach SMTP server {settings.smtp_host}:{settings.smtp_port} "
+                f"({e}). Outbound SMTP may be blocked — consider RESEND_API_KEY instead."
+            ) from e
 
     def send_digest(self, period: str, items: list[dict]) -> None:
         self._send(*templates.render_digest_email(period, items))
