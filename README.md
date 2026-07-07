@@ -98,4 +98,5 @@ A graphify knowledge graph of the codebase lives in `graphify-out/` (`graphify q
 - ✅ Milestone 3 — Supabase/pgvector, Redis caching + cost logging, Dockerized deploy on Render with CI/CD (see [DEPLOY.md](DEPLOY.md))
 - ✅ v2 UX — dark mode, command palette (Ctrl+K), metric search, skeleton loaders, PDF/PPTX export, Sentry (backend + frontend)
 - ✅ v2.1 analytics — multi-metric correlations, consecutive-trend streaks, period comparison (`app/compute/correlations.py`)
-- ⬜ Notifications (email/Slack/webhook) and multi-domain intelligence foundation
+- ✅ v2.1 notifications — email/Slack/webhook channels with HMAC-signed webhooks (`app/notifications/`)
+- ✅ v2.1 multi-domain foundation — pluggable domains (FP&A default + Marketing/Ops stubs) with domain-aware prompts + KPI libraries (`app/domains/`)

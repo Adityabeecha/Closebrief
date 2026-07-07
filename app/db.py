@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS datasets (
     name TEXT NOT NULL,
     source_upload_id TEXT,
     is_active INTEGER NOT NULL DEFAULT 0,
+    domain TEXT NOT NULL DEFAULT 'fpa',
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -198,6 +199,8 @@ _SQLITE_MIGRATIONS = [
     "ALTER TABLE datasets ADD COLUMN uploaded_by TEXT",
     "ALTER TABLE datasets ADD COLUMN uploaded_by_email TEXT",
     "ALTER TABLE llm_calls ADD COLUMN user_id TEXT",
+    # v2.1 multi-domain
+    "ALTER TABLE datasets ADD COLUMN domain TEXT NOT NULL DEFAULT 'fpa'",
 ]
 
 PG_SCHEMA_PATH = Path(__file__).parent / "migrations" / "pg_schema.sql"
