@@ -66,6 +66,15 @@ class Settings(BaseSettings):
     # --- Monitoring (v2.0) ---
     sentry_dsn: str = ""              # empty -> Sentry disabled
 
+    # --- Notifications (v2.1) ---
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_pass: str = ""
+    smtp_from: str = "Closebrief <no-reply@closebrief.app>"
+    smtp_starttls: bool = True
+    webhook_secret: str = ""          # HMAC-SHA256 signing key for outbound webhooks
+
 
 settings = Settings()
 
