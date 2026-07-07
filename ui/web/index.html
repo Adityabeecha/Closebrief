@@ -385,6 +385,8 @@
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Context Library</button>
       <button class="nav-item exec-hide" data-view="import" onclick="nav('import')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>Import &amp; Mapping</button>
+      <button class="nav-item" data-view="costs" onclick="nav('costs')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Cost &amp; Usage</button>
       <button class="nav-item" id="nav-admin" data-view="admin" onclick="nav('admin')" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>User Management</button>
       <div class="nav-label">Coming soon</div>
@@ -551,6 +553,29 @@
       <div id="imp-result" style="margin-top:16px"></div>
     </section>
 
+    <!-- ---------- COST & USAGE ---------- -->
+    <section id="v-costs" class="wrap" style="display:none">
+      <div class="head"><div><h1>Cost &amp; Usage</h1><div class="sub">LLM spend, request latency, and cache efficiency</div></div>
+        <div class="head-actions"><button class="btn" onclick="loadCosts()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></svg>Refresh</button></div>
+      </div>
+      <div class="statrow" id="costs-stats"></div>
+      <div class="detail-grid">
+        <div class="panel">
+          <h3>Spend by day</h3><div class="psub">Daily LLM cost (USD)</div>
+          <div class="chart-box" id="box-c-spend" style="height:230px"><canvas id="c-spend"></canvas></div>
+        </div>
+        <div class="panel">
+          <h3>Request latency</h3><div class="psub">p50 / p95 milliseconds per endpoint</div>
+          <div id="costs-latency"></div>
+        </div>
+        <div class="panel full">
+          <h3>Spend by endpoint</h3><div class="psub">Calls, tokens, and cost grouped by day &amp; endpoint</div>
+          <div id="costs-table" style="overflow-x:auto"></div>
+        </div>
+      </div>
+      <div class="loading" id="costs-loading" style="display:none"><span class="spin"></span> Loading usage…</div>
+    </section>
+
     <!-- ---------- ADMIN ---------- -->
     <section id="v-admin" class="wrap" style="display:none">
       <div class="head"><div><h1>User Management</h1><div class="sub">Assign roles. Analysts can write; executives read-only; admins manage users.</div></div></div>
@@ -609,13 +634,14 @@ function initTheme(){
 function toggleTheme(){
   const t=document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark";
   localStorage.setItem("cb-theme",t);applyTheme(t);
-  // Chart.js bakes colors at build time — rebuild the open detail charts.
+  // Chart.js bakes colors at build time — rebuild the open charts.
   if(detailFact&&$("v-detail").style.display!=="none"){
     const cd=detailFact.chart_data||{};
     renderTrendChart(cd.trend||[],detailFact.unit);
     renderBvaChart(cd.budget_vs_actual,detailFact.unit);
     renderBridgeChart(cd.variance_bridge,detailFact.deltas.budget_var_abs,detailFact.unit);
   }
+  if($("v-costs")&&$("v-costs").style.display!=="none"&&costsData)loadCosts();
 }
 initTheme();
 
@@ -756,7 +782,7 @@ const CI={page:'<path d="M4 4h16v16H4z"/><path d="M4 9h16"/>',metric:'<path d="M
   bolt:'<path d="M13 2 3 14h7l-1 8 10-12h-7z"/>',sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   down:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>'};
 function paletteActions(){
-  const pages=[["dashboard","Insights Dashboard"],["digest","Executive Digest"],["context","Context Library"],["import","Import & Mapping"]];
+  const pages=[["dashboard","Insights Dashboard"],["digest","Executive Digest"],["context","Context Library"],["import","Import & Mapping"],["costs","Cost & Usage"]];
   if(currentUser.role==="admin")pages.push(["admin","User Management"]);
   const acts=[
     {label:"Generate all narratives",icon:CI.bolt,run:()=>generateAll(),group:"Actions"},
@@ -867,12 +893,13 @@ function hideTip(){tip.style.opacity=0;}
 
 /* ---------- nav ---------- */
 function nav(v){
-  for(const s of["dashboard","detail","digest","context","import","admin"])$("v-"+s).style.display=s===v?"":"none";
-  for(const s of["dashboard","digest","context","import","admin"])
+  for(const s of["dashboard","detail","digest","context","import","costs","admin"])$("v-"+s).style.display=s===v?"":"none";
+  for(const s of["dashboard","digest","context","import","costs","admin"])
     document.querySelector(`[data-view=${s}]`)?.classList.toggle("active",s===v||(v==="detail"&&s==="dashboard"));
   if(v!=="detail"&&location.hash!=="#"+v)history.replaceState(null,"","#"+v);
   if(v==="context")loadContext();
   if(v==="digest")loadDigest(false);
+  if(v==="costs")loadCosts();
   if(v==="admin")loadAdmin();
 }
 
@@ -1056,6 +1083,48 @@ async function loadConflicts(){
   }catch{$("conflict-banner").style.display="none";}
 }
 const warnIcon=()=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>`;
+
+/* ---------- cost & usage ---------- */
+const usd=v=>{v=+v||0;return "$"+(v<1?v.toFixed(4):v.toFixed(2));};
+let costsData=null;
+async function loadCosts(){
+  $("costs-loading").style.display="";
+  try{
+    const c=await api("/costs");costsData=c;
+    // Stat tiles
+    const cache=c.cache||{},hr=cache.hit_rate;
+    const lat=c.latency||{},p95s=Object.values(lat).map(x=>x.p95_ms).filter(v=>v!=null);
+    const worstP95=p95s.length?Math.max(...p95s):null;
+    const svg=(p,col)=>`<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="--sc:${col}">${p}</svg>`;
+    const tile=(lbl,path,col,val,hint)=>`<div class="stat rise" style="--sc:${col}"><span class="stat-lbl">${svg(path,col)}${lbl}</span><span class="stat-val">${val}</span><span class="stat-hint">${hint}</span></div>`;
+    $("costs-stats").innerHTML=[
+      tile("Total spend",'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',"#008300",usd(c.total_cost_usd),"across all LLM calls"),
+      tile("LLM calls",'<path d="M13 2 3 14h7l-1 8 10-12h-7z"/>',"#4a3aa7",c.total_llm_calls||0,"generations + digests"),
+      tile("Cache hit rate",'<path d="M21 12a9 9 0 1 1-6.2-8.5"/><path d="M21 3v6h-6"/>',hr>=0.5?"#0ca30c":"#eda100",hr==null?"—":Math.round(hr*100)+"%",`${cache.hits||0} hits · ${cache.misses||0} misses`),
+      tile("Worst p95 latency",'<path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/>',worstP95>2000?"#d03b3b":"#2a78d6",worstP95==null?"—":Math.round(worstP95)+" ms","slowest endpoint"),
+    ].join("");countUp();
+    // Spend-by-day chart (aggregate endpoints per day)
+    const byDay={};(c.by_day||[]).forEach(r=>{byDay[r.day]=(byDay[r.day]||0)+(+r.cost_usd||0);});
+    const days=Object.keys(byDay).sort();
+    ensureCanvas("c-spend");const box=$("box-c-spend");
+    if(!days.length){if(chartReg["c-spend"]){chartReg["c-spend"].destroy();delete chartReg["c-spend"];}box.innerHTML='<div class="loading">No LLM spend recorded yet.</div>';}
+    else{const th=chartTheme();
+      mkChart("c-spend",{type:"bar",
+        data:{labels:days.map(d=>d.slice(5)),datasets:[{label:"Spend",data:days.map(d=>byDay[d]),backgroundColor:th.accent,borderRadius:5,borderSkipped:false,maxBarThickness:40}]},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:tooltipCfg("USD",{label:c=>" "+usd(c.parsed.y)})},
+          scales:{y:{grid:{color:th.grid},ticks:{color:th.mut,maxTicksLimit:5,callback:v=>usd(v)},border:{display:false}},
+            x:{grid:{display:false},ticks:{color:th.mut,maxRotation:0,autoSkip:true,maxTicksLimit:8},border:{color:th.grid}}}}});
+    }
+    // Latency table
+    const lrows=Object.entries(lat);
+    $("costs-latency").innerHTML=lrows.length?`<table class="ctx-table" style="margin-top:8px"><thead><tr><th>Endpoint</th><th style="text-align:right">p50</th><th style="text-align:right">p95</th><th style="text-align:right">n</th></tr></thead><tbody>${lrows.map(([k,v])=>`<tr><td style="font-family:ui-monospace,monospace;font-size:12px">${esc(k)}</td><td style="text-align:right" class="nbi-num">${Math.round(v.p50_ms)} ms</td><td style="text-align:right" class="nbi-num">${Math.round(v.p95_ms)} ms</td><td style="text-align:right" class="nbi-num">${v.n}</td></tr>`).join("")}</tbody></table>`:'<div class="loading">No latency samples yet this session.</div>';
+    // Endpoint spend table
+    const rows=c.by_day||[];
+    $("costs-table").innerHTML=rows.length?`<table class="ctx-table"><thead><tr><th>Day</th><th>Endpoint</th><th style="text-align:right">Calls</th><th style="text-align:right">Prompt tok</th><th style="text-align:right">Completion tok</th><th style="text-align:right">Cost</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.day)}</td><td style="font-family:ui-monospace,monospace;font-size:12px">${esc(r.endpoint)}</td><td style="text-align:right" class="nbi-num">${r.calls}</td><td style="text-align:right" class="nbi-num">${r.prompt_tokens||0}</td><td style="text-align:right" class="nbi-num">${r.completion_tokens||0}</td><td style="text-align:right" class="nbi-num">${usd(r.cost_usd)}</td></tr>`).join("")}</tbody></table>`:'<div class="loading">No spend recorded yet.</div>';
+  }catch(e){toast(e.message||"Could not load costs");}
+  finally{$("costs-loading").style.display="none";}
+}
 
 function deltaChip(label,v,downGood){
   const p=pct(v);if(p===null)return`<span class="delta flat">${label} –</span>`;
@@ -1424,7 +1493,7 @@ async function confirmKpis(){
 
 // Entry point: boot() handles auth (creates the Supabase client, checks the
 // session) and then calls startApp(), which loads periods and applies the hash.
-console.log("Closebrief UI build: v2.4.0 (command palette, shortcuts, a11y)");
+console.log("Closebrief UI build: v2.5.0 (Cost & Usage page)");
 boot();
 </script>
 </body>
