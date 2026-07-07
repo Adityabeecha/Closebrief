@@ -80,9 +80,13 @@ class EmailChannel(NotificationChannel):
                 "https://api.resend.com/emails", payload,
                 headers={"Authorization": f"Bearer {settings.resend_api_key}"}, timeout=15,
             )
-        except urllib.error.HTTPError as e:  # surface Resend's error body
-            detail = e.read().decode("utf-8", "replace")[:300]
-            raise NotificationError(f"Resend rejected the email ({e.code}): {detail}") from e
+        except urllib.error.HTTPError as e:  # surface Resend's human-readable message
+            raw = e.read().decode("utf-8", "replace")
+            try:
+                msg = json.loads(raw).get("message", raw)
+            except ValueError:
+                msg = raw
+            raise NotificationError(f"Resend rejected the email ({e.code}): {msg[:400]}") from e
 
     def _send_smtp(self, subject: str, html_body: str, recipients: list[str]) -> None:
         msg = MIMEMultipart("alternative")
