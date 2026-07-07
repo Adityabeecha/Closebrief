@@ -1,0 +1,30 @@
+name: Nightly Eval (LLM)
+
+# Full eval WITH generation metrics to track faithfulness/groundedness drift.
+# Non-blocking (does not gate PRs). Needs OPENAI_API_KEY as a repo Actions secret.
+on:
+  schedule:
+    - cron: "0 6 * * *" # 06:00 UTC daily
+  workflow_dispatch: {}
+
+jobs:
+  eval:
+    name: Full eval with LLM
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: test
+      LLM_PROVIDER: openai
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install (app + dev deps)
+        run: pip install .[dev]
+
+      - name: Full eval
+        run: python -m eval.run
