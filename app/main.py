@@ -385,7 +385,8 @@ def create_notification_config(payload: dict, _: CurrentUser = Depends(require_w
     if channel not in ("email", "slack", "webhook"):
         raise HTTPException(status_code=422, detail="channel must be email|slack|webhook")
     config = payload.get("config") or {}
-    enabled = 1 if payload.get("enabled", True) else 0
+    # Use a Python bool: psycopg maps it to Postgres BOOLEAN, sqlite3 to 0/1.
+    enabled = bool(payload.get("enabled", True))
     conn = get_connection()
     try:
         cur = conn.execute(
@@ -420,7 +421,7 @@ def update_notification_config(config_id: int, payload: dict, _: CurrentUser = D
         if enabled is not None:
             conn.execute(
                 "UPDATE notification_configs SET enabled = ? WHERE id = ?",
-                (1 if enabled else 0, config_id),
+                (bool(enabled), config_id),
             )
         conn.commit()
         return {"id": config_id, "updated": True}
