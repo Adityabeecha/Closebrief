@@ -71,7 +71,10 @@ class Settings(BaseSettings):
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_pass: str = ""
-    smtp_from: str = "Closebrief <no-reply@closebrief.app>"
+    # Default to Resend's pre-verified sandbox sender so email works with zero
+    # domain setup (sandbox can only deliver to your own Resend account email).
+    # Once you verify a domain in Resend, set SMTP_FROM=Closebrief <alerts@yourdomain.com>.
+    smtp_from: str = "Closebrief <onboarding@resend.dev>"
     smtp_starttls: bool = True
     # Resend HTTP API (recommended on cloud hosts that block outbound SMTP).
     # When set, EmailChannel sends via https://api.resend.com instead of SMTP.
