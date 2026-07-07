@@ -474,6 +474,7 @@
         <div class="panel full">
           <h3>Narrative</h3><div class="psub" id="d-narr-meta"></div>
           <div class="narr" id="d-narr"></div>
+          <div id="d-correlations" style="margin-top:12px"></div>
           <div class="chips" id="d-chips" style="margin-top:12px"></div>
           <div class="qa">
             <input id="d-qa" placeholder="Ask a follow-up about this metric…" onkeydown="if(event.key==='Enter')askQA()">
@@ -1132,6 +1133,11 @@ function deltaChip(label,v,downGood){
   const arrow=v>0?"▲":v<0?"▼":"■";
   return`<span class="delta ${cls}">${arrow} ${label} ${p}</span>`;
 }
+function streakBadge(s){
+  if(!s)return"";
+  const up=s.direction==="growing";
+  return`<span class="delta ${up?"good":"bad"}" title="${esc(s.start_period)} → ${esc(s.end_period)}">${up?"↗":"↘"} ${s.months}-mo ${up?"streak":"decline"}</span>`;
+}
 
 function renderStatrow(facts){
   const el=$("statrow");if(!el)return;
@@ -1208,6 +1214,7 @@ function renderCards(){
       <div class="deltas">
         ${deltaChip("MoM",f.deltas.mom_pct,dg)}
         ${deltaChip("vs plan",f.deltas.budget_var_pct,dg)}
+        ${streakBadge(f.trend_streak)}
       </div>
       <div class="narr ${f.narrative?"":"muted"}">${f.narrative?hl(f.narrative,q):"No narrative yet — generate one to explain this movement."}</div>
       <div class="chips">
@@ -1350,6 +1357,19 @@ function openDetail(i){
   $("d-narr-meta").textContent=(f.confidence?`${f.confidence} confidence · numbers ${f.faithfulness}`:"")+(f.edited?" · edited by analyst":"")+(f.cost_usd!=null?` · ≈ $${(+f.cost_usd).toFixed(4)}`:"");
   $("d-chips").innerHTML=(f.sources||[]).map(s=>`<span class="chip">📎 ${esc(s.title||s.id)}</span>`).join("");
   $("d-qa-answer").innerHTML="";$("d-qa").value="";
+  loadCorrelations(f.metric);
+}
+async function loadCorrelations(metric){
+  const el=$("d-correlations");el.innerHTML="";
+  try{
+    const pairs=await api(`/correlations?metric=${encodeURIComponent(metric)}`);
+    if(!pairs.length)return;
+    el.innerHTML=`<div class="psub" style="margin:0 0 6px">Correlated metrics (historical)</div>`
+      +`<div class="chips">`+pairs.slice(0,4).map(p=>{
+        const pos=p.direction==="positive";
+        return`<span class="chip" style="color:${pos?"var(--green)":"var(--red)"};background:${pos?"var(--green-bg)":"var(--red-bg)"};border-color:currentColor" title="Pearson r=${p.r}, ${p.months} months">${pos?"↑":"↓"} ${esc(p.metric_b)} (r=${p.r})</span>`;
+      }).join("")+`</div>`;
+  }catch{}
 }
 async function regenDetail(){if(!detailFact)return;await genOne(detailFact.metric,$("d-regen"));const f=currentFacts.find(x=>x.metric===detailFact.metric);if(f)openDetail(currentFacts.indexOf(f));}
 async function askQA(){
@@ -1493,7 +1513,7 @@ async function confirmKpis(){
 
 // Entry point: boot() handles auth (creates the Supabase client, checks the
 // session) and then calls startApp(), which loads periods and applies the hash.
-console.log("Closebrief UI build: v2.5.0 (Cost & Usage page)");
+console.log("Closebrief UI build: v2.6.0 (correlations, trend streaks)");
 boot();
 </script>
 </body>

@@ -2,9 +2,15 @@
 prompt versions over time (PRD Section 11).
 """
 
-from app.schemas import ComputedFact, ContextSnippet
+from app.schemas import (
+    ComputedFact,
+    ContextSnippet,
+    CorrelationPair,
+    PeriodComparison,
+    TrendStreak,
+)
 
-PROMPT_VERSION = "v1"
+PROMPT_VERSION = "v2"
 
 SYSTEM_PROMPT = """You are a financial narrative writer for an FP&A team. \
 You explain KPI movements to executives in plain English.
@@ -24,7 +30,55 @@ def _fmt(value: float | None, suffix: str = "") -> str:
     return "n/a" if value is None else f"{value:,.2f}{suffix}"
 
 
-def build_user_prompt(fact: ComputedFact, context: list[ContextSnippet]) -> str:
+def build_correlation_context(correlations: list[CorrelationPair], metric: str) -> list[str]:
+    if not correlations:
+        return []
+    lines = [
+        "",
+        "Correlated metrics (deterministic, historical — for context only, do NOT "
+        "state these as the cause unless a context snippet supports it):",
+    ]
+    for c in correlations[:4]:
+        rel = "moves with" if c.direction == "positive" else "moves opposite to"
+        lines.append(
+            f'  - "{metric}" {rel} "{c.metric_b}" ({c.strength.replace("_", " ")}, '
+            f"r={c.r:+.2f} over {c.months} months)"
+        )
+    return lines
+
+
+def build_trend_streak_context(streak: TrendStreak | None) -> list[str]:
+    if streak is None:
+        return []
+    return [
+        "",
+        f"Trend streak (deterministic): this metric has been {streak.direction} for "
+        f"{streak.months} consecutive months ({streak.start_period} → {streak.end_period}).",
+    ]
+
+
+def build_comparison_context(comparison: PeriodComparison | None) -> list[str]:
+    if comparison is None:
+        return []
+    c = comparison
+    line = (
+        f"Compared to {c.period_a}, {c.period_b} changed by {_fmt(c.abs_change)} "
+        f"({_fmt(c.pct_change, '%')})"
+    )
+    if c.momentum:
+        line += f"; the month-over-month movement is {c.momentum}"
+        if c.acceleration is not None:
+            line += f" (MoM {_fmt(c.mom_pct_a, '%')} → {_fmt(c.mom_pct_b, '%')})"
+    return ["", "Period comparison (deterministic):", "  - " + line + "."]
+
+
+def build_user_prompt(
+    fact: ComputedFact,
+    context: list[ContextSnippet],
+    correlations: list[CorrelationPair] | None = None,
+    trend_streak: TrendStreak | None = None,
+    comparison: PeriodComparison | None = None,
+) -> str:
     lines = [
         f"Metric: {fact.metric}",
         f"Period: {fact.period}",
@@ -47,6 +101,9 @@ def build_user_prompt(fact: ComputedFact, context: list[ContextSnippet]) -> str:
             "  - variance decomposition: not available — do NOT attribute the "
             "movement to price, volume, or mix effects."
         )
+    lines += build_trend_streak_context(trend_streak)
+    lines += build_comparison_context(comparison)
+    lines += build_correlation_context(correlations or [], fact.metric)
     lines.append("")
     if context:
         lines.append("Retrieved context (cite by id if you use it):")
