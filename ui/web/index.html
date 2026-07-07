@@ -388,6 +388,8 @@
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>Import &amp; Mapping</button>
       <button class="nav-item" data-view="costs" onclick="nav('costs')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Cost &amp; Usage</button>
+      <button class="nav-item exec-hide" data-view="notifications" onclick="nav('notifications')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>Notifications</button>
       <button class="nav-item" id="nav-admin" data-view="admin" onclick="nav('admin')" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>User Management</button>
       <div class="nav-label">Coming soon</div>
@@ -576,6 +578,28 @@
         </div>
       </div>
       <div class="loading" id="costs-loading" style="display:none"><span class="spin"></span> Loading usage…</div>
+    </section>
+
+    <!-- ---------- NOTIFICATIONS ---------- -->
+    <section id="v-notifications" class="wrap" style="display:none">
+      <div class="head"><div><h1>Notifications</h1><div class="sub">Deliver digests and anomaly alerts to email, Slack, or a webhook</div></div></div>
+      <div class="ctx-form" style="grid-template-columns:1fr 1fr 1fr;align-items:end">
+        <div><label class="lbl">Channel</label>
+          <select id="nt-channel" onchange="ntChannelFields()">
+            <option value="email">Email</option><option value="slack">Slack</option><option value="webhook">Webhook</option>
+          </select></div>
+        <div id="nt-target-wrap"><label class="lbl" id="nt-target-lbl">Recipients (comma-separated)</label>
+          <input id="nt-target" placeholder="cfo@company.com, fpa@company.com"></div>
+        <div><label class="lbl">Events</label>
+          <select id="nt-events">
+            <option value="anomaly_detected,digest_generated">Anomalies + Digests</option>
+            <option value="anomaly_detected">Anomalies only</option>
+            <option value="digest_generated">Digests only</option>
+          </select></div>
+        <div class="ctx-full" style="text-align:right"><button class="btn primary" onclick="ntCreate()">Add channel</button></div>
+      </div>
+      <div id="nt-list"></div>
+      <div class="loading" id="nt-loading" style="display:none"><span class="spin"></span> Loading…</div>
     </section>
 
     <!-- ---------- ADMIN ---------- -->
@@ -784,7 +808,7 @@ const CI={page:'<path d="M4 4h16v16H4z"/><path d="M4 9h16"/>',metric:'<path d="M
   bolt:'<path d="M13 2 3 14h7l-1 8 10-12h-7z"/>',sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   down:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>'};
 function paletteActions(){
-  const pages=[["dashboard","Insights Dashboard"],["digest","Executive Digest"],["context","Context Library"],["import","Import & Mapping"],["costs","Cost & Usage"]];
+  const pages=[["dashboard","Insights Dashboard"],["digest","Executive Digest"],["context","Context Library"],["import","Import & Mapping"],["costs","Cost & Usage"],["notifications","Notifications"]];
   if(currentUser.role==="admin")pages.push(["admin","User Management"]);
   const acts=[
     {label:"Generate all narratives",icon:CI.bolt,run:()=>generateAll(),group:"Actions"},
@@ -895,13 +919,14 @@ function hideTip(){tip.style.opacity=0;}
 
 /* ---------- nav ---------- */
 function nav(v){
-  for(const s of["dashboard","detail","digest","context","import","costs","admin"])$("v-"+s).style.display=s===v?"":"none";
-  for(const s of["dashboard","digest","context","import","costs","admin"])
+  for(const s of["dashboard","detail","digest","context","import","costs","notifications","admin"])$("v-"+s).style.display=s===v?"":"none";
+  for(const s of["dashboard","digest","context","import","costs","notifications","admin"])
     document.querySelector(`[data-view=${s}]`)?.classList.toggle("active",s===v||(v==="detail"&&s==="dashboard"));
   if(v!=="detail"&&location.hash!=="#"+v)history.replaceState(null,"","#"+v);
   if(v==="context")loadContext();
   if(v==="digest")loadDigest(false);
   if(v==="costs")loadCosts();
+  if(v==="notifications")loadNotifications();
   if(v==="admin")loadAdmin();
 }
 
@@ -991,6 +1016,56 @@ function applyRole(u){
 }
 
 /* ---------- admin panel ---------- */
+/* ---------- notifications ---------- */
+function ntChannelFields(){
+  const ch=$("nt-channel").value,lbl=$("nt-target-lbl"),inp=$("nt-target");
+  if(ch==="email"){lbl.textContent="Recipients (comma-separated)";inp.placeholder="cfo@company.com, fpa@company.com";}
+  else if(ch==="slack"){lbl.textContent="Slack webhook URL";inp.placeholder="https://hooks.slack.com/services/…";}
+  else{lbl.textContent="Webhook URL";inp.placeholder="https://your-service.com/hook";}
+}
+async function loadNotifications(){
+  $("nt-loading").style.display="";
+  try{
+    const cfgs=await api("/notifications/configs");
+    const icon={email:"✉️",slack:"💬",webhook:"🔗"};
+    $("nt-list").innerHTML=cfgs.length?cfgs.map(c=>{
+      const cf=c.config||{},target=cf.recipients?cf.recipients.join(", "):(cf.webhook_url||cf.url||"—");
+      const events=(cf.events||["all"]).join(", ");
+      return`<div class="card" style="margin-top:12px;flex-direction:row;align-items:center;gap:14px">
+        <span style="font-size:22px">${icon[c.channel]||"🔔"}</span>
+        <div style="flex:1;min-width:0">
+          <b style="text-transform:capitalize">${esc(c.channel)}</b>
+          <div style="font-size:12px;color:var(--mut);word-break:break-all">${esc(target)}</div>
+          <div style="font-size:11px;color:var(--mut2);margin-top:2px">Events: ${esc(events)}</div>
+        </div>
+        <label style="font-size:12px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px">
+          <input type="checkbox" ${c.enabled?"checked":""} onchange="ntToggle(${c.id},this.checked)"> Enabled</label>
+        <button class="btn sm" onclick="ntTest(${c.id},this)">Send test</button>
+        <button class="ico" title="Delete" onclick="ntDelete(${c.id})">🗑</button>
+      </div>`;
+    }).join(""):'<div class="empty-state">No channels configured yet. Add one above to receive alerts.</div>';
+  }catch(e){toast(e.message);}
+  finally{$("nt-loading").style.display="none";}
+}
+async function ntCreate(){
+  const channel=$("nt-channel").value,raw=$("nt-target").value.trim();
+  if(!raw){toast("Enter a target (recipients or URL)");return;}
+  const events=$("nt-events").value.split(",");
+  let config={events};
+  if(channel==="email")config.recipients=raw.split(",").map(s=>s.trim()).filter(Boolean);
+  else if(channel==="slack")config.webhook_url=raw;
+  else config.url=raw;
+  try{await api("/notifications/configs",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({channel,config})});
+    $("nt-target").value="";toast("Channel added");loadNotifications();
+  }catch(e){toast(e.message);}
+}
+async function ntToggle(id,enabled){try{await api(`/notifications/${id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({enabled})});}catch(e){toast(e.message);}}
+async function ntDelete(id){if(!confirm("Delete this channel?"))return;try{await api(`/notifications/${id}`,{method:"DELETE"});toast("Deleted");loadNotifications();}catch(e){toast(e.message);}}
+async function ntTest(id,btn){btn.disabled=true;btn.textContent="Sending…";
+  try{await api(`/notifications/test/${id}`,{method:"POST"});toast("Test sent ✓");}
+  catch(e){toast(e.message||"Test failed");}
+  finally{btn.disabled=false;btn.textContent="Send test";}
+}
 async function loadAdmin(){
   try{
     const users=await api("/admin/users");
@@ -1522,7 +1597,7 @@ async function confirmKpis(){
 
 // Entry point: boot() handles auth (creates the Supabase client, checks the
 // session) and then calls startApp(), which loads periods and applies the hash.
-console.log("Closebrief UI build: v2.6.0 (correlations, trend streaks)");
+console.log("Closebrief UI build: v2.7.0 (notifications)");
 boot();
 </script>
 </body>

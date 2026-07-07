@@ -40,6 +40,8 @@ from app.ingestion.templates import get_template as load_template
 from app.ingestion.templates import save_template as save_mapping_template
 from app.ingestion.upload import UploadError, create_upload, load_upload_frame
 from app.kpis.library import KPI_LIBRARY, suggest_kpi
+from app.notifications.channels import NotificationError, make_channel
+from app.notifications.scheduler import list_configs as notif_list_configs
 from app.retrieval.retrieve import retrieve
 from app.schemas import (
     ComputedFact,
@@ -324,6 +326,100 @@ def compare_endpoint(
         if result is None:
             raise HTTPException(status_code=404, detail="No computed facts for both periods")
         return result
+    finally:
+        conn.close()
+
+
+@app.get("/notifications/configs")
+def list_notification_configs(_: CurrentUser = Depends(require_read)) -> list[dict]:
+    conn = get_connection()
+    try:
+        return notif_list_configs(conn)
+    finally:
+        conn.close()
+
+
+@app.post("/notifications/configs", status_code=201)
+def create_notification_config(payload: dict, _: CurrentUser = Depends(require_write)) -> dict:
+    channel = payload.get("channel")
+    if channel not in ("email", "slack", "webhook"):
+        raise HTTPException(status_code=422, detail="channel must be email|slack|webhook")
+    config = payload.get("config") or {}
+    enabled = 1 if payload.get("enabled", True) else 0
+    conn = get_connection()
+    try:
+        cur = conn.execute(
+            "INSERT INTO notification_configs (channel, config, enabled) VALUES (?, ?, ?)",
+            (channel, json.dumps(config), enabled),
+        )
+        conn.commit()
+        new_id = cur.lastrowid if hasattr(cur, "lastrowid") and cur.lastrowid else conn.execute(
+            "SELECT MAX(id) AS id FROM notification_configs"
+        ).fetchone()["id"]
+        return {"id": new_id, "channel": channel, "config": config, "enabled": bool(enabled)}
+    finally:
+        conn.close()
+
+
+@app.put("/notifications/{config_id}")
+def update_notification_config(config_id: int, payload: dict, _: CurrentUser = Depends(require_write)) -> dict:
+    conn = get_connection()
+    try:
+        row = conn.execute(
+            "SELECT id FROM notification_configs WHERE id = ?", (config_id,)
+        ).fetchone()
+        if row is None:
+            raise HTTPException(status_code=404, detail="config not found")
+        config = payload.get("config")
+        enabled = payload.get("enabled")
+        if config is not None:
+            conn.execute(
+                "UPDATE notification_configs SET config = ? WHERE id = ?",
+                (json.dumps(config), config_id),
+            )
+        if enabled is not None:
+            conn.execute(
+                "UPDATE notification_configs SET enabled = ? WHERE id = ?",
+                (1 if enabled else 0, config_id),
+            )
+        conn.commit()
+        return {"id": config_id, "updated": True}
+    finally:
+        conn.close()
+
+
+@app.delete("/notifications/{config_id}", status_code=204)
+def delete_notification_config(config_id: int, _: CurrentUser = Depends(require_write)) -> None:
+    conn = get_connection()
+    try:
+        conn.execute("DELETE FROM notification_configs WHERE id = ?", (config_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+@app.post("/notifications/test/{config_id}")
+def test_notification_config(config_id: int, _: CurrentUser = Depends(require_write)) -> dict:
+    """Send a sample anomaly alert through one config to verify delivery."""
+    conn = get_connection()
+    try:
+        row = conn.execute(
+            "SELECT channel, config FROM notification_configs WHERE id = ?", (config_id,)
+        ).fetchone()
+        if row is None:
+            raise HTTPException(status_code=404, detail="config not found")
+        sample = [{
+            "metric": "Net Revenue", "period": "2025-03",
+            "value": "$5.33M", "delta": "+27.6% vs plan",
+            "narrative": "This is a Closebrief test notification.",
+        }]
+        try:
+            make_channel(row["channel"], json.loads(row["config"] or "{}")).send_anomaly_alert(sample)
+        except NotificationError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
+        except Exception as e:  # noqa: BLE001 - surface delivery failures to the caller
+            raise HTTPException(status_code=502, detail=f"Delivery failed: {e}") from e
+        return {"ok": True}
     finally:
         conn.close()
 

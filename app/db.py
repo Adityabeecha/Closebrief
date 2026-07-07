@@ -161,6 +161,14 @@ CREATE TABLE IF NOT EXISTS app_roles (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS notification_configs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    channel TEXT NOT NULL,            -- 'email' | 'slack' | 'webhook'
+    config TEXT NOT NULL,             -- JSON: {recipients, schedule, events, ...}
+    enabled INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 # Columns added after first release; applied to pre-existing SQLite DBs on startup.
