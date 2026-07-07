@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     # (port 6543) for runtime; migrations derive the session pooler (5432).
     database_url: str = ""
     database_url_direct: str = ""
+    # Auto-create the Postgres schema on startup if it is missing. Lets the
+    # Render free tier (no preDeployCommand) self-migrate on first boot. The
+    # migration is idempotent; disable only if you manage schema out-of-band.
+    auto_migrate: bool = True
 
     # Vector backend: "auto" (pgvector when database_url set, else FAISS),
     # "faiss", or "pgvector".
