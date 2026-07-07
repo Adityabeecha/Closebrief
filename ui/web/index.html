@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Closebrief — FP&A intelligence</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/vendor/supabase.js"></script>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   :root{
@@ -502,6 +502,12 @@ async function boot(){
   let cfg;
   try{cfg=await fetch("/auth/config").then(r=>r.json());}catch{cfg={auth_enabled:false};}
   if(!cfg.auth_enabled){startApp();return;}                    // local-dev bypass
+  if(!window.supabase||!window.supabase.createClient){
+    showLogin();
+    const err=$("lg-err");
+    if(err){err.textContent="Auth library failed to load (/vendor/supabase.js). Refresh the page.";err.style.display="block";}
+    return;
+  }
   sb=window.supabase.createClient(cfg.supabase_url,cfg.supabase_anon_key);
   // React to sign-in / token-refresh events (the source of truth for the token).
   sb.auth.onAuthStateChange((event,s)=>{
@@ -528,6 +534,7 @@ function toggleAuthMode(){
 async function submitAuth(){
   const email=$("lg-email").value.trim(), pass=$("lg-pass").value, err=$("lg-err");
   err.style.display="none";
+  if(!sb){err.textContent="Auth client not initialized — the auth library failed to load. Hard-refresh (Ctrl+Shift+R) and check the browser console.";err.style.display="block";return;}
   if(!email||!pass){err.textContent="Enter email and password.";err.style.display="block";return;}
   $("lg-btn").disabled=true;$("lg-btn").textContent="…";
   try{
@@ -924,7 +931,10 @@ async function confirmKpis(){
   toast("Import complete");setStep(1);await loadPeriods();nav("dashboard");
 }
 
-loadPeriods().then(()=>{const h=location.hash.slice(1);if(["digest","context","import"].includes(h))nav(h);});
+// Entry point: boot() handles auth (creates the Supabase client, checks the
+// session) and then calls startApp(), which loads periods and applies the hash.
+console.log("Closebrief UI build: v2.0.1 (vendored supabase, boot entry)");
+boot();
 </script>
 </body>
 </html>
