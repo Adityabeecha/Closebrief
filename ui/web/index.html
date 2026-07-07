@@ -93,13 +93,23 @@
   .banner.err{background:var(--red-bg);border:1px solid var(--red);color:var(--red)}
   .banner.info{background:var(--accent-bg);border:1px solid #93c5fd;color:var(--accent)}
 
+  /* ---------------- STAT ROW ---------------- */
+  .statrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:13px;margin-bottom:18px}
+  .stat{background:var(--card);border:1px solid var(--b08);border-radius:13px;padding:15px 17px;display:flex;flex-direction:column;gap:7px;box-shadow:0 1px 2px rgba(15,23,42,.04);position:relative;overflow:hidden}
+  .stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--sc,var(--accent))}
+  .stat-lbl{font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;gap:7px}
+  .stat-lbl svg{width:14px;height:14px;stroke:var(--sc,var(--accent));flex:none}
+  .stat-val{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1}
+  .stat-val small{font-size:13px;font-weight:700;color:var(--mut)}
+  .stat-hint{font-size:11px;color:var(--mut2);font-weight:600}
+
   /* ---------------- CARDS ---------------- */
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
-  .card{background:var(--card);border:1px solid var(--b08);border-left:3px solid var(--cat,var(--b08));border-radius:15px;padding:20px;display:flex;flex-direction:column;gap:13px;transition:box-shadow .16s,border-color .16s}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;align-items:start}
+  .card{background:var(--card);border:1px solid var(--b08);border-left:3px solid var(--cat,var(--b08));border-radius:15px;padding:20px;display:flex;flex-direction:column;gap:13px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 4px 12px rgba(15,23,42,.03);transition:box-shadow .16s,transform .16s,border-color .16s}
   .cat-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--cat,var(--mut2));flex:none;vertical-align:1px;margin-right:7px}
   .card.click{cursor:pointer}
-  .card.click:hover{box-shadow:0 8px 26px rgba(15,23,42,.09);border-color:rgba(37,99,235,.35)}
-  .card.empty{opacity:.72}
+  .card.click:hover{box-shadow:0 10px 30px rgba(15,23,42,.11);border-color:rgba(37,99,235,.35);transform:translateY(-2px)}
+  .card.empty{background:var(--bg2);border-style:dashed;box-shadow:none}
   .card-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .card-name{font-size:13.5px;font-weight:600;color:var(--ink3);letter-spacing:.01em}
   .conf{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px}
@@ -327,6 +337,7 @@
           <button class="btn primary" id="gen-all" onclick="generateAll()">Generate narratives</button>
         </div>
       </div>
+      <div class="statrow" id="statrow"></div>
       <div class="banner warn" id="anomaly-banner" style="display:none"></div>
       <div class="banner warn" id="conflict-banner" style="display:none"></div>
       <div class="grid" id="cards"></div>
@@ -678,9 +689,35 @@ function deltaChip(label,v,downGood){
   return`<span class="delta ${cls}">${arrow} ${label} ${p}</span>`;
 }
 
+function renderStatrow(facts){
+  const el=$("statrow");if(!el)return;
+  const withData=facts.filter(f=>f.has_data);
+  if(!withData.length){el.innerHTML="";return;}
+  const anom=withData.filter(f=>f.is_anomaly).length;
+  const narr=withData.filter(f=>f.narrative).length;
+  const offPlan=withData.filter(f=>f.deltas&&f.deltas.budget_var_pct!=null&&f.deltas.budget_var_pct<0).length;
+  // Biggest absolute move vs plan, for a "top mover" headline tile.
+  const mover=withData.filter(f=>f.deltas&&f.deltas.budget_var_pct!=null)
+    .sort((a,b)=>Math.abs(b.deltas.budget_var_pct)-Math.abs(a.deltas.budget_var_pct))[0];
+  const ic={grid:'<path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/>',
+    bolt:'<path d="M13 2 3 14h7l-1 8 10-12h-7z"/>',
+    warn:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/>',
+    trend:'<path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-5"/>'};
+  const svg=(p,c)=>`<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="--sc:${c}">${p}</svg>`;
+  const tile=(lbl,path,color,val,hint)=>`<div class="stat" style="--sc:${color}">
+    <span class="stat-lbl">${svg(path,color)}${lbl}</span>
+    <span class="stat-val">${val}</span><span class="stat-hint">${hint}</span></div>`;
+  el.innerHTML=[
+    tile("KPIs tracked",ic.grid,"#2a78d6",withData.length,`${facts.length-withData.length} without data this period`),
+    tile("Narratives",ic.bolt,"#4a3aa7",`${narr}<small>/${withData.length}</small>`,narr===withData.length?"all explained":`${withData.length-narr} to generate`),
+    tile("Anomalies",ic.warn,anom?"#d03b3b":"#0ca30c",anom,anom?"flagged for review":"none this period"),
+    mover?tile("Top mover vs plan",ic.trend,catColor(mover.category)||"#eb6834",esc(mover.metric),`${pct(mover.deltas.budget_var_pct)||"–"} vs budget`):""
+  ].join("");
+}
 function renderCards(){
   const cat=$("category-filter").value;
   const facts=cat?currentFacts.filter(f=>(f.category||"Uncategorized")===cat):currentFacts;
+  renderStatrow(facts);
   if(!facts.length){$("cards").innerHTML=`<div class="empty-state" style="grid-column:1/-1"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/></svg><div>No KPIs to show. Select KPIs during import, or switch dataset.</div></div>`;return;}
   $("cards").innerHTML=facts.map((f,i)=>{
     const dg=f.direction_good==="down";
