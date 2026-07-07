@@ -7,6 +7,7 @@
 <link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="%232563eb"/><path d="M8 24v-7M16 24V11M24 24V8" stroke="white" stroke-width="3.4" stroke-linecap="round"/></svg>'>
 <script src="/vendor/supabase.js"></script>
 <script src="/vendor/chart.min.js"></script>
+<script src="/vendor/sentry.min.js"></script>
 <style>
   /* Brand font, self-hosted (no CDN/network dependency — see /vendor/). */
   @font-face{font-family:'Plus Jakarta Sans';font-style:normal;font-weight:400;font-display:swap;src:url(/vendor/fonts/pjs-400.woff2) format('woff2')}
@@ -906,9 +907,17 @@ function nav(v){
 
 /* ---------- auth ---------- */
 let appStarted=false;
+function initSentry(cfg){
+  if(!cfg.sentry_dsn||!window.Sentry)return;
+  try{Sentry.init({dsn:cfg.sentry_dsn,environment:cfg.environment||"prod",
+    tracesSampleRate:0.1,
+    // Don't spam Sentry with expected auth failures.
+    ignoreErrors:["Session expired","Missing bearer token"]});}catch(e){}
+}
 async function boot(){
   let cfg;
   try{cfg=await fetch("/auth/config").then(r=>r.json());}catch{cfg={auth_enabled:false};}
+  initSentry(cfg);
   if(!cfg.auth_enabled){startApp();return;}                    // local-dev bypass
   if(!window.supabase||!window.supabase.createClient){
     showLogin();
