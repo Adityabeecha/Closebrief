@@ -185,12 +185,14 @@ def ui_root() -> FileResponse:
 _UI_VENDOR = _UI_INDEX.parent / "vendor"
 
 
-@app.get("/vendor/{filename}", include_in_schema=False)
+@app.get("/vendor/{filename:path}", include_in_schema=False)
 def ui_vendor(filename: str) -> FileResponse:
     path = (_UI_VENDOR / filename).resolve()
     if _UI_VENDOR.resolve() not in path.parents or not path.is_file():
         raise HTTPException(status_code=404, detail="not found")
-    return FileResponse(path)
+    # Windows mimetypes lacks woff2; wrong MIME makes browsers reject the font.
+    media_type = "font/woff2" if path.suffix == ".woff2" else None
+    return FileResponse(path, media_type=media_type)
 
 
 @app.get("/health")
