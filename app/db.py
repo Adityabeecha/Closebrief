@@ -388,7 +388,11 @@ def migrate(copy_data: bool = True, reindex: bool = True) -> None:
     with psycopg.connect(ddl_url, connect_timeout=20) as conn:
         # Base schema (idempotent), then versioned migrations tracked in
         # schema_migrations so future ALTERs are managed, not ad hoc.
-        conn.execute(PG_SCHEMA_PATH.read_text(encoding="utf-8"))
+        # Skip the (large) base-schema re-execute when it's already present —
+        # keeps every startup cheap; only pending versioned migrations run.
+        base_present = conn.execute("SELECT to_regclass('public.metrics')").fetchone()[0] is not None
+        if not base_present:
+            conn.execute(PG_SCHEMA_PATH.read_text(encoding="utf-8"))
         conn.execute(
             """CREATE TABLE IF NOT EXISTS schema_migrations (
                    version TEXT PRIMARY KEY,
