@@ -300,6 +300,36 @@
   .admin-table td{padding:11px 14px;border-bottom:1px solid var(--bg3);font-size:12.5px}
   .admin-table select{padding:5px 9px;border:1px solid var(--b12);border-radius:7px;font-weight:600}
 
+  /* ---------------- A11Y ---------------- */
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+  .skip-link{position:fixed;top:-60px;left:12px;z-index:200;background:var(--accent);color:#fff;padding:9px 16px;border-radius:0 0 9px 9px;font-weight:700;font-size:13px;transition:top .18s}
+  .skip-link:focus{top:0}
+
+  /* ---------------- COMMAND PALETTE ---------------- */
+  .cmdk-back{position:fixed;inset:0;z-index:150;background:rgba(15,23,42,.4);backdrop-filter:blur(3px);display:none;align-items:flex-start;justify-content:center;padding-top:12vh;animation:fade .14s ease}
+  .cmdk-back.open{display:flex}
+  .cmdk{width:min(560px,92vw);background:var(--card);border:1px solid var(--b12);border-radius:15px;box-shadow:0 24px 70px rgba(15,23,42,.32);overflow:hidden;animation:cmdkIn .16s cubic-bezier(.22,.61,.36,1)}
+  @keyframes cmdkIn{from{opacity:0;transform:scale(.96) translateY(-6px)}to{opacity:1;transform:none}}
+  .cmdk-in{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--b08)}
+  .cmdk-in svg{width:18px;height:18px;stroke:var(--mut2);flex:none}
+  .cmdk-in input{flex:1;border:none;background:none;font-size:15px;color:var(--ink);outline:none}
+  .cmdk-list{max-height:52vh;overflow-y:auto;padding:6px}
+  .cmdk-group{font-size:10px;font-weight:800;color:var(--mut2);text-transform:uppercase;letter-spacing:.08em;padding:10px 12px 5px}
+  .cmdk-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:9px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--ink2)}
+  .cmdk-item .ci-ic{width:26px;height:26px;border-radius:7px;background:var(--bg3);display:inline-flex;align-items:center;justify-content:center;flex:none}
+  .cmdk-item .ci-ic svg{width:15px;height:15px;stroke:var(--ink3)}
+  .cmdk-item small{margin-left:auto;font-size:11px;color:var(--mut2);font-weight:600}
+  .cmdk-item.sel,.cmdk-item:hover{background:var(--accent-bg);color:var(--accent)}
+  .cmdk-item.sel .ci-ic,.cmdk-item:hover .ci-ic{background:var(--accent)}
+  .cmdk-item.sel .ci-ic svg,.cmdk-item:hover .ci-ic svg{stroke:#fff}
+  .cmdk-empty{padding:26px;text-align:center;color:var(--mut2);font-size:13px}
+  .cmdk-foot{display:flex;gap:14px;padding:9px 14px;border-top:1px solid var(--b08);font-size:11px;color:var(--mut2);font-weight:600}
+  .cmdk-foot kbd{background:var(--bg3);border:1px solid var(--b08);border-radius:5px;padding:1px 6px;font-family:inherit;font-size:10.5px;margin-right:3px}
+
+  /* shortcuts help panel */
+  .sc-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 26px;padding:18px}
+  .sc-row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px;color:var(--ink2);font-weight:600}
+  .sc-row kbd{background:var(--bg3);border:1px solid var(--b12);border-radius:6px;padding:2px 9px;font-family:inherit;font-size:12px;font-weight:700;color:var(--ink3)}
 </style>
 </head>
 <body>
@@ -327,6 +357,7 @@
   </div>
 </div>
 
+<a href="#v-dashboard" class="skip-link">Skip to content</a>
 <div class="app" id="app-root" style="display:none">
 
   <!-- ============ SIDEBAR ============ -->
@@ -528,6 +559,32 @@
     </section>
   </main>
 </div>
+<!-- Command palette -->
+<div class="cmdk-back" id="cmdk-back" onclick="if(event.target===this)closePalette()">
+  <div class="cmdk" role="dialog" aria-label="Command palette">
+    <div class="cmdk-in">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="cmdk-input" placeholder="Search metrics, pages, actions…" aria-label="Command palette search" oninput="renderPalette()" autocomplete="off">
+    </div>
+    <div class="cmdk-list" id="cmdk-list"></div>
+    <div class="cmdk-foot"><span><kbd>↑↓</kbd>navigate</span><span><kbd>↵</kbd>select</span><span><kbd>esc</kbd>close</span></div>
+  </div>
+</div>
+<!-- Shortcuts help -->
+<div class="cmdk-back" id="sc-back" onclick="if(event.target===this)$('sc-back').classList.remove('open')">
+  <div class="cmdk" role="dialog" aria-label="Keyboard shortcuts" style="width:min(520px,92vw)">
+    <div class="cmdk-in" style="justify-content:space-between"><b style="font-size:15px">Keyboard shortcuts</b>
+      <button class="ico" onclick="$('sc-back').classList.remove('open')" aria-label="Close">✕</button></div>
+    <div class="sc-grid">
+      <div class="sc-row"><span>Command palette</span><span><kbd>Ctrl</kbd><kbd>K</kbd></span></div>
+      <div class="sc-row"><span>Search metrics</span><kbd>/</kbd></div>
+      <div class="sc-row"><span>Toggle dark mode</span><kbd>d</kbd></div>
+      <div class="sc-row"><span>Generate all narratives</span><kbd>g</kbd></div>
+      <div class="sc-row"><span>Export report</span><kbd>e</kbd></div>
+      <div class="sc-row"><span>This help</span><kbd>?</kbd></div>
+    </div>
+  </div>
+</div>
 <div class="tip" id="tip"></div>
 <div class="toast" id="toast"></div>
 
@@ -692,6 +749,57 @@ async function exportPPTX(){
     toast("PowerPoint downloaded");
   }catch(e){toast(e.message||"Export failed");}
 }
+
+/* ---------- command palette (Ctrl+K) ---------- */
+let cmdkSel=0, cmdkItems=[];
+const CI={page:'<path d="M4 4h16v16H4z"/><path d="M4 9h16"/>',metric:'<path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-5"/>',
+  bolt:'<path d="M13 2 3 14h7l-1 8 10-12h-7z"/>',sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  down:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>'};
+function paletteActions(){
+  const pages=[["dashboard","Insights Dashboard"],["digest","Executive Digest"],["context","Context Library"],["import","Import & Mapping"]];
+  if(currentUser.role==="admin")pages.push(["admin","User Management"]);
+  const acts=[
+    {label:"Generate all narratives",icon:CI.bolt,run:()=>generateAll(),group:"Actions"},
+    {label:"Export report (PDF)",icon:CI.down,run:()=>exportPDF(),group:"Actions"},
+    {label:"Export report (PowerPoint)",icon:CI.down,run:()=>exportPPTX(),group:"Actions"},
+    {label:"Toggle dark mode",icon:CI.sun,run:()=>toggleTheme(),group:"Actions"},
+  ];
+  const pageItems=pages.map(([v,l])=>({label:l,icon:CI.page,run:()=>nav(v),group:"Pages"}));
+  const metricItems=(currentFacts||[]).filter(f=>f.has_data).map(f=>({label:f.metric,sub:f.category||"",icon:CI.metric,
+    run:()=>{nav("dashboard");const i=shownFacts.indexOf(f);(i>=0)?openDetail(i):(currentFacts.includes(f)&&(searchQuery="",renderCards(),openDetail(shownFacts.indexOf(f))));},group:"Metrics"}));
+  return[...acts,...pageItems,...metricItems];
+}
+function openPalette(){
+  const bk=$("cmdk-back");bk.classList.add("open");
+  const inp=$("cmdk-input");inp.value="";cmdkSel=0;renderPalette();
+  setTimeout(()=>inp.focus(),30);
+}
+function closePalette(){$("cmdk-back").classList.remove("open");}
+function renderPalette(){
+  const q=($("cmdk-input").value||"").toLowerCase().trim();
+  let all=paletteActions();
+  if(q)all=all.filter(it=>it.label.toLowerCase().includes(q)||(it.sub||"").toLowerCase().includes(q));
+  cmdkItems=all;if(cmdkSel>=all.length)cmdkSel=Math.max(0,all.length-1);
+  const list=$("cmdk-list");
+  if(!all.length){list.innerHTML=`<div class="cmdk-empty">No matches for “${esc(q)}”</div>`;return;}
+  let html="",lastG=null;
+  all.forEach((it,i)=>{
+    if(it.group!==lastG){html+=`<div class="cmdk-group">${it.group}</div>`;lastG=it.group;}
+    html+=`<div class="cmdk-item${i===cmdkSel?" sel":""}" data-i="${i}" onmousemove="cmdkSel=${i};paintPalette()" onclick="runPalette(${i})">
+      <span class="ci-ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${it.icon}</svg></span>
+      <span>${esc(it.label)}</span>${it.sub?`<small>${esc(it.sub)}</small>`:""}</div>`;
+  });
+  list.innerHTML=html;
+}
+function paintPalette(){document.querySelectorAll(".cmdk-item").forEach(el=>el.classList.toggle("sel",+el.dataset.i===cmdkSel));}
+function runPalette(i){const it=cmdkItems[i];if(!it)return;closePalette();setTimeout(()=>it.run(),30);}
+function paletteKey(e){
+  if(e.key==="Escape"){closePalette();return;}
+  if(e.key==="ArrowDown"){e.preventDefault();cmdkSel=Math.min(cmdkSel+1,cmdkItems.length-1);paintPalette();scrollSel();}
+  else if(e.key==="ArrowUp"){e.preventDefault();cmdkSel=Math.max(cmdkSel-1,0);paintPalette();scrollSel();}
+  else if(e.key==="Enter"){e.preventDefault();runPalette(cmdkSel);}
+}
+function scrollSel(){document.querySelector(".cmdk-item.sel")?.scrollIntoView({block:"nearest"});}
 
 /* ---------- search / highlight ---------- */
 let _searchT=null;
@@ -880,10 +988,21 @@ function toggleWs(e){e.stopPropagation();$("ws-menu").classList.toggle("open");}
 document.addEventListener("click",()=>{$("ws-menu").classList.remove("open");$("export-menu")?.classList.remove("open");});
 // Keyboard shortcuts. Ignore while typing in a field.
 document.addEventListener("keydown",e=>{
+  // Shortcuts help open: Escape closes it.
+  if($("sc-back").classList.contains("open")){if(e.key==="Escape")$("sc-back").classList.remove("open");return;}
+  // While the palette is open, route nav keys to it.
+  if($("cmdk-back").classList.contains("open")){paletteKey(e);return;}
+  // Ctrl/Cmd+K opens the palette from anywhere (even while typing).
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){e.preventDefault();if($("app-root").style.display!=="none")openPalette();return;}
   const tag=(e.target.tagName||"").toLowerCase();
   if(tag==="input"||tag==="textarea"||tag==="select"||e.metaKey||e.ctrlKey||e.altKey)return;
+  const appOn=$("app-root").style.display!=="none";
   if(e.key==="d"){toggleTheme();}
+  else if(e.key==="?"){if(appOn)$("sc-back").classList.toggle("open");}
+  else if(!appOn){return;}
   else if(e.key==="/"){e.preventDefault();$("search")?.focus();}
+  else if(e.key==="g"){generateAll();}
+  else if(e.key==="e"){toggleExport(e);}
 });
 async function activateDataset(id){await api(`/datasets/${id}/activate`,{method:"POST"});toast("Switched dataset");await loadPeriods();}
 async function deleteDataset(id,name){
@@ -1305,7 +1424,7 @@ async function confirmKpis(){
 
 // Entry point: boot() handles auth (creates the Supabase client, checks the
 // session) and then calls startApp(), which loads periods and applies the hash.
-console.log("Closebrief UI build: v2.3.1 (clean PDF report window, fixed PPTX export)");
+console.log("Closebrief UI build: v2.4.0 (command palette, shortcuts, a11y)");
 boot();
 </script>
 </body>
