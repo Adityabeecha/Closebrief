@@ -300,25 +300,6 @@
   .admin-table td{padding:11px 14px;border-bottom:1px solid var(--bg3);font-size:12.5px}
   .admin-table select{padding:5px 9px;border:1px solid var(--b12);border-radius:7px;font-weight:600}
 
-  /* ---------------- PRINT (PDF export) ---------------- */
-  #print-header{display:none}
-  @media print{
-    :root[data-theme="dark"]{--bg:#fff;--card:#fff;--ink:#0f172a;--ink2:#334155;--ink3:#475569;--mut:#64748b;--mut2:#94a3b8;--bg2:#f6f6f4;--bg3:#f1f1ef;--b08:rgba(15,23,42,.08);--b12:rgba(15,23,42,.12)}
-    @page{margin:14mm}
-    body{background:#fff!important}
-    .side,.head-actions,.filter-pills,.card-foot,.qa,#dash-loading,.theme-btn,.logout{display:none!important}
-    .app{display:block;height:auto;overflow:visible}
-    main{overflow:visible;height:auto}
-    .wrap{max-width:none;padding:0}
-    #print-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:18px}
-    #print-header b{font-size:20px}
-    #print-header .ph-r{text-align:right;font-size:12px;color:var(--mut)}
-    .head h1{font-size:20px}
-    .grid{grid-template-columns:1fr 1fr!important;gap:12px}
-    .card,.stat,.digest-item{box-shadow:none!important;break-inside:avoid;border:1px solid var(--b12)!important;transform:none!important;animation:none!important;opacity:1!important}
-    .statrow{grid-template-columns:repeat(4,1fr)}
-    a[href]:after{content:""}
-  }
 </style>
 </head>
 <body>
@@ -397,10 +378,6 @@
   <main class="nbi-scroll">
     <!-- ---------- DASHBOARD ---------- -->
     <section id="v-dashboard" class="wrap">
-      <div id="print-header">
-        <div><b>Closebrief · FP&amp;A Executive Report</b><div style="font-size:12px;color:var(--mut)" id="ph-period"></div></div>
-        <div class="ph-r" id="ph-date"></div>
-      </div>
       <div class="head">
         <div>
           <h1>Insights Dashboard</h1>
@@ -587,11 +564,86 @@ initTheme();
 
 /* ---------- export (PDF / PPTX) ---------- */
 function toggleExport(e){e.stopPropagation();$("export-menu").classList.toggle("open");}
+function reportDelta(label,v,downGood){
+  const p=pct(v);if(p===null)return`<span class="rd flat">${label} –</span>`;
+  const good=downGood?v<0:v>0,col=v===0?"#64748b":good?"#15803d":"#dc2626",bg=v===0?"#f1f5f9":good?"#ecfdf3":"#fef2f2";
+  return`<span class="rd" style="color:${col};background:${bg}">${v>0?"▲":v<0?"▼":"■"} ${label} ${p}</span>`;
+}
+function buildReportHTML(facts){
+  const withData=facts.filter(f=>f.has_data);
+  const anom=withData.filter(f=>f.is_anomaly).length;
+  const mover=withData.filter(f=>f.deltas&&f.deltas.budget_var_pct!=null).sort((a,b)=>Math.abs(b.deltas.budget_var_pct)-Math.abs(a.deltas.budget_var_pct))[0];
+  const cards=withData.map(f=>{
+    const dg=f.direction_good==="down",col=catColor(f.category)||"#94a3b8";
+    const spark=(f.chart_data&&f.chart_data.trend)?sparkline(f.chart_data.trend,f.direction_good,150,40):"";
+    const src=(f.sources||[]).map(s=>`<span class="src">${esc(s.title||s.id)}</span>`).join("");
+    return`<div class="rcard" style="border-left:3px solid ${col}">
+      <div class="rc-top"><span class="rc-dot" style="background:${col}"></span><span class="rc-name">${esc(f.metric)}</span>
+        <span class="rc-cat">${esc(f.category||"")}</span></div>
+      <div class="rc-vrow"><span class="rc-val">${fmt(f.value,f.unit)}</span>${spark}</div>
+      <div class="rc-deltas">${reportDelta("MoM",f.deltas.mom_pct,dg)}${reportDelta("vs plan",f.deltas.budget_var_pct,dg)}${f.is_anomaly?'<span class="rd" style="color:#dc2626;background:#fef2f2">ANOMALY</span>':""}</div>
+      <div class="rc-narr">${f.narrative?esc(f.narrative):"<i>No narrative generated for this metric.</i>"}</div>
+      ${src?`<div class="rc-src">${src}</div>`:""}
+    </div>`;
+  }).join("");
+  const today=new Date().toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"});
+  return`<!doctype html><html><head><meta charset="utf-8"><title>Closebrief Report ${esc(currentPeriod||"")}</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,Segoe UI,sans-serif;color:#0f172a;padding:28px 32px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    @font-face{font-family:'Plus Jakarta Sans';font-weight:400;src:url(/vendor/fonts/pjs-400.woff2) format('woff2')}
+    @font-face{font-family:'Plus Jakarta Sans';font-weight:600;src:url(/vendor/fonts/pjs-600.woff2) format('woff2')}
+    @font-face{font-family:'Plus Jakarta Sans';font-weight:700;src:url(/vendor/fonts/pjs-700.woff2) format('woff2')}
+    @font-face{font-family:'Plus Jakarta Sans';font-weight:800;src:url(/vendor/fonts/pjs-800.woff2) format('woff2')}
+    .rhead{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #2563eb;padding-bottom:14px;margin-bottom:18px}
+    .rhead .mark{display:inline-flex;align-items:center;gap:9px}
+    .rhead .mk{width:26px;height:26px;border-radius:7px;background:#2563eb;display:inline-flex;align-items:center;justify-content:center}
+    .rhead h1{font-size:19px;font-weight:800;letter-spacing:-.02em}
+    .rhead .sub{font-size:12px;color:#64748b;margin-top:2px}
+    .rhead .r{text-align:right;font-size:11.5px;color:#64748b;line-height:1.6}
+    .rsummary{display:flex;gap:26px;background:#f7f9fc;border:1px solid #e6ebf3;border-radius:10px;padding:13px 18px;margin-bottom:20px}
+    .rsummary div{font-size:11.5px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+    .rsummary b{display:block;font-size:20px;color:#0f172a;font-weight:800;margin-top:3px;text-transform:none;letter-spacing:0}
+    .rgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .rcard{border:1px solid #e2e8f0;border-radius:11px;padding:15px 16px;break-inside:avoid}
+    .rc-top{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+    .rc-dot{width:8px;height:8px;border-radius:50%;flex:none}
+    .rc-name{font-weight:700;font-size:14px}
+    .rc-cat{margin-left:auto;font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+    .rc-vrow{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:9px}
+    .rc-val{font-size:26px;font-weight:800;letter-spacing:-.02em}
+    .rc-deltas{display:flex;gap:7px;margin-bottom:9px}
+    .rd{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px}
+    .rd.flat{color:#64748b;background:#f1f5f9}
+    .rc-narr{font-size:12px;line-height:1.55;color:#334155}
+    .rc-src{margin-top:9px;display:flex;flex-wrap:wrap;gap:5px}
+    .src{font-size:9.5px;font-weight:700;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 7px;border-radius:5px}
+    .rfoot{margin-top:22px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:10.5px;color:#94a3b8;text-align:center}
+    @page{margin:14mm}
+    @media print{.rcard{break-inside:avoid}}
+  </style></head><body>
+    <div class="rhead">
+      <div class="mark"><span class="mk"><svg width="15" height="15" viewBox="0 0 24 24"><path d="M5 19v-6M12 19V9M19 19V6.5" stroke="#fff" stroke-width="2.5" stroke-linecap="round" fill="none"/></svg></span>
+        <div><h1>Closebrief · FP&amp;A Executive Report</h1><div class="sub">Period ${esc(currentPeriod||"—")}</div></div></div>
+      <div class="r">Generated ${today}<br>Confidential</div>
+    </div>
+    <div class="rsummary">
+      <div>KPIs tracked<b>${withData.length}</b></div>
+      <div>Anomalies<b>${anom}</b></div>
+      <div>Top mover vs plan<b style="font-size:14px">${mover?esc(mover.metric)+" ("+(pct(mover.deltas.budget_var_pct)||"–")+")":"—"}</b></div>
+    </div>
+    <div class="rgrid">${cards||'<p style="color:#94a3b8">No KPI data for this period.</p>'}</div>
+    <div class="rfoot">Generated by Closebrief · ${today} · Confidential</div>
+  </body></html>`;
+}
 function exportPDF(){
   $("export-menu").classList.remove("open");
-  $("ph-period").textContent=`Period: ${currentPeriod||"—"}`;
-  $("ph-date").innerHTML=`Generated ${new Date().toLocaleDateString(undefined,{year:"numeric",month:"long",day:"numeric"})}<br>Confidential`;
-  window.print();
+  const facts=shownFacts.length?shownFacts:currentFacts;
+  const w=window.open("","_blank");
+  if(!w){toast("Allow pop-ups to export the PDF report");return;}
+  w.document.open();w.document.write(buildReportHTML(facts));w.document.close();
+  // Give the window a beat to lay out fonts/sparklines before invoking print.
+  setTimeout(()=>{try{w.focus();w.print();}catch(e){}},450);
 }
 let _pptxLoading=null;
 function loadPptx(){
@@ -610,8 +662,8 @@ async function exportPPTX(){
     const facts=shownFacts.filter(f=>f.has_data);
     const dark=document.documentElement.getAttribute("data-theme")==="dark";
     const BG=dark?"151D2E":"FFFFFF",INK=dark?"F1F5F9":"0F172A",MUT=dark?"94A3B8":"64748B",ACC="2563EB";
-    const p=new PptxGenJS();p.defineLayout({name:"CB",width:10,height:5.63});p.layout="CB";
-    const bg={fill:{color:BG}};
+    const p=new PptxGenJS();p.layout="LAYOUT_16x9";   // 10 x 5.63in default
+    const bg={color:BG};
     // Title slide
     let s=p.addSlide();s.background=bg;
     s.addText("FP&A Executive Report",{x:0.6,y:1.8,w:8.8,h:0.8,fontSize:34,bold:true,color:INK,fontFace:"Segoe UI"});
@@ -1253,7 +1305,7 @@ async function confirmKpis(){
 
 // Entry point: boot() handles auth (creates the Supabase client, checks the
 // session) and then calls startApp(), which loads periods and applies the hash.
-console.log("Closebrief UI build: v2.3.0 (Chart.js interactive charts, PDF/PPTX export)");
+console.log("Closebrief UI build: v2.3.1 (clean PDF report window, fixed PPTX export)");
 boot();
 </script>
 </body>
