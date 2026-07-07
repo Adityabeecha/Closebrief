@@ -66,9 +66,12 @@ Interactive API docs: http://127.0.0.1:8000/docs
 | `POST /ingest` | Upload CSV (`period, metric, value, budget`); 422 with the missing column named on bad files |
 | `POST /compute` | Deterministic KPI math: value, MoM, YoY, budget variance, 12-mo trend, anomaly flag (z-score) |
 | `POST /context`, `GET /context`, `PUT/DELETE /context/{id}` | Context Library CRUD; embeds on create/edit, removes vector on delete; FAISS index persists to disk |
-| `POST /generate-insight` | Facts + retrieved context → 2–4 sentence narrative with sources, confidence, faithfulness verdict; persisted with a `report_id`; LLM failure returns facts-only 503, never a bare 500 |
+| `POST /generate-insight` | Facts + retrieved context → 2–4 sentence narrative with sources, confidence, faithfulness verdict; enriched with correlated metrics + trend streaks; persisted with a `report_id`; LLM failure returns facts-only 503, never a bare 500 |
 | `POST /digest` | Top-N movements for a period ranked by absolute budget variance |
 | `POST /feedback` | accept / edit / reject a narrative, linked to its report |
+| `GET /correlations` | Metric pairs that move together (\|Pearson r\| ≥ 0.7) in the active dataset |
+| `GET /compare` | One metric across two periods incl. delta-of-deltas (momentum) |
+| `GET /costs` | LLM spend by day/endpoint, request latency p50/p95, cache hit rate |
 
 ## Faithfulness guard
 
@@ -77,7 +80,7 @@ Every number in a generated narrative is parsed (handles `$4.2M`, `370,000`, `12
 ## Tests
 
 ```bash
-pytest -q     # 27 tests: KPI math, guard number-extraction/matching, retrieval filters & persistence
+pytest -q     # 105 tests: KPI math, guard, retrieval, auth, cache, datasets, ingestion, PVM, correlations
 ```
 
 ## Project layout
@@ -91,5 +94,8 @@ A graphify knowledge graph of the codebase lives in `graphify-out/` (`graphify q
 - ✅ Milestone 1 — deterministic engine + guarded generation + API
 - ✅ Milestone 2 — RAG core: Context Library, FAISS retrieval, digest, feedback
 - ✅ Eval harness (`python -m eval.run`, add `--no-llm` for retrieval-only): **Recall@5 100% · Faithfulness 100% · Groundedness 100%** on a 15-case golden set ([eval/fixtures/golden.json](eval/fixtures/golden.json))
-- ✅ Web UI at `/` — Insights Dashboard (cards with deltas, narratives, source chips, confidence + verified-numbers badges, 👍/👎/edit feedback), Executive Digest, Context Library CRUD, CSV import ([ui/web/index.html](ui/web/index.html), design per `ui/mockup/`)
-- ⬜ Milestone 3 remainder — Supabase/pgvector swap, caching & cost logging, deploy
+- ✅ Web UI at `/` — Insights Dashboard (cards with deltas, narratives, source chips, confidence + verified-numbers badges, trend-streak badges, 👍/👎/edit feedback), metric detail with interactive Chart.js charts, Executive Digest, Context Library CRUD, CSV import, **Cost & Usage** page ([ui/web/index.html](ui/web/index.html))
+- ✅ Milestone 3 — Supabase/pgvector, Redis caching + cost logging, Dockerized deploy on Render with CI/CD (see [DEPLOY.md](DEPLOY.md))
+- ✅ v2 UX — dark mode, command palette (Ctrl+K), metric search, skeleton loaders, PDF/PPTX export, Sentry (backend + frontend)
+- ✅ v2.1 analytics — multi-metric correlations, consecutive-trend streaks, period comparison (`app/compute/correlations.py`)
+- ⬜ Notifications (email/Slack/webhook) and multi-domain intelligence foundation
