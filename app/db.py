@@ -317,26 +317,21 @@ def get_connection():
 
 def init_db() -> None:
     if settings.database_url:
-        # Verify the Postgres schema is present. If missing, either self-migrate
-        # (default — supports the Render free tier, which has no preDeployCommand)
-        # or fail loudly telling the operator to migrate.
+        if settings.auto_migrate:
+            # Always run migrate(): it applies the base schema (IF NOT EXISTS) and
+            # any *pending* versioned migrations from migrations/pg/, tracked in
+            # schema_migrations — so new migrations reach an already-provisioned DB,
+            # not just a brand-new one. Idempotent; no data copy / reindex.
+            migrate(copy_data=False, reindex=False)
+            return
+        # auto_migrate off: just verify the base schema is present.
         conn = get_connection()
         try:
-            row = conn.execute(
-                "SELECT to_regclass('public.metrics') AS t"
-            ).fetchone()
-            schema_present = row["t"] is not None
+            row = conn.execute("SELECT to_regclass('public.metrics') AS t").fetchone()
+            if row["t"] is None:
+                raise RuntimeError("Postgres schema missing. Run: python -m app.db migrate")
         finally:
             conn.close()
-
-        if not schema_present:
-            if settings.auto_migrate:
-                # Idempotent DDL over the session pooler; no data copy / reindex.
-                migrate(copy_data=False, reindex=False)
-            else:
-                raise RuntimeError(
-                    "Postgres schema missing. Run: python -m app.db migrate"
-                )
         return
 
     conn = get_connection()
