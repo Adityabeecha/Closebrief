@@ -60,8 +60,9 @@ def generate_insight(
     correlations=None,
     trend_streak=None,
     comparison=None,
+    system_prompt: str | None = None,
 ) -> InsightOutput:
-    system_prompt = SYSTEM_PROMPT
+    system_prompt = system_prompt or SYSTEM_PROMPT
     user_prompt = build_user_prompt(fact, context, correlations, trend_streak, comparison)
 
     t0 = time.perf_counter()

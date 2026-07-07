@@ -375,6 +375,10 @@
         </button>
         <div class="ws-menu" id="ws-menu"></div>
       </div>
+      <div class="ws" style="margin-top:8px">
+        <label class="lbl" style="margin-bottom:4px;display:block">Domain</label>
+        <select class="ws-btn" id="domain-select" onchange="setDomain(this.value)" style="cursor:pointer"></select>
+      </div>
     </div>
     <nav class="nav">
       <div class="nav-label">Workspace</div>
@@ -1001,10 +1005,30 @@ async function startApp(){
     try{currentUser=await api("/me");}catch{currentUser={email:"user",role:"analyst"};}
     applyRole(currentUser);
   }else{applyRole({email:"local@dev",role:"admin"});}
+  loadDomains();
   loadPeriods().then(()=>{const h=location.hash.slice(1);
-    if(["digest","context","import","admin"].includes(h))nav(h);
+    if(["digest","context","import","costs","notifications","admin"].includes(h))nav(h);
     else if(h.startsWith("metric")){const i=currentFacts.findIndex(f=>f.has_data);if(i>=0)openDetail(i);}
   });
+}
+let activeDomain="fpa";
+async function loadDomains(){
+  try{
+    const [domains,active]=await Promise.all([api("/domains"),api("/domain")]);
+    activeDomain=active.slug;
+    const sel=$("domain-select");if(!sel)return;
+    sel.innerHTML=domains.map(d=>`<option value="${d.slug}"${d.slug===active.slug?" selected":""}>${esc(d.name)}</option>`).join("");
+    applyDomain(active);
+  }catch{}
+}
+function applyDomain(d){
+  // Reflect the active domain on the root element (for any domain-aware styling).
+  document.documentElement.setAttribute("data-domain",d.slug);
+}
+async function setDomain(slug){
+  try{const d=await api("/domain",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({domain:slug})});
+    activeDomain=d.slug;applyDomain(d);toast(`Domain: ${d.name}`);loadFacts();
+  }catch(e){toast(e.message||"Could not switch domain");loadDomains();}
 }
 function applyRole(u){
   document.documentElement.setAttribute("data-role",u.role);
@@ -1597,7 +1621,7 @@ async function confirmKpis(){
 
 // Entry point: boot() handles auth (creates the Supabase client, checks the
 // session) and then calls startApp(), which loads periods and applies the hash.
-console.log("Closebrief UI build: v2.7.0 (notifications)");
+console.log("Closebrief UI build: v2.8.0 (multi-domain foundation)");
 boot();
 </script>
 </body>

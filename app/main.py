@@ -30,6 +30,7 @@ from app.datasets import (
 from app.db import get_connection, init_db
 from app.deps import shared_cache, shared_embedder, shared_vector_store
 from app.digest.digest import DigestOutput, generate_digest
+from app.domains import get_domain, list_domains, registry
 from app.generation.generate import GenerationFailedFactsOnly, generate_insight
 from app.generation.llm_client import LLMGenerationError, get_llm_client
 from app.generation.prompts import PROMPT_VERSION
@@ -326,6 +327,45 @@ def compare_endpoint(
         if result is None:
             raise HTTPException(status_code=404, detail="No computed facts for both periods")
         return result
+    finally:
+        conn.close()
+
+
+@app.get("/domains")
+def list_domains_endpoint(_: CurrentUser = Depends(require_read)) -> list[dict]:
+    """Available analytics domains (v2.1 foundation)."""
+    return [d.public() for d in list_domains()]
+
+
+@app.get("/domain")
+def get_active_domain(_: CurrentUser = Depends(require_read)) -> dict:
+    """The active dataset's domain (defaults to fpa)."""
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        slug = "fpa"
+        if ds is not None:
+            row = conn.execute("SELECT domain FROM datasets WHERE id = ?", (ds,)).fetchone()
+            if row and row["domain"]:
+                slug = row["domain"]
+        return get_domain(slug).public()
+    finally:
+        conn.close()
+
+
+@app.put("/domain")
+def set_active_domain(payload: dict, _: CurrentUser = Depends(require_write)) -> dict:
+    slug = payload.get("domain")
+    if not registry.has(slug or ""):
+        raise HTTPException(status_code=422, detail=f"Unknown domain: {slug}")
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        if ds is None:
+            raise HTTPException(status_code=400, detail="No active dataset")
+        conn.execute("UPDATE datasets SET domain = ? WHERE id = ?", (slug, ds))
+        conn.commit()
+        return get_domain(slug).public()
     finally:
         conn.close()
 
@@ -810,7 +850,10 @@ def configure_kpis(payload: KPIConfigPayload, _: CurrentUser = Depends(require_w
 
 
 @app.get("/kpis/library")
-def kpi_library(_: CurrentUser = Depends(require_read)) -> list[dict]:
+def kpi_library(domain: str | None = None, _: CurrentUser = Depends(require_read)) -> list[dict]:
+    """KPI suggestions. Defaults to FP&A; pass ?domain= for a domain's library."""
+    if domain and registry.has(domain):
+        return get_domain(domain).kpi_library
     return [{k: v for k, v in kpi.items() if k != "match"} for kpi in KPI_LIBRARY]
 
 
@@ -972,8 +1015,12 @@ def generate_insight_endpoint(req: GenerateInsightRequest, user: CurrentUser = D
         # Enriched deterministic analysis (v2.1): correlated metrics + trend streak.
         correlations: list[CorrelationPair] = []
         trend_streak: TrendStreak | None = None
+        domain_slug = "fpa"
         ds = active_dataset_id(conn)
         if ds is not None:
+            drow = conn.execute("SELECT domain FROM datasets WHERE id = ?", (ds,)).fetchone()
+            if drow and drow["domain"]:
+                domain_slug = drow["domain"]
             correlations = [
                 CorrelationPair(**c)
                 for c in correlations_for_metric(conn, ds, req.metric, req.period)
@@ -1027,7 +1074,7 @@ def generate_insight_endpoint(req: GenerateInsightRequest, user: CurrentUser = D
         req.period,
         fact.model_dump(),
         [(c.id, c.title, c.body) for c in context],
-        PROMPT_VERSION,
+        f"{PROMPT_VERSION}:{domain_slug}",   # domain changes the system prompt
         settings.llm_provider,
         settings.openai_model if settings.llm_provider == "openai" else settings.anthropic_model,
     )
@@ -1044,6 +1091,7 @@ def generate_insight_endpoint(req: GenerateInsightRequest, user: CurrentUser = D
             fact, context, llm_client, retrieval_scores,
             embedder_semantic=getattr(shared_embedder(), "semantic", True),
             correlations=correlations, trend_streak=trend_streak,
+            system_prompt=get_domain(domain_slug).system_prompt,
         )
     except GenerationFailedFactsOnly as exc:
         return JSONResponse(status_code=503, content=exc.facts_only.model_dump())
