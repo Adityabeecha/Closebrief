@@ -105,7 +105,12 @@ async def _auth_middleware(request: Request, call_next):
     downstream role guards (403) and attribution can read it. Bypassed for the
     open paths and, entirely, when auth is not active (local dev)."""
     path = request.url.path
-    if request.method == "OPTIONS" or path in _OPEN_PATHS or path.startswith("/docs"):
+    if (
+        request.method == "OPTIONS"
+        or path in _OPEN_PATHS
+        or path.startswith("/docs")
+        or path.startswith("/vendor/")   # static frontend libs, needed pre-login
+    ):
         return await call_next(request)
     try:
         request.state.user = authenticate(request)
@@ -170,7 +175,22 @@ _UI_INDEX = Path(__file__).resolve().parent.parent / "ui" / "web" / "index.html"
 
 @app.get("/", include_in_schema=False)
 def ui_root() -> FileResponse:
-    return FileResponse(_UI_INDEX)
+    # no-cache: browsers must revalidate so UI fixes are picked up immediately
+    # (stale cached copies of this shell caused hard-to-debug auth errors).
+    return FileResponse(_UI_INDEX, headers={"Cache-Control": "no-cache"})
+
+
+# Vendored frontend libraries served from our own origin (no CDN dependency, so
+# the app works offline / behind ad-blockers / strict networks).
+_UI_VENDOR = _UI_INDEX.parent / "vendor"
+
+
+@app.get("/vendor/{filename}", include_in_schema=False)
+def ui_vendor(filename: str) -> FileResponse:
+    path = (_UI_VENDOR / filename).resolve()
+    if _UI_VENDOR.resolve() not in path.parents or not path.is_file():
+        raise HTTPException(status_code=404, detail="not found")
+    return FileResponse(path)
 
 
 @app.get("/health")
