@@ -4,8 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Closebrief — FP&A intelligence</title>
+<link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="%232563eb"/><path d="M8 24v-7M16 24V11M24 24V8" stroke="white" stroke-width="3.4" stroke-linecap="round"/></svg>'>
 <script src="/vendor/supabase.js"></script>
 <style>
+  /* Brand font, self-hosted (no CDN/network dependency — see /vendor/). */
+  @font-face{font-family:'Plus Jakarta Sans';font-style:normal;font-weight:400;font-display:swap;src:url(/vendor/fonts/pjs-400.woff2) format('woff2')}
+  @font-face{font-family:'Plus Jakarta Sans';font-style:normal;font-weight:500;font-display:swap;src:url(/vendor/fonts/pjs-500.woff2) format('woff2')}
+  @font-face{font-family:'Plus Jakarta Sans';font-style:normal;font-weight:600;font-display:swap;src:url(/vendor/fonts/pjs-600.woff2) format('woff2')}
+  @font-face{font-family:'Plus Jakarta Sans';font-style:normal;font-weight:700;font-display:swap;src:url(/vendor/fonts/pjs-700.woff2) format('woff2')}
+  @font-face{font-family:'Plus Jakarta Sans';font-style:normal;font-weight:800;font-display:swap;src:url(/vendor/fonts/pjs-800.woff2) format('woff2')}
   *{margin:0;padding:0;box-sizing:border-box}
   :root{
     --accent:#2563eb; --accent-hi:#1d4ed8; --accent-bg:#eff6ff;
@@ -16,7 +23,7 @@
     --red:#dc2626; --red-bg:#fef2f2;
     --amber:#b45309; --amber-bg:#fffbeb; --amber-bd:#fde68a;
   }
-  body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased}
+  body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;background:linear-gradient(180deg,#edf3fd 0%,var(--bg) 260px) fixed,var(--bg);color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased}
   button,input,select,textarea{font-family:inherit}
   button{cursor:pointer}
   .nbi-num{font-variant-numeric:tabular-nums}
@@ -65,7 +72,7 @@
   main{flex:1;min-width:0;height:100%;overflow-y:auto}
   .wrap{max-width:1200px;margin:0 auto;padding:26px 34px 64px}
   .head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:18px}
-  h1{font-size:24px;font-weight:700;letter-spacing:-.02em}
+  h1{font-size:24px;font-weight:800;letter-spacing:-.02em}
   .sub{font-size:13.5px;color:var(--mut);margin-top:3px}
   .sub b{color:var(--accent);font-weight:600}
   .head-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -74,8 +81,8 @@
   select.pill-btn{padding-right:8px}
   .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:9px;font-size:13px;font-weight:700;color:var(--ink2);background:#fff;border:1px solid var(--b12)}
   .btn:hover{border-color:var(--b24);background:var(--bg2)}
-  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.35)}
-  .btn.primary:hover{background:var(--accent-hi)}
+  .btn.primary{background:linear-gradient(180deg,#3b82f6,var(--accent));border-color:var(--accent);color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.35)}
+  .btn.primary:hover{background:linear-gradient(180deg,var(--accent),var(--accent-hi))}
   .btn.sm{padding:6px 11px;font-size:12px}
   .btn:disabled{opacity:.5;cursor:default}
 
@@ -88,7 +95,8 @@
 
   /* ---------------- CARDS ---------------- */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
-  .card{background:var(--card);border:1px solid var(--b08);border-radius:15px;padding:20px;display:flex;flex-direction:column;gap:13px;transition:box-shadow .16s,border-color .16s}
+  .card{background:var(--card);border:1px solid var(--b08);border-left:3px solid var(--cat,var(--b08));border-radius:15px;padding:20px;display:flex;flex-direction:column;gap:13px;transition:box-shadow .16s,border-color .16s}
+  .cat-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--cat,var(--mut2));flex:none;vertical-align:1px;margin-right:7px}
   .card.click{cursor:pointer}
   .card.click:hover{box-shadow:0 8px 26px rgba(15,23,42,.09);border-color:rgba(37,99,235,.35)}
   .card.empty{opacity:.72}
@@ -145,6 +153,8 @@
   .digest-wrap{max-width:720px}
   .digest-item{background:var(--card);border:1px solid var(--b08);border-radius:15px;padding:18px 20px;margin-bottom:12px}
   .digest-item .rank{font-size:11px;font-weight:800;color:var(--mut2);letter-spacing:.04em}
+  .rank-n{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:7px;background:var(--bg3);color:var(--ink3);font-size:11px;font-weight:800;padding:0 5px;margin-right:6px}
+  .rank-n.top{background:var(--accent);color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.3)}
   .digest-item h3{font-size:15px;font-weight:700;margin:5px 0 6px;letter-spacing:-.01em}
   .digest-item p{font-size:13px;line-height:1.55;color:var(--ink2)}
 
@@ -182,8 +192,8 @@
   .kpi-grid select,.kpi-grid input{padding:6px 8px;border:1px solid var(--b12);border-radius:8px;width:100%;font-size:12px}
   .suggest{font-size:10px;color:var(--accent);font-weight:700}
 
-  .empty-state{text-align:center;color:var(--mut2);padding:60px 20px}
-  .empty-state svg{width:40px;height:40px;stroke:var(--b24);margin-bottom:12px}
+  .empty-state{text-align:center;color:var(--mut);padding:60px 20px;font-weight:500}
+  .empty-state svg{width:58px;height:58px;stroke:var(--accent);background:var(--accent-bg);border-radius:50%;padding:15px;margin-bottom:14px}
   .loading{color:var(--mut2);font-size:13px;padding:36px;text-align:center}
 
   /* tooltip + toast */
@@ -447,6 +457,15 @@ let currentPeriod=null, currentFacts=[], detailFact=null, activeDatasetId=null;
 /* auth state */
 let sb=null, authToken=null, authMode="signin", currentUser={email:"local@dev",role:"admin"};
 
+/* Category identity colors — validated 8-slot categorical palette (CVD-safe,
+   fixed order, never cycled; >8 categories fall back to neutral). Color always
+   appears next to the category NAME, never alone. */
+const CAT_PALETTE=["#2a78d6","#1baf7a","#eda100","#008300","#4a3aa7","#e34948","#e87ba4","#eb6834"];
+let catSlots={};
+function assignCatSlots(cats){catSlots={};cats.forEach((c,i)=>{if(i<CAT_PALETTE.length)catSlots[c]=i;});}
+function catColor(c){const i=catSlots[c??"Uncategorized"];return i==null?"":CAT_PALETTE[i];}
+function catStyle(c){const col=catColor(c);return col?`--cat:${col}`:"";}
+
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
 async function api(path,opts,_retried){
   opts=opts||{};
@@ -631,6 +650,7 @@ async function loadFacts(){
   try{
     currentFacts=await api(`/facts?period=${encodeURIComponent(currentPeriod)}`);
     const cats=[...new Set(currentFacts.map(f=>f.category||"Uncategorized"))].sort();
+    assignCatSlots(cats);
     $("category-filter").innerHTML=`<option value="">All categories</option>`+cats.map(c=>`<option>${esc(c)}</option>`).join("");
     renderCards();
     const anom=currentFacts.filter(f=>f.is_anomaly).map(f=>f.metric);
@@ -665,14 +685,14 @@ function renderCards(){
   $("cards").innerHTML=facts.map((f,i)=>{
     const dg=f.direction_good==="down";
     if(!f.has_data){
-      return`<div class="card empty">
-        <div class="card-top"><span class="card-name">${esc(f.metric)}</span></div>
+      return`<div class="card empty" style="${catStyle(f.category)}">
+        <div class="card-top"><span class="card-name"><span class="cat-dot"></span>${esc(f.metric)}</span></div>
         <div class="card-value" style="font-size:20px;color:var(--mut2)">No data</div>
         <div class="narr muted">No data for ${esc(currentPeriod)} in this dataset.</div></div>`;
     }
-    return`<div class="card click fade" onclick="openDetail(${i})">
+    return`<div class="card click fade" style="${catStyle(f.category)}" onclick="openDetail(${i})">
       <div class="card-top">
-        <span class="card-name">${esc(f.metric)}</span>
+        <span class="card-name" title="${esc(f.category||"Uncategorized")}"><span class="cat-dot"></span>${esc(f.metric)}</span>
         ${f.confidence?`<span class="conf ${f.confidence}"><span class="dot"></span>${f.confidence} confidence</span>`:(f.is_anomaly?'<span class="anom">ANOMALY</span>':'')}
       </div>
       <div class="card-value-row">
@@ -775,7 +795,7 @@ function trendTable(trend,unit){if(!trend.length)return"";return`<details class=
 function openDetail(i){
   const f=currentFacts[i];if(!f||!f.has_data)return;detailFact=f;nav("detail");
   $("d-title").textContent=f.metric;const dg=f.direction_good==="down";
-  $("d-sub").innerHTML=`${esc(f.category||"")} · ${esc(currentPeriod)} · ${fmt(f.value,f.unit)} `
+  $("d-sub").innerHTML=`<span class="cat-dot" style="${catStyle(f.category)}"></span>${esc(f.category||"")} · ${esc(currentPeriod)} · ${fmt(f.value,f.unit)} `
     +deltaChip("MoM",f.deltas.mom_pct,dg)+" "+deltaChip("vs plan",f.deltas.budget_var_pct,dg)
     +(f.is_anomaly?' <span class="anom">ANOMALY</span>':"");
   const cd=f.chart_data||{};
@@ -834,7 +854,7 @@ async function loadDigest(force){
   try{
     const d=await api(`/digest?period=${encodeURIComponent(currentPeriod)}&top_n=5&force=${!!force}`,{method:"POST"});
     $("digest-list").innerHTML=d.items.map((it,i)=>`<div class="digest-item">
-      <span class="rank">#${i+1} · ${esc(it.metric)}</span><h3>${esc(it.headline)}</h3>
+      <span class="rank"><span class="rank-n${i<3?" top":""}">#${i+1}</span>${esc(it.metric)}</span><h3>${esc(it.headline)}</h3>
       ${it.detail?`<p>${esc(it.detail)}</p>`:""}
       <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span class="delta ${it.budget_var_abs<0?"bad":"good"}">${fmt(it.budget_var_abs,"USD")} vs budget (${pct(it.budget_var_pct)||"–"})</span>
@@ -933,7 +953,7 @@ async function confirmKpis(){
 
 // Entry point: boot() handles auth (creates the Supabase client, checks the
 // session) and then calls startApp(), which loads periods and applies the hash.
-console.log("Closebrief UI build: v2.0.1 (vendored supabase, boot entry)");
+console.log("Closebrief UI build: v2.1.0 (brand font, category colors, chrome polish)");
 boot();
 </script>
 </body>
