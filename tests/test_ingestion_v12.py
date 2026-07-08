@@ -12,7 +12,7 @@ from app.ingestion.upload import UploadError, _read_frame
 SCHEMA = """
 CREATE TABLE datasets (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, source_upload_id TEXT,
     is_active INTEGER DEFAULT 0, uploaded_by TEXT, uploaded_by_email TEXT,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+    is_demo INTEGER DEFAULT 0, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE metrics (id INTEGER PRIMARY KEY AUTOINCREMENT, dataset_id INTEGER, name TEXT,
     category TEXT DEFAULT 'Uncategorized', unit TEXT DEFAULT 'USD', direction_good TEXT DEFAULT 'up',
     UNIQUE(dataset_id, name));

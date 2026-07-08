@@ -1,6 +1,12 @@
-"""Demo mode (v2.9): anonymous read-only access + idempotent sample seeding."""
+"""Demo mode (v3.0): isolated read-only workspace. Demo sessions authenticate
+as a viewer via the X-Closebrief-Demo header, can only read, and can never see
+or touch real datasets."""
+
+import io
 
 import pytest
+
+DEMO = {"X-Closebrief-Demo": "1"}
 
 
 @pytest.fixture
@@ -13,7 +19,7 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "db_path", str(tmp_path / "demo.db"))
     monkeypatch.setattr(settings, "vector_backend", "faiss")
     monkeypatch.setattr(settings, "embedding_provider", "offline")
-    # Auth ACTIVE (so anonymous is normally 401) + demo mode on.
+    # Auth ACTIVE (anonymous is 401) + demo mode on.
     monkeypatch.setattr(settings, "supabase_url", "https://demo.supabase.co")
     monkeypatch.setattr(settings, "supabase_jwt_secret", "x" * 32)
     monkeypatch.setattr(settings, "auth_enabled", True)
@@ -25,49 +31,60 @@ def client(tmp_path, monkeypatch):
     shared_vector_store.cache_clear()
 
     main.init_db()
+    # A "real" dataset the demo must never see, plus the seeded demo dataset.
+    conn = main.get_connection()
+    from app.datasets import create_dataset
+    create_dataset(conn, "REAL secret upload", is_demo=False)
+    conn.close()
+    from app.demo import seed_demo
+    conn = main.get_connection()
+    seed_demo(conn)
+    conn.close()
+
     from fastapi.testclient import TestClient
     with TestClient(main.app) as c:
         yield c
 
 
-def test_demo_allows_anonymous_reads(client):
-    r = client.get("/facts?period=2025-01")
+def test_demo_sees_only_demo_dataset(client):
+    r = client.get("/datasets", headers=DEMO)
     assert r.status_code == 200
+    names = [d["name"] for d in r.json()["datasets"]]
+    assert names == ["Demo — Sample FP&A"]
+    assert "REAL secret upload" not in names
 
 
-def test_demo_blocks_anonymous_writes(client):
-    r = client.post("/context", json={
+def test_demo_writes_are_forbidden(client):
+    # Every write path the visitor might hit must 403 (role guard), not 200.
+    assert client.post("/context", headers=DEMO, json={
         "type": "event_note", "title": "x", "body": "y",
-        "metric_tags": [], "effective_date": "2025-01",
-    })
-    # Writes are not in the demo allowlist: the auth gate rejects them outright.
-    assert r.status_code == 401
+        "metric_tags": [], "effective_date": "2025-01"}).status_code == 403
+    assert client.request("DELETE", "/datasets/1", headers=DEMO).status_code == 403
+    assert client.post(
+        "/ingest", headers=DEMO,
+        files={"file": ("x.csv", io.BytesIO(b"period,metric,value,budget\n"), "text/csv")},
+    ).status_code == 403
+    assert client.post("/kpis", headers=DEMO, json={"kpis": []}).status_code == 403
 
 
-def test_auth_config_exposes_demo_flag(client):
-    assert client.get("/auth/config").json()["demo_enabled"] is True
+def test_demo_can_read_and_ask(client):
+    assert client.get("/periods", headers=DEMO).status_code == 200
+    assert client.get("/facts?period=2025-01", headers=DEMO).status_code == 200
+    assert client.get("/context", headers=DEMO).status_code == 200
 
 
-def test_seed_demo_idempotent(tmp_path, monkeypatch):
-    from app.config import settings
-    monkeypatch.setattr(settings, "database_url", "")
-    monkeypatch.setattr(settings, "db_path", str(tmp_path / "seed.db"))
-    import app.db as db
-    db.init_db()
-    conn = db.get_connection()
+def test_no_demo_header_still_401(client):
+    # Without the demo opt-in header, an anonymous request is rejected.
+    assert client.get("/facts?period=2025-01").status_code == 401
+
+
+def test_seed_demo_idempotent(client):
+    import app.main as main
     from app.demo import DEMO_DATASET_NAME, seed_demo
-    assert seed_demo(conn) is True          # first run seeds
-    assert seed_demo(conn) is False         # second run is a no-op
+    conn = main.get_connection()
+    assert seed_demo(conn) is False  # already seeded by the fixture
     n = conn.execute(
         "SELECT COUNT(*) AS n FROM datasets WHERE name = ?", (DEMO_DATASET_NAME,)
     ).fetchone()["n"]
-    assert n == 1
-    # Facts were computed and KPIs pre-selected
-    ds = conn.execute("SELECT id FROM datasets WHERE name = ?", (DEMO_DATASET_NAME,)).fetchone()["id"]
-    facts = conn.execute(
-        "SELECT COUNT(*) AS n FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id WHERE m.dataset_id = ?",
-        (ds,),
-    ).fetchone()["n"]
-    kpis = conn.execute("SELECT COUNT(*) AS n FROM kpi_configs WHERE dataset_id = ?", (ds,)).fetchone()["n"]
     conn.close()
-    assert facts > 0 and kpis > 0
+    assert n == 1
