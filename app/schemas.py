@@ -136,6 +136,7 @@ class KPIConfigIn(BaseModel):
     unit: str = "USD"
     direction_good: Literal["up", "down"] = "up"
     budget_source: Optional[str] = None
+    aggregation_type: Optional[Literal["flow", "balance", "ratio"]] = None
 
 
 class KPIConfigPayload(BaseModel):

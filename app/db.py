@@ -119,6 +119,7 @@ CREATE TABLE IF NOT EXISTS kpi_configs (
     unit TEXT NOT NULL DEFAULT 'USD',
     direction_good TEXT NOT NULL DEFAULT 'up',
     budget_source TEXT,
+    aggregation_type TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(dataset_id, source_metric)
 );
