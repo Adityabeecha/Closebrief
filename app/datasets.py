@@ -2,49 +2,83 @@
 metrics, values, computed facts, and KPI selections. Exactly one dataset is
 active at a time; the dashboard shows only the active dataset. This is what
 keeps old test uploads from leaking into a fresh import's dashboard.
+
+Demo isolation (v3.0): a request-scoped ContextVar splits datasets into two
+disjoint universes — demo (is_demo=1) and real (is_demo=0). The middleware sets
+the scope from the caller's role, so demo sessions can NEVER see or activate a
+real dataset, and vice-versa, enforced in SQL rather than by hiding UI.
 """
 
+import contextvars
+
+# True while serving a demo (viewer) request. Default False = the real universe.
+_demo_scope: contextvars.ContextVar[bool] = contextvars.ContextVar("demo_scope", default=False)
+
+
+def set_demo_scope(is_demo: bool) -> None:
+    _demo_scope.set(bool(is_demo))
+
+
+def _scope_pred(alias: str = "") -> str:
+    # `true`/`false` literals work on both SQLite (INTEGER 0/1) and Postgres (BOOLEAN).
+    p = f"{alias}." if alias else ""
+    return f"{p}is_demo = true" if _demo_scope.get() else f"COALESCE({p}is_demo, false) = false"
 
 
 def create_dataset(conn, name: str, source_upload_id: str | None = None, activate: bool = True,
-                   uploaded_by: str | None = None, uploaded_by_email: str | None = None) -> int:
+                   uploaded_by: str | None = None, uploaded_by_email: str | None = None,
+                   is_demo: bool = False) -> int:
     cur = conn.execute(
-        """INSERT INTO datasets (name, source_upload_id, is_active, uploaded_by, uploaded_by_email)
-           VALUES (?, ?, 0, ?, ?)""",
-        (name, source_upload_id, uploaded_by, uploaded_by_email),
+        """INSERT INTO datasets (name, source_upload_id, is_active, uploaded_by, uploaded_by_email, is_demo)
+           VALUES (?, ?, 0, ?, ?, ?)""",
+        (name, source_upload_id, uploaded_by, uploaded_by_email, bool(is_demo)),
     )
     dataset_id = int(cur.lastrowid)
     if activate:
-        set_active(conn, dataset_id)
+        # Activate within the dataset's own universe.
+        prev = _demo_scope.get()
+        _demo_scope.set(bool(is_demo))
+        try:
+            set_active(conn, dataset_id)
+        finally:
+            _demo_scope.set(prev)
     conn.commit()
     return dataset_id
 
 
 def set_active(conn, dataset_id: int) -> None:
-    conn.execute("UPDATE datasets SET is_active = 0")
+    # Only reset the active flag within the current universe, so activating a
+    # demo dataset never deactivates the real one (or vice-versa).
+    conn.execute(f"UPDATE datasets SET is_active = 0 WHERE {_scope_pred()}")
     conn.execute("UPDATE datasets SET is_active = 1 WHERE id = ?", (dataset_id,))
     conn.commit()
 
 
 def active_dataset_id(conn) -> int | None:
     row = conn.execute(
-        "SELECT id FROM datasets WHERE is_active = 1 ORDER BY id DESC LIMIT 1"
+        f"SELECT id FROM datasets WHERE is_active = 1 AND {_scope_pred()} ORDER BY id DESC LIMIT 1"
     ).fetchone()
+    if row is None:
+        # Fall back to the newest dataset in this universe (demo has exactly one).
+        row = conn.execute(
+            f"SELECT id FROM datasets WHERE {_scope_pred()} ORDER BY id DESC LIMIT 1"
+        ).fetchone()
     return int(row["id"]) if row else None
 
 
 def list_datasets(conn) -> list[dict]:
     rows = conn.execute(
-        """
-        SELECT d.id, d.name, d.source_upload_id, d.is_active, d.created_at,
+        f"""
+        SELECT d.id, d.name, d.source_upload_id, d.is_active, d.created_at, d.domain,
                (SELECT COUNT(*) FROM metrics m WHERE m.dataset_id = d.id) AS metric_count
-        FROM datasets d ORDER BY d.id DESC
+        FROM datasets d WHERE {_scope_pred('d')} ORDER BY d.id DESC
         """
     ).fetchall()
     return [
         {
             "id": r["id"], "name": r["name"], "source_upload_id": r["source_upload_id"],
             "is_active": bool(r["is_active"]), "created_at": str(r["created_at"]),
+            "domain": r["domain"] or "fpa",
             "metric_count": r["metric_count"],
         }
         for r in rows
@@ -85,7 +119,7 @@ def delete_dataset(conn, dataset_id: int) -> bool:
 
     if was_active:
         newest = conn.execute(
-            "SELECT id FROM datasets ORDER BY id DESC LIMIT 1"
+            f"SELECT id FROM datasets WHERE {_scope_pred()} ORDER BY id DESC LIMIT 1"
         ).fetchone()
         if newest:
             set_active(conn, int(newest["id"]))

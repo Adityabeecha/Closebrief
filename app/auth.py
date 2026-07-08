@@ -22,16 +22,19 @@ from pydantic import BaseModel
 from app.config import auth_active, settings
 from app.db import get_connection
 
-VALID_ROLES = ("analyst", "executive", "admin")
+VALID_ROLES = ("viewer", "analyst", "executive", "admin")
 
 
 class CurrentUser(BaseModel):
     id: str
     email: str
-    role: str  # analyst | executive | admin
+    role: str  # viewer | analyst | executive | admin
 
 
 ANONYMOUS_ADMIN = CurrentUser(id="local-dev", email="local@dev", role="admin")
+# Demo sessions: a real, recognized identity with the most-restricted role, so
+# every write is rejected by the normal role guards (403), not the auth gate.
+DEMO_USER = CurrentUser(id="demo", email="demo@closebrief.app", role="viewer")
 
 # ---- JWKS cache (asymmetric keys), refreshed hourly ----
 _jwks_client: Optional["jwt.PyJWKClient"] = None
@@ -126,6 +129,10 @@ def authenticate(request: Request) -> CurrentUser:
 
     header = request.headers.get("authorization", "")
     if not header.lower().startswith("bearer "):
+        # Demo mode: an anonymous visitor who opted into the demo gets the
+        # read-only viewer identity (scoped to the demo dataset by the caller).
+        if settings.demo_mode and request.headers.get("x-closebrief-demo") == "1":
+            return DEMO_USER
         raise HTTPException(status_code=401, detail="Missing bearer token")
     token = header[7:].strip()
 

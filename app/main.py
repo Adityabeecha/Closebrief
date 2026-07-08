@@ -26,6 +26,7 @@ from app.datasets import (
     delete_dataset,
     list_datasets,
     set_active,
+    set_demo_scope,
 )
 from app.db import get_connection, init_db
 from app.demo import seed_demo
@@ -92,8 +93,8 @@ app.add_middleware(
 
 # Role-guard dependencies (v1.2). read = any authenticated role; write excludes
 # executives (read-only); admin only for user management.
-require_read = require_role("analyst", "executive", "admin")
-require_write = require_role("analyst", "admin")
+require_read = require_role("viewer", "analyst", "executive", "admin")
+require_write = require_role("analyst", "admin")   # viewer excluded -> demo writes 403
 require_admin = require_role("admin")
 
 # Paths reachable without a token: the app shell, health, the public auth config
@@ -137,19 +138,13 @@ async def _auth_middleware(request: Request, call_next):
     ):
         return await call_next(request)
     try:
-        request.state.user = authenticate(request)
+        user = authenticate(request)
     except HTTPException as exc:
-        # Demo mode: let anonymous visitors browse read-only. GETs plus the two
-        # showcase actions (generate a narrative / build the digest); every
-        # other write still requires a real account.
-        if settings.demo_mode and exc.status_code == 401 and (
-            request.method == "GET" or path in ("/generate-insight", "/digest", "/ask")
-        ):
-            request.state.user = CurrentUser(
-                id="demo", email="demo@closebrief.app", role="executive"
-            )
-            return await call_next(request)
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    request.state.user = user
+    # Scope every dataset query to the caller's universe: demo (viewer) sessions
+    # see only the demo dataset; everyone else sees only real datasets.
+    set_demo_scope(user.role == "viewer")
     return await call_next(request)
 
 

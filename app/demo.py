@@ -11,7 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.compute.kpis import compute_and_store
-from app.datasets import active_dataset_id, create_dataset, set_active
+from app.datasets import create_dataset
 from app.ingestion.ingest import ingest_dataframe, parse_csv
 from app.kpis.library import suggest_kpi
 from app.schemas import ContextDocIn
@@ -48,9 +48,10 @@ def seed_demo(conn, context_store=None) -> bool:
     if not _SAMPLE_CSV.exists():
         return False
 
-    had_active = active_dataset_id(conn) is not None
-    # uploaded_by is a UUID column on Postgres — the seeder has no user id.
-    ds = create_dataset(conn, DEMO_DATASET_NAME, activate=False,
+    # Its own isolated universe (is_demo) — active within the demo scope only,
+    # never touching the operator's real datasets. uploaded_by is a UUID column
+    # on Postgres, so the seeder passes NULL.
+    ds = create_dataset(conn, DEMO_DATASET_NAME, activate=True, is_demo=True,
                         uploaded_by=None, uploaded_by_email="demo@closebrief.app")
 
     df = parse_csv(_SAMPLE_CSV.read_bytes())
@@ -80,7 +81,4 @@ def seed_demo(conn, context_store=None) -> bool:
                 context_store.add(ContextDocIn(**doc))
             except Exception:  # noqa: BLE001 - demo seeding must never block startup
                 pass
-
-    if not had_active:
-        set_active(conn, ds)
     return True
