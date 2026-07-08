@@ -107,7 +107,10 @@
   .ws-newbtn{display:flex;align-items:center;gap:8px;width:100%;padding:8px 9px;border-radius:8px;border:1px dashed var(--b12);background:none;color:var(--accent);font-size:12.5px;font-weight:700;margin-top:4px}
   .ws-newbtn:hover{background:var(--accent-bg)}
 
-  .nav{padding:6px 12px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;flex:1}
+  .nav{padding:6px 12px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;flex:1;scrollbar-width:none}
+  .nav::-webkit-scrollbar{width:0;height:0}
+  /* Role-gated nav: Cost/Notifications/User Management are admin-only */
+  :root:not([data-role="admin"]) .admin-only{display:none !important}
   .nav-label{font-size:10px;font-weight:700;color:var(--mut2);letter-spacing:.09em;text-transform:uppercase;padding:16px 8px 6px}
   .nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:9px;border:none;background:none;width:100%;text-align:left;font-size:13.5px;font-weight:600;color:var(--ink3)}
   .nav-item svg{width:17px;height:17px;flex:none;stroke:currentColor}
@@ -429,9 +432,9 @@
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Context Library</button>
       <button class="nav-item exec-hide" data-view="import" onclick="nav('import')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>Import &amp; Mapping</button>
-      <button class="nav-item write-hide" data-view="costs" onclick="nav('costs')">
+      <button class="nav-item admin-only" data-view="costs" onclick="nav('costs')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Cost &amp; Usage</button>
-      <button class="nav-item exec-hide" data-view="notifications" onclick="nav('notifications')">
+      <button class="nav-item admin-only" data-view="notifications" onclick="nav('notifications')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>Notifications</button>
       <button class="nav-item" id="nav-admin" data-view="admin" onclick="nav('admin')" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>User Management</button>
@@ -440,6 +443,8 @@
       <button class="nav-item soon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>Anomaly Alerts<span class="soon-tag">SOON</span></button>
       <button class="nav-item soon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Scheduled Digests<span class="soon-tag">SOON</span></button>
     </nav>
+    <button class="nav-item" onclick="$('help-back').classList.add('open')" style="margin:2px 12px">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>How Closebrief works</button>
     <div class="side-foot">
       <div class="avatar" id="user-avatar">AB</div>
       <div style="min-width:0;flex:1">
@@ -447,7 +452,7 @@
         <span id="user-role"><span class="role-badge">FP&amp;A Lead</span></span>
       </div>
       <button class="theme-btn" id="theme-btn" title="Toggle dark mode (d)" aria-label="Toggle dark mode" onclick="toggleTheme()"></button>
-      <button class="logout" id="logout-btn" title="Sign out" style="display:none" onclick="signOut()">
+      <button class="logout" id="logout-btn" title="Sign out" style="display:none" onclick="signOut()" aria-label="Sign out">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
       </button>
     </div>
@@ -461,6 +466,7 @@
         <div>
           <h1>Insights Dashboard</h1>
           <div class="sub" id="dash-sub">—</div>
+          <div class="sub" id="dash-fresh" style="font-size:11.5px;color:var(--mut2);margin-top:2px"></div>
         </div>
         <div class="head-actions">
           <div class="search">
@@ -713,6 +719,24 @@
     </div>
     <div style="padding:18px;font-size:13.5px;line-height:1.6;color:var(--ink2)" id="src-body"></div>
     <div class="cmdk-foot"><span id="src-meta"></span></div>
+  </div>
+</div>
+<!-- How Closebrief works -->
+<div class="cmdk-back" id="help-back" onclick="if(event.target===this)$('help-back').classList.remove('open')">
+  <div class="cmdk" role="dialog" aria-label="How Closebrief works" style="width:min(560px,92vw)">
+    <div class="cmdk-in" style="justify-content:space-between"><b style="font-size:15px">How Closebrief works</b>
+      <button class="ico" onclick="$('help-back').classList.remove('open')" aria-label="Close">✕</button></div>
+    <div style="padding:18px 20px;font-size:13.5px;line-height:1.6;color:var(--ink2)">
+      <p style="margin-bottom:12px"><b>The core rule:</b> the AI never computes numbers. Every value, delta, and trend is calculated deterministically; the model only writes the prose around pre-computed facts.</p>
+      <ol style="margin:0 0 4px 18px;display:flex;flex-direction:column;gap:9px">
+        <li><b>Import</b> any CSV/Excel export — columns are auto-detected, you confirm the mapping.</li>
+        <li><b>Pick KPIs</b> — the board shows exactly the metrics you choose, with correct red/green direction.</li>
+        <li><b>Add context</b> notes (pricing changes, campaigns) so narratives can explain the <i>why</i>.</li>
+        <li><b>Generate</b> — grounded commentary with source chips and a "numbers verified" badge; anything unverifiable is flagged, never hidden.</li>
+        <li><b>Digest &amp; export</b> — top movers in CFO language, one-click PDF/PPTX.</li>
+      </ol>
+    </div>
+    <div class="cmdk-foot"><span>Press <kbd>?</kbd> for keyboard shortcuts</span></div>
   </div>
 </div>
 <!-- Shortcuts help -->
@@ -1265,10 +1289,12 @@ async function setUserRole(uid,role){
 
 /* ---------- datasets ---------- */
 const DOMAIN_LABEL={fpa:"FP&A",marketing:"Marketing",ops:"Ops"};
+let activeDatasetObj=null;
 async function loadDatasets(){
   const d=await api("/datasets");
   activeDatasetId=d.active_id;
   const active=d.datasets.find(x=>x.is_active);
+  activeDatasetObj=active||null;
   $("ws-name").textContent=active?active.name:"No dataset";
   const rows=d.datasets.map(ds=>`
     <div class="ws-item" onclick="activateDataset(${ds.id})">
@@ -1302,6 +1328,7 @@ document.addEventListener("keydown",e=>{
   if($("sc-back").classList.contains("open")){if(e.key==="Escape")$("sc-back").classList.remove("open");return;}
   if($("src-back").classList.contains("open")){if(e.key==="Escape")$("src-back").classList.remove("open");return;}
   if($("kpi-back").classList.contains("open")){if(e.key==="Escape")$("kpi-back").classList.remove("open");return;}
+  if($("help-back").classList.contains("open")){if(e.key==="Escape")$("help-back").classList.remove("open");return;}
   // While the palette is open, route nav keys to it.
   if($("cmdk-back").classList.contains("open")){paletteKey(e);return;}
   // Ctrl/Cmd+K opens the palette from anywhere (even while typing).
@@ -1379,11 +1406,24 @@ async function loadFacts(){
     const anom=currentFacts.filter(f=>f.is_anomaly).map(f=>f.metric);
     const gl=granularity==="month"?"":` (${granularity})`;
     $("dash-sub").innerHTML=`${currentPeriod}${gl} · ${currentFacts.length} ${currentFacts.length===1?"KPI":"KPIs"} · <b>${anom.length?plural(anom.length,"anomaly","anomalies"):"all nominal"}</b>`;
-    $("anomaly-banner").style.display=anom.length?"":"none";
-    if(anom.length)$("anomaly-banner").innerHTML=warnIcon()+`Anomalous movement: ${anom.map(esc).join(", ")}. Open a card for the full story.`;
-    updateGenButton();maybePromptGenerate();
+    const anomKey=`anomaly:${currentPeriod}`;
+    if(anom.length&&!bannerDismissed(anomKey)){
+      $("anomaly-banner").style.display="";
+      $("anomaly-banner").innerHTML=warnIcon()+`<span>Anomalous movement: ${anom.map(esc).join(", ")}. Open a card for the full story.</span>`+dismissX(anomKey,"anomaly-banner");
+    }else $("anomaly-banner").style.display="none";
+    updateGenButton();maybePromptGenerate();setFreshness();
     loadConflicts();
   }finally{$("dash-loading").style.display="none";}
+}
+function setFreshness(){
+  const el=$("dash-fresh");if(!el)return;
+  const sel=$("period-select"),latest=sel&&sel.options.length?sel.options[sel.options.length-1].value:currentPeriod;
+  const imported=activeDatasetObj&&activeDatasetObj.created_at?activeDatasetObj.created_at.slice(0,10):null;
+  const narr=currentFacts.filter(f=>f.has_data&&f.narrative).length,tot=currentFacts.filter(f=>f.has_data).length;
+  const bits=[`Data through ${esc(latest||"—")}`];
+  if(imported)bits.push(`imported ${esc(imported)}`);
+  if(tot)bits.push(narr===tot?"narratives current":`${narr}/${tot} narratives generated`);
+  el.textContent=bits.join(" · ");
 }
 function maybePromptGenerate(){
   // Offer (never force) generation when a month period has data but no narratives.
@@ -1398,13 +1438,17 @@ function maybePromptGenerate(){
       <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">✕</button>`;
   }
 }
+function dismissKey(type){return `cb-dismiss:${(currentUser&&currentUser.email)||"anon"}:${activeDatasetId}:${type}`;}
+function bannerDismissed(type){try{return localStorage.getItem(dismissKey(type))==="1";}catch{return false;}}
+function dismissX(type,elId){return `<button class="ico" style="border:none;margin-left:auto" aria-label="Dismiss" onclick="try{localStorage.setItem('${dismissKey(type)}','1')}catch{};$('${elId}').style.display='none'">✕</button>`;}
 async function loadConflicts(){
   try{
     const cf=await api("/context/conflicts");const el=$("conflict-banner");
-    if(!cf.length){el.style.display="none";return;}
-    const c=cf[0],f=c.figures[0];el.style.display="";
-    el.innerHTML=warnIcon()+`Context conflict: "${esc(c.doc_a.title)}" and "${esc(c.doc_b.title)}" cite different figures`
-      +(f?` (${fmt(f.a,"USD")} vs ${fmt(f.b,"USD")})`:"")+`. Narratives use the most recent (${esc(c.most_recent)}).`;
+    const c=cf[0];const key=c?`conflict:${esc(c.doc_a.title)}|${esc(c.doc_b.title)}`:"";
+    if(!cf.length||bannerDismissed(key)){el.style.display="none";return;}
+    const f=c.figures[0];el.style.display="";
+    el.innerHTML=warnIcon()+`<span>Context conflict: "${esc(c.doc_a.title)}" and "${esc(c.doc_b.title)}" cite different figures`
+      +(f?` (${fmt(f.a,"USD")} vs ${fmt(f.b,"USD")})`:"")+`. Narratives use the most recent (${esc(c.most_recent)}).</span>`+dismissX(key,"conflict-banner");
   }catch{$("conflict-banner").style.display="none";}
 }
 const warnIcon=()=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>`;
@@ -1587,9 +1631,11 @@ function sparkline(trend,dir,w=110,h=34){
   const areaPts=trend.map((t,i)=>t.value!=null?`${X(i).toFixed(1)},${Y(t.value).toFixed(1)}`:"").filter(Boolean);
   const area=`M${areaPts[0]} `+trend.map((t,i)=>t.value!=null?`L${X(i).toFixed(1)},${Y(t.value).toFixed(1)}`:"").join(" ")+` L${X(trend.length-1).toFixed(1)},${h} L${X(0).toFixed(1)},${h} Z`;
   const stroke=trendColor(trend,dir);const li=trend.length-1;
-  return`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="flex:none">
+  const first=trend.find(t=>t.value!=null),last=trend[li];
+  const tip=`Actual — solid · Plan — dashed\n${first?first.period+": "+fmt(first.value,"")+" → ":""}${last.period}: ${fmt(last.value,"")}`;
+  return`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="flex:none"><title>${esc(tip)}</title>
     <path d="${area}" fill="${stroke}" opacity="0.08"/>
-    <path d="${line("budget")}" stroke="#cbd5e1" stroke-width="1.6" stroke-dasharray="3 3" stroke-linecap="round" fill="none"/>
+    <path d="${line("budget")}" stroke="var(--mut2)" stroke-width="1.6" stroke-dasharray="3 3" stroke-linecap="round" fill="none" opacity="0.7"/>
     <path d="${line("value")}" stroke="${stroke}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
     <circle cx="${X(li).toFixed(1)}" cy="${Y(trend[li].value).toFixed(1)}" r="2.6" fill="${stroke}"/></svg>`;
 }
@@ -1905,7 +1951,7 @@ async function confirmKpis(){
 
 // Entry point: boot() handles auth (creates the Supabase client, checks the
 // session) and then calls startApp(), which loads periods and applies the hash.
-console.log("Closebrief UI build: v3.2.0 (period granularity: month/quarter/year aggregation)");
+console.log("Closebrief UI build: v3.3.0 (generation UX + polish pass)");
 boot();
 </script>
 </body>
