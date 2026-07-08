@@ -478,6 +478,10 @@
             <select class="pill-btn" id="period-select" onchange="loadFacts()" style="border-radius:0;border-left:none;border-right:none"></select>
             <button onclick="stepPeriod(1)" aria-label="Next period" title="Next">›</button>
           </div>
+          <button class="btn exec-hide" onclick="nav('import')" title="Import a new period into a new dataset">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+            Import
+          </button>
           <button class="btn exec-hide" onclick="openKpiManager()" title="Manage which KPIs appear on the board">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             KPIs
@@ -496,6 +500,7 @@
           <button class="btn primary" id="gen-all" onclick="generateAll()">Generate narratives</button>
         </div>
       </div>
+      <div class="banner ok" id="import-banner" style="display:none"></div>
       <div class="statrow" id="statrow"></div>
       <div class="filter-pills" id="filter-pills"></div>
       <div class="banner warn" id="anomaly-banner" style="display:none"></div>
@@ -1344,8 +1349,16 @@ async function loadPeriods(){
   const sel=$("period-select");
   sel.innerHTML=granularity==="month"?periods.map(p=>`<option>${p}</option>`).join(""):groupPeriodsByYear(periods);
   if(periods.length){sel.value=periods[periods.length-1];currentPeriod=sel.value;await loadFacts();}
-  else{$("dash-sub").textContent="No data in this dataset — import a file to begin.";$("cards").innerHTML="";
-    $("category-filter").innerHTML="";nav("import");}
+  else{
+    // Empty workspace: show a centered import CTA on the dashboard, don't jump away.
+    $("dash-sub").textContent="No data yet";$("statrow").innerHTML="";$("filter-pills").innerHTML="";$("category-filter").innerHTML="";
+    $("cards").innerHTML=`<div class="empty-state" style="grid-column:1/-1;padding:70px 20px">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:52px;height:52px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+      <div style="font-size:17px;font-weight:800;color:var(--ink);margin:14px 0 6px">Import your financials</div>
+      <div style="max-width:34ch;margin:0 auto 18px">Drop in a CSV or Excel export — any layout. We detect your columns and draft variance commentary in minutes.</div>
+      <button class="btn primary exec-hide" onclick="nav('import')" style="font-size:14px;padding:11px 20px">Import your first file</button>
+    </div>`;
+  }
 }
 function skeletonCards(n=6){
   const one=`<div class="sk-card"><div class="sk sk-line" style="width:45%"></div>
@@ -1747,7 +1760,7 @@ async function addContext(e){
 async function delContext(id){if(!confirm("Delete this context document?"))return;await api(`/context/${id}`,{method:"DELETE"});toast("Deleted");loadContext();}
 
 /* ---------- import ---------- */
-let upload=null,profile=null;
+let upload=null,profile=null,lastImport=null;
 function setStep(n){for(let i=1;i<=3;i++)$("st-"+i).className="step"+(i<n?" done":i===n?" active":"");
   $("imp-upload").style.display=n===1?"":"none";$("imp-map").style.display=n===2?"":"none";$("imp-kpis").style.display=n===3?"":"none";}
 function dropFile(e){e.preventDefault();$("drop").classList.remove("drag");const f=e.dataTransfer.files[0];if(f)uploadFile(f);}
@@ -1792,7 +1805,8 @@ async function confirmMapping(m){
   try{
     const res=await api(`/ingest/${upload.upload_id}/mapping?save_template=${$("save-tpl").checked}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(mapping)});
     $("imp-result").innerHTML="";
-    $("norm-summary").innerHTML=`✓ Normalized ${res.rows_normalized} rows · ${res.metrics.length} ${res.metrics.length===1?"metric":"metrics"} · ${res.periods.length} ${res.periods.length===1?"period":"periods"} · ${res.facts_computed} facts${res.template_id?" · template saved":""}`;
+    $("norm-summary").innerHTML=`✓ Normalized ${plural(res.rows_normalized,"row")} · ${plural(res.metrics.length,"metric")} · ${plural(res.periods.length,"period")} · ${res.facts_computed} facts${res.template_id?" · template saved":""}`;
+    lastImport={rows:res.rows_normalized,metrics:res.metrics.length,periods:res.periods.length};
     // Default the dataset name to the uploaded filename without its extension.
     const fn=(upload&&upload.filename)||"";
     $("imp-name").value=fn.replace(/\.[^.]+$/,"")||"Imported dataset";
@@ -1819,7 +1833,15 @@ async function confirmKpis(){
     try{await api(`/datasets/${activeDatasetId}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name||undefined,domain})});}catch{}
   }
   setStep(1);await loadPeriods();nav("dashboard");
-  toast(`Imported · ${kpis.length} ${kpis.length===1?"KPI":"KPIs"} tracked`);
+  // Show a success banner on the dashboard with a one-click Generate action.
+  const li=lastImport||{};
+  const el=$("import-banner");
+  if(el){el.style.display="";el.className="banner ok";
+    el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      <span>Imported · ${plural(li.rows||0,"row")} · ${plural(kpis.length,"KPI")} · ${plural(li.periods||0,"period")}.</span>
+      <button class="btn sm primary" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Generate narratives</button>
+      <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">✕</button>`;
+  }
 }
 
 // Entry point: boot() handles auth (creates the Supabase client, checks the
