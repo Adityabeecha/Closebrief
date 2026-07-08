@@ -562,6 +562,27 @@ def activate_dataset(dataset_id: int, _: CurrentUser = Depends(require_write)) -
     return {"active_id": dataset_id}
 
 
+@app.patch("/datasets/{dataset_id}")
+def rename_dataset(dataset_id: int, payload: dict, _: CurrentUser = Depends(require_write)) -> dict:
+    """Rename a dataset and/or set its analytics domain."""
+    name = payload.get("name")
+    domain = payload.get("domain")
+    if domain is not None and not registry.has(domain):
+        raise HTTPException(status_code=422, detail=f"Unknown domain: {domain}")
+    conn = get_connection()
+    try:
+        if conn.execute("SELECT 1 FROM datasets WHERE id = ?", (dataset_id,)).fetchone() is None:
+            raise HTTPException(status_code=404, detail=f"Dataset {dataset_id} not found")
+        if name:
+            conn.execute("UPDATE datasets SET name = ? WHERE id = ?", (name.strip()[:120], dataset_id))
+        if domain is not None:
+            conn.execute("UPDATE datasets SET domain = ? WHERE id = ?", (domain, dataset_id))
+        conn.commit()
+    finally:
+        conn.close()
+    return {"id": dataset_id, "name": name, "domain": domain}
+
+
 @app.delete("/datasets/{dataset_id}", status_code=204)
 def remove_dataset(dataset_id: int, _: CurrentUser = Depends(require_write)) -> None:
     conn = get_connection()

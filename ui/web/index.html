@@ -91,9 +91,21 @@
   .ws-menu.open{display:block}
   .ws-item{display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--ink2);cursor:pointer;border:none;background:none;width:100%;text-align:left}
   .ws-item:hover{background:var(--bg2)}
-  .ws-item small{color:var(--mut2);font-weight:500;margin-left:auto}
-  .ws-item .del{margin-left:auto;color:var(--mut2);font-size:14px;padding:0 4px;border:none;background:none}
-  .ws-item .del:hover{color:var(--red)}
+  .ws-item small{color:var(--mut2);font-weight:500}
+  .ws-item .ws-info{min-width:0;flex:1;display:flex;flex-direction:column;gap:1px}
+  .ws-item .ws-info b{font-size:12.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ws-item .ws-info span{font-size:10.5px;color:var(--mut2);font-weight:600}
+  .ws-dom{font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--accent);background:var(--accent-bg);padding:1px 5px;border-radius:4px}
+  .ws-kebab{margin-left:auto;position:relative}
+  .ws-kebab>button{border:none;background:none;color:var(--mut2);font-size:16px;line-height:1;padding:2px 6px;border-radius:6px}
+  .ws-kebab>button:hover{background:var(--b08);color:var(--ink2)}
+  .ws-kmenu{position:absolute;right:0;top:calc(100% + 3px);background:var(--card);border:1px solid var(--b12);border-radius:9px;box-shadow:0 10px 28px rgba(15,23,42,.18);padding:5px;z-index:40;display:none;min-width:130px}
+  .ws-kmenu.open{display:block}
+  .ws-kmenu button{display:block;width:100%;text-align:left;border:none;background:none;padding:7px 10px;border-radius:6px;font-size:12.5px;font-weight:600;color:var(--ink2)}
+  .ws-kmenu button:hover{background:var(--bg2)}
+  .ws-kmenu button.danger:hover{background:var(--red-bg);color:var(--red)}
+  .ws-newbtn{display:flex;align-items:center;gap:8px;width:100%;padding:8px 9px;border-radius:8px;border:1px dashed var(--b12);background:none;color:var(--accent);font-size:12.5px;font-weight:700;margin-top:4px}
+  .ws-newbtn:hover{background:var(--accent-bg)}
 
   .nav{padding:6px 12px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;flex:1}
   .nav-label{font-size:10px;font-weight:700;color:var(--mut2);letter-spacing:.09em;text-transform:uppercase;padding:16px 8px 6px}
@@ -396,10 +408,6 @@
         </button>
         <div class="ws-menu" id="ws-menu"></div>
       </div>
-      <div class="ws" style="margin-top:8px">
-        <label class="lbl" style="margin-bottom:4px;display:block">Domain</label>
-        <select class="ws-btn" id="domain-select" onchange="setDomain(this.value)" style="cursor:pointer"></select>
-      </div>
     </div>
     <nav class="nav">
       <div class="nav-label">Workspace</div>
@@ -576,6 +584,15 @@
       </div>
       <div id="imp-kpis" style="display:none">
         <div class="banner ok" id="norm-summary"></div>
+        <div class="ctx-form" style="grid-template-columns:1.4fr 1fr;margin-bottom:16px">
+          <div><label class="lbl">Dataset name</label><input id="imp-name" placeholder="e.g. FY2025 Actuals"></div>
+          <div><label class="lbl">What kind of data is this?</label>
+            <select id="imp-domain">
+              <option value="fpa">FP&amp;A — financials</option>
+              <option value="marketing" disabled>Marketing &amp; Growth (coming soon)</option>
+              <option value="ops" disabled>Operations (coming soon)</option>
+            </select></div>
+        </div>
         <p style="font-size:12.5px;color:var(--mut);margin-bottom:12px">Pick the KPIs to track. <b>Direction</b> controls whether a decrease is green (costs) or red (revenue).</p>
         <div id="kpi-rows"></div>
         <div style="text-align:right;margin-top:14px;display:flex;gap:10px;justify-content:flex-end;align-items:center">
@@ -1135,32 +1152,12 @@ async function startApp(){
   if(authToken){
     try{currentUser=await api("/me");}catch{currentUser={email:"user",role:"analyst"};}
     applyRole(currentUser);
-  }else if(demoSession){currentUser={email:"demo@closebrief.app",role:"executive"};applyRole(currentUser);}
+  }else if(demoSession){currentUser={email:"demo@closebrief.app",role:"viewer"};applyRole(currentUser);}
   else{applyRole({email:"local@dev",role:"admin"});}
-  loadDomains();
   loadPeriods().then(()=>{const h=location.hash.slice(1);
     if(["digest","context","import","costs","notifications","admin"].includes(h))nav(h);
     else if(h.startsWith("metric")){const i=currentFacts.findIndex(f=>f.has_data);if(i>=0)openDetail(i);}
   });
-}
-let activeDomain="fpa";
-async function loadDomains(){
-  try{
-    const [domains,active]=await Promise.all([api("/domains"),api("/domain")]);
-    activeDomain=active.slug;
-    const sel=$("domain-select");if(!sel)return;
-    sel.innerHTML=domains.map(d=>`<option value="${d.slug}"${d.slug===active.slug?" selected":""}>${esc(d.name)}</option>`).join("");
-    applyDomain(active);
-  }catch{}
-}
-function applyDomain(d){
-  // Reflect the active domain on the root element (for any domain-aware styling).
-  document.documentElement.setAttribute("data-domain",d.slug);
-}
-async function setDomain(slug){
-  try{const d=await api("/domain",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({domain:slug})});
-    activeDomain=d.slug;applyDomain(d);toast(`Domain: ${d.name}`);loadFacts();
-  }catch(e){toast(e.message||"Could not switch domain");loadDomains();}
 }
 function applyRole(u){
   document.documentElement.setAttribute("data-role",u.role);
@@ -1240,20 +1237,38 @@ async function setUserRole(uid,role){
 }
 
 /* ---------- datasets ---------- */
+const DOMAIN_LABEL={fpa:"FP&A",marketing:"Marketing",ops:"Ops"};
 async function loadDatasets(){
   const d=await api("/datasets");
   activeDatasetId=d.active_id;
   const active=d.datasets.find(x=>x.is_active);
   $("ws-name").textContent=active?active.name:"No dataset";
-  $("ws-menu").innerHTML=d.datasets.map(ds=>`
+  const rows=d.datasets.map(ds=>`
     <div class="ws-item" onclick="activateDataset(${ds.id})">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${ds.is_active?'var(--accent)':'var(--mut2)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-5"/></svg>
-      <span>${esc(ds.name)}</span><small>${ds.metric_count} metrics</small>
-      ${ds.is_active?'':`<button class="del exec-hide" onclick="event.stopPropagation();deleteDataset(${ds.id},'${esc(ds.name)}')">✕</button>`}
+      <span class="ws-info"><b>${esc(ds.name)}</b><span>${ds.metric_count} metrics · <span class="ws-dom">${DOMAIN_LABEL[ds.domain]||"FP&A"}</span></span></span>
+      <span class="ws-kebab exec-hide" onclick="event.stopPropagation();toggleKebab(event,${ds.id})">
+        <button aria-label="Dataset options">⋯</button>
+        <div class="ws-kmenu" id="kmenu-${ds.id}">
+          <button onclick="event.stopPropagation();renameDataset(${ds.id},'${esc(ds.name).replace(/'/g,"\\'")}')">Rename</button>
+          <button class="danger" onclick="event.stopPropagation();deleteDataset(${ds.id},'${esc(ds.name).replace(/'/g,"\\'")}')">Delete</button>
+        </div>
+      </span>
     </div>`).join("")||'<div class="ws-item">No datasets</div>';
+  $("ws-menu").innerHTML=rows+`<button class="ws-newbtn exec-hide" onclick="event.stopPropagation();$('ws-menu').classList.remove('open');nav('import')">+ Import new dataset</button>`;
+}
+function toggleKebab(e,id){e.stopPropagation();
+  document.querySelectorAll(".ws-kmenu").forEach(m=>{if(m.id!=="kmenu-"+id)m.classList.remove("open");});
+  $("kmenu-"+id).classList.toggle("open");
+}
+async function renameDataset(id,cur){
+  const name=prompt("Rename dataset:",cur);
+  if(!name||name.trim()===cur)return;
+  try{await api(`/datasets/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name.trim()})});toast("Renamed");await loadDatasets();}
+  catch(e){toast(e.message);}
 }
 function toggleWs(e){e.stopPropagation();$("ws-menu").classList.toggle("open");}
-document.addEventListener("click",()=>{$("ws-menu").classList.remove("open");$("export-menu")?.classList.remove("open");});
+document.addEventListener("click",()=>{$("ws-menu").classList.remove("open");$("export-menu")?.classList.remove("open");document.querySelectorAll(".ws-kmenu").forEach(m=>m.classList.remove("open"));});
 // Keyboard shortcuts. Ignore while typing in a field.
 document.addEventListener("keydown",e=>{
   // Overlays (shortcuts help / source viewer): Escape closes.
@@ -1699,6 +1714,7 @@ async function uploadFile(file){
   $("imp-result").innerHTML='<div class="loading"><span class="spin"></span> Uploading &amp; profiling…</div>';
   try{
     upload=await api("/ingest/upload",{method:"POST",body:fd});$("imp-result").innerHTML="";
+    if(upload)upload.filename=file.name;   // for the dataset-name default
     if(upload.sheets&&upload.sheets.length>1){$("sheet-pick").style.display="";$("sheet-sel").innerHTML=upload.sheets.map(s=>`<option>${esc(s)}</option>`).join("");}
     else $("sheet-pick").style.display="none";
     if(upload.suggested_template_id){$("tpl-banner").style.display="";$("tpl-banner").innerHTML=`✨ Recognized format — <button class="btn sm" style="margin-left:8px" onclick="applyTpl(${upload.suggested_template_id})">Apply saved mapping</button>`;}
@@ -1734,7 +1750,10 @@ async function confirmMapping(m){
   try{
     const res=await api(`/ingest/${upload.upload_id}/mapping?save_template=${$("save-tpl").checked}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(mapping)});
     $("imp-result").innerHTML="";
-    $("norm-summary").innerHTML=`✓ Normalized ${res.rows_normalized} rows · ${res.metrics.length} metrics · ${res.periods.length} periods · ${res.facts_computed} facts${res.template_id?" · template saved":""}`;
+    $("norm-summary").innerHTML=`✓ Normalized ${res.rows_normalized} rows · ${res.metrics.length} ${res.metrics.length===1?"metric":"metrics"} · ${res.periods.length} ${res.periods.length===1?"period":"periods"} · ${res.facts_computed} facts${res.template_id?" · template saved":""}`;
+    // Default the dataset name to the uploaded filename without its extension.
+    const fn=(upload&&upload.filename)||"";
+    $("imp-name").value=fn.replace(/\.[^.]+$/,"")||"Imported dataset";
     setStep(3);await loadKpiPicker();
   }catch(e){$("imp-result").innerHTML=`<div class="banner err">${warnIcon()}${esc(e.message)}</div>`;}
 }
@@ -1752,12 +1771,18 @@ async function loadKpiPicker(){
 async function confirmKpis(){
   const kpis=[...document.querySelectorAll(".kpi-grid[data-src]")].map(r=>({source_metric:r.dataset.src,display_name:r.querySelector(".k-name").value,category:r.querySelector(".k-cat").value,unit:r.querySelector(".k-unit").value,direction_good:r.querySelector(".k-dir").value}));
   await api("/kpis",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kpis})});
-  toast("Import complete");setStep(1);await loadPeriods();nav("dashboard");
+  // Apply the chosen display name + domain to the freshly-created dataset.
+  const name=($("imp-name").value||"").trim(),domain=$("imp-domain").value;
+  if(activeDatasetId!=null&&(name||domain)){
+    try{await api(`/datasets/${activeDatasetId}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name||undefined,domain})});}catch{}
+  }
+  setStep(1);await loadPeriods();nav("dashboard");
+  toast(`Imported · ${kpis.length} ${kpis.length===1?"KPI":"KPIs"} tracked`);
 }
 
 // Entry point: boot() handles auth (creates the Supabase client, checks the
 // session) and then calls startApp(), which loads periods and applies the hash.
-console.log("Closebrief UI build: v2.9.0 (demo mode, real Q&A, clickable sources, KPI manager)");
+console.log("Closebrief UI build: v3.1.0 (demo isolation, unified workspace switcher)");
 boot();
 </script>
 </body>
