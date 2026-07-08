@@ -1381,8 +1381,22 @@ async function loadFacts(){
     $("dash-sub").innerHTML=`${currentPeriod}${gl} · ${currentFacts.length} ${currentFacts.length===1?"KPI":"KPIs"} · <b>${anom.length?plural(anom.length,"anomaly","anomalies"):"all nominal"}</b>`;
     $("anomaly-banner").style.display=anom.length?"":"none";
     if(anom.length)$("anomaly-banner").innerHTML=warnIcon()+`Anomalous movement: ${anom.map(esc).join(", ")}. Open a card for the full story.`;
+    updateGenButton();maybePromptGenerate();
     loadConflicts();
   }finally{$("dash-loading").style.display="none";}
+}
+function maybePromptGenerate(){
+  // Offer (never force) generation when a month period has data but no narratives.
+  const el=$("import-banner");if(!el||demoSession||granularity!=="month")return;
+  const withData=currentFacts.filter(f=>f.has_data),none=withData.length&&withData.every(f=>!f.narrative);
+  if(!none){if(el.classList.contains("info"))el.style.display="none";return;}
+  if(el.style.display==="none"){
+    el.style.display="";el.className="banner info";
+    el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>
+      <span>No narratives for ${esc(currentPeriod)} yet.</span>
+      <button class="btn sm primary exec-hide" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Generate narratives</button>
+      <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">✕</button>`;
+  }
 }
 async function loadConflicts(){
   try{
@@ -1442,6 +1456,23 @@ function deltaChip(label,v,downGood){
   const good=downGood?v<0:v>0,cls=v===0?"flat":good?"good":"bad";
   const arrow=v>0?"▲":v<0?"▼":"■";
   return`<span class="delta ${cls}">${arrow} ${label} ${p}</span>`;
+}
+function narrativeBlock(f,q){
+  if(generatingSet.has(f.metric))
+    return `<div class="narr"><div class="sk sk-line" style="width:100%;margin-bottom:5px"></div><div class="sk sk-line" style="width:94%;margin-bottom:5px"></div><div class="sk sk-line" style="width:72%"></div></div>`;
+  if(f.aggregated)
+    return `<div class="narr muted">Aggregated ${esc(f.aggregation_type||"flow")} total for ${esc(f.period)}. Narratives are written monthly — switch to Month to read or generate them.</div>`;
+  let html=`<div class="narr ${f.narrative?"":"muted"}">${f.narrative?hl(f.narrative,q):"No narrative yet — generate one to explain this movement."}</div>`;
+  if(f.faithfulness==="failed")
+    // The guard caught an unverifiable number. Surface it — do NOT hide it.
+    html+=`<div class="banner err" style="margin:8px 0 0;font-size:11.5px;padding:8px 10px">${warnIcon()}<span>Numbers couldn't be verified — review manually.</span><button class="btn sm" style="margin-left:auto;padding:3px 9px" onclick="event.stopPropagation();retryGen('${esc(f.metric).replace(/'/g,"\\'")}')">Retry</button></div>`;
+  return html;
+}
+async function retryGen(metric){
+  generatingSet.add(metric);renderCards();
+  try{const r=await api("/generate-insight",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({metric,period:currentPeriod,force:true})});applyGenerated(r);}
+  catch(e){toast("Retry failed: "+e.message);}
+  generatingSet.delete(metric);renderCards();
 }
 function streakBadge(s){
   if(!s)return"";
@@ -1526,9 +1557,7 @@ function renderCards(){
         ${deltaChip("vs plan",f.deltas.budget_var_pct,dg)}
         ${streakBadge(f.trend_streak)}
       </div>
-      ${f.aggregated
-        ?`<div class="narr muted">Aggregated ${esc(f.aggregation_type||"flow")} total for ${esc(f.period)}. Narratives are written monthly — switch to Month to read or generate them.</div>`
-        :`<div class="narr ${f.narrative?"":"muted"}">${f.narrative?hl(f.narrative,q):"No narrative yet — generate one to explain this movement."}</div>`}
+      ${narrativeBlock(f,q)}
       <div class="chips">
         ${(f.sources||[]).map(s=>`<span class="chip" title="Open source note" onclick="event.stopPropagation();showSourceDoc('${esc(s.id)}','${esc(s.title||"")}')">📎 ${esc(s.title||s.id)}</span>`).join("")}
         ${f.faithfulness&&f.faithfulness!=="unchecked"?`<span class="badge ${f.faithfulness}">numbers ${f.faithfulness==="passed"?"verified ✓":"flagged ✗"}</span>`:""}
@@ -1700,19 +1729,49 @@ async function askQA(){
 /* ---------- generation & feedback ---------- */
 async function genOne(metric,btn){
   const regen=btn&&/regenerat/i.test(btn.textContent);
-  if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span>';}
+  generatingSet.add(metric);renderCards();
   try{
     const r=await api("/generate-insight",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({metric,period:currentPeriod,force:regen})});
-    toast(r.cached?`Served from cache — no LLM cost`:`Narrative written for ${metric}`);
-    await loadFacts();
-  }catch(e){toast("Failed: "+e.message);if(btn){btn.disabled=false;btn.textContent="Generate";}}
+    applyGenerated(r);generatingSet.delete(metric);renderCards();updateGenButton();
+    toast(r.faithfulness==="failed"?`${metric}: numbers need review`:(r.cached?"Served from cache — no LLM cost":`Narrative written for ${metric}`));
+  }catch(e){generatingSet.delete(metric);renderCards();toast("Failed: "+e.message);}
+}
+// Rough per-narrative cost estimate (gpt-4o-class: ~1.5k prompt + ~180 completion tokens).
+const EST_COST_PER_NARR=0.006;
+let generatingSet=new Set();
+function ungeneratedFacts(){return currentFacts.filter(f=>f.has_data&&!f.narrative&&!f.aggregated);}
+function updateGenButton(){
+  const btn=$("gen-all");if(!btn||btn.disabled)return;
+  const n=ungeneratedFacts().length;
+  if(!n){btn.textContent="Regenerate all";btn.title="";return;}
+  btn.textContent=`Generate ${plural(n,"narrative")}`;
+  btn.title=`Estimated cost ≈ $${(n*EST_COST_PER_NARR).toFixed(2)}`;
+}
+function applyGenerated(r){
+  const f=currentFacts.find(x=>x.metric===r.metric);
+  if(f)Object.assign(f,{narrative:r.narrative,sources:r.sources||[],confidence:r.confidence,
+    faithfulness:r.faithfulness,report_id:r.report_id,cost_usd:r.cost_usd,
+    trend_streak:r.trend_streak||f.trend_streak,generated_by:r.generated_by});
 }
 async function generateAll(){
-  const btn=$("gen-all");btn.disabled=true;let n=0;
-  for(const f of currentFacts.filter(f=>f.has_data)){btn.innerHTML=`<span class="spin"></span> ${++n}/${currentFacts.filter(f=>f.has_data).length}`;
-    try{await api("/generate-insight",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({metric:f.metric,period:currentPeriod})});}catch{}}
-  btn.disabled=false;btn.textContent="Generate narratives";toast("All narratives refreshed");loadFacts();
+  const targets=(granularity==="month"?ungeneratedFacts():[]);
+  const all=currentFacts.filter(f=>f.has_data&&!f.aggregated);
+  const list=targets.length?targets:all;   // if all done, regenerate all
+  if(!list.length){toast("Nothing to generate at this granularity");return;}
+  const btn=$("gen-all");btn.disabled=true;
+  generatingSet=new Set(list.map(f=>f.metric));renderCards();
+  let n=0;
+  for(const f of list){
+    btn.innerHTML=`<span class="spin"></span> ${++n} of ${list.length}`;
+    try{const r=await api("/generate-insight",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({metric:f.metric,period:currentPeriod,force:!targets.length})});applyGenerated(r);}
+    catch(e){/* leave card un-narrated; user can retry */}
+    generatingSet.delete(f.metric);renderCards();
+  }
+  btn.disabled=false;generatingSet.clear();updateGenButton();
+  const failed=currentFacts.filter(f=>f.faithfulness==="failed").length;
+  toast(failed?`Done — ${plural(failed,"narrative")} need review`:"All narratives generated ✓");
 }
 async function feedback(id,action,btn,extra){
   await api("/feedback",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({report_id:id,action,...extra})});
