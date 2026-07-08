@@ -33,8 +33,9 @@ from app.deps import shared_cache, shared_embedder, shared_vector_store
 from app.digest.digest import DigestOutput, generate_digest
 from app.domains import get_domain, list_domains, registry
 from app.generation.generate import GenerationFailedFactsOnly, generate_insight
+from app.generation.guard import check_faithfulness
 from app.generation.llm_client import LLMGenerationError, get_llm_client
-from app.generation.prompts import PROMPT_VERSION
+from app.generation.prompts import PROMPT_VERSION, QA_SYSTEM_PROMPT, build_qa_prompt
 from app.ingestion.ingest import IngestValidationError, ingest_dataframe, parse_csv
 from app.ingestion.mapping import MappingError, MappingSpec, normalize, store_normalized
 from app.ingestion.profiler import profile_columns
@@ -43,6 +44,7 @@ from app.ingestion.templates import save_template as save_mapping_template
 from app.ingestion.upload import UploadError, create_upload, load_upload_frame
 from app.kpis.library import KPI_LIBRARY, suggest_kpi
 from app.notifications.channels import NotificationError, make_channel
+from app.notifications.scheduler import deliver as notif_deliver
 from app.notifications.scheduler import list_configs as notif_list_configs
 from app.retrieval.retrieve import retrieve
 from app.schemas import (
@@ -141,7 +143,7 @@ async def _auth_middleware(request: Request, call_next):
         # showcase actions (generate a narrative / build the digest); every
         # other write still requires a real account.
         if settings.demo_mode and exc.status_code == 401 and (
-            request.method == "GET" or path in ("/generate-insight", "/digest")
+            request.method == "GET" or path in ("/generate-insight", "/digest", "/ask")
         ):
             request.state.user = CurrentUser(
                 id="demo", email="demo@closebrief.app", role="executive"
@@ -187,6 +189,48 @@ def _percentile(values: list[float], pct: float) -> float:
     ordered = sorted(values)
     idx = min(len(ordered) - 1, int(round(pct / 100 * (len(ordered) - 1))))
     return round(ordered[idx], 1)
+
+
+def _notify_async(event: str, period: str | None = None, items: list[dict] | None = None) -> None:
+    """Fan a notification event out to configured channels on a daemon thread —
+    delivery (SMTP/HTTP) must never add latency or failures to the request."""
+    import threading
+
+    def _run():
+        try:
+            conn = get_connection()
+            try:
+                notif_deliver(conn, event, period=period, items=items)
+            finally:
+                conn.close()
+        except Exception:  # noqa: BLE001 - best-effort by design
+            pass
+
+    threading.Thread(target=_run, daemon=True).start()
+
+
+def _notify_anomalies(conn, dataset_id: int) -> None:
+    """After a compute pass: alert channels about anomalies in the dataset's
+    latest period (if any)."""
+    rows = conn.execute(
+        """
+        SELECT m.name AS metric, cf.period, cf.value, cf.mom_pct
+        FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
+        WHERE m.dataset_id = ? AND cf.is_anomaly AND cf.period = (
+            SELECT MAX(cf2.period) FROM computed_facts cf2
+            JOIN metrics m2 ON m2.id = cf2.metric_id WHERE m2.dataset_id = ?
+        )
+        """,
+        (dataset_id, dataset_id),
+    ).fetchall()
+    if not rows:
+        return
+    items = [{
+        "metric": r["metric"], "period": r["period"],
+        "value": f"{r['value']:,.0f}",
+        "delta": f"{r['mom_pct']:+.1f}% MoM" if r["mom_pct"] is not None else "",
+    } for r in rows]
+    _notify_async("anomaly_detected", items=items)
 
 
 def _log_llm_call(endpoint: str, model, prompt_tokens, completion_tokens, cost_usd, latency_ms, user_id=None):
@@ -722,6 +766,7 @@ async def ingest(file: UploadFile, user: CurrentUser = Depends(require_write)) -
                                     uploaded_by=user.id, uploaded_by_email=user.email)
         summary = ingest_dataframe(conn, df, dataset_id)
         compute_and_store(conn, dataset_id)
+        _notify_anomalies(conn, dataset_id)
     finally:
         conn.close()
     shared_cache().bump_namespace()  # new data invalidates cached narratives
@@ -795,6 +840,7 @@ def ingest_mapping(upload_id: str, mapping: MappingSpec, save_template: bool = F
             template_id = save_mapping_template(conn, up["column_signature"], mapping.model_dump())
 
         facts = compute_and_store(conn, dataset_id)
+        _notify_anomalies(conn, dataset_id)
         shared_cache().bump_namespace()
         return {**summary, "dataset_id": dataset_id,
                 "facts_computed": int(len(facts)), "template_id": template_id}
@@ -872,6 +918,42 @@ def configure_kpis(payload: KPIConfigPayload, _: CurrentUser = Depends(require_w
     return {"kpis_configured": len(payload.kpis)}
 
 
+@app.get("/kpis")
+def list_kpis(_: CurrentUser = Depends(require_read)) -> dict:
+    """Current KPI selections for the active dataset (drives the board), plus
+    the dataset's metrics that are NOT selected (so the UI can add them back)."""
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        if ds is None:
+            return {"selected": [], "available": []}
+        selected = [dict(r) for r in conn.execute(
+            """SELECT id, source_metric, display_name, category, unit, direction_good
+               FROM kpi_configs WHERE dataset_id = ? ORDER BY source_metric""",
+            (ds,),
+        ).fetchall()]
+        chosen = {s["source_metric"] for s in selected}
+        available = [r["name"] for r in conn.execute(
+            "SELECT name FROM metrics WHERE dataset_id = ? ORDER BY name", (ds,)
+        ).fetchall() if r["name"] not in chosen]
+        return {"selected": selected, "available": available}
+    finally:
+        conn.close()
+
+
+@app.delete("/kpis/{kpi_id}", status_code=204)
+def delete_kpi(kpi_id: int, _: CurrentUser = Depends(require_write)) -> None:
+    """Remove one KPI from the board (its data stays; it's just deselected)."""
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        conn.execute("DELETE FROM kpi_configs WHERE id = ? AND dataset_id = ?", (kpi_id, ds))
+        conn.commit()
+    finally:
+        conn.close()
+    shared_cache().bump_namespace()
+
+
 @app.get("/kpis/library")
 def kpi_library(domain: str | None = None, _: CurrentUser = Depends(require_read)) -> list[dict]:
     """KPI suggestions. Defaults to FP&A; pass ?domain= for a domain's library."""
@@ -884,7 +966,10 @@ def kpi_library(domain: str | None = None, _: CurrentUser = Depends(require_read
 def compute(_: CurrentUser = Depends(require_write)) -> dict:
     conn = get_connection()
     try:
-        facts = compute_and_store(conn, active_dataset_id(conn))
+        ds = active_dataset_id(conn)
+        facts = compute_and_store(conn, ds)
+        if ds is not None:
+            _notify_anomalies(conn, ds)
     finally:
         conn.close()
     shared_cache().bump_namespace()
@@ -1170,6 +1255,51 @@ def _persist_report(insight: InsightOutput, user: CurrentUser) -> int:
         conn.close()
 
 
+@app.post("/ask")
+def ask_endpoint(payload: dict, user: CurrentUser = Depends(require_read)) -> dict:
+    """Grounded Q&A about one metric (v2.9). Same guarantees as narratives:
+    numbers only from computed facts, causes only from retrieved context, and
+    an honest "the data doesn't answer that" when neither covers the question."""
+    metric = (payload.get("metric") or "").strip()
+    period = (payload.get("period") or "").strip()
+    question = (payload.get("question") or "").strip()
+    if not metric or not period or not question:
+        raise HTTPException(status_code=422, detail="metric, period, and question are required")
+    if len(question) > 500:
+        raise HTTPException(status_code=422, detail="Question too long (max 500 chars)")
+
+    conn = get_connection()
+    try:
+        fact = _load_computed_fact(conn, metric, period)
+        chunks = retrieve(metric, period, _context_store(conn),
+                          shared_embedder(), shared_vector_store(), k=settings.retrieval_k)
+        context = [ContextSnippet(id=f"ctx_{c.id:03d}", type=c.type, title=c.title, body=c.body)
+                   for c in chunks]
+    finally:
+        conn.close()
+
+    try:
+        llm_client = get_llm_client()
+        result, usage = llm_client.generate_narrative(
+            QA_SYSTEM_PROMPT, build_qa_prompt(fact, context, question)
+        )
+    except LLMGenerationError as exc:
+        raise HTTPException(status_code=503, detail=f"Q&A unavailable: {exc}") from exc
+
+    passed, _unverified = check_faithfulness(result.narrative, fact, context)
+    context_by_id = {c.id: c for c in context}
+    sources = [
+        {"id": cid, "type": context_by_id[cid].type, "title": context_by_id[cid].title}
+        for cid in result.sources_used if cid in context_by_id
+    ]
+    _log_llm_call(
+        "/ask",
+        settings.openai_model if settings.llm_provider == "openai" else settings.anthropic_model,
+        usage.prompt_tokens, usage.completion_tokens, usage.cost_usd, None, user.id,
+    )
+    return {"answer": result.narrative, "sources": sources, "grounded": passed}
+
+
 @app.post("/digest", response_model=DigestOutput)
 def digest_endpoint(period: str, top_n: int = 5, force: bool = False,
                     user: CurrentUser = Depends(require_read)) -> DigestOutput:
@@ -1193,6 +1323,13 @@ def digest_endpoint(period: str, top_n: int = 5, force: bool = False,
 
     _log_llm_call("/digest", None, None, None, digest.cost_usd, None, user.id)
     cache.set(cache_key, digest.model_dump(), settings.cache_ttl_seconds)
+    # Fan the fresh digest out to subscribed channels (email/Slack/webhook).
+    _notify_async("digest_generated", period=period, items=[{
+        "metric": it.metric, "period": period,
+        "value": it.headline,
+        "delta": f"{it.budget_var_pct:+.1f}% vs plan" if it.budget_var_pct is not None else "",
+        "narrative": it.detail,
+    } for it in digest.items])
     return digest
 
 

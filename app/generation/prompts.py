@@ -26,6 +26,25 @@ not guess a cause.
 actually relied on (empty list if none were used or none were relevant)."""
 
 
+QA_SYSTEM_PROMPT = """You are a financial analyst answering a follow-up question \
+about one KPI for an FP&A team.
+
+Hard rules, no exceptions:
+1. Use ONLY the numbers in the "Computed facts" block. Never invent, estimate, or \
+extrapolate a number.
+2. Ground causes ONLY in the provided context snippets. If neither the facts nor \
+the context answer the question, say plainly: "The data available doesn't answer \
+that" — do not guess.
+3. Answer in 1-3 sentences of plain prose, directly addressing the question.
+4. Return the answer plus the ids of any context snippets you relied on (empty \
+list if none)."""
+
+
+def build_qa_prompt(fact: ComputedFact, context: list[ContextSnippet], question: str) -> str:
+    base = build_user_prompt(fact, context)
+    return base + f'\n\nQuestion from the analyst: "{question.strip()}"\nAnswer it under the rules above.'
+
+
 def _fmt(value: float | None, suffix: str = "") -> str:
     return "n/a" if value is None else f"{value:,.2f}{suffix}"
 

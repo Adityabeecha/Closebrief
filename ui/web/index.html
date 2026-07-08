@@ -431,6 +431,10 @@
           </div>
           <select class="pill-btn" id="category-filter" onchange="renderCards()"></select>
           <select class="pill-btn" id="period-select" onchange="loadFacts()"></select>
+          <button class="btn exec-hide" onclick="openKpiManager()" title="Manage which KPIs appear on the board">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            KPIs
+          </button>
           <div class="export">
             <button class="btn" onclick="toggleExport(event)" aria-haspopup="true" title="Export report">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
@@ -624,6 +628,30 @@
     </div>
     <div class="cmdk-list" id="cmdk-list"></div>
     <div class="cmdk-foot"><span><kbd>↑↓</kbd>navigate</span><span><kbd>↵</kbd>select</span><span><kbd>esc</kbd>close</span></div>
+  </div>
+</div>
+<!-- KPI manager: edit board selections without re-importing -->
+<div class="cmdk-back" id="kpi-back" onclick="if(event.target===this)$('kpi-back').classList.remove('open')">
+  <div class="cmdk" role="dialog" aria-label="Manage KPIs" style="width:min(720px,94vw)">
+    <div class="cmdk-in" style="justify-content:space-between"><b style="font-size:15px">Manage KPIs</b>
+      <button class="ico" onclick="$('kpi-back').classList.remove('open')" aria-label="Close">✕</button></div>
+    <div style="padding:14px 16px;max-height:56vh;overflow-y:auto" id="kpim-rows"></div>
+    <div style="display:flex;gap:8px;align-items:center;padding:12px 16px;border-top:1px solid var(--b08)">
+      <select id="kpim-add" class="pill-btn" style="flex:1"></select>
+      <button class="btn sm" onclick="kpimAdd()">Add to board</button>
+      <button class="btn primary sm" style="margin-left:auto" onclick="kpimSave(this)">Save changes</button>
+    </div>
+  </div>
+</div>
+<!-- Source doc viewer (the trust moment: chip -> the underlying context note) -->
+<div class="cmdk-back" id="src-back" onclick="if(event.target===this)$('src-back').classList.remove('open')">
+  <div class="cmdk" role="dialog" aria-label="Context source" style="width:min(600px,92vw)">
+    <div class="cmdk-in" style="justify-content:space-between">
+      <div style="min-width:0"><span class="ctx-type" id="src-type"></span> <b id="src-title" style="font-size:15px;margin-left:6px"></b></div>
+      <button class="ico" onclick="$('src-back').classList.remove('open')" aria-label="Close">✕</button>
+    </div>
+    <div style="padding:18px;font-size:13.5px;line-height:1.6;color:var(--ink2)" id="src-body"></div>
+    <div class="cmdk-foot"><span id="src-meta"></span></div>
   </div>
 </div>
 <!-- Shortcuts help -->
@@ -857,6 +885,72 @@ function paletteKey(e){
   else if(e.key==="Enter"){e.preventDefault();runPalette(cmdkSel);}
 }
 function scrollSel(){document.querySelector(".cmdk-item.sel")?.scrollIntoView({block:"nearest"});}
+
+/* ---------- KPI manager ---------- */
+let kpimState={selected:[],available:[]};
+async function openKpiManager(){
+  try{kpimState=await api("/kpis");}catch(e){toast(e.message);return;}
+  renderKpim();$("kpi-back").classList.add("open");
+}
+function renderKpim(){
+  const dirOpt=v=>`<option value="up"${v==="up"?" selected":""}>↑ up is good</option><option value="down"${v==="down"?" selected":""}>↓ down is good</option>`;
+  $("kpim-rows").innerHTML=kpimState.selected.length?`
+    <div class="kpi-grid hdr"><span>Source metric</span><span>Display name</span><span>Category</span><span>Unit</span><span>Direction</span></div>`
+    +kpimState.selected.map((k,i)=>`<div class="kpi-grid" data-i="${i}" style="grid-template-columns:1.3fr 1.3fr 1fr .8fr .9fr .3fr">
+      <span style="font-size:12px;color:var(--mut);overflow:hidden;text-overflow:ellipsis" title="${esc(k.source_metric)}">${esc(k.source_metric)}</span>
+      <input value="${esc(k.display_name)}" data-f="display_name">
+      <input value="${esc(k.category)}" data-f="category">
+      <input value="${esc(k.unit)}" data-f="unit">
+      <select data-f="direction_good">${dirOpt(k.direction_good)}</select>
+      <button class="row-del" title="Remove from board" onclick="kpimRemove(${i})">✕</button>
+    </div>`).join("")
+    :'<div class="empty-state" style="padding:26px">No KPIs selected — add one below.</div>';
+  $("kpim-add").innerHTML='<option value="">Add a metric to the board…</option>'
+    +kpimState.available.map(m=>`<option>${esc(m)}</option>`).join("");
+}
+async function kpimRemove(i){
+  const k=kpimState.selected[i];
+  if(k.id!=null){try{await api(`/kpis/${k.id}`,{method:"DELETE"});}catch(e){toast(e.message);return;}}
+  kpimState.selected.splice(i,1);
+  if(k.source_metric&&!kpimState.available.includes(k.source_metric))kpimState.available.push(k.source_metric);
+  renderKpim();
+}
+function kpimAdd(){
+  const m=$("kpim-add").value;if(!m)return;
+  kpimState.available=kpimState.available.filter(x=>x!==m);
+  kpimState.selected.push({id:null,source_metric:m,display_name:m,category:"Uncategorized",unit:"USD",direction_good:"up"});
+  renderKpim();
+}
+async function kpimSave(btn){
+  // Read current field values out of the DOM into the payload.
+  document.querySelectorAll("#kpim-rows .kpi-grid[data-i]").forEach(row=>{
+    const k=kpimState.selected[+row.dataset.i];
+    row.querySelectorAll("[data-f]").forEach(el=>{k[el.dataset.f]=el.value;});
+  });
+  btn.disabled=true;btn.textContent="Saving…";
+  try{
+    await api("/kpis",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({kpis:kpimState.selected.map(k=>({source_metric:k.source_metric,display_name:k.display_name,category:k.category,unit:k.unit,direction_good:k.direction_good}))})});
+    $("kpi-back").classList.remove("open");toast("KPIs updated");await loadFacts();
+  }catch(e){toast(e.message);}
+  finally{btn.disabled=false;btn.textContent="Save changes";}
+}
+
+/* ---------- source doc viewer ---------- */
+async function showSourceDoc(chipId,title){
+  // chipId is "ctx_007" (retrieval id) — the numeric part is the context doc id.
+  const num=parseInt(String(chipId).replace(/^ctx_/,""),10);
+  try{
+    const docs=await api("/context");
+    const doc=docs.find(d=>d.id===num)||docs.find(d=>d.title===title);
+    if(!doc){toast("Source note not found — it may have been deleted");return;}
+    $("src-type").textContent=(doc.type||"note").replace(/_/g," ");
+    $("src-title").textContent=doc.title;
+    $("src-body").textContent=doc.body;
+    $("src-meta").textContent=`Effective ${doc.effective_date||"—"}${doc.metric_tags&&doc.metric_tags.length?" · Tags: "+doc.metric_tags.join(", "):""}`;
+    $("src-back").classList.add("open");
+  }catch(e){toast(e.message||"Could not load source");}
+}
 
 /* ---------- search / highlight ---------- */
 let _searchT=null;
@@ -1134,8 +1228,10 @@ function toggleWs(e){e.stopPropagation();$("ws-menu").classList.toggle("open");}
 document.addEventListener("click",()=>{$("ws-menu").classList.remove("open");$("export-menu")?.classList.remove("open");});
 // Keyboard shortcuts. Ignore while typing in a field.
 document.addEventListener("keydown",e=>{
-  // Shortcuts help open: Escape closes it.
+  // Overlays (shortcuts help / source viewer): Escape closes.
   if($("sc-back").classList.contains("open")){if(e.key==="Escape")$("sc-back").classList.remove("open");return;}
+  if($("src-back").classList.contains("open")){if(e.key==="Escape")$("src-back").classList.remove("open");return;}
+  if($("kpi-back").classList.contains("open")){if(e.key==="Escape")$("kpi-back").classList.remove("open");return;}
   // While the palette is open, route nav keys to it.
   if($("cmdk-back").classList.contains("open")){paletteKey(e);return;}
   // Ctrl/Cmd+K opens the palette from anywhere (even while typing).
@@ -1336,7 +1432,7 @@ function renderCards(){
       </div>
       <div class="narr ${f.narrative?"":"muted"}">${f.narrative?hl(f.narrative,q):"No narrative yet — generate one to explain this movement."}</div>
       <div class="chips">
-        ${(f.sources||[]).map(s=>`<span class="chip" title="${esc(s.title||s.id)}">📎 ${esc(s.title||s.id)}</span>`).join("")}
+        ${(f.sources||[]).map(s=>`<span class="chip" title="Open source note" onclick="event.stopPropagation();showSourceDoc('${esc(s.id)}','${esc(s.title||"")}')">📎 ${esc(s.title||s.id)}</span>`).join("")}
         ${f.faithfulness&&f.faithfulness!=="unchecked"?`<span class="badge ${f.faithfulness}">numbers ${f.faithfulness==="passed"?"verified ✓":"flagged ✗"}</span>`:""}
         ${f.edited?'<span class="badge edited">edited</span>':""}
         ${f.cost_usd!=null?`<span class="cost">≈ $${(+f.cost_usd).toFixed(4)}</span>`:""}
@@ -1473,7 +1569,7 @@ function openDetail(i){
   $("d-narr").className="narr"+(f.narrative?"":" muted");
   $("d-narr").innerHTML=f.narrative?esc(f.narrative)+(f.edited&&f.original_narrative?`<details class="tbl" style="margin-top:8px"><summary>Show original (pre-edit)</summary><p style="margin-top:6px;color:var(--mut)">${esc(f.original_narrative)}</p></details>`:""):"No narrative yet — generate one from the dashboard card.";
   $("d-narr-meta").textContent=(f.confidence?`${f.confidence} confidence · numbers ${f.faithfulness}`:"")+(f.edited?" · edited by analyst":"")+(f.cost_usd!=null?` · ≈ $${(+f.cost_usd).toFixed(4)}`:"");
-  $("d-chips").innerHTML=(f.sources||[]).map(s=>`<span class="chip">📎 ${esc(s.title||s.id)}</span>`).join("");
+  $("d-chips").innerHTML=(f.sources||[]).map(s=>`<span class="chip" title="Open source note" onclick="showSourceDoc('${esc(s.id)}','${esc(s.title||"")}')">📎 ${esc(s.title||s.id)}</span>`).join("");
   $("d-qa-answer").innerHTML="";$("d-qa").value="";
   loadCorrelations(f.metric);
 }
@@ -1493,11 +1589,13 @@ async function regenDetail(){if(!detailFact)return;await genOne(detailFact.metri
 async function askQA(){
   const q=$("d-qa").value.trim();if(!q||!detailFact)return;
   $("d-qa-answer").innerHTML='<div class="loading" style="padding:12px"><span class="spin"></span> Thinking…</div>';
-  // Grounded Q&A reuses generate-insight with the question appended as context intent.
   try{
-    const r=await api("/generate-insight",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({metric:detailFact.metric,period:currentPeriod})});
-    $("d-qa-answer").innerHTML=`<div class="banner info" style="margin:0">${esc(r.narrative||"No grounded answer available.")}</div>`;
+    const r=await api("/ask",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({metric:detailFact.metric,period:currentPeriod,question:q})});
+    const srcs=(r.sources||[]).map(s=>`<span class="chip" onclick="showSourceDoc('${esc(s.id)}','${esc(s.title)}')">📎 ${esc(s.title||s.id)}</span>`).join("");
+    $("d-qa-answer").innerHTML=`<div class="banner info" style="margin:0;display:block">
+      ${esc(r.answer||"No grounded answer available.")}
+      <div class="chips" style="margin-top:8px">${srcs}${r.grounded?'<span class="badge passed">numbers verified ✓</span>':""}</div></div>`;
   }catch(e){$("d-qa-answer").innerHTML=`<div class="banner err" style="margin:0">${esc(e.message)}</div>`;}
 }
 
@@ -1631,7 +1729,7 @@ async function confirmKpis(){
 
 // Entry point: boot() handles auth (creates the Supabase client, checks the
 // session) and then calls startApp(), which loads periods and applies the hash.
-console.log("Closebrief UI build: v2.8.0 (multi-domain foundation)");
+console.log("Closebrief UI build: v2.9.0 (demo mode, real Q&A, clickable sources, KPI manager)");
 boot();
 </script>
 </body>

@@ -49,8 +49,9 @@ def seed_demo(conn, context_store=None) -> bool:
         return False
 
     had_active = active_dataset_id(conn) is not None
+    # uploaded_by is a UUID column on Postgres — the seeder has no user id.
     ds = create_dataset(conn, DEMO_DATASET_NAME, activate=False,
-                        uploaded_by="demo-seed", uploaded_by_email="demo@closebrief.app")
+                        uploaded_by=None, uploaded_by_email="demo@closebrief.app")
 
     df = parse_csv(_SAMPLE_CSV.read_bytes())
     ingest_dataframe(conn, df, ds)
