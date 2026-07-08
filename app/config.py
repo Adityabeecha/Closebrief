@@ -63,6 +63,11 @@ class Settings(BaseSettings):
     supabase_jwt_secret: str = ""     # HS256 shared secret (Settings -> API -> JWT)
     auth_enabled: bool = True         # False -> bypass auth even if supabase_url set
 
+    # --- Demo mode (v2.9) ---
+    # True -> seed a sample FP&A dataset at startup and let unauthenticated
+    # visitors browse read-only (role "executive"). For portfolio/demo deploys.
+    demo_mode: bool = False
+
     # --- Monitoring (v2.0) ---
     sentry_dsn: str = ""              # empty -> Sentry disabled
 
