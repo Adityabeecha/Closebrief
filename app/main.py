@@ -115,15 +115,22 @@ _OPEN_PATHS = {"/", "/health", "/auth/config", "/openapi.json", "/docs", "/redoc
 def _startup() -> None:
     init_db()
     if settings.demo_mode:
-        # Seed the sample dataset once so first-time visitors see a live board.
-        try:
-            conn = get_connection()
+        # Seed the sample dataset on a background thread — embedding the demo
+        # context docs takes a few seconds and must not delay boot / the health
+        # check (idempotent, so a restart mid-seed is safe).
+        import threading
+
+        def _seed():
             try:
-                seed_demo(conn, _context_store(conn))
-            finally:
-                conn.close()
-        except Exception:  # noqa: BLE001 - demo seeding must never block startup
-            pass
+                conn = get_connection()
+                try:
+                    seed_demo(conn, _context_store(conn))
+                finally:
+                    conn.close()
+            except Exception:  # noqa: BLE001 - demo seeding must never block startup
+                pass
+
+        threading.Thread(target=_seed, daemon=True).start()
 
 
 # ---- request telemetry: latency ring buffer + naive per-IP rate limit ----
