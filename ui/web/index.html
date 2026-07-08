@@ -203,6 +203,16 @@
   .legend{display:flex;gap:16px;font-size:11.5px;color:var(--ink3);font-weight:600;margin-bottom:6px}
   .legend .k{display:inline-block;width:16px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
   .legend .k.dash{border-top-style:dashed}
+  /* period control: segmented granularity + stepper */
+  .seg{display:inline-flex;border:1px solid var(--b12);border-radius:9px;overflow:hidden;background:var(--card)}
+  .seg button{border:none;background:none;padding:7px 13px;font-size:12.5px;font-weight:700;color:var(--mut);border-right:1px solid var(--b08)}
+  .seg button:last-child{border-right:none}
+  .seg button.active{background:var(--accent);color:#fff}
+  .seg button:not(.active):hover{background:var(--bg2);color:var(--ink2)}
+  .pstep{display:inline-flex;align-items:stretch;border:1px solid var(--b12);border-radius:9px;overflow:hidden;background:var(--card)}
+  .pstep>button{border:none;background:none;color:var(--ink3);font-size:16px;font-weight:700;padding:0 11px}
+  .pstep>button:hover{background:var(--bg2)}
+  .pstep #period-select{border:none;background:none}
   .chart-box{position:relative;width:100%;margin-top:6px}
   /* export dropdown */
   .export{position:relative}
@@ -458,7 +468,16 @@
             <input id="search" type="search" placeholder="Search metrics…" aria-label="Search metrics" oninput="onSearch(this.value)">
           </div>
           <select class="pill-btn" id="category-filter" onchange="renderCards()"></select>
-          <select class="pill-btn" id="period-select" onchange="loadFacts()"></select>
+          <div class="seg" id="gran-seg">
+            <button data-g="month" class="active" onclick="setGranularity('month')">Month</button>
+            <button data-g="quarter" onclick="setGranularity('quarter')">Quarter</button>
+            <button data-g="year" onclick="setGranularity('year')">Year</button>
+          </div>
+          <div class="pstep">
+            <button onclick="stepPeriod(-1)" aria-label="Previous period" title="Previous">‹</button>
+            <select class="pill-btn" id="period-select" onchange="loadFacts()" style="border-radius:0;border-left:none;border-right:none"></select>
+            <button onclick="stepPeriod(1)" aria-label="Next period" title="Next">›</button>
+          </div>
           <button class="btn exec-hide" onclick="openKpiManager()" title="Manage which KPIs appear on the board">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             KPIs
@@ -931,14 +950,16 @@ async function openKpiManager(){
 }
 function renderKpim(){
   const dirOpt=v=>`<option value="up"${v==="up"?" selected":""}>↑ up is good</option><option value="down"${v==="down"?" selected":""}>↓ down is good</option>`;
+  const aggOpt=v=>["flow","balance","ratio"].map(a=>`<option value="${a}"${v===a?" selected":""}>${a}</option>`).join("");
   $("kpim-rows").innerHTML=kpimState.selected.length?`
-    <div class="kpi-grid hdr"><span>Source metric</span><span>Display name</span><span>Category</span><span>Unit</span><span>Direction</span></div>`
-    +kpimState.selected.map((k,i)=>`<div class="kpi-grid" data-i="${i}" style="grid-template-columns:1.3fr 1.3fr 1fr .8fr .9fr .3fr">
+    <div class="kpi-grid hdr" style="grid-template-columns:1.2fr 1.2fr .9fr .7fr .9fr .8fr .3fr"><span>Source metric</span><span>Display name</span><span>Category</span><span>Unit</span><span>Direction</span><span title="How this rolls up to quarters/years">Rollup</span><span></span></div>`
+    +kpimState.selected.map((k,i)=>`<div class="kpi-grid" data-i="${i}" style="grid-template-columns:1.2fr 1.2fr .9fr .7fr .9fr .8fr .3fr">
       <span style="font-size:12px;color:var(--mut);overflow:hidden;text-overflow:ellipsis" title="${esc(k.source_metric)}">${esc(k.source_metric)}</span>
       <input value="${esc(k.display_name)}" data-f="display_name">
       <input value="${esc(k.category)}" data-f="category">
       <input value="${esc(k.unit)}" data-f="unit">
       <select data-f="direction_good">${dirOpt(k.direction_good)}</select>
+      <select data-f="aggregation_type" title="flow=sum · balance=last month · ratio=not aggregated">${aggOpt(k.aggregation_type)}</select>
       <button class="row-del" title="Remove from board" onclick="kpimRemove(${i})">✕</button>
     </div>`).join("")
     :'<div class="empty-state" style="padding:26px">No KPIs selected — add one below.</div>';
@@ -967,7 +988,7 @@ async function kpimSave(btn){
   btn.disabled=true;btn.textContent="Saving…";
   try{
     await api("/kpis",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({kpis:kpimState.selected.map(k=>({source_metric:k.source_metric,display_name:k.display_name,category:k.category,unit:k.unit,direction_good:k.direction_good}))})});
+      body:JSON.stringify({kpis:kpimState.selected.map(k=>({source_metric:k.source_metric,display_name:k.display_name,category:k.category,unit:k.unit,direction_good:k.direction_good,aggregation_type:k.aggregation_type}))})});
     $("kpi-back").classList.remove("open");toast("KPIs updated");await loadFacts();
   }catch(e){toast(e.message);}
   finally{btn.disabled=false;btn.textContent="Save changes";}
@@ -1048,6 +1069,7 @@ const fmt=(v,unit)=>{
 };
 const pct=v=>v===null||v===undefined?null:(v>0?"+":"")+v.toFixed(1)+"%";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const plural=(n,one,many)=>`${n} ${n===1?one:(many||one+"s")}`;
 
 /* tooltip */
 const tip=$("tip");
@@ -1299,11 +1321,28 @@ async function deleteDataset(id,name){
 }
 
 /* ---------- periods & facts ---------- */
+let granularity="month";
+function setGranularity(g){
+  if(g===granularity)return;granularity=g;
+  document.querySelectorAll("#gran-seg button").forEach(b=>b.classList.toggle("active",b.dataset.g===g));
+  loadPeriods();
+}
+function stepPeriod(dir){
+  const sel=$("period-select"),i=sel.selectedIndex+dir;
+  if(i<0||i>=sel.options.length)return;
+  sel.selectedIndex=i;loadFacts();
+}
+function groupPeriodsByYear(periods){
+  // Build <optgroup> by year for quarter/year; flat for month.
+  if(granularity==="year")return periods.map(p=>`<option>${p}</option>`).join("");
+  const byYear={};periods.forEach(p=>{const y=p.slice(0,4);(byYear[y]=byYear[y]||[]).push(p);});
+  return Object.keys(byYear).sort().map(y=>`<optgroup label="${y}">${byYear[y].map(p=>`<option>${p}</option>`).join("")}</optgroup>`).join("");
+}
 async function loadPeriods(){
   await loadDatasets();
-  const periods=await api("/periods");
+  const periods=await api(`/periods?granularity=${granularity}`);
   const sel=$("period-select");
-  sel.innerHTML=periods.map(p=>`<option>${p}</option>`).join("");
+  sel.innerHTML=granularity==="month"?periods.map(p=>`<option>${p}</option>`).join(""):groupPeriodsByYear(periods);
   if(periods.length){sel.value=periods[periods.length-1];currentPeriod=sel.value;await loadFacts();}
   else{$("dash-sub").textContent="No data in this dataset — import a file to begin.";$("cards").innerHTML="";
     $("category-filter").innerHTML="";nav("import");}
@@ -1319,13 +1358,14 @@ async function loadFacts(){
   currentPeriod=$("period-select").value;
   $("dash-loading").style.display="none";$("statrow").innerHTML="";$("cards").innerHTML=skeletonCards();
   try{
-    currentFacts=await api(`/facts?period=${encodeURIComponent(currentPeriod)}`);
+    currentFacts=await api(`/facts?period=${encodeURIComponent(currentPeriod)}&granularity=${granularity}`);
     const cats=[...new Set(currentFacts.map(f=>f.category||"Uncategorized"))].sort();
     assignCatSlots(cats);
     $("category-filter").innerHTML=`<option value="">All categories</option>`+cats.map(c=>`<option>${esc(c)}</option>`).join("");
     renderCards();
     const anom=currentFacts.filter(f=>f.is_anomaly).map(f=>f.metric);
-    $("dash-sub").innerHTML=`${currentPeriod} · ${currentFacts.length} KPIs · <b>${anom.length?anom.length+" anomalies":"all nominal"}</b>`;
+    const gl=granularity==="month"?"":` (${granularity})`;
+    $("dash-sub").innerHTML=`${currentPeriod}${gl} · ${currentFacts.length} ${currentFacts.length===1?"KPI":"KPIs"} · <b>${anom.length?plural(anom.length,"anomaly","anomalies"):"all nominal"}</b>`;
     $("anomaly-banner").style.display=anom.length?"":"none";
     if(anom.length)$("anomaly-banner").innerHTML=warnIcon()+`Anomalous movement: ${anom.map(esc).join(", ")}. Open a card for the full story.`;
     loadConflicts();
@@ -1465,15 +1505,17 @@ function renderCards(){
         ${f.confidence?`<span class="conf ${f.confidence}"><span class="dot"></span>${f.confidence} confidence</span>`:(f.is_anomaly?'<span class="anom">ANOMALY</span>':'')}
       </div>
       <div class="card-value-row">
-        <span class="card-value nbi-num">${fmt(f.value,f.unit)}</span>
+        <span class="card-value nbi-num" ${f.unavailable?'title="Ratios/percentages aren\'t aggregated across months — view at Month granularity"':""}>${f.unavailable?"—":fmt(f.value,f.unit)}</span>
         ${f.chart_data&&f.chart_data.trend?sparkline(f.chart_data.trend,f.direction_good):""}
       </div>
       <div class="deltas">
-        ${deltaChip("MoM",f.deltas.mom_pct,dg)}
+        ${deltaChip(f.aggregated?(granularity==="year"?"YoY":"QoQ"):"MoM",f.deltas.mom_pct,dg)}
         ${deltaChip("vs plan",f.deltas.budget_var_pct,dg)}
         ${streakBadge(f.trend_streak)}
       </div>
-      <div class="narr ${f.narrative?"":"muted"}">${f.narrative?hl(f.narrative,q):"No narrative yet — generate one to explain this movement."}</div>
+      ${f.aggregated
+        ?`<div class="narr muted">Aggregated ${esc(f.aggregation_type||"flow")} total for ${esc(f.period)}. Narratives are written monthly — switch to Month to read or generate them.</div>`
+        :`<div class="narr ${f.narrative?"":"muted"}">${f.narrative?hl(f.narrative,q):"No narrative yet — generate one to explain this movement."}</div>`}
       <div class="chips">
         ${(f.sources||[]).map(s=>`<span class="chip" title="Open source note" onclick="event.stopPropagation();showSourceDoc('${esc(s.id)}','${esc(s.title||"")}')">📎 ${esc(s.title||s.id)}</span>`).join("")}
         ${f.faithfulness&&f.faithfulness!=="unchecked"?`<span class="badge ${f.faithfulness}">numbers ${f.faithfulness==="passed"?"verified ✓":"flagged ✗"}</span>`:""}
@@ -1481,13 +1523,13 @@ function renderCards(){
         ${f.cost_usd!=null?`<span class="cost">≈ $${(+f.cost_usd).toFixed(4)}</span>`:""}
       </div>
       ${f.generated_by||f.reviewed_by?`<div class="attrib">${f.generated_by?`Generated by ${esc(f.generated_by)}`:""}${f.reviewed_by?` · Reviewed by ${esc(f.reviewed_by)}`:""}</div>`:""}
-      <div class="card-foot" onclick="event.stopPropagation()">
+      ${f.aggregated?"":`<div class="card-foot" onclick="event.stopPropagation()">
         ${f.report_id?`
           <button class="ico" title="Accept" onclick="feedback(${f.report_id},'accepted',this)">👍</button>
           <button class="ico" title="Reject" onclick="rejectNarr(${f.report_id},this)">👎</button>
           <button class="ico" title="Edit" onclick="editNarr(${f.report_id},'${esc(f.metric)}')">✏️</button>`:""}
         <button class="btn sm" style="margin-left:auto" onclick="genOne('${esc(f.metric)}',this)">${f.narrative?"Regenerate":"Generate"}</button>
-      </div>
+      </div>`}
     </div>`;
   }).join("");
 }
@@ -1782,7 +1824,7 @@ async function confirmKpis(){
 
 // Entry point: boot() handles auth (creates the Supabase client, checks the
 // session) and then calls startApp(), which loads periods and applies the hash.
-console.log("Closebrief UI build: v3.1.0 (demo isolation, unified workspace switcher)");
+console.log("Closebrief UI build: v3.2.0 (period granularity: month/quarter/year aggregation)");
 boot();
 </script>
 </body>

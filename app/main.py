@@ -9,6 +9,15 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from app.auth import CurrentUser, authenticate, get_current_user, invalidate_role_cache, require_role
 from app.cache import make_insight_key
+from app.compute.aggregate import (
+    GRANULARITIES,
+    aggregate_series,
+    infer_aggregation_type,
+    period_key,
+    prior_key,
+    sort_key,
+    year_ago_key,
+)
 from app.compute.correlations import (
     compare_periods,
     compute_correlations,
@@ -596,9 +605,11 @@ def remove_dataset(dataset_id: int, _: CurrentUser = Depends(require_write)) -> 
 
 
 @app.get("/periods")
-def list_periods(_: CurrentUser = Depends(require_read)) -> list[str]:
-    """Periods that have computed facts in the ACTIVE dataset (so the dashboard
-    default lands on a period the active upload actually covers)."""
+def list_periods(granularity: str = "month", _: CurrentUser = Depends(require_read)) -> list[str]:
+    """Period keys the active dataset covers at the given granularity
+    (month=YYYY-MM, quarter=YYYY-Qn, year=YYYY), oldest to newest."""
+    if granularity not in GRANULARITIES:
+        raise HTTPException(status_code=422, detail=f"granularity must be one of {GRANULARITIES}")
     conn = get_connection()
     try:
         ds = active_dataset_id(conn)
@@ -609,11 +620,11 @@ def list_periods(_: CurrentUser = Depends(require_read)) -> list[str]:
             SELECT DISTINCT cf.period FROM computed_facts cf
             JOIN metrics m ON m.id = cf.metric_id
             WHERE m.dataset_id = ?
-            ORDER BY cf.period
             """,
             (ds,),
         ).fetchall()
-        return [r["period"] for r in rows]
+        keys = {period_key(r["period"], granularity) for r in rows}
+        return sorted(keys, key=sort_key)
     finally:
         conn.close()
 
@@ -654,13 +665,100 @@ def _chart_data(conn, metric_id: int, metric_name: str, period: str) -> dict:
     return {"trend": trend, "budget_vs_actual": budget_vs_actual, "variance_bridge": bridge}
 
 
+def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_charts: bool = True) -> list[dict]:
+    """Cards for a quarter/year period, aggregated from monthly metric_values
+    per each KPI's aggregation rule (flow=SUM, balance=LAST, ratio=unavailable).
+    Deltas are QoQ/YoY-equivalent; budget variance uses summed budgets."""
+    kpis = conn.execute(
+        """SELECT k.source_metric AS metric, k.display_name, k.category, k.unit,
+                  k.direction_good, k.aggregation_type, m.id AS metric_id
+           FROM kpi_configs k
+           LEFT JOIN metrics m ON m.dataset_id = k.dataset_id AND m.name = k.source_metric
+           WHERE k.dataset_id = ? ORDER BY k.source_metric""",
+        (ds,),
+    ).fetchall()
+    if not kpis:
+        kpis = conn.execute(
+            """SELECT name AS metric, name AS display_name, category, unit, direction_good,
+                      NULL AS aggregation_type, id AS metric_id
+               FROM metrics WHERE dataset_id = ? ORDER BY name""",
+            (ds,),
+        ).fetchall()
+
+    out = []
+    prior = prior_key(period, granularity)
+    yago = year_ago_key(period, granularity)
+    for k in kpis:
+        agg = k["aggregation_type"] or infer_aggregation_type(k["display_name"] or k["metric"], k["unit"])
+        rows = []
+        if k["metric_id"] is not None:
+            rows = [
+                {"period": r["period"], "value": r["value"], "budget": r["budget"]}
+                for r in conn.execute(
+                    "SELECT period, value, budget FROM metric_values WHERE metric_id = ?",
+                    (k["metric_id"],),
+                ).fetchall()
+            ]
+        series = aggregate_series(rows, granularity, agg)
+        cur = series.get(period)
+        has_data = cur is not None and not cur.get("unavailable") and cur.get("value") is not None
+        deltas = {"mom_pct": None, "yoy_pct": None, "budget_var_abs": None, "budget_var_pct": None}
+        trend = None
+        if has_data:
+            v = cur["value"]
+            pv = (series.get(prior) or {}).get("value")
+            yv = (series.get(yago) or {}).get("value")
+            if pv:
+                deltas["mom_pct"] = round((v - pv) / abs(pv) * 100, 2)
+            if yv:
+                deltas["yoy_pct"] = round((v - yv) / abs(yv) * 100, 2)
+            if cur.get("budget") is not None:
+                deltas["budget_var_abs"] = round(v - cur["budget"], 2)
+                if cur["budget"]:
+                    deltas["budget_var_pct"] = round((v - cur["budget"]) / abs(cur["budget"]) * 100, 2)
+            trend = [
+                {"period": pk, "value": series[pk]["value"], "budget": series[pk]["budget"]}
+                for pk in sorted(series, key=sort_key) if not series[pk].get("unavailable")
+            ]
+        out.append({
+            "metric": k["display_name"] or k["metric"], "category": k["category"],
+            "period": period, "value": cur["value"] if cur else None, "unit": k["unit"],
+            "direction_good": k["direction_good"], "prior_value": None,
+            "has_data": has_data, "deltas": deltas, "trend": None,
+            "is_anomaly": False, "aggregated": True, "granularity": granularity,
+            "aggregation_type": agg,
+            "unavailable": bool(cur and cur.get("unavailable")),
+            "report_id": None, "narrative": None, "sources": [],
+            "confidence": None, "faithfulness": None,
+            "chart_data": {"trend": trend} if (include_charts and trend) else None,
+            "trend_streak": None,
+        })
+    # Movers first (largest absolute budget variance).
+    out.sort(key=lambda f: abs(f["deltas"]["budget_var_abs"] or 0), reverse=True)
+    return out
+
+
 @app.get("/facts")
-def list_facts(period: str, include_charts: bool = True, _: CurrentUser = Depends(require_read)) -> list[dict]:
+def list_facts(period: str, granularity: str = "month", include_charts: bool = True,
+               _: CurrentUser = Depends(require_read)) -> list[dict]:
     """Dashboard cards for the ACTIVE dataset. Driven by the user's KPI
     selection (kpi_configs): shows exactly the selected KPIs, each LEFT JOINed
     to its computed fact for the period — so a selected KPI with no data for
     this period still renders an empty card (never silently hidden). If no KPIs
-    were selected yet, falls back to every metric in the active dataset."""
+    were selected yet, falls back to every metric in the active dataset.
+
+    granularity=quarter|year aggregates monthly values per each KPI's rule."""
+    if granularity not in GRANULARITIES:
+        raise HTTPException(status_code=422, detail=f"granularity must be one of {GRANULARITIES}")
+    if granularity != "month":
+        conn = get_connection()
+        try:
+            ds = active_dataset_id(conn)
+            if ds is None:
+                return []
+            return _aggregated_facts(conn, ds, period, granularity, include_charts)
+        finally:
+            conn.close()
     conn = get_connection()
     try:
         ds = active_dataset_id(conn)
@@ -911,17 +1009,20 @@ def configure_kpis(payload: KPIConfigPayload, _: CurrentUser = Depends(require_w
         if ds is None:
             raise HTTPException(status_code=409, detail="No active dataset — import data first")
         for kpi in payload.kpis:
+            agg = getattr(kpi, "aggregation_type", None) or infer_aggregation_type(
+                kpi.display_name or kpi.source_metric, kpi.unit
+            )
             conn.execute(
                 """
-                INSERT INTO kpi_configs (dataset_id, source_metric, display_name, category, unit, direction_good, budget_source)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO kpi_configs (dataset_id, source_metric, display_name, category, unit, direction_good, budget_source, aggregation_type)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(dataset_id, source_metric) DO UPDATE SET
                     display_name=excluded.display_name, category=excluded.category,
                     unit=excluded.unit, direction_good=excluded.direction_good,
-                    budget_source=excluded.budget_source
+                    budget_source=excluded.budget_source, aggregation_type=excluded.aggregation_type
                 """,
                 (ds, kpi.source_metric, kpi.display_name, kpi.category, kpi.unit,
-                 kpi.direction_good, kpi.budget_source),
+                 kpi.direction_good, kpi.budget_source, agg),
             )
             conn.execute(
                 "UPDATE metrics SET category = ?, unit = ?, direction_good = ? WHERE name = ? AND dataset_id = ?",
@@ -944,10 +1045,14 @@ def list_kpis(_: CurrentUser = Depends(require_read)) -> dict:
         if ds is None:
             return {"selected": [], "available": []}
         selected = [dict(r) for r in conn.execute(
-            """SELECT id, source_metric, display_name, category, unit, direction_good
+            """SELECT id, source_metric, display_name, category, unit, direction_good, aggregation_type
                FROM kpi_configs WHERE dataset_id = ? ORDER BY source_metric""",
             (ds,),
         ).fetchall()]
+        for s in selected:
+            s["aggregation_type"] = s.get("aggregation_type") or infer_aggregation_type(
+                s["display_name"], s["unit"]
+            )
         chosen = {s["source_metric"] for s in selected}
         available = [r["name"] for r in conn.execute(
             "SELECT name FROM metrics WHERE dataset_id = ? ORDER BY name", (ds,)
