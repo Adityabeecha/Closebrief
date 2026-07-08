@@ -7,7 +7,8 @@ __pycache__/
 .git/
 .github/
 graphify-out/
-data/
+data/*
+!data/sample_fpa.csv
 .env
 .env.*
 !.env.example

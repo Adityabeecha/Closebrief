@@ -355,6 +355,7 @@
     <div class="lg-field"><label>Password</label><input id="lg-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')submitAuth()"></div>
     <button class="lg-btn" id="lg-btn" onclick="submitAuth()">Sign in</button>
     <div class="lg-toggle" id="lg-toggle">Need an account? <a onclick="toggleAuthMode()">Sign up</a></div>
+    <button id="lg-demo" style="display:none;margin-top:14px;width:100%;padding:11px;border-radius:10px;border:1.5px dashed var(--accent);background:var(--accent-bg);color:var(--accent);font-weight:700;font-size:13.5px" onclick="enterDemo()">👀 Explore the live demo — no account needed</button>
   </div>
 </div>
 
@@ -943,10 +944,18 @@ function initSentry(cfg){
     // Don't spam Sentry with expected auth failures.
     ignoreErrors:["Session expired","Missing bearer token"]});}catch(e){}
 }
+let demoSession=false, appCfg={};
+function enterDemo(){
+  demoSession=true;authToken=null;appStarted=false;
+  hideLogin();startApp();
+  toast("Demo mode — browsing read-only sample data");
+}
 async function boot(){
   let cfg;
   try{cfg=await fetch("/auth/config").then(r=>r.json());}catch{cfg={auth_enabled:false};}
+  appCfg=cfg;
   initSentry(cfg);
+  if(cfg.demo_enabled){const b=$("lg-demo");if(b)b.style.display="";}
   if(!cfg.auth_enabled){startApp();return;}                    // local-dev bypass
   if(!window.supabase||!window.supabase.createClient){
     showLogin();
@@ -1004,7 +1013,8 @@ async function startApp(){
   if(authToken){
     try{currentUser=await api("/me");}catch{currentUser={email:"user",role:"analyst"};}
     applyRole(currentUser);
-  }else{applyRole({email:"local@dev",role:"admin"});}
+  }else if(demoSession){currentUser={email:"demo@closebrief.app",role:"executive"};applyRole(currentUser);}
+  else{applyRole({email:"local@dev",role:"admin"});}
   loadDomains();
   loadPeriods().then(()=>{const h=location.hash.slice(1);
     if(["digest","context","import","costs","notifications","admin"].includes(h))nav(h);

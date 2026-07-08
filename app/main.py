@@ -28,6 +28,7 @@ from app.datasets import (
     set_active,
 )
 from app.db import get_connection, init_db
+from app.demo import seed_demo
 from app.deps import shared_cache, shared_embedder, shared_vector_store
 from app.digest.digest import DigestOutput, generate_digest
 from app.domains import get_domain, list_domains, registry
@@ -101,6 +102,16 @@ _OPEN_PATHS = {"/", "/health", "/auth/config", "/openapi.json", "/docs", "/redoc
 @app.on_event("startup")
 def _startup() -> None:
     init_db()
+    if settings.demo_mode:
+        # Seed the sample dataset once so first-time visitors see a live board.
+        try:
+            conn = get_connection()
+            try:
+                seed_demo(conn, _context_store(conn))
+            finally:
+                conn.close()
+        except Exception:  # noqa: BLE001 - demo seeding must never block startup
+            pass
 
 
 # ---- request telemetry: latency ring buffer + naive per-IP rate limit ----
@@ -126,6 +137,16 @@ async def _auth_middleware(request: Request, call_next):
     try:
         request.state.user = authenticate(request)
     except HTTPException as exc:
+        # Demo mode: let anonymous visitors browse read-only. GETs plus the two
+        # showcase actions (generate a narrative / build the digest); every
+        # other write still requires a real account.
+        if settings.demo_mode and exc.status_code == 401 and (
+            request.method == "GET" or path in ("/generate-insight", "/digest")
+        ):
+            request.state.user = CurrentUser(
+                id="demo", email="demo@closebrief.app", role="executive"
+            )
+            return await call_next(request)
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
     return await call_next(request)
 
@@ -158,6 +179,7 @@ def auth_config() -> dict:
         # Public by design (a DSN is not a secret); enables frontend error tracking.
         "sentry_dsn": settings.sentry_dsn,
         "environment": settings.environment,
+        "demo_enabled": settings.demo_mode,
     }
 
 
