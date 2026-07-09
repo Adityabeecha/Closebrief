@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS context_documents (
     body TEXT NOT NULL,
     metric_tags TEXT NOT NULL DEFAULT '',
     effective_date TEXT,
+    is_demo INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -206,6 +207,8 @@ _SQLITE_MIGRATIONS = [
     # v3.0 demo isolation
     "ALTER TABLE datasets ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE kpi_configs ADD COLUMN aggregation_type TEXT",
+    # v3.1 demo isolation for context docs (retrieval + library + conflicts)
+    "ALTER TABLE context_documents ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0",
 ]
 
 PG_SCHEMA_PATH = Path(__file__).parent / "migrations" / "pg_schema.sql"
