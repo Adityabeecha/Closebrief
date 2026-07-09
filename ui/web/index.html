@@ -46,6 +46,9 @@
     --wash:#0e1830; --pop:#e2e8f0; --pop-ink:#0b1120;
   }
   html{transition:background-color .3s ease,color .2s ease}
+  /* Native controls (select dropdowns, date pickers, scrollbars) follow the theme. */
+  :root[data-theme="dark"]{color-scheme:dark}
+  :root[data-theme="dark"] select,:root[data-theme="dark"] option{background:var(--card);color:var(--ink)}
   body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;background:linear-gradient(180deg,var(--wash) 0%,var(--bg) 260px) fixed,var(--bg);color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased}
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
   button,input,select,textarea{font-family:inherit}
@@ -387,6 +390,14 @@
   /* ---------------- MOBILE / RESPONSIVE ---------------- */
   .mtop{display:none}
   .side-backdrop{display:none}
+  /* desktop sidebar collapse */
+  .collapse-btn{border:none;background:none;color:var(--mut2);padding:4px;border-radius:7px;flex:none}
+  .collapse-btn:hover{background:var(--b08);color:var(--ink2)}
+  .collapse-btn svg{width:18px;height:18px}
+  .reopen-btn{display:none;position:fixed;top:14px;left:14px;z-index:75;width:38px;height:38px;border:1px solid var(--b12);background:var(--card);color:var(--ink2);border-radius:9px;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(15,23,42,.1)}
+  .reopen-btn svg{width:20px;height:20px}
+  body.side-collapsed .side{display:none}
+  body.side-collapsed .reopen-btn{display:flex}
   @media (max-width:900px){
     .app{display:block;height:auto;min-height:100vh;overflow-x:hidden}
     .mtop{display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:70;height:52px;padding:0 14px;background:var(--card);border-bottom:1px solid var(--b08)}
@@ -400,6 +411,9 @@
     body.sidebar-open .side{transform:none}
     body.sidebar-open .side-backdrop{display:block;position:fixed;inset:0;z-index:80;background:rgba(15,23,42,.45)}
     main{height:auto;overflow:visible}
+    .collapse-btn{display:none}
+    body.side-collapsed .side{display:flex}   /* mobile uses the drawer, not desktop-collapse */
+    .reopen-btn{display:none!important}
     .wrap{padding:18px 16px 60px}
     .head{gap:12px}
     .head-actions{width:100%}
@@ -475,7 +489,8 @@
     <div class="side-top">
       <div class="brand">
         <div class="mark"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M5 19v-6" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><path d="M12 19V9" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><path d="M19 19V6.5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><path d="M17.3 3.6l.75 1.75 1.75.75-1.75.75-.75 1.75-.75-1.75-1.75-.75 1.75-.75z" fill="#fff"/></svg></div>
-        <div><b>Closebrief</b><span>FP&amp;A intelligence</span></div>
+        <div style="flex:1"><b>Closebrief</b><span>FP&amp;A intelligence</span></div>
+        <button class="collapse-btn" onclick="toggleCollapse()" title="Collapse sidebar" aria-label="Collapse sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
       </div>
       <div class="ws">
         <button class="ws-btn" onclick="toggleWs(event)">
@@ -520,6 +535,7 @@
       </button>
     </div>
   </aside>
+  <button class="reopen-btn" onclick="toggleCollapse()" title="Open sidebar" aria-label="Open sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
 
   <!-- ============ MAIN ============ -->
   <main class="nbi-scroll">
@@ -743,7 +759,9 @@
 
     <!-- ---------- ADMIN ---------- -->
     <section id="v-admin" class="wrap" style="display:none">
-      <div class="head"><div><h1>User Management</h1><div class="sub">Assign roles. Analysts can write; executives read-only; admins manage users.</div></div></div>
+      <div class="head"><div><h1>User Management</h1><div class="sub">Assign roles. Analysts can write; executives read-only; admins manage users.</div></div>
+        <div class="head-actions"><button class="btn primary" onclick="inviteUser()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>Add user</button></div>
+      </div>
       <table class="admin-table"><thead><tr><th>Email</th><th>User ID</th><th>Role</th><th>Since</th></tr></thead>
         <tbody id="admin-rows"></tbody></table>
     </section>
@@ -1213,6 +1231,12 @@ function hideTip(){tip.style.opacity=0;}
 /* ---------- nav ---------- */
 function toggleSidebar(){document.body.classList.toggle("sidebar-open");}
 function closeSidebar(){document.body.classList.remove("sidebar-open");}
+function toggleCollapse(){
+  const c=document.body.classList.toggle("side-collapsed");
+  try{localStorage.setItem("cb-side-collapsed",c?"1":"0");}catch{}
+}
+// Restore collapsed state on load.
+try{if(localStorage.getItem("cb-side-collapsed")==="1")document.body.classList.add("side-collapsed");}catch{}
 function nav(v){
   closeSidebar();   // dismiss the mobile drawer on navigation
   for(const s of["dashboard","detail","digest","context","import","costs","notifications","admin"])$("v-"+s).style.display=s===v?"":"none";
@@ -1379,6 +1403,19 @@ async function ntTest(id,btn){btn.disabled=true;btn.textContent="Sending…";
   try{await api(`/notifications/test/${id}`,{method:"POST"});toast("Test sent ✓");}
   catch(e){toast(e.message||"Test failed");}
   finally{btn.disabled=false;btn.textContent="Send test";}
+}
+function inviteUser(){
+  const url=location.origin;
+  _openModalRaw({title:"Add a user",okLabel:"Copy invite link",
+    body:`<div style="font-size:13.5px;line-height:1.6;color:var(--ink2)">
+      <p style="margin-bottom:10px">Closebrief uses Supabase sign-in. To add a teammate:</p>
+      <ol style="margin:0 0 12px 18px;display:flex;flex-direction:column;gap:6px">
+        <li>Send them this link — they create their own account:</li>
+      </ol>
+      <div style="display:flex;gap:8px;margin-bottom:12px"><input class="modal-field" id="invite-url" value="${esc(url)}" readonly></div>
+      <p style="color:var(--mut2);font-size:12.5px">New accounts join as <b>analyst</b> by default. Once they've signed in they appear in the table below, where you can change their role.</p>
+    </div>`,
+    getValue:()=>{const el=$("invite-url");el.select();try{navigator.clipboard.writeText(el.value);}catch{}toast("Invite link copied");return true;}});
 }
 async function loadAdmin(){
   try{
@@ -1911,10 +1948,11 @@ async function loadCorrelations(metric){
 async function regenDetail(){if(!detailFact)return;await genOne(detailFact.metric,$("d-regen"));const f=currentFacts.find(x=>x.metric===detailFact.metric);if(f)openDetail(currentFacts.indexOf(f));}
 async function askQA(){
   const q=$("d-qa").value.trim();if(!q||!detailFact)return;
+  if(detailFact.aggregated){$("d-qa-answer").innerHTML='<div class="banner info" style="margin:0">Follow-up Q&A works at the monthly level — switch the dashboard to Month, open this metric, and ask again.</div>';return;}
   $("d-qa-answer").innerHTML='<div class="loading" style="padding:12px"><span class="spin"></span> Thinking…</div>';
   try{
     const r=await api("/ask",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({metric:detailFact.metric,period:currentPeriod,question:q})});
+      body:JSON.stringify({metric:detailFact.metric,period:detailFact.period||currentPeriod,question:q})});
     const srcs=(r.sources||[]).map(s=>`<span class="chip" onclick="showSourceDoc('${esc(s.id)}')">📎 ${esc(s.title||s.id)}</span>`).join("");
     $("d-qa-answer").innerHTML=`<div class="banner info" style="margin:0;display:block">
       ${esc(r.answer||"No grounded answer available.")}
@@ -2134,7 +2172,7 @@ async function confirmKpis(){
 
 // Entry point: boot() handles auth (creates the Supabase client, checks the
 // session) and then calls startApp(), which loads periods and applies the hash.
-console.log("Closebrief UI build: v3.3.0 (generation UX + polish pass)");
+console.log("Closebrief UI build: v3.5.0 (bugfixes: mapping/QA/dark controls, sidebar collapse, invite)");
 boot();
 </script>
 </body>
