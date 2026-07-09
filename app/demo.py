@@ -80,9 +80,16 @@ def seed_demo(conn, context_store=None) -> bool:
     if context_store is not None:
         for doc in _DEMO_CONTEXT:
             try:
-                added_docs.append(context_store.add(ContextDocIn(**doc)))
+                added = context_store.add(ContextDocIn(**doc))
+                # Mark as demo-universe so real sessions never see/retrieve them
+                # (and demo sessions see ONLY these).
+                conn.execute(
+                    "UPDATE context_documents SET is_demo = true WHERE id = ?", (added.id,)
+                )
+                added_docs.append(added)
             except Exception:  # noqa: BLE001 - demo seeding must never block startup
                 pass
+        conn.commit()
 
     # Pre-generated narratives + a PVM bridge so the demo is full on first view,
     # with source chips, verified badges, an anomaly, and a rendered waterfall —

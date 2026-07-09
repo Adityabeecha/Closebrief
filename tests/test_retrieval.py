@@ -16,6 +16,7 @@ CREATE TABLE context_documents (
     body TEXT NOT NULL,
     metric_tags TEXT NOT NULL DEFAULT '',
     effective_date TEXT,
+    is_demo INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 """
