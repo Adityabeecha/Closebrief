@@ -227,7 +227,7 @@ def _notify_anomalies(conn, dataset_id: int) -> None:
         """
         SELECT m.name AS metric, cf.period, cf.value, cf.mom_pct
         FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
-        WHERE m.dataset_id = ? AND cf.is_anomaly AND cf.period = (
+        WHERE m.dataset_id = ? AND cf.is_anomaly = 1 AND cf.period = (
             SELECT MAX(cf2.period) FROM computed_facts cf2
             JOIN metrics m2 ON m2.id = cf2.metric_id WHERE m2.dataset_id = ?
         )
