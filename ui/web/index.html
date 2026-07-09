@@ -4,6 +4,15 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Closebrief — FP&A intelligence</title>
+<meta name="description" content="Closebrief drafts audit-ready variance commentary on your KPIs the moment the books close — deterministic numbers, AI-written prose, every figure verified.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Closebrief — Narrative BI for FP&A">
+<meta property="og:description" content="Executive commentary on your KPIs the moment the books close. The AI never computes numbers; every figure is verified.">
+<meta property="og:url" content="https://closebrief.onrender.com">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Closebrief — Narrative BI for FP&A">
+<meta name="twitter:description" content="Audit-ready variance commentary on your KPIs — deterministic numbers, AI-written prose, every figure verified.">
+
 <link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="%232563eb"/><path d="M8 24v-7M16 24V11M24 24V8" stroke="white" stroke-width="3.4" stroke-linecap="round"/></svg>'>
 <script src="/vendor/supabase.js"></script>
 <script src="/vendor/chart.min.js"></script>
@@ -139,6 +148,11 @@
   .btn:hover{border-color:var(--b24);background:var(--bg2)}
   .btn.primary{background:linear-gradient(180deg,#3b82f6,var(--accent));border-color:var(--accent);color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.35)}
   .btn.primary:hover{background:linear-gradient(180deg,var(--accent),var(--accent-hi))}
+  /* Fixed red (not var(--red), which is light in dark mode) so white text stays legible. */
+  .btn.danger{background:#dc2626;border-color:#dc2626;color:#fff}
+  .btn.danger:hover{background:#b91c1c;border-color:#b91c1c}
+  .modal-field{width:100%;padding:10px 12px;border:1px solid var(--b12);border-radius:9px;font-size:13.5px;background:var(--card);color:var(--ink);font-family:inherit}
+  textarea.modal-field{resize:vertical;min-height:120px;line-height:1.5}
   .btn.sm{padding:6px 11px;font-size:12px}
   .btn:disabled{opacity:.5;cursor:default}
 
@@ -369,6 +383,48 @@
   .sc-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 26px;padding:18px}
   .sc-row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:13px;color:var(--ink2);font-weight:600}
   .sc-row kbd{background:var(--bg3);border:1px solid var(--b12);border-radius:6px;padding:2px 9px;font-family:inherit;font-size:12px;font-weight:700;color:var(--ink3)}
+
+  /* ---------------- MOBILE / RESPONSIVE ---------------- */
+  .mtop{display:none}
+  .side-backdrop{display:none}
+  @media (max-width:900px){
+    .app{display:block;height:auto;min-height:100vh;overflow-x:hidden}
+    .mtop{display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:70;height:52px;padding:0 14px;background:var(--card);border-bottom:1px solid var(--b08)}
+    body.demo .mtop{top:44px}
+    .mtop .brand b{font-size:15px}
+    .mtop .mark{width:26px;height:26px;border-radius:7px;background:var(--accent);display:flex;align-items:center;justify-content:center}
+    .hamb{border:none;background:none;padding:6px;color:var(--ink2)}
+    .hamb svg{width:22px;height:22px}
+    /* sidebar becomes an off-canvas drawer */
+    .side{position:fixed;top:0;left:0;bottom:0;z-index:90;width:255px;transform:translateX(-100%);transition:transform .22s ease;box-shadow:0 0 40px rgba(15,23,42,.25)}
+    body.sidebar-open .side{transform:none}
+    body.sidebar-open .side-backdrop{display:block;position:fixed;inset:0;z-index:80;background:rgba(15,23,42,.45)}
+    main{height:auto;overflow:visible}
+    .wrap{padding:18px 16px 60px}
+    .head{gap:12px}
+    .head-actions{width:100%}
+    .search input,.search input:focus{width:100%}
+    .search{flex:1 1 100%}
+    .grid{grid-template-columns:1fr}
+    .statrow{grid-template-columns:1fr 1fr}
+    .detail-grid{grid-template-columns:1fr}
+    .ctx-form{grid-template-columns:1fr}
+    .kpi-grid,.kpi-grid.hdr{grid-template-columns:1fr 1fr!important;gap:6px}
+    .kpi-grid.hdr{display:none}
+    .demo-bar{gap:8px;padding:0 12px}
+    .demo-bar span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+    .demo-bar button{white-space:nowrap;flex:none}
+    table.ctx-table,table.map,table.admin-table{display:block;overflow-x:auto}
+    h1{font-size:20px}
+  }
+  @media (max-width:600px){
+    .statrow{grid-template-columns:1fr}
+    .head-actions{gap:8px}
+    .seg,.pstep,.export,.head-actions>.btn{flex:1 1 auto}
+    .demo-bar-actions .primary{display:none}   /* keep just "Exit demo" on tiny screens */
+    .cmdk,.cmdk-back .cmdk{width:94vw}
+    .kpi-grid,.kpi-grid.hdr{grid-template-columns:1fr!important}
+  }
 </style>
 </head>
 <body>
@@ -402,10 +458,17 @@
   <span>👀 You're exploring the <b>demo</b> — sample data, read-only.</span>
   <div class="demo-bar-actions">
     <button onclick="exitDemo()">Exit demo</button>
-    <button class="primary" onclick="exitDemo()">Sign up to use your data</button>
+    <button class="primary" onclick="exitDemo(true)">Sign up to use your data</button>
   </div>
 </div>
 <div class="app" id="app-root" style="display:none">
+
+  <!-- mobile top bar (shown < 900px) -->
+  <div class="mtop">
+    <button class="hamb" onclick="toggleSidebar()" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    <div class="brand"><div class="mark"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 19v-6M12 19V9M19 19V6.5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg></div><b>Closebrief</b></div>
+  </div>
+  <div class="side-backdrop" id="side-backdrop" onclick="closeSidebar()"></div>
 
   <!-- ============ SIDEBAR ============ -->
   <aside class="side">
@@ -503,7 +566,7 @@
               <button onclick="exportPPTX()"><b>PowerPoint</b><span>Editable .pptx deck</span></button>
             </div>
           </div>
-          <button class="btn primary" id="gen-all" onclick="generateAll()">Generate narratives</button>
+          <button class="btn primary exec-hide" id="gen-all" onclick="generateAll()">Generate narratives</button>
         </div>
       </div>
       <div class="banner ok" id="import-banner" style="display:none"></div>
@@ -721,6 +784,18 @@
     <div class="cmdk-foot"><span id="src-meta"></span></div>
   </div>
 </div>
+<!-- Reusable modal (inputs / confirms) -->
+<div class="cmdk-back" id="modal-back" onclick="if(event.target===this)closeModal()">
+  <div class="cmdk" role="dialog" aria-modal="true" aria-labelledby="modal-title" style="width:min(480px,94vw)">
+    <div class="cmdk-in" style="justify-content:space-between"><b id="modal-title" style="font-size:15px"></b>
+      <button class="ico" onclick="closeModal()" aria-label="Close">✕</button></div>
+    <div id="modal-body" style="padding:16px 18px"></div>
+    <div style="display:flex;gap:9px;justify-content:flex-end;padding:12px 16px;border-top:1px solid var(--b08)">
+      <button class="btn sm" onclick="closeModal()">Cancel</button>
+      <button class="btn sm primary" id="modal-ok">Save</button>
+    </div>
+  </div>
+</div>
 <!-- How Closebrief works -->
 <div class="cmdk-back" id="help-back" onclick="if(event.target===this)$('help-back').classList.remove('open')">
   <div class="cmdk" role="dialog" aria-label="How Closebrief works" style="width:min(560px,92vw)">
@@ -755,11 +830,11 @@
   </div>
 </div>
 <div class="tip" id="tip"></div>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 const $=id=>document.getElementById(id);
-let currentPeriod=null, currentFacts=[], detailFact=null, activeDatasetId=null, searchQuery="";
+let currentPeriod=null, currentFacts=[], detailFact=null, activeDatasetId=null, searchQuery="", datasetsCache=[];
 /* auth state */
 let sb=null, authToken=null, authMode="signin", currentUser={email:"local@dev",role:"admin"};
 
@@ -802,7 +877,7 @@ function buildReportHTML(facts){
   const mover=withData.filter(f=>f.deltas&&f.deltas.budget_var_pct!=null).sort((a,b)=>Math.abs(b.deltas.budget_var_pct)-Math.abs(a.deltas.budget_var_pct))[0];
   const cards=withData.map(f=>{
     const dg=f.direction_good==="down",col=catColor(f.category)||"#94a3b8";
-    const spark=(f.chart_data&&f.chart_data.trend)?sparkline(f.chart_data.trend,f.direction_good,150,40):"";
+    const spark=(f.chart_data&&f.chart_data.trend)?sparkline(f.chart_data.trend,f.direction_good,150,40,f.unit):"";
     const src=(f.sources||[]).map(s=>`<span class="src">${esc(s.title||s.id)}</span>`).join("");
     return`<div class="rcard" style="border-left:3px solid ${col}">
       <div class="rc-top"><span class="rc-dot" style="background:${col}"></span><span class="rc-name">${esc(f.metric)}</span>
@@ -1024,12 +1099,13 @@ async function kpimSave(btn){
 }
 
 /* ---------- source doc viewer ---------- */
-async function showSourceDoc(chipId,title){
+async function showSourceDoc(chipId){
   // chipId is "ctx_007" (retrieval id) — the numeric part is the context doc id.
+  // (id-only: no user strings interpolated into the inline onclick).
   const num=parseInt(String(chipId).replace(/^ctx_/,""),10);
   try{
     const docs=await api("/context");
-    const doc=docs.find(d=>d.id===num)||docs.find(d=>d.title===title);
+    const doc=docs.find(d=>d.id===num);
     if(!doc){toast("Source note not found — it may have been deleted");return;}
     $("src-type").textContent=(doc.type||"note").replace(/_/g," ");
     $("src-title").textContent=doc.title;
@@ -1090,15 +1166,44 @@ async function api(path,opts,_retried){
 }
 const fmt=(v,unit)=>{
   if(v===null||v===undefined)return"–";
-  const a=Math.abs(v);let s;
   if(unit==="%")return(+v.toFixed(1))+"%";
   if(unit==="count")return Math.round(v).toLocaleString();
-  if(a>=1e6)s="$"+(v/1e6).toFixed(2)+"M"; else if(a>=1e3)s="$"+(v/1e3).toFixed(0)+"K"; else s="$"+(+v.toFixed(2)).toLocaleString();
-  return s;
+  // Finance-style: sign BEFORE the currency symbol (-$1.20M / -$370K / -$12.50).
+  const a=Math.abs(v),sign=v<0?"-":"";let mag;
+  if(a>=1e6)mag="$"+(a/1e6).toFixed(2)+"M"; else if(a>=1e3)mag="$"+(a/1e3).toFixed(0)+"K"; else mag="$"+(+a.toFixed(2)).toLocaleString();
+  return sign+mag;
 };
 const pct=v=>v===null||v===undefined?null:(v>0?"+":"")+v.toFixed(1)+"%";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const plural=(n,one,many)=>`${n} ${n===1?one:(many||one+"s")}`;
+
+/* ---------- reusable modal (replaces native prompt/confirm) ---------- */
+let _modalResolve=null;
+function closeModal(val){$("modal-back").classList.remove("open");const r=_modalResolve;_modalResolve=null;if(r)r(val===undefined?null:val);}
+function _openModalRaw({title,body,okLabel="Save",danger=false,getValue}){
+  return new Promise(res=>{
+    _modalResolve=res;
+    $("modal-title").textContent=title;$("modal-body").innerHTML=body;
+    const ok=$("modal-ok");ok.textContent=okLabel;ok.className="btn sm "+(danger?"danger":"primary");
+    ok.onclick=()=>{const v=getValue?getValue():true;if(v===undefined)return;closeModal(v);};
+    $("modal-back").classList.add("open");
+    setTimeout(()=>{const el=$("modal-body").querySelector("textarea,input");if(el){el.focus();if(el.select)el.select();}},40);
+  });
+}
+// Text input/textarea modal → resolves the entered value, or null on cancel.
+function modalInput(title,{label="",value="",textarea=false,placeholder="",okLabel="Save",required=false}={}){
+  const field=textarea
+    ? `<textarea class="modal-field" placeholder="${esc(placeholder)}">${esc(value)}</textarea>`
+    : `<input class="modal-field" placeholder="${esc(placeholder)}" value="${esc(value)}">`;
+  return _openModalRaw({title,okLabel,
+    body:`${label?`<label class="lbl" style="display:block;margin-bottom:6px">${esc(label)}</label>`:""}${field}`,
+    getValue:()=>{const el=$("modal-body").querySelector(".modal-field");const v=(el.value||"").trim();return (required&&!v)?undefined:v;}});
+}
+// Confirm modal → resolves true (confirmed) or null (cancel). `message` is plain text.
+function modalConfirm(title,message,{okLabel="Delete",danger=true}={}){
+  return _openModalRaw({title,okLabel,danger,
+    body:`<div style="font-size:13.5px;line-height:1.55;color:var(--ink2)">${esc(message)}</div>`,getValue:()=>true});
+}
 
 /* tooltip */
 const tip=$("tip");
@@ -1106,7 +1211,10 @@ function showTip(h,x,y){tip.innerHTML=h;tip.style.opacity=1;tip.style.left=Math.
 function hideTip(){tip.style.opacity=0;}
 
 /* ---------- nav ---------- */
+function toggleSidebar(){document.body.classList.toggle("sidebar-open");}
+function closeSidebar(){document.body.classList.remove("sidebar-open");}
 function nav(v){
+  closeSidebar();   // dismiss the mobile drawer on navigation
   for(const s of["dashboard","detail","digest","context","import","costs","notifications","admin"])$("v-"+s).style.display=s===v?"":"none";
   for(const s of["dashboard","digest","context","import","costs","notifications","admin"])
     document.querySelector(`[data-view=${s}]`)?.classList.toggle("active",s===v||(v==="detail"&&s==="dashboard"));
@@ -1134,11 +1242,13 @@ function enterDemo(){
   const b=$("demo-bar");if(b)b.style.display="flex";
   hideLogin();startApp();
 }
-function exitDemo(){
+function exitDemo(signup){
   demoSession=false;document.body.classList.remove("demo");
   const b=$("demo-bar");if(b)b.style.display="none";
   appStarted=false;location.hash="";showLogin();
   $("app-root").style.display="none";
+  // "Sign up to use your data" lands the gate in signup mode.
+  if(signup&&authMode==="signin")toggleAuthMode();
 }
 async function boot(){
   let cfg;
@@ -1264,7 +1374,7 @@ async function ntCreate(){
   }catch(e){toast(e.message);}
 }
 async function ntToggle(id,enabled){try{await api(`/notifications/${id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({enabled})});}catch(e){toast(e.message);}}
-async function ntDelete(id){if(!confirm("Delete this channel?"))return;try{await api(`/notifications/${id}`,{method:"DELETE"});toast("Deleted");loadNotifications();}catch(e){toast(e.message);}}
+async function ntDelete(id){if(!await modalConfirm("Delete channel","Remove this notification channel?",{okLabel:"Delete"}))return;try{await api(`/notifications/${id}`,{method:"DELETE"});toast("Deleted");loadNotifications();}catch(e){toast(e.message);}}
 async function ntTest(id,btn){btn.disabled=true;btn.textContent="Sending…";
   try{await api(`/notifications/test/${id}`,{method:"POST"});toast("Test sent ✓");}
   catch(e){toast(e.message||"Test failed");}
@@ -1293,31 +1403,34 @@ let activeDatasetObj=null;
 async function loadDatasets(){
   const d=await api("/datasets");
   activeDatasetId=d.active_id;
+  datasetsCache=d.datasets;                       // for id -> name lookups (no strings in onclick)
   const active=d.datasets.find(x=>x.is_active);
   activeDatasetObj=active||null;
   $("ws-name").textContent=active?active.name:"No dataset";
   const rows=d.datasets.map(ds=>`
     <div class="ws-item" onclick="activateDataset(${ds.id})">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${ds.is_active?'var(--accent)':'var(--mut2)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-5"/></svg>
-      <span class="ws-info"><b>${esc(ds.name)}</b><span>${ds.metric_count} metrics · <span class="ws-dom">${DOMAIN_LABEL[ds.domain]||"FP&A"}</span></span></span>
+      <span class="ws-info"><b>${esc(ds.name)}</b><span>${plural(ds.metric_count,"metric")} · <span class="ws-dom">${DOMAIN_LABEL[ds.domain]||"FP&A"}</span></span></span>
       <span class="ws-kebab exec-hide" onclick="event.stopPropagation();toggleKebab(event,${ds.id})">
         <button aria-label="Dataset options">⋯</button>
         <div class="ws-kmenu" id="kmenu-${ds.id}">
-          <button onclick="event.stopPropagation();renameDataset(${ds.id},'${esc(ds.name).replace(/'/g,"\\'")}')">Rename</button>
-          <button class="danger" onclick="event.stopPropagation();deleteDataset(${ds.id},'${esc(ds.name).replace(/'/g,"\\'")}')">Delete</button>
+          <button onclick="event.stopPropagation();renameDataset(${ds.id})">Rename</button>
+          <button class="danger" onclick="event.stopPropagation();deleteDataset(${ds.id})">Delete</button>
         </div>
       </span>
     </div>`).join("")||'<div class="ws-item">No datasets</div>';
   $("ws-menu").innerHTML=rows+`<button class="ws-newbtn exec-hide" onclick="event.stopPropagation();$('ws-menu').classList.remove('open');nav('import')">+ Import new dataset</button>`;
 }
+function dsName(id){const d=(datasetsCache||[]).find(x=>x.id===id);return d?d.name:"this dataset";}
 function toggleKebab(e,id){e.stopPropagation();
   document.querySelectorAll(".ws-kmenu").forEach(m=>{if(m.id!=="kmenu-"+id)m.classList.remove("open");});
   $("kmenu-"+id).classList.toggle("open");
 }
-async function renameDataset(id,cur){
-  const name=prompt("Rename dataset:",cur);
-  if(!name||name.trim()===cur)return;
-  try{await api(`/datasets/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name.trim()})});toast("Renamed");await loadDatasets();}
+async function renameDataset(id){
+  const cur=dsName(id);
+  const name=await modalInput("Rename dataset",{label:"Dataset name",value:cur,okLabel:"Rename",required:true});
+  if(name==null||name===cur)return;
+  try{await api(`/datasets/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});toast("Renamed");await loadDatasets();}
   catch(e){toast(e.message);}
 }
 function toggleWs(e){e.stopPropagation();$("ws-menu").classList.toggle("open");}
@@ -1329,6 +1442,11 @@ document.addEventListener("keydown",e=>{
   if($("src-back").classList.contains("open")){if(e.key==="Escape")$("src-back").classList.remove("open");return;}
   if($("kpi-back").classList.contains("open")){if(e.key==="Escape")$("kpi-back").classList.remove("open");return;}
   if($("help-back").classList.contains("open")){if(e.key==="Escape")$("help-back").classList.remove("open");return;}
+  if($("modal-back").classList.contains("open")){
+    if(e.key==="Escape")closeModal();
+    else if(e.key==="Enter"&&(e.target.tagName||"").toLowerCase()==="input"){e.preventDefault();$("modal-ok").click();}
+    return;
+  }
   // While the palette is open, route nav keys to it.
   if($("cmdk-back").classList.contains("open")){paletteKey(e);return;}
   // Ctrl/Cmd+K opens the palette from anywhere (even while typing).
@@ -1340,16 +1458,26 @@ document.addEventListener("keydown",e=>{
   else if(e.key==="?"){if(appOn)$("sc-back").classList.toggle("open");}
   else if(!appOn){return;}
   else if(e.key==="/"){e.preventDefault();$("search")?.focus();}
+  else if((currentUser&&currentUser.role==="viewer")){return;}   // viewer: no write shortcuts
   else if(e.key==="g"){generateAll();}
   else if(e.key==="e"){toggleExport(e);}
 });
-async function activateDataset(id){await api(`/datasets/${id}/activate`,{method:"POST"});toast("Switched dataset");await loadPeriods();}
-async function deleteDataset(id,name){
-  if(!confirm(`Delete dataset "${name}" and all its data?`))return;
-  await api(`/datasets/${id}`,{method:"DELETE"});toast("Dataset deleted");await loadDatasets();await loadPeriods().then(()=>{const h=location.hash.slice(1);
-  if(["digest","context","import"].includes(h))nav(h);
-  else if(h.startsWith("metric")){const i=currentFacts.findIndex(f=>f.has_data);if(i>=0)openDetail(i);}
-});
+async function activateDataset(id){
+  closeSidebar();$("statrow").innerHTML="";$("cards").innerHTML=skeletonCards();  // brief loading state
+  try{await api(`/datasets/${id}/activate`,{method:"POST"});toast("Switched dataset");await loadPeriods();}
+  catch(e){toast("Couldn't switch dataset: "+e.message);}
+}
+async function deleteDataset(id){
+  const ok=await modalConfirm("Delete dataset",`Delete "${dsName(id)}" and all its data? This can't be undone.`,{okLabel:"Delete"});
+  if(!ok)return;
+  try{
+    await api(`/datasets/${id}`,{method:"DELETE"});
+    toast("Dataset deleted");
+    await loadDatasets();
+    await loadPeriods();
+    const h=location.hash.slice(1);
+    if(["digest","context","import"].includes(h))nav(h);
+  }catch(e){toast("Delete failed: "+e.message);}
 }
 
 /* ---------- periods & facts ---------- */
@@ -1362,7 +1490,14 @@ function setGranularity(g){
 function stepPeriod(dir){
   const sel=$("period-select"),i=sel.selectedIndex+dir;
   if(i<0||i>=sel.options.length)return;
-  sel.selectedIndex=i;loadFacts();
+  sel.selectedIndex=i;loadFacts();syncStepButtons();
+}
+function syncStepButtons(){
+  const sel=$("period-select");if(!sel)return;
+  const btns=document.querySelectorAll(".pstep>button");if(btns.length<2)return;
+  const atStart=sel.selectedIndex<=0,atEnd=sel.selectedIndex>=sel.options.length-1;
+  btns[0].style.opacity=atStart?.35:1;btns[0].style.cursor=atStart?"default":"pointer";btns[0].disabled=atStart;
+  btns[1].style.opacity=atEnd?.35:1;btns[1].style.cursor=atEnd?"default":"pointer";btns[1].disabled=atEnd;
 }
 function groupPeriodsByYear(periods){
   // Build <optgroup> by year for quarter/year; flat for month.
@@ -1395,7 +1530,7 @@ function skeletonCards(n=6){
   return Array(n).fill(one).join("");
 }
 async function loadFacts(){
-  currentPeriod=$("period-select").value;
+  currentPeriod=$("period-select").value;syncStepButtons();
   $("dash-loading").style.display="none";$("statrow").innerHTML="";$("cards").innerHTML=skeletonCards();
   try{
     currentFacts=await api(`/facts?period=${encodeURIComponent(currentPeriod)}&granularity=${granularity}`);
@@ -1413,6 +1548,13 @@ async function loadFacts(){
     }else $("anomaly-banner").style.display="none";
     updateGenButton();maybePromptGenerate();setFreshness();
     loadConflicts();
+  }catch(e){
+    $("statrow").innerHTML="";$("dash-sub").textContent="Couldn't load data";
+    $("cards").innerHTML=`<div class="empty-state" style="grid-column:1/-1;padding:56px 20px">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:40px;height:40px"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+      <div style="margin:12px 0 4px;font-weight:700;color:var(--ink2)">Couldn't load KPIs</div>
+      <div style="font-size:12.5px;margin-bottom:16px">${esc(e.message||"Something went wrong.")}</div>
+      <button class="btn primary" onclick="loadFacts()">Retry</button></div>`;
   }finally{$("dash-loading").style.display="none";}
 }
 function setFreshness(){
@@ -1501,7 +1643,7 @@ function deltaChip(label,v,downGood){
   const arrow=v>0?"▲":v<0?"▼":"■";
   return`<span class="delta ${cls}">${arrow} ${label} ${p}</span>`;
 }
-function narrativeBlock(f,q){
+function narrativeBlock(f,q,i){
   if(generatingSet.has(f.metric))
     return `<div class="narr"><div class="sk sk-line" style="width:100%;margin-bottom:5px"></div><div class="sk sk-line" style="width:94%;margin-bottom:5px"></div><div class="sk sk-line" style="width:72%"></div></div>`;
   if(f.aggregated)
@@ -1509,12 +1651,17 @@ function narrativeBlock(f,q){
   let html=`<div class="narr ${f.narrative?"":"muted"}">${f.narrative?hl(f.narrative,q):"No narrative yet — generate one to explain this movement."}</div>`;
   if(f.faithfulness==="failed")
     // The guard caught an unverifiable number. Surface it — do NOT hide it.
-    html+=`<div class="banner err" style="margin:8px 0 0;font-size:11.5px;padding:8px 10px">${warnIcon()}<span>Numbers couldn't be verified — review manually.</span><button class="btn sm" style="margin-left:auto;padding:3px 9px" onclick="event.stopPropagation();retryGen('${esc(f.metric).replace(/'/g,"\\'")}')">Retry</button></div>`;
+    html+=`<div class="banner err" style="margin:8px 0 0;font-size:11.5px;padding:8px 10px">${warnIcon()}<span>Numbers couldn't be verified — review manually.</span><button class="btn sm exec-hide" style="margin-left:auto;padding:3px 9px" onclick="event.stopPropagation();retryCard(${i})">Retry</button></div>`;
   return html;
 }
+// Index-based wrappers so no user string is interpolated into inline onclick.
+function genCard(i,btn){const f=shownFacts[i];if(f)genOne(f.metric,btn);}
+function retryCard(i){const f=shownFacts[i];if(f)retryGen(f.metric);}
 async function retryGen(metric){
+  const gp=currentPeriod;
   generatingSet.add(metric);renderCards();
-  try{const r=await api("/generate-insight",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({metric,period:currentPeriod,force:true})});applyGenerated(r);}
+  try{const r=await api("/generate-insight",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({metric,period:gp,force:true})});
+    if(currentPeriod===gp)applyGenerated(r);}
   catch(e){toast("Retry failed: "+e.message);}
   generatingSet.delete(metric);renderCards();
 }
@@ -1579,31 +1726,34 @@ function renderCards(){
   if(!currentFacts.length){$("cards").innerHTML=`<div class="empty-state" style="grid-column:1/-1"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/></svg><div>No KPIs to show. Select KPIs during import, or switch dataset.</div></div>`;return;}
   if(!facts.length){$("cards").innerHTML=`<div class="empty-state" style="grid-column:1/-1"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><div>No metrics match ${searchQuery?`“${esc(searchQuery)}”`:"these filters"}. <a onclick="clearSearch();clearCatFilter()" style="color:var(--accent);cursor:pointer;font-weight:700">Clear filters</a></div></div>`;return;}
   const q=searchQuery;
+  // Only run the staggered entrance on the first paint of a dataset/period —
+  // not on every re-render during generation (which caused a full-grid flicker).
+  const rise=skipRise?"":"rise";
   $("cards").innerHTML=facts.map((f,i)=>{
-    const dg=f.direction_good==="down",delay=`style="animation-delay:${Math.min(i*45,400)}ms;${catStyle(f.category)}"`;
+    const dg=f.direction_good==="down",delay=`style="${skipRise?"":`animation-delay:${Math.min(i*45,400)}ms;`}${catStyle(f.category)}"`;
     if(!f.has_data){
-      return`<div class="card empty rise" style="animation-delay:${Math.min(i*45,400)}ms;${catStyle(f.category)}">
+      return`<div class="card empty ${rise}" ${delay}>
         <div class="card-top"><span class="card-name"><span class="cat-dot"></span>${hl(f.metric,q)}</span></div>
         <div class="card-value" style="font-size:20px;color:var(--mut2)">No data</div>
         <div class="narr muted">No data for ${esc(currentPeriod)} in this dataset.</div></div>`;
     }
-    return`<div class="card click rise" ${delay} onclick="openDetail(${i})">
+    return`<div class="card click ${rise}" ${delay} onclick="openDetail(${i})">
       <div class="card-top">
         <span class="card-name" title="${esc(f.category||"Uncategorized")}"><span class="cat-dot"></span>${hl(f.metric,q)}</span>
         ${f.confidence?`<span class="conf ${f.confidence}"><span class="dot"></span>${f.confidence} confidence</span>`:(f.is_anomaly?'<span class="anom">ANOMALY</span>':'')}
       </div>
       <div class="card-value-row">
         <span class="card-value nbi-num" ${f.unavailable?'title="Ratios/percentages aren\'t aggregated across months — view at Month granularity"':""}>${f.unavailable?"—":fmt(f.value,f.unit)}</span>
-        ${f.chart_data&&f.chart_data.trend?sparkline(f.chart_data.trend,f.direction_good):""}
+        ${f.chart_data&&f.chart_data.trend?sparkline(f.chart_data.trend,f.direction_good,110,34,f.unit):""}
       </div>
       <div class="deltas">
         ${deltaChip(f.aggregated?(granularity==="year"?"YoY":"QoQ"):"MoM",f.deltas.mom_pct,dg)}
         ${deltaChip("vs plan",f.deltas.budget_var_pct,dg)}
         ${streakBadge(f.trend_streak)}
       </div>
-      ${narrativeBlock(f,q)}
+      ${narrativeBlock(f,q,i)}
       <div class="chips">
-        ${(f.sources||[]).map(s=>`<span class="chip" title="Open source note" onclick="event.stopPropagation();showSourceDoc('${esc(s.id)}','${esc(s.title||"")}')">📎 ${esc(s.title||s.id)}</span>`).join("")}
+        ${(f.sources||[]).map(s=>`<span class="chip" title="Open source note" onclick="event.stopPropagation();showSourceDoc('${esc(s.id)}')">📎 ${esc(s.title||s.id)}</span>`).join("")}
         ${f.faithfulness&&f.faithfulness!=="unchecked"?`<span class="badge ${f.faithfulness}">numbers ${f.faithfulness==="passed"?"verified ✓":"flagged ✗"}</span>`:""}
         ${f.edited?'<span class="badge edited">edited</span>':""}
         ${f.cost_usd!=null?`<span class="cost">≈ $${(+f.cost_usd).toFixed(4)}</span>`:""}
@@ -1613,15 +1763,15 @@ function renderCards(){
         ${f.report_id?`
           <button class="ico" title="Accept" onclick="feedback(${f.report_id},'accepted',this)">👍</button>
           <button class="ico" title="Reject" onclick="rejectNarr(${f.report_id},this)">👎</button>
-          <button class="ico" title="Edit" onclick="editNarr(${f.report_id},'${esc(f.metric)}')">✏️</button>`:""}
-        <button class="btn sm" style="margin-left:auto" onclick="genOne('${esc(f.metric)}',this)">${f.narrative?"Regenerate":"Generate"}</button>
+          <button class="ico" title="Edit" onclick="editNarr(${f.report_id})">✏️</button>`:""}
+        <button class="btn sm" style="margin-left:auto" onclick="genCard(${i},this)">${f.narrative?"Regenerate":"Generate"}</button>
       </div>`}
     </div>`;
   }).join("");
 }
 
 /* ---------- charts ---------- */
-function sparkline(trend,dir,w=110,h=34){
+function sparkline(trend,dir,w=110,h=34,unit=""){
   const vals=trend.map(t=>t.value).filter(v=>v!=null);if(vals.length<2)return"";
   const bvals=trend.map(t=>t.budget).filter(v=>v!=null);
   const all=vals.concat(bvals),min=Math.min(...all),max=Math.max(...all),sp=(max-min)||1;
@@ -1632,7 +1782,7 @@ function sparkline(trend,dir,w=110,h=34){
   const area=`M${areaPts[0]} `+trend.map((t,i)=>t.value!=null?`L${X(i).toFixed(1)},${Y(t.value).toFixed(1)}`:"").join(" ")+` L${X(trend.length-1).toFixed(1)},${h} L${X(0).toFixed(1)},${h} Z`;
   const stroke=trendColor(trend,dir);const li=trend.length-1;
   const first=trend.find(t=>t.value!=null),last=trend[li];
-  const tip=`Actual — solid · Plan — dashed\n${first?first.period+": "+fmt(first.value,"")+" → ":""}${last.period}: ${fmt(last.value,"")}`;
+  const tip=`Actual — solid · Plan — dashed\n${first?first.period+": "+fmt(first.value,unit)+" → ":""}${last.period}: ${fmt(last.value,unit)}`;
   return`<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="flex:none"><title>${esc(tip)}</title>
     <path d="${area}" fill="${stroke}" opacity="0.08"/>
     <path d="${line("budget")}" stroke="var(--mut2)" stroke-width="1.6" stroke-dasharray="3 3" stroke-linecap="round" fill="none" opacity="0.7"/>
@@ -1742,7 +1892,7 @@ function openDetail(i){
   $("d-narr").className="narr"+(f.narrative?"":" muted");
   $("d-narr").innerHTML=f.narrative?esc(f.narrative)+(f.edited&&f.original_narrative?`<details class="tbl" style="margin-top:8px"><summary>Show original (pre-edit)</summary><p style="margin-top:6px;color:var(--mut)">${esc(f.original_narrative)}</p></details>`:""):"No narrative yet — generate one from the dashboard card.";
   $("d-narr-meta").textContent=(f.confidence?`${f.confidence} confidence · numbers ${f.faithfulness}`:"")+(f.edited?" · edited by analyst":"")+(f.cost_usd!=null?` · ≈ $${(+f.cost_usd).toFixed(4)}`:"");
-  $("d-chips").innerHTML=(f.sources||[]).map(s=>`<span class="chip" title="Open source note" onclick="showSourceDoc('${esc(s.id)}','${esc(s.title||"")}')">📎 ${esc(s.title||s.id)}</span>`).join("");
+  $("d-chips").innerHTML=(f.sources||[]).map(s=>`<span class="chip" title="Open source note" onclick="showSourceDoc('${esc(s.id)}')">📎 ${esc(s.title||s.id)}</span>`).join("");
   $("d-qa-answer").innerHTML="";$("d-qa").value="";
   loadCorrelations(f.metric);
 }
@@ -1765,7 +1915,7 @@ async function askQA(){
   try{
     const r=await api("/ask",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({metric:detailFact.metric,period:currentPeriod,question:q})});
-    const srcs=(r.sources||[]).map(s=>`<span class="chip" onclick="showSourceDoc('${esc(s.id)}','${esc(s.title)}')">📎 ${esc(s.title||s.id)}</span>`).join("");
+    const srcs=(r.sources||[]).map(s=>`<span class="chip" onclick="showSourceDoc('${esc(s.id)}')">📎 ${esc(s.title||s.id)}</span>`).join("");
     $("d-qa-answer").innerHTML=`<div class="banner info" style="margin:0;display:block">
       ${esc(r.answer||"No grounded answer available.")}
       <div class="chips" style="margin-top:8px">${srcs}${r.grounded?'<span class="badge passed">numbers verified ✓</span>':""}</div></div>`;
@@ -1774,18 +1924,26 @@ async function askQA(){
 
 /* ---------- generation & feedback ---------- */
 async function genOne(metric,btn){
-  const regen=btn&&/regenerat/i.test(btn.textContent);
+  const regen=btn&&/regenerat/i.test(btn.textContent),gp=currentPeriod;
   generatingSet.add(metric);renderCards();
   try{
     const r=await api("/generate-insight",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({metric,period:currentPeriod,force:regen})});
+      body:JSON.stringify({metric,period:gp,force:regen})});
+    if(currentPeriod!==gp){generatingSet.delete(metric);return;}   // user switched period — drop result
     applyGenerated(r);generatingSet.delete(metric);renderCards();updateGenButton();
     toast(r.faithfulness==="failed"?`${metric}: numbers need review`:(r.cached?"Served from cache — no LLM cost":`Narrative written for ${metric}`));
   }catch(e){generatingSet.delete(metric);renderCards();toast("Failed: "+e.message);}
 }
 // Rough per-narrative cost estimate (gpt-4o-class: ~1.5k prompt + ~180 completion tokens).
 const EST_COST_PER_NARR=0.006;
-let generatingSet=new Set();
+let generatingSet=new Set(), skipRise=false;
+// Simple concurrency pool: run `worker` over `items`, at most `n` in flight.
+async function runPool(items,n,worker){
+  let i=0;
+  await Promise.all(Array(Math.min(n,items.length)).fill(0).map(async()=>{
+    while(i<items.length){const it=items[i++];await worker(it);}
+  }));
+}
 function ungeneratedFacts(){return currentFacts.filter(f=>f.has_data&&!f.narrative&&!f.aggregated);}
 function updateGenButton(){
   const btn=$("gen-all");if(!btn||btn.disabled)return;
@@ -1801,31 +1959,51 @@ function applyGenerated(r){
     trend_streak:r.trend_streak||f.trend_streak,generated_by:r.generated_by});
 }
 async function generateAll(){
+  if(currentUser&&currentUser.role==="viewer")return;
   const targets=(granularity==="month"?ungeneratedFacts():[]);
   const all=currentFacts.filter(f=>f.has_data&&!f.aggregated);
   const list=targets.length?targets:all;   // if all done, regenerate all
   if(!list.length){toast("Nothing to generate at this granularity");return;}
   const btn=$("gen-all");btn.disabled=true;
-  generatingSet=new Set(list.map(f=>f.metric));renderCards();
-  let n=0;
-  for(const f of list){
-    btn.innerHTML=`<span class="spin"></span> ${++n} of ${list.length}`;
-    try{const r=await api("/generate-insight",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({metric:f.metric,period:currentPeriod,force:!targets.length})});applyGenerated(r);}
-    catch(e){/* leave card un-narrated; user can retry */}
-    generatingSet.delete(f.metric);renderCards();
-  }
-  btn.disabled=false;generatingSet.clear();updateGenButton();
+  const gp=currentPeriod,gg=granularity,force=!targets.length,total=list.length;
+  generatingSet=new Set(list.map(f=>f.metric));skipRise=true;renderCards();
+  let done=0;
+  await runPool(list,3,async(f)=>{
+    try{
+      const r=await api("/generate-insight",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({metric:f.metric,period:gp,force})});
+      if(currentPeriod!==gp||granularity!==gg)return;   // user moved on — drop the result
+      applyGenerated(r);
+    }catch(e){/* leave card un-narrated; user can retry */}
+    if(currentPeriod!==gp||granularity!==gg)return;
+    generatingSet.delete(f.metric);done++;
+    btn.innerHTML=`<span class="spin"></span> ${done} of ${total}`;
+    renderCards();
+  });
+  skipRise=false;btn.disabled=false;generatingSet.clear();updateGenButton();
+  if(currentPeriod!==gp)return;
   const failed=currentFacts.filter(f=>f.faithfulness==="failed").length;
   toast(failed?`Done — ${plural(failed,"narrative")} need review`:"All narratives generated ✓");
 }
 async function feedback(id,action,btn,extra){
-  await api("/feedback",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({report_id:id,action,...extra})});
-  if(btn)btn.classList.add(action==="accepted"?"on":"on-bad");
-  toast(action==="accepted"?"Accepted":action==="rejected"?"Rejected":"Edit saved");
+  try{
+    await api("/feedback",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({report_id:id,action,...extra})});
+    if(btn)btn.classList.add(action==="accepted"?"on":"on-bad");
+    toast(action==="accepted"?"Accepted":action==="rejected"?"Rejected":"Edit saved");
+  }catch(e){toast("Couldn't save feedback: "+e.message);}
 }
-function rejectNarr(id,btn){const r=prompt("Why is this wrong? (optional)")||null;feedback(id,"rejected",btn,{reason:r});}
-function editNarr(id,metric){const t=prompt(`Edit narrative for ${metric}:`);if(t)feedback(id,"edited",null,{edited_text:t}).then(loadFacts);}
+async function rejectNarr(id,btn){
+  const r=await modalInput("Reject narrative",{label:"Why is this wrong? (optional)",textarea:true,placeholder:"e.g. attributes the drop to the wrong cause",okLabel:"Reject"});
+  if(r===null)return;   // cancelled
+  feedback(id,"rejected",btn,{reason:r||null});
+}
+async function editNarr(id){
+  const f=currentFacts.find(x=>x.report_id===id);
+  const cur=(f&&f.narrative)||"";
+  const t=await modalInput(`Edit narrative${f?" — "+f.metric:""}`,{label:"Narrative",value:cur,textarea:true,okLabel:"Save"});
+  if(t==null||t===cur)return;
+  await feedback(id,"edited",null,{edited_text:t});loadFacts();
+}
 
 /* ---------- digest ---------- */
 async function loadDigest(force){
@@ -1846,7 +2024,7 @@ async function loadDigest(force){
 
 /* ---------- context ---------- */
 async function loadContext(){
-  const docs=await api("/context");
+  let docs;try{docs=await api("/context");}catch(e){$("ctx-rows").innerHTML=`<tr><td colspan="5" class="loading">Couldn't load context — <a onclick="loadContext()" style="color:var(--accent);cursor:pointer;font-weight:700">retry</a></td></tr>`;return;}
   $("ctx-rows").innerHTML=docs.map(d=>`<tr>
     <td><span class="ctx-type">${esc(d.type.replace("_"," "))}</span></td>
     <td><div style="font-weight:700;font-size:13px;margin-bottom:3px">${esc(d.title)}</div><div style="color:var(--mut);line-height:1.45">${esc(d.body)}</div></td>
@@ -1862,7 +2040,10 @@ async function addContext(e){
     body:JSON.stringify({type:$("c-type").value,title:$("c-title").value,body:$("c-body").value,metric_tags:tags,effective_date:$("c-date").value||null})});
   toast("Added to Context Library");["c-title","c-body","c-tags","c-date"].forEach(id=>$(id).value="");loadContext();
 }
-async function delContext(id){if(!confirm("Delete this context document?"))return;await api(`/context/${id}`,{method:"DELETE"});toast("Deleted");loadContext();}
+async function delContext(id){
+  if(!await modalConfirm("Delete context note","Delete this context document? Narratives will no longer cite it.",{okLabel:"Delete"}))return;
+  try{await api(`/context/${id}`,{method:"DELETE"});toast("Deleted");loadContext();}catch(e){toast(e.message);}
+}
 
 /* ---------- import ---------- */
 let upload=null,profile=null,lastImport=null;
@@ -1931,6 +2112,7 @@ async function loadKpiPicker(){
 }
 async function confirmKpis(){
   const kpis=[...document.querySelectorAll(".kpi-grid[data-src]")].map(r=>({source_metric:r.dataset.src,display_name:r.querySelector(".k-name").value,category:r.querySelector(".k-cat").value,unit:r.querySelector(".k-unit").value,direction_good:r.querySelector(".k-dir").value}));
+  try{
   await api("/kpis",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kpis})});
   // Apply the chosen display name + domain to the freshly-created dataset.
   const name=($("imp-name").value||"").trim(),domain=$("imp-domain").value;
@@ -1947,6 +2129,7 @@ async function confirmKpis(){
       <button class="btn sm primary" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Generate narratives</button>
       <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">✕</button>`;
   }
+  }catch(e){toast("Import failed to finalize: "+e.message);}
 }
 
 // Entry point: boot() handles auth (creates the Supabase client, checks the
