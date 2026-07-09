@@ -1001,7 +1001,7 @@ async function exportPPTX(){
     facts.forEach(f=>{
       const s=p.addSlide();s.background=bg;const dg=f.direction_good==="down";
       s.addText(f.metric,{x:0.6,y:0.4,w:8.8,h:0.6,fontSize:22,bold:true,color:INK,fontFace:"Segoe UI"});
-      s.addText(esc(f.category||""),{x:0.6,y:0.95,w:8.8,h:0.35,fontSize:12,color:MUT,fontFace:"Segoe UI"});
+      s.addText(f.category||"",{x:0.6,y:0.95,w:8.8,h:0.35,fontSize:12,color:MUT,fontFace:"Segoe UI"});   // PPTX text is not HTML — no esc()
       s.addText(fmt(f.value,f.unit),{x:0.6,y:1.4,w:5,h:0.9,fontSize:40,bold:true,color:INK,fontFace:"Segoe UI"});
       const mom=pct(f.deltas.mom_pct),bud=pct(f.deltas.budget_var_pct);
       s.addText(`MoM ${mom||"–"}    vs plan ${bud||"–"}`,{x:0.6,y:2.4,w:8.8,h:0.4,fontSize:13,bold:true,color:ACC,fontFace:"Segoe UI"});
@@ -1695,10 +1695,10 @@ function narrativeBlock(f,q,i){
 function genCard(i,btn){const f=shownFacts[i];if(f)genOne(f.metric,btn);}
 function retryCard(i){const f=shownFacts[i];if(f)retryGen(f.metric);}
 async function retryGen(metric){
-  const gp=currentPeriod;
+  const gp=currentPeriod,gd=activeDatasetId;
   generatingSet.add(metric);renderCards();
   try{const r=await api("/generate-insight",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({metric,period:gp,force:true})});
-    if(currentPeriod===gp)applyGenerated(r);}
+    if(currentPeriod===gp&&activeDatasetId===gd)applyGenerated(r);}
   catch(e){toast("Retry failed: "+e.message);}
   generatingSet.delete(metric);renderCards();
 }
@@ -1945,7 +1945,14 @@ async function loadCorrelations(metric){
       }).join("")+`</div>`;
   }catch{}
 }
-async function regenDetail(){if(!detailFact)return;await genOne(detailFact.metric,$("d-regen"));const f=currentFacts.find(x=>x.metric===detailFact.metric);if(f)openDetail(currentFacts.indexOf(f));}
+async function regenDetail(){
+  if(!detailFact)return;
+  await genOne(detailFact.metric,$("d-regen"));
+  // openDetail indexes the FILTERED list (shownFacts), not currentFacts.
+  const f=currentFacts.find(x=>x.metric===detailFact.metric);
+  const i=f?shownFacts.indexOf(f):-1;
+  if(i>=0)openDetail(i);
+}
 async function askQA(){
   const q=$("d-qa").value.trim();if(!q||!detailFact)return;
   if(detailFact.aggregated){$("d-qa-answer").innerHTML='<div class="banner info" style="margin:0">Follow-up Q&A works at the monthly level — switch the dashboard to Month, open this metric, and ask again.</div>';return;}
@@ -1962,12 +1969,12 @@ async function askQA(){
 
 /* ---------- generation & feedback ---------- */
 async function genOne(metric,btn){
-  const regen=btn&&/regenerat/i.test(btn.textContent),gp=currentPeriod;
+  const regen=btn&&/regenerat/i.test(btn.textContent),gp=currentPeriod,gd=activeDatasetId;
   generatingSet.add(metric);renderCards();
   try{
     const r=await api("/generate-insight",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({metric,period:gp,force:regen})});
-    if(currentPeriod!==gp){generatingSet.delete(metric);return;}   // user switched period — drop result
+    if(currentPeriod!==gp||activeDatasetId!==gd){generatingSet.delete(metric);return;}   // user moved on — drop result
     applyGenerated(r);generatingSet.delete(metric);renderCards();updateGenButton();
     toast(r.faithfulness==="failed"?`${metric}: numbers need review`:(r.cached?"Served from cache — no LLM cost":`Narrative written for ${metric}`));
   }catch(e){generatingSet.delete(metric);renderCards();toast("Failed: "+e.message);}
@@ -2003,17 +2010,17 @@ async function generateAll(){
   const list=targets.length?targets:all;   // if all done, regenerate all
   if(!list.length){toast("Nothing to generate at this granularity");return;}
   const btn=$("gen-all");btn.disabled=true;
-  const gp=currentPeriod,gg=granularity,force=!targets.length,total=list.length;
+  const gp=currentPeriod,gg=granularity,gd=activeDatasetId,force=!targets.length,total=list.length;
   generatingSet=new Set(list.map(f=>f.metric));skipRise=true;renderCards();
   let done=0;
   await runPool(list,3,async(f)=>{
     try{
       const r=await api("/generate-insight",{method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({metric:f.metric,period:gp,force})});
-      if(currentPeriod!==gp||granularity!==gg)return;   // user moved on — drop the result
+      if(currentPeriod!==gp||granularity!==gg||activeDatasetId!==gd)return;   // user moved on — drop the result
       applyGenerated(r);
     }catch(e){/* leave card un-narrated; user can retry */}
-    if(currentPeriod!==gp||granularity!==gg)return;
+    if(currentPeriod!==gp||granularity!==gg||activeDatasetId!==gd)return;
     generatingSet.delete(f.metric);done++;
     btn.innerHTML=`<span class="spin"></span> ${done} of ${total}`;
     renderCards();
@@ -2047,7 +2054,10 @@ async function editNarr(id){
 async function loadDigest(force){
   $("digest-loading").style.display="";$("digest-list").innerHTML="";
   try{
-    const d=await api(`/digest?period=${encodeURIComponent(currentPeriod)}&top_n=5&force=${!!force}`,{method:"POST"});
+    // The digest is written monthly; at quarter/year granularity use the latest month.
+    let dp=currentPeriod;
+    if(granularity!=="month"){const months=await api("/periods?granularity=month");dp=months[months.length-1]||currentPeriod;}
+    const d=await api(`/digest?period=${encodeURIComponent(dp)}&top_n=5&force=${!!force}`,{method:"POST"});
     $("digest-list").innerHTML=d.items.map((it,i)=>`<div class="digest-item">
       <span class="rank"><span class="rank-n${i<3?" top":""}">#${i+1}</span>${esc(it.metric)}</span><h3>${esc(it.headline)}</h3>
       ${it.detail?`<p>${esc(it.detail)}</p>`:""}

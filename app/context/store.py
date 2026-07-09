@@ -67,8 +67,13 @@ class ContextStore:
         return _row_to_doc(row) if row else None
 
     def list(self) -> list[ContextDoc]:
+        # Scoped to the caller's universe: demo sessions see only demo-seeded
+        # docs; real sessions never see them. Retrieval and conflict detection
+        # both build from list(), so they inherit the same isolation.
+        from app.datasets import _scope_pred
+
         rows = self._conn.execute(
-            "SELECT * FROM context_documents ORDER BY id"
+            f"SELECT * FROM context_documents WHERE {_scope_pred()} ORDER BY id"
         ).fetchall()
         return [_row_to_doc(r) for r in rows]
 

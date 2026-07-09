@@ -324,7 +324,7 @@ def health() -> dict:
 
 
 @app.get("/costs")
-def costs(_: CurrentUser = Depends(require_read)) -> dict:
+def costs(_: CurrentUser = Depends(require_admin)) -> dict:
     """v1.2: spend by day and endpoint (from llm_calls), request latency
     p50/p95 (in-process ring buffer), and cache hit rate."""
     conn = get_connection()
@@ -448,7 +448,7 @@ def set_active_domain(payload: dict, _: CurrentUser = Depends(require_write)) ->
 
 
 @app.get("/notifications/configs")
-def list_notification_configs(_: CurrentUser = Depends(require_read)) -> list[dict]:
+def list_notification_configs(_: CurrentUser = Depends(require_admin)) -> list[dict]:
     conn = get_connection()
     try:
         return notif_list_configs(conn)
@@ -457,7 +457,7 @@ def list_notification_configs(_: CurrentUser = Depends(require_read)) -> list[di
 
 
 @app.post("/notifications/configs", status_code=201)
-def create_notification_config(payload: dict, _: CurrentUser = Depends(require_write)) -> dict:
+def create_notification_config(payload: dict, _: CurrentUser = Depends(require_admin)) -> dict:
     channel = payload.get("channel")
     if channel not in ("email", "slack", "webhook"):
         raise HTTPException(status_code=422, detail="channel must be email|slack|webhook")
@@ -480,7 +480,7 @@ def create_notification_config(payload: dict, _: CurrentUser = Depends(require_w
 
 
 @app.put("/notifications/{config_id}")
-def update_notification_config(config_id: int, payload: dict, _: CurrentUser = Depends(require_write)) -> dict:
+def update_notification_config(config_id: int, payload: dict, _: CurrentUser = Depends(require_admin)) -> dict:
     conn = get_connection()
     try:
         row = conn.execute(
@@ -507,7 +507,7 @@ def update_notification_config(config_id: int, payload: dict, _: CurrentUser = D
 
 
 @app.delete("/notifications/{config_id}", status_code=204)
-def delete_notification_config(config_id: int, _: CurrentUser = Depends(require_write)) -> None:
+def delete_notification_config(config_id: int, _: CurrentUser = Depends(require_admin)) -> None:
     conn = get_connection()
     try:
         conn.execute("DELETE FROM notification_configs WHERE id = ?", (config_id,))
@@ -517,7 +517,7 @@ def delete_notification_config(config_id: int, _: CurrentUser = Depends(require_
 
 
 @app.post("/notifications/test/{config_id}")
-def test_notification_config(config_id: int, _: CurrentUser = Depends(require_write)) -> dict:
+def test_notification_config(config_id: int, _: CurrentUser = Depends(require_admin)) -> dict:
     """Send a sample anomaly alert through one config to verify delivery."""
     conn = get_connection()
     try:
@@ -1432,7 +1432,14 @@ def ask_endpoint(payload: dict, user: CurrentUser = Depends(require_read)) -> di
 def digest_endpoint(period: str, top_n: int = 5, force: bool = False,
                     user: CurrentUser = Depends(require_read)) -> DigestOutput:
     cache = shared_cache()
-    cache_key = f"digest:{period}:top{top_n}:{PROMPT_VERSION}"
+    # Keyed by the active dataset so a demo-universe digest can never be served
+    # to a real session for the same period (and vice-versa), nor across datasets.
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+    finally:
+        conn.close()
+    cache_key = f"digest:ds{ds}:{period}:top{top_n}:{PROMPT_VERSION}"
     if not force:
         hit = cache.get(cache_key)
         if hit is not None:
@@ -1502,10 +1509,11 @@ def admin_list_users(_: CurrentUser = Depends(require_admin)) -> list[dict]:
 
 @app.put("/admin/users/{user_id}/role")
 def admin_set_role(user_id: str, role: str, current: CurrentUser = Depends(require_admin)) -> dict:
-    from app.auth import VALID_ROLES
-
-    if role not in VALID_ROLES:
-        raise HTTPException(status_code=422, detail=f"role must be one of {VALID_ROLES}")
+    # "viewer" is reserved for anonymous demo sessions — assigning it to a real
+    # account would demo-scope them (they'd see only the demo dataset).
+    assignable = ("analyst", "executive", "admin")
+    if role not in assignable:
+        raise HTTPException(status_code=422, detail=f"role must be one of {assignable}")
     if user_id == current.id and role != "admin":
         raise HTTPException(status_code=400, detail="You cannot demote yourself")
     conn = get_connection()
