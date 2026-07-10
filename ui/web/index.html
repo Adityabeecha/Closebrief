@@ -175,6 +175,8 @@
   .stat-val{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1}
   .stat-val small{font-size:13px;font-weight:700;color:var(--mut)}
   .stat-hint{font-size:11px;color:var(--mut2);font-weight:600}
+  .stat.alert{border-color:var(--red);background:var(--red-bg)}
+  .stat.alert .stat-val{color:var(--red);font-size:20px}
 
   /* ---------------- CARDS ---------------- */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;align-items:start}
@@ -206,7 +208,16 @@
   .badge.failed{color:var(--red);background:var(--red-bg)}
   .badge.edited{color:var(--amber);background:var(--amber-bg)}
   .cost{font-size:11px;font-weight:600;color:var(--mut2);font-variant-numeric:tabular-nums;margin-left:auto}
-  .card-foot{display:flex;align-items:center;gap:7px;margin-top:1px;padding-top:11px;border-top:1px solid var(--bg3)}
+  .card-foot{display:flex;align-items:center;gap:14px;margin-top:1px;padding-top:10px;border-top:1px solid var(--bg3)}
+  .txtact{border:none;background:none;padding:0;font-size:11.5px;font-weight:750;color:var(--mut);letter-spacing:.01em}
+  .txtact:hover{color:var(--ink2)}
+  .txtact.bad:hover{color:var(--red)}
+  .txtact.acc{color:var(--accent)}
+  .txtact.acc:hover{color:var(--accent-hi)}
+  .txtact.on{color:var(--green)}
+  .txtact.on-bad{color:var(--red)}
+  .card .narr{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .read-more{font-size:11px;font-weight:750;color:var(--accent)}
   .ico{width:30px;height:30px;border:1px solid var(--b12);background:var(--card);border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
   .ico:hover{border-color:var(--b24);background:var(--bg2)}
   .ico.on{background:var(--green-bg);border-color:var(--green2)}
@@ -223,16 +234,27 @@
   .legend{display:flex;gap:16px;font-size:11.5px;color:var(--ink3);font-weight:600;margin-bottom:6px}
   .legend .k{display:inline-block;width:16px;height:0;border-top:2px solid;vertical-align:middle;margin-right:6px}
   .legend .k.dash{border-top-style:dashed}
-  /* period control: segmented granularity + stepper */
-  .seg{display:inline-flex;border:1px solid var(--b12);border-radius:9px;overflow:hidden;background:var(--card)}
-  .seg button{border:none;background:none;padding:7px 13px;font-size:12.5px;font-weight:700;color:var(--mut);border-right:1px solid var(--b08)}
-  .seg button:last-child{border-right:none}
-  .seg button.active{background:var(--accent);color:#fff}
-  .seg button:not(.active):hover{background:var(--bg2);color:var(--ink2)}
-  .pstep{display:inline-flex;align-items:stretch;border:1px solid var(--b12);border-radius:9px;overflow:hidden;background:var(--card)}
-  .pstep>button{border:none;background:none;color:var(--ink3);font-size:16px;font-weight:700;padding:0 11px}
-  .pstep>button:hover{background:var(--bg2)}
-  .pstep #period-select{border:none;background:none}
+  /* toolbar: search + category pills + demoted actions + ONE merged period control */
+  .toolbar{display:flex;align-items:center;gap:10px;margin:0 0 16px;flex-wrap:wrap}
+  .toolbar .search input,.toolbar .search input:focus{width:220px}   /* fixed: no layout shift */
+  .catbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .cpill{border:1px solid var(--b12);background:var(--card);border-radius:20px;padding:6px 13px;font-size:12px;font-weight:700;color:var(--ink3)}
+  .cpill:hover{border-color:var(--b24)}
+  .cpill.on{background:var(--ink);color:var(--card);border-color:var(--ink)}
+  .tool-right{margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .tbtn{border:1px solid var(--b12);background:var(--card);border-radius:20px;padding:6px 13px;font-size:12px;font-weight:700;color:var(--ink3)}
+  .tbtn:hover{border-color:var(--b24);background:var(--bg2)}
+  .period-ctl{display:inline-flex;align-items:stretch;border:1px solid var(--b12);border-radius:9px;overflow:hidden;background:var(--card)}
+  .period-ctl .seg{display:inline-flex;border-right:1px solid var(--b08)}
+  .period-ctl .seg button{border:none;background:none;padding:7px 10px;font-size:11.5px;font-weight:800;color:var(--mut);border-right:1px solid var(--b08)}
+  .period-ctl .seg button.active{background:var(--accent);color:#fff}
+  .period-ctl .seg button:not(.active):hover{background:var(--bg2);color:var(--ink2)}
+  .period-ctl .pnav{border:none;background:none;color:var(--ink3);font-size:15px;font-weight:700;padding:0 9px}
+  .period-ctl .pnav:hover{background:var(--bg2)}
+  .period-ctl select{border:none;background:none;font-size:12.5px;font-weight:700;color:var(--ink);padding:0 2px;font-family:inherit}
+  /* the one primary action: count + cost live inside it */
+  .btn.cta{padding:10px 18px;font-size:13.5px;flex-direction:column;line-height:1.3;align-items:center}
+  .btn.cta small{font-weight:600;opacity:.85;font-size:10.5px}
   .chart-box{position:relative;width:100%;margin-top:6px}
   /* export dropdown */
   .export{position:relative}
@@ -417,8 +439,8 @@
     .wrap{padding:18px 16px 60px}
     .head{gap:12px}
     .head-actions{width:100%}
-    .search input,.search input:focus{width:100%}
-    .search{flex:1 1 100%}
+    .toolbar .search input,.toolbar .search input:focus,.search input,.search input:focus{width:100%}
+    .search,.toolbar .search{flex:1 1 100%}
     .grid{grid-template-columns:1fr}
     .statrow{grid-template-columns:1fr 1fr}
     .detail-grid{grid-template-columns:1fr}
@@ -434,7 +456,8 @@
   @media (max-width:600px){
     .statrow{grid-template-columns:1fr}
     .head-actions{gap:8px}
-    .seg,.pstep,.export,.head-actions>.btn{flex:1 1 auto}
+    .period-ctl,.export{flex:0 0 auto}
+    .tool-right{margin-left:0;width:100%}
     .demo-bar-actions .primary{display:none}   /* keep just "Exit demo" on tiny screens */
     .cmdk,.cmdk-back .cmdk{width:94vw}
     .kpi-grid,.kpi-grid.hdr{grid-template-columns:1fr!important}
@@ -490,6 +513,7 @@
       <div class="brand">
         <div class="mark"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M5 19v-6" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><path d="M12 19V9" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><path d="M19 19V6.5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><path d="M17.3 3.6l.75 1.75 1.75.75-1.75.75-.75 1.75-.75-1.75-1.75-.75 1.75-.75z" fill="#fff"/></svg></div>
         <div style="flex:1"><b>Closebrief</b><span>FP&amp;A intelligence</span></div>
+        <button class="theme-btn" id="theme-btn" title="Toggle dark mode (d)" aria-label="Toggle dark mode" onclick="toggleTheme()" style="width:28px;height:28px"></button>
         <button class="collapse-btn" onclick="toggleCollapse()" title="Collapse sidebar" aria-label="Collapse sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
       </div>
       <div class="ws">
@@ -516,10 +540,6 @@
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>Notifications</button>
       <button class="nav-item" id="nav-admin" data-view="admin" onclick="nav('admin')" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>User Management</button>
-      <div class="nav-label">Coming soon</div>
-      <button class="nav-item soon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>Growth &amp; Marketing<span class="soon-tag">SOON</span></button>
-      <button class="nav-item soon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>Anomaly Alerts<span class="soon-tag">SOON</span></button>
-      <button class="nav-item soon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Scheduled Digests<span class="soon-tag">SOON</span></button>
     </nav>
     <button class="nav-item" onclick="$('help-back').classList.add('open')" style="margin:2px 12px">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>How Closebrief works</button>
@@ -529,7 +549,6 @@
         <b id="user-email" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block">Aditya</b>
         <span id="user-role"><span class="role-badge">FP&amp;A Lead</span></span>
       </div>
-      <button class="theme-btn" id="theme-btn" title="Toggle dark mode (d)" aria-label="Toggle dark mode" onclick="toggleTheme()"></button>
       <button class="logout" id="logout-btn" title="Sign out" style="display:none" onclick="signOut()" aria-label="Sign out">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5M21 12H9"/></svg>
       </button>
@@ -543,46 +562,38 @@
     <section id="v-dashboard" class="wrap">
       <div class="head">
         <div>
-          <h1>Insights Dashboard</h1>
+          <h1 id="dash-title">Dashboard</h1>
           <div class="sub" id="dash-sub">—</div>
           <div class="sub" id="dash-fresh" style="font-size:11.5px;color:var(--mut2);margin-top:2px"></div>
         </div>
-        <div class="head-actions">
-          <div class="search">
-            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-            <input id="search" type="search" placeholder="Search metrics…" aria-label="Search metrics" oninput="onSearch(this.value)">
-          </div>
-          <select class="pill-btn" id="category-filter" onchange="renderCards()"></select>
-          <div class="seg" id="gran-seg">
-            <button data-g="month" class="active" onclick="setGranularity('month')">Month</button>
-            <button data-g="quarter" onclick="setGranularity('quarter')">Quarter</button>
-            <button data-g="year" onclick="setGranularity('year')">Year</button>
-          </div>
-          <div class="pstep">
-            <button onclick="stepPeriod(-1)" aria-label="Previous period" title="Previous">‹</button>
-            <select class="pill-btn" id="period-select" onchange="loadFacts()" style="border-radius:0;border-left:none;border-right:none"></select>
-            <button onclick="stepPeriod(1)" aria-label="Next period" title="Next">›</button>
-          </div>
-          <button class="btn exec-hide" onclick="nav('import')" title="Import a new period into a new dataset">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
-            Import
-          </button>
-          <button class="btn exec-hide" onclick="openKpiManager()" title="Manage which KPIs appear on the board">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            KPIs
-          </button>
+        <button class="btn primary exec-hide cta" id="gen-all" onclick="generateAll()">Generate narratives</button>
+      </div>
+      <div class="toolbar">
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input id="search" type="search" placeholder="Search metrics…" aria-label="Search metrics" oninput="onSearch(this.value)">
+        </div>
+        <div class="catbar" id="cat-pills"></div>
+        <div class="tool-right">
+          <button class="tbtn exec-hide" onclick="nav('import')" title="Import a new period">Import</button>
+          <button class="tbtn exec-hide" onclick="openKpiManager()" title="Manage which KPIs appear on the board">KPIs</button>
           <div class="export">
-            <button class="btn" onclick="toggleExport(event)" aria-haspopup="true" title="Export report">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
-              Export
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-            </button>
+            <button class="tbtn" onclick="toggleExport(event)" aria-haspopup="true" title="Export report">Export ▾</button>
             <div class="export-menu" id="export-menu">
               <button onclick="exportPDF()"><b>PDF</b><span>Print-ready report</span></button>
               <button onclick="exportPPTX()"><b>PowerPoint</b><span>Editable .pptx deck</span></button>
             </div>
           </div>
-          <button class="btn primary exec-hide" id="gen-all" onclick="generateAll()">Generate narratives</button>
+          <div class="period-ctl">
+            <div class="seg" id="gran-seg">
+              <button data-g="month" class="active" onclick="setGranularity('month')" title="Monthly">M</button>
+              <button data-g="quarter" onclick="setGranularity('quarter')" title="Quarterly">Q</button>
+              <button data-g="year" onclick="setGranularity('year')" title="Yearly">Y</button>
+            </div>
+            <button class="pnav" onclick="stepPeriod(-1)" aria-label="Previous period" title="Previous">‹</button>
+            <select id="period-select" onchange="loadFacts()" aria-label="Period"></select>
+            <button class="pnav" onclick="stepPeriod(1)" aria-label="Next period" title="Next">›</button>
+          </div>
         </div>
       </div>
       <div class="banner ok" id="import-banner" style="display:none"></div>
@@ -617,19 +628,22 @@
         <div class="panel">
           <h3>Budget vs actual</h3><div class="psub" id="d-bva-sub"></div>
           <div class="chart-box" id="box-c-bva" style="height:110px"><canvas id="c-bva"></canvas></div>
-          <h3 style="margin-top:22px">Variance bridge</h3><div class="psub">Price / Volume / Mix decomposition</div>
-          <div class="chart-box" id="box-c-bridge" style="height:210px"><canvas id="c-bridge"></canvas></div>
+          <div id="bridge-sec">
+            <h3 style="margin-top:22px">Variance bridge</h3><div class="psub">Price / Volume / Mix decomposition</div>
+            <div class="chart-box" id="box-c-bridge" style="height:210px"><canvas id="c-bridge"></canvas></div>
+          </div>
+          <div id="bridge-hint" style="display:none;font-size:11.5px;color:var(--mut2);margin-top:14px">Price/volume/mix needs quantity + price columns in the import — this metric has value + budget only.</div>
         </div>
         <div class="panel full">
           <h3>Narrative</h3><div class="psub" id="d-narr-meta"></div>
           <div class="narr" id="d-narr"></div>
-          <div id="d-correlations" style="margin-top:12px"></div>
-          <div class="chips" id="d-chips" style="margin-top:12px"></div>
           <div class="qa">
             <input id="d-qa" placeholder="Ask a follow-up about this metric…" onkeydown="if(event.key==='Enter')askQA()">
             <button class="btn" onclick="askQA()">Ask</button>
           </div>
           <div id="d-qa-answer" style="margin-top:10px"></div>
+          <div id="d-correlations" style="margin-top:12px"></div>
+          <div class="chips" id="d-chips" style="margin-top:12px"></div>
         </div>
       </div>
     </section>
@@ -1133,6 +1147,27 @@ async function showSourceDoc(chipId){
   }catch(e){toast(e.message||"Could not load source");}
 }
 
+/* ---------- category pills ---------- */
+let catFilter="", knownCats=[];
+function renderCatPills(cats){
+  knownCats=cats||knownCats;
+  const el=$("cat-pills");if(!el)return;
+  if(catFilter&&!knownCats.includes(catFilter))catFilter="";
+  const pill=(label,val)=>`<button class="cpill${catFilter===val?" on":""}" data-cat="${esc(val)}">${esc(label)}</button>`;
+  const MAX=5;
+  let html=pill("All","");
+  knownCats.slice(0,MAX).forEach(c=>html+=pill(c,c));
+  if(knownCats.length>MAX){
+    const rest=knownCats.slice(MAX);
+    html+=`<select class="cpill" aria-label="More categories"><option value="">More…</option>${rest.map(c=>`<option${catFilter===c?" selected":""}>${esc(c)}</option>`).join("")}</select>`;
+  }
+  el.innerHTML=html;
+  // listeners (no user strings in inline onclick)
+  el.querySelectorAll("button.cpill").forEach(b=>b.onclick=()=>setCat(b.dataset.cat));
+  const sel=el.querySelector("select");if(sel)sel.onchange=()=>setCat(sel.value);
+}
+function setCat(c){catFilter=c||"";renderCatPills();renderCards();}
+
 /* ---------- search / highlight ---------- */
 let _searchT=null;
 function onSearch(v){clearTimeout(_searchT);_searchT=setTimeout(()=>{searchQuery=v.trim();renderCards();},200);}
@@ -1194,6 +1229,13 @@ const fmt=(v,unit)=>{
 const pct=v=>v===null||v===undefined?null:(v>0?"+":"")+v.toFixed(1)+"%";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const plural=(n,one,many)=>`${n} ${n===1?one:(many||one+"s")}`;
+const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+function fmtPeriodTitle(p){
+  if(!p)return"Dashboard";
+  if(/^\d{4}-\d{2}$/.test(p))return `${MONTHS[+p.slice(5,7)-1]} ${p.slice(0,4)} close`;
+  if(/^\d{4}-Q\d$/.test(p))return `Q${p.slice(6)} ${p.slice(0,4)} overview`;
+  return `${p} overview`;
+}
 
 /* ---------- reusable modal (replaces native prompt/confirm) ---------- */
 let _modalResolve=null;
@@ -1531,7 +1573,7 @@ function stepPeriod(dir){
 }
 function syncStepButtons(){
   const sel=$("period-select");if(!sel)return;
-  const btns=document.querySelectorAll(".pstep>button");if(btns.length<2)return;
+  const btns=document.querySelectorAll(".period-ctl .pnav");if(btns.length<2)return;
   const atStart=sel.selectedIndex<=0,atEnd=sel.selectedIndex>=sel.options.length-1;
   btns[0].style.opacity=atStart?.35:1;btns[0].style.cursor=atStart?"default":"pointer";btns[0].disabled=atStart;
   btns[1].style.opacity=atEnd?.35:1;btns[1].style.cursor=atEnd?"default":"pointer";btns[1].disabled=atEnd;
@@ -1550,7 +1592,7 @@ async function loadPeriods(){
   if(periods.length){sel.value=periods[periods.length-1];currentPeriod=sel.value;await loadFacts();}
   else{
     // Empty workspace: show a centered import CTA on the dashboard, don't jump away.
-    $("dash-sub").textContent="No data yet";$("statrow").innerHTML="";$("filter-pills").innerHTML="";$("category-filter").innerHTML="";
+    $("dash-sub").textContent="No data yet";$("statrow").innerHTML="";$("filter-pills").innerHTML="";$("cat-pills").innerHTML="";$("dash-title").textContent="Dashboard";
     $("cards").innerHTML=`<div class="empty-state" style="grid-column:1/-1;padding:70px 20px">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:52px;height:52px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
       <div style="font-size:17px;font-weight:800;color:var(--ink);margin:14px 0 6px">Import your financials</div>
@@ -1573,11 +1615,12 @@ async function loadFacts(){
     currentFacts=await api(`/facts?period=${encodeURIComponent(currentPeriod)}&granularity=${granularity}`);
     const cats=[...new Set(currentFacts.map(f=>f.category||"Uncategorized"))].sort();
     assignCatSlots(cats);
-    $("category-filter").innerHTML=`<option value="">All categories</option>`+cats.map(c=>`<option>${esc(c)}</option>`).join("");
+    renderCatPills(cats);
     renderCards();
     const anom=currentFacts.filter(f=>f.is_anomaly).map(f=>f.metric);
-    const gl=granularity==="month"?"":` (${granularity})`;
-    $("dash-sub").innerHTML=`${currentPeriod}${gl} · ${currentFacts.length} ${currentFacts.length===1?"KPI":"KPIs"} · <b>${anom.length?plural(anom.length,"anomaly","anomalies"):"all nominal"}</b>`;
+    $("dash-title").textContent=fmtPeriodTitle(currentPeriod);
+    const aggNote=granularity==="month"?"":" · narratives are written monthly";
+    $("dash-sub").innerHTML=`${currentFacts.length} ${currentFacts.length===1?"KPI":"KPIs"} · <b>${anom.length?plural(anom.length,"anomaly","anomalies"):"all nominal"}</b>${aggNote}`;
     const anomKey=`anomaly:${currentPeriod}`;
     if(anom.length&&!bannerDismissed(anomKey)){
       $("anomaly-banner").style.display="";
@@ -1683,8 +1726,7 @@ function deltaChip(label,v,downGood){
 function narrativeBlock(f,q,i){
   if(generatingSet.has(f.metric))
     return `<div class="narr"><div class="sk sk-line" style="width:100%;margin-bottom:5px"></div><div class="sk sk-line" style="width:94%;margin-bottom:5px"></div><div class="sk sk-line" style="width:72%"></div></div>`;
-  if(f.aggregated)
-    return `<div class="narr muted">Aggregated ${esc(f.aggregation_type||"flow")} total for ${esc(f.period)}. Narratives are written monthly — switch to Month to read or generate them.</div>`;
+  if(f.aggregated)return "";   // one note in the page sub-line, not repeated per card
   let html=`<div class="narr ${f.narrative?"":"muted"}">${f.narrative?hl(f.narrative,q):"No narrative yet — generate one to explain this movement."}</div>`;
   if(f.faithfulness==="failed")
     // The guard caught an unverifiable number. Surface it — do NOT hide it.
@@ -1726,11 +1768,12 @@ function renderStatrow(facts){
   const tile=(lbl,path,color,val,hint,count)=>`<div class="stat rise" style="--sc:${color}">
     <span class="stat-lbl">${svg(path,color)}${lbl}</span>
     <span class="stat-val"${count!=null?` data-count="${count}"`:""}>${val}</span><span class="stat-hint">${hint}</span></div>`;
+  const attn=anom?`${plural(anom,"anomaly","anomalies")}`:"All clear";
   el.innerHTML=[
-    tile("KPIs tracked",ic.grid,"#2a78d6",withData.length,`${facts.length-withData.length} without data this period`,withData.length),
+    `<div class="stat rise${anom?" alert":""}" style="--sc:${anom?"#d03b3b":"#0ca30c"}"><span class="stat-lbl">${svg(ic.warn,anom?"#d03b3b":"#0ca30c")}Needs attention</span><span class="stat-val">${attn}</span><span class="stat-hint">${anom?"open the flagged card to review":"no anomalies this period"}</span></div>`,
+    mover?tile("Top mover vs plan",ic.trend,catColor(mover.category)||"#eb6834",esc(mover.metric),`${pct(mover.deltas.budget_var_pct)||"–"} vs budget`):"",
     tile("Narratives",ic.bolt,"#4a3aa7",`${narr}<small>/${withData.length}</small>`,narr===withData.length?"all explained":`${withData.length-narr} to generate`),
-    tile("Anomalies",ic.warn,anom?"#d03b3b":"#0ca30c",anom,anom?"flagged for review":"none this period",anom),
-    mover?tile("Top mover vs plan",ic.trend,catColor(mover.category)||"#eb6834",esc(mover.metric),`${pct(mover.deltas.budget_var_pct)||"–"} vs budget`):""
+    tile("Off plan",ic.grid,offPlan?"#b45309":"#2a78d6",offPlan,offPlan?"KPIs behind budget":"everything on or ahead of plan",offPlan)
   ].join("");
   countUp();
 }
@@ -1747,15 +1790,15 @@ function countUp(){
 }
 let shownFacts=[];
 function renderPills(){
-  const cat=$("category-filter").value,pills=[];
+  const cat=catFilter,pills=[];
   if(cat)pills.push(`Category: ${esc(cat)}<button onclick="clearCatFilter()" aria-label="Clear category filter">×</button>`);
   if(searchQuery)pills.push(`Search: “${esc(searchQuery)}”<button onclick="clearSearch()" aria-label="Clear search">×</button>`);
   $("filter-pills").innerHTML=pills.map(p=>`<span class="fpill">${p}</span>`).join("");
 }
-function clearCatFilter(){$("category-filter").value="";renderCards();}
+function clearCatFilter(){setCat("");}
 function clearSearch(){searchQuery="";const s=$("search");if(s)s.value="";renderCards();}
 function renderCards(){
-  const cat=$("category-filter").value;
+  const cat=catFilter;
   let facts=cat?currentFacts.filter(f=>(f.category||"Uncategorized")===cat):currentFacts;
   if(searchQuery)facts=facts.filter(f=>factMatches(f,searchQuery));
   shownFacts=facts;
@@ -1774,14 +1817,18 @@ function renderCards(){
         <div class="card-value" style="font-size:20px;color:var(--mut2)">No data</div>
         <div class="narr muted">No data for ${esc(currentPeriod)} in this dataset.</div></div>`;
     }
+    // ONE status slot beside the value (was 4 competing badge systems).
+    const status=f.is_anomaly?'<span class="anom">anomaly</span>'
+      :f.faithfulness==="failed"?'<span class="badge failed">review ✗</span>'
+      :f.faithfulness==="passed"?'<span class="badge passed">verified ✓</span>':"";
+    const nsrc=(f.sources||[]).length;
     return`<div class="card click ${rise}" ${delay} onclick="openDetail(${i})">
       <div class="card-top">
         <span class="card-name" title="${esc(f.category||"Uncategorized")}"><span class="cat-dot"></span>${hl(f.metric,q)}</span>
-        ${f.confidence?`<span class="conf ${f.confidence}"><span class="dot"></span>${f.confidence} confidence</span>`:(f.is_anomaly?'<span class="anom">ANOMALY</span>':'')}
+        ${f.chart_data&&f.chart_data.trend?sparkline(f.chart_data.trend,f.direction_good,84,26,f.unit):""}
       </div>
       <div class="card-value-row">
-        <span class="card-value nbi-num" ${f.unavailable?'title="Ratios/percentages aren\'t aggregated across months — view at Month granularity"':""}>${f.unavailable?"—":fmt(f.value,f.unit)}</span>
-        ${f.chart_data&&f.chart_data.trend?sparkline(f.chart_data.trend,f.direction_good,110,34,f.unit):""}
+        <span style="display:flex;align-items:center;gap:9px"><span class="card-value nbi-num" ${f.unavailable?'title="Ratios/percentages aren\'t aggregated across months — view at Month granularity"':""}>${f.unavailable?"—":fmt(f.value,f.unit)}</span>${status}${f.edited?'<span class="badge edited">edited</span>':""}</span>
       </div>
       <div class="deltas">
         ${deltaChip(f.aggregated?(granularity==="year"?"YoY":"QoQ"):"MoM",f.deltas.mom_pct,dg)}
@@ -1789,19 +1836,13 @@ function renderCards(){
         ${streakBadge(f.trend_streak)}
       </div>
       ${narrativeBlock(f,q,i)}
-      <div class="chips">
-        ${(f.sources||[]).map(s=>`<span class="chip" title="Open source note" onclick="event.stopPropagation();showSourceDoc('${esc(s.id)}')">📎 ${esc(s.title||s.id)}</span>`).join("")}
-        ${f.faithfulness&&f.faithfulness!=="unchecked"?`<span class="badge ${f.faithfulness}">numbers ${f.faithfulness==="passed"?"verified ✓":"flagged ✗"}</span>`:""}
-        ${f.edited?'<span class="badge edited">edited</span>':""}
-        ${f.cost_usd!=null?`<span class="cost">≈ $${(+f.cost_usd).toFixed(4)}</span>`:""}
-      </div>
-      ${f.generated_by||f.reviewed_by?`<div class="attrib">${f.generated_by?`Generated by ${esc(f.generated_by)}`:""}${f.reviewed_by?` · Reviewed by ${esc(f.reviewed_by)}`:""}</div>`:""}
+      ${f.narrative&&!f.aggregated?`<span class="read-more">Read more${nsrc?` · ${plural(nsrc,"source")}`:""}</span>`:""}
       ${f.aggregated?"":`<div class="card-foot" onclick="event.stopPropagation()">
         ${f.report_id?`
-          <button class="ico" title="Accept" onclick="feedback(${f.report_id},'accepted',this)">👍</button>
-          <button class="ico" title="Reject" onclick="rejectNarr(${f.report_id},this)">👎</button>
-          <button class="ico" title="Edit" onclick="editNarr(${f.report_id})">✏️</button>`:""}
-        <button class="btn sm" style="margin-left:auto" onclick="genCard(${i},this)">${f.narrative?"Regenerate":"Generate"}</button>
+          <button class="txtact" onclick="feedback(${f.report_id},'accepted',this)">Accept</button>
+          <button class="txtact" onclick="editNarr(${f.report_id})">Edit</button>
+          <button class="txtact bad" onclick="rejectNarr(${f.report_id},this)">Reject</button>`:""}
+        <button class="txtact acc" style="margin-left:auto" onclick="genCard(${i},this)">${f.narrative?"Regenerate":"Generate"}</button>
       </div>`}
     </div>`;
   }).join("");
@@ -1896,7 +1937,13 @@ function renderBvaChart(bva,unit){
 }
 function renderBridgeChart(bridge,total,unit){
   ensureCanvas("c-bridge");const box=$("box-c-bridge");
-  if(!bridge||!bridge.length){if(chartReg["c-bridge"]){chartReg["c-bridge"].destroy();delete chartReg["c-bridge"];}box.innerHTML='<div class="loading" style="padding:14px 0">No price/volume/mix detail for this metric.</div>';return;}
+  const sec=$("bridge-sec"),hint=$("bridge-hint");
+  if(!bridge||!bridge.length){
+    if(chartReg["c-bridge"]){chartReg["c-bridge"].destroy();delete chartReg["c-bridge"];}
+    if(sec)sec.style.display="none";if(hint)hint.style.display="";   // hide, don't look broken
+    return;
+  }
+  if(sec)sec.style.display="";if(hint)hint.style.display="none";
   const th=chartTheme();
   let run=0;const steps=bridge.map(b=>{const s={label:b.component,range:[run,run+b.impact],val:b.impact};run+=b.impact;return s;});
   steps.push({label:"Total",range:[0,total],val:total,isTotal:true});
@@ -1992,10 +2039,11 @@ async function runPool(items,n,worker){
 function ungeneratedFacts(){return currentFacts.filter(f=>f.has_data&&!f.narrative&&!f.aggregated);}
 function updateGenButton(){
   const btn=$("gen-all");if(!btn||btn.disabled)return;
+  if(granularity!=="month"){btn.style.display="none";return;}
+  btn.style.display="";
   const n=ungeneratedFacts().length;
-  if(!n){btn.textContent="Regenerate all";btn.title="";return;}
-  btn.textContent=`Generate ${plural(n,"narrative")}`;
-  btn.title=`Estimated cost ≈ $${(n*EST_COST_PER_NARR).toFixed(2)}`;
+  if(!n){btn.innerHTML=`Regenerate all<small>narratives are current</small>`;return;}
+  btn.innerHTML=`Generate ${plural(n,"narrative")}<small>≈ $${(n*EST_COST_PER_NARR).toFixed(2)} · ~${n*7}s</small>`;
 }
 function applyGenerated(r){
   const f=currentFacts.find(x=>x.metric===r.metric);
@@ -2064,7 +2112,7 @@ async function loadDigest(force){
       <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span class="delta ${it.budget_var_abs<0?"bad":"good"}">${fmt(it.budget_var_abs,"USD")} vs budget (${pct(it.budget_var_pct)||"–"})</span>
         <span class="badge ${it.faithfulness}">numbers ${it.faithfulness==="passed"?"verified ✓":"flagged ✗"}</span>
-        ${it.report_id?`<button class="ico" style="margin-left:auto" title="Accept" onclick="feedback(${it.report_id},'accepted',this)">👍</button><button class="ico" title="Reject" onclick="rejectNarr(${it.report_id},this)">👎</button>`:""}
+        ${it.report_id?`<button class="txtact" style="margin-left:auto" onclick="feedback(${it.report_id},'accepted',this)">Accept</button><button class="txtact bad" onclick="rejectNarr(${it.report_id},this)">Reject</button>`:""}
       </div></div>`).join("")||'<div class="empty-state">No movers with budget data for this period.</div>';
     if(d.cost_usd!=null||d.cached)$("digest-list").insertAdjacentHTML("beforeend",`<div class="cost" style="margin-top:8px">${d.cached?"served from cache (no LLM cost)":"≈ $"+(+d.cost_usd).toFixed(4)+" this run"}</div>`);
   }catch(e){toast("Digest failed: "+e.message);}finally{$("digest-loading").style.display="none";}
@@ -2182,7 +2230,7 @@ async function confirmKpis(){
 
 // Entry point: boot() handles auth (creates the Supabase client, checks the
 // session) and then calls startApp(), which loads periods and applies the hash.
-console.log("Closebrief UI build: v3.5.0 (bugfixes: mapping/QA/dark controls, sidebar collapse, invite)");
+console.log("Closebrief UI build: v4.0.0 (rearranged UX: 3-zone header, pills, clamped cards, attention-first)");
 boot();
 </script>
 </body>
