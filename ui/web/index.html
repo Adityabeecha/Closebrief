@@ -13,7 +13,7 @@
 <meta name="twitter:title" content="Closebrief — Narrative BI for FP&A">
 <meta name="twitter:description" content="Audit-ready variance commentary on your KPIs — deterministic numbers, AI-written prose, every figure verified.">
 
-<link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="%232563eb"/><path d="M8 24v-7M16 24V11M24 24V8" stroke="white" stroke-width="3.4" stroke-linecap="round"/></svg>'>
+<link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="%231e6e50"/><path d="M8 24v-7M16 24V11M24 24V8" stroke="white" stroke-width="3.4" stroke-linecap="round"/></svg>'>
 <script src="/vendor/supabase.js"></script>
 <script src="/vendor/chart.min.js"></script>
 <script src="/vendor/sentry.min.js"></script>
@@ -24,26 +24,35 @@
   @font-face{font-family:'Plus Jakarta Sans';font-style:normal;font-weight:600;font-display:swap;src:url(/vendor/fonts/pjs-600.woff2) format('woff2')}
   @font-face{font-family:'Plus Jakarta Sans';font-style:normal;font-weight:700;font-display:swap;src:url(/vendor/fonts/pjs-700.woff2) format('woff2')}
   @font-face{font-family:'Plus Jakarta Sans';font-style:normal;font-weight:800;font-display:swap;src:url(/vendor/fonts/pjs-800.woff2) format('woff2')}
+  /* Editorial serif for the written brief (variable weight) + tabular mono for figures. */
+  @font-face{font-family:'Newsreader';font-style:normal;font-weight:400 700;font-display:swap;src:url(/vendor/fonts/newsreader.woff2) format('woff2')}
+  @font-face{font-family:'Newsreader';font-style:italic;font-weight:400;font-display:swap;src:url(/vendor/fonts/newsreader-italic.woff2) format('woff2')}
+  @font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:500;font-display:swap;src:url(/vendor/fonts/plexmono-500.woff2) format('woff2')}
+  @font-face{font-family:'IBM Plex Mono';font-style:normal;font-weight:600;font-display:swap;src:url(/vendor/fonts/plexmono-600.woff2) format('woff2')}
   *{margin:0;padding:0;box-sizing:border-box}
+  /* "The auditor's ledger" — green-black ink on ledger paper, verified-tick green
+     as the brand color. Serif carries the prose, mono carries the figures. */
   :root{
-    --accent:#2563eb; --accent-hi:#1d4ed8; --accent-bg:#eff6ff;
-    --ink:#0f172a; --ink2:#334155; --ink3:#475569; --mut:#64748b; --mut2:#94a3b8;
-    --b08:rgba(15,23,42,.08); --b12:rgba(15,23,42,.12); --b24:rgba(15,23,42,.24);
-    --bg:#fbfbfa; --bg2:#f6f6f4; --bg3:#f1f1ef; --card:#fff;
-    --green:#15803d; --green2:#16a34a; --green-bg:#ecfdf3;
-    --red:#dc2626; --red-bg:#fef2f2;
-    --amber:#b45309; --amber-bg:#fffbeb; --amber-bd:#fde68a;
-    --wash:#edf3fd; --pop:#0f172a; --pop-ink:#fff;
+    --serif:'Newsreader',Georgia,'Times New Roman',serif;
+    --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+    --accent:#1e6e50; --accent-hi:#15573e; --accent-bg:#e9f3ee;
+    --ink:#16211b; --ink2:#33413a; --ink3:#48564e; --mut:#5c6a62; --mut2:#75837a;
+    --b08:rgba(22,33,27,.09); --b12:rgba(22,33,27,.14); --b24:rgba(22,33,27,.26);
+    --bg:#f7f8f6; --bg2:#f1f3f0; --bg3:#e9ece8; --card:#fff;
+    --green:#1e6e50; --green2:#25835f; --green-bg:#e9f3ee;
+    --red:#b42e2c; --red-bg:#faeeed;
+    --amber:#8a6100; --amber-bg:#faf4e4; --amber-bd:#e3cf92;
+    --wash:#edf2ee; --pop:#16211b; --pop-ink:#fbfcfa;
   }
   :root[data-theme="dark"]{
-    --accent:#3b82f6; --accent-hi:#60a5fa; --accent-bg:rgba(59,130,246,.14);
-    --ink:#f1f5f9; --ink2:#e2e8f0; --ink3:#cbd5e1; --mut:#94a3b8; --mut2:#7688a3;
-    --b08:rgba(241,245,249,.07); --b12:rgba(241,245,249,.11); --b24:rgba(241,245,249,.2);
-    --bg:#0b1120; --bg2:#111a2e; --bg3:#1e293b; --card:#151d2e;
-    --green:#22c55e; --green2:#16a34a; --green-bg:rgba(34,197,94,.14);
-    --red:#f87171; --red-bg:rgba(248,113,113,.14);
-    --amber:#fbbf24; --amber-bg:rgba(251,191,36,.12); --amber-bd:rgba(251,191,36,.35);
-    --wash:#0e1830; --pop:#e2e8f0; --pop-ink:#0b1120;
+    --accent:#4fae83; --accent-hi:#6cc49b; --accent-bg:rgba(79,174,131,.15);
+    --ink:#e9eee9; --ink2:#d4dcd5; --ink3:#b4bfb6; --mut:#93a096; --mut2:#7d8a80;
+    --b08:rgba(233,238,233,.07); --b12:rgba(233,238,233,.12); --b24:rgba(233,238,233,.22);
+    --bg:#101613; --bg2:#161d19; --bg3:#212a24; --card:#171f1a;
+    --green:#57b98c; --green2:#3fa877; --green-bg:rgba(87,185,140,.14);
+    --red:#e57373; --red-bg:rgba(229,115,115,.13);
+    --amber:#d9b04d; --amber-bg:rgba(217,176,77,.12); --amber-bd:rgba(217,176,77,.35);
+    --wash:#0d1411; --pop:#e9eee9; --pop-ink:#101613;
   }
   html{transition:background-color .3s ease,color .2s ease}
   /* Native controls (select dropdowns, date pickers, scrollbars) follow the theme. */
@@ -53,7 +62,8 @@
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
   button,input,select,textarea{font-family:inherit}
   button{cursor:pointer}
-  .nbi-num{font-variant-numeric:tabular-nums}
+  /* Every figure in the product sets in the ledger mono. */
+  .nbi-num{font-family:var(--mono);font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
   @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
   @keyframes spin{to{transform:rotate(360deg)}}
   @keyframes riseIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -69,8 +79,7 @@
   /* theme toggle */
   .theme-btn{margin-left:auto;width:34px;height:34px;border-radius:9px;border:1px solid var(--b12);background:var(--card);color:var(--ink3);display:inline-flex;align-items:center;justify-content:center;flex:none;transition:border-color .16s,transform .3s}
   .theme-btn:hover{border-color:var(--b24)}
-  .theme-btn svg{width:17px;height:17px;stroke:currentColor;transition:transform .4s ease}
-  .theme-btn:active svg{transform:rotate(180deg)}
+  .theme-btn svg{width:17px;height:17px;stroke:currentColor}
 
   /* search */
   .search{position:relative;display:flex;align-items:center}
@@ -93,7 +102,7 @@
   .side{width:250px;flex:none;background:var(--card);border-right:1px solid var(--b08);display:flex;flex-direction:column;height:100%}
   .side-top{padding:20px 18px 14px;display:flex;flex-direction:column;gap:14px}
   .brand{display:flex;align-items:center;gap:10px}
-  .brand .mark{width:30px;height:30px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 2px 6px rgba(37,99,235,.35)}
+  .brand .mark{width:30px;height:30px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 2px 6px rgba(30,110,80,.3)}
   .brand b{font-weight:700;font-size:15px;letter-spacing:-.01em;display:block;line-height:1.1}
   .brand span{font-size:11px;color:var(--mut2);font-weight:500}
   .ws{position:relative}
@@ -140,7 +149,8 @@
   main{flex:1;min-width:0;height:100%;overflow-y:auto}
   .wrap{max-width:1200px;margin:0 auto;padding:26px 34px 64px}
   .head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:18px}
-  h1{font-size:24px;font-weight:800;letter-spacing:-.02em}
+  /* Page titles set in the serif — the product is a written brief, and the type says so. */
+  h1{font-family:var(--serif);font-size:29px;font-weight:600;letter-spacing:-.005em;line-height:1.15}
   .sub{font-size:13.5px;color:var(--mut);margin-top:3px}
   .sub b{color:var(--accent);font-weight:600}
   .head-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -149,11 +159,12 @@
   select.pill-btn{padding-right:8px}
   .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:9px;font-size:13px;font-weight:700;color:var(--ink2);background:var(--card);border:1px solid var(--b12)}
   .btn:hover{border-color:var(--b24);background:var(--bg2)}
-  .btn.primary{background:linear-gradient(180deg,#3b82f6,var(--accent));border-color:var(--accent);color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.35)}
+  .btn.primary{background:linear-gradient(180deg,#27825f,var(--accent));border-color:var(--accent);color:#fff;box-shadow:0 2px 6px rgba(30,110,80,.3)}
   .btn.primary:hover{background:linear-gradient(180deg,var(--accent),var(--accent-hi))}
+  :root[data-theme="dark"] .btn.primary{background:var(--accent);color:#0d1411}
   /* Fixed red (not var(--red), which is light in dark mode) so white text stays legible. */
-  .btn.danger{background:#dc2626;border-color:#dc2626;color:#fff}
-  .btn.danger:hover{background:#b91c1c;border-color:#b91c1c}
+  .btn.danger{background:#b42e2c;border-color:#b42e2c;color:#fff}
+  .btn.danger:hover{background:#93312a;border-color:#93312a}
   .modal-field{width:100%;padding:10px 12px;border:1px solid var(--b12);border-radius:9px;font-size:13.5px;background:var(--card);color:var(--ink);font-family:inherit}
   textarea.modal-field{resize:vertical;min-height:120px;line-height:1.5}
   .btn.sm{padding:6px 11px;font-size:12px}
@@ -164,7 +175,7 @@
   .banner.warn{background:var(--amber-bg);border:1px solid var(--amber-bd);color:var(--amber)}
   .banner.ok{background:var(--green-bg);border:1px solid var(--green2);color:var(--green)}
   .banner.err{background:var(--red-bg);border:1px solid var(--red);color:var(--red)}
-  .banner.info{background:var(--accent-bg);border:1px solid #93c5fd;color:var(--accent)}
+  .banner.info{background:var(--accent-bg);border:1px solid rgba(30,110,80,.3);color:var(--accent)}
 
   /* ---------------- STAT ROW ---------------- */
   .statrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:13px;margin-bottom:18px}
@@ -172,9 +183,10 @@
   .stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--sc,var(--accent))}
   .stat-lbl{font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.05em;display:flex;align-items:center;gap:7px}
   .stat-lbl svg{width:14px;height:14px;stroke:var(--sc,var(--accent));flex:none}
-  .stat-val{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1}
-  .stat-val small{font-size:13px;font-weight:700;color:var(--mut)}
-  .stat-hint{font-size:11px;color:var(--mut2);font-weight:600}
+  .stat-val{font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1.05}
+  .stat-val.nbi-num{font-weight:600;font-size:23px}
+  .stat-val small{font-size:13px;font-weight:600;color:var(--mut)}
+  .stat-hint{font-size:11px;color:var(--mut);font-weight:600}
   .stat.alert{border-color:var(--red);background:var(--red-bg)}
   .stat.alert .stat-val{color:var(--red);font-size:20px}
 
@@ -193,16 +205,22 @@
   .conf.Medium{color:var(--amber);background:var(--amber-bg)}
   .conf.Low{color:var(--red);background:var(--red-bg)}
   .card-value-row{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
-  .card-value{font-size:32px;font-weight:700;letter-spacing:-.02em;line-height:1}
+  .card-value{font-family:var(--mono);font-size:27px;font-weight:600;letter-spacing:-.02em;line-height:1}
   .deltas{display:flex;gap:8px;flex-wrap:wrap}
-  .delta{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:3px 9px;border-radius:7px}
+  .delta{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:11px;font-weight:600;padding:3px 8px;border-radius:7px}
   .delta.good{color:var(--green);background:var(--green-bg)}
   .delta.bad{color:var(--red);background:var(--red-bg)}
   .delta.flat{color:var(--ink3);background:var(--bg3)}
-  .narr{font-size:13px;line-height:1.55;color:var(--ink2)}
-  .narr.muted{color:var(--mut2);font-style:italic}
+  /* The narrative IS the product — it reads as written commentary, not UI filler. */
+  .narr{font-family:var(--serif);font-size:15px;line-height:1.6;color:var(--ink2)}
+  .narr.muted{color:var(--mut);font-style:italic}
+  /* Signature: the auditor's tick. One seal, used wherever numbers are verified. */
+  .seal{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;letter-spacing:.02em;padding:3px 9px 3px 7px;border-radius:20px;color:var(--green);background:var(--green-bg);border:1px solid rgba(30,110,80,.28)}
+  .seal svg{width:11px;height:11px;stroke:currentColor;flex:none}
+  .seal.failed{color:var(--amber);background:var(--amber-bg);border-color:var(--amber-bd)}
   .chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-  .chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;color:var(--accent);background:var(--accent-bg);border:1px solid #bfdbfe;padding:3px 8px;border-radius:6px;cursor:pointer}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-bg);border:1px solid rgba(30,110,80,.25);padding:3px 9px;border-radius:6px;cursor:pointer}
+  .chip svg{width:11px;height:11px;stroke:currentColor;flex:none}
   .badge{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:6px}
   .badge.passed{color:var(--green);background:var(--green-bg)}
   .badge.failed{color:var(--red);background:var(--red-bg)}
@@ -222,7 +240,7 @@
   .ico:hover{border-color:var(--b24);background:var(--bg2)}
   .ico.on{background:var(--green-bg);border-color:var(--green2)}
   .ico.on-bad{background:var(--red-bg);border-color:var(--red)}
-  .anom{font-size:9.5px;font-weight:800;letter-spacing:.06em;color:var(--red);background:var(--red-bg);padding:3px 7px;border-radius:5px}
+  .anom{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--red);background:var(--red-bg);padding:3px 7px;border-radius:5px}
 
   /* ---------------- METRIC DETAIL ---------------- */
   .back{display:inline-flex;align-items:center;gap:6px;border:none;background:none;color:var(--accent);font-weight:700;font-size:13px;margin-bottom:14px}
@@ -240,7 +258,8 @@
   .catbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
   .cpill{border:1px solid var(--b12);background:var(--card);border-radius:20px;padding:6px 13px;font-size:12px;font-weight:700;color:var(--ink3)}
   .cpill:hover{border-color:var(--b24)}
-  .cpill.on{background:var(--ink);color:var(--card);border-color:var(--ink)}
+  .cpill.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  :root[data-theme="dark"] .cpill.on{color:#0d1411}
   .tool-right{margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
   .tbtn{border:1px solid var(--b12);background:var(--card);border-radius:20px;padding:6px 13px;font-size:12px;font-weight:700;color:var(--ink3)}
   .tbtn:hover{border-color:var(--b24);background:var(--bg2)}
@@ -248,6 +267,7 @@
   .period-ctl .seg{display:inline-flex;border-right:1px solid var(--b08)}
   .period-ctl .seg button{border:none;background:none;padding:7px 10px;font-size:11.5px;font-weight:800;color:var(--mut);border-right:1px solid var(--b08)}
   .period-ctl .seg button.active{background:var(--accent);color:#fff}
+  :root[data-theme="dark"] .period-ctl .seg button.active,:root[data-theme="dark"] .step.active,:root[data-theme="dark"] .rank-n.top{color:#0d1411}
   .period-ctl .seg button:not(.active):hover{background:var(--bg2);color:var(--ink2)}
   .period-ctl .pnav{border:none;background:none;color:var(--ink3);font-size:15px;font-weight:700;padding:0 9px}
   .period-ctl .pnav:hover{background:var(--bg2)}
@@ -264,6 +284,7 @@
   .export-menu button:hover{background:var(--bg2)}
   .export-menu b{font-size:13px;color:var(--ink2);font-weight:700}
   .export-menu span{font-size:11px;color:var(--mut2)}
+  #d-narr{font-size:16.5px;line-height:1.65;max-width:74ch}
   .qa{display:flex;gap:8px;margin-top:12px}
   .qa input{flex:1;padding:9px 12px;border:1px solid var(--b12);border-radius:9px;font-size:13px}
   details.tbl{margin-top:10px;font-size:12px}
@@ -278,9 +299,9 @@
   .digest-item{background:var(--card);border:1px solid var(--b08);border-radius:15px;padding:18px 20px;margin-bottom:12px}
   .digest-item .rank{font-size:11px;font-weight:800;color:var(--mut2);letter-spacing:.04em}
   .rank-n{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:7px;background:var(--bg3);color:var(--ink3);font-size:11px;font-weight:800;padding:0 5px;margin-right:6px}
-  .rank-n.top{background:var(--accent);color:#fff;box-shadow:0 2px 6px rgba(37,99,235,.3)}
-  .digest-item h3{font-size:15px;font-weight:700;margin:5px 0 6px;letter-spacing:-.01em}
-  .digest-item p{font-size:13px;line-height:1.55;color:var(--ink2)}
+  .rank-n.top{background:var(--accent);color:#fff;box-shadow:0 2px 6px rgba(30,110,80,.3)}
+  .digest-item h3{font-family:var(--serif);font-size:19px;font-weight:600;margin:6px 0 6px;letter-spacing:-.005em}
+  .digest-item p{font-family:var(--serif);font-size:15px;line-height:1.6;color:var(--ink2)}
 
   /* ---------------- CONTEXT LIBRARY ---------------- */
   .ctx-form{background:var(--card);border:1px solid var(--b08);border-radius:15px;padding:20px;margin-bottom:18px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -328,17 +349,17 @@
 
   /* ---------------- LOGIN GATE ---------------- */
   /* Login gate is always its own dark-left/light-right design, independent of app theme. */
-  #login-gate{position:fixed;inset:0;z-index:100;display:none;background:#0f172a;color:#fff;--ink:#0f172a;--ink2:#334155;--ink3:#475569;--mut:#64748b;--mut2:#94a3b8;--b12:rgba(15,23,42,.12);--accent:#2563eb;--accent-bg:#eff6ff;--card:#fff}
+  #login-gate{position:fixed;inset:0;z-index:100;display:none;background:#101613;color:#fff;--ink:#16211b;--ink2:#33413a;--ink3:#48564e;--mut:#5c6a62;--mut2:#75837a;--b12:rgba(22,33,27,.14);--accent:#1e6e50;--accent-bg:#e9f3ee;--card:#fff}
   #login-gate.show{display:flex}
-  .lg-left{flex:1;padding:56px 60px;display:flex;flex-direction:column;justify-content:center;background:linear-gradient(160deg,#0f172a,#172033)}
+  .lg-left{flex:1;padding:56px 60px;display:flex;flex-direction:column;justify-content:center;background:linear-gradient(160deg,#101613,#1a251e)}
   .lg-left .brand{margin-bottom:auto}
   .lg-left .brand b{color:#fff;font-size:18px}
-  .lg-left h2{font-size:40px;font-weight:800;letter-spacing:-.02em;line-height:1.1;max-width:12ch;margin-bottom:18px}
-  .lg-left p{color:#94a3b8;font-size:15px;line-height:1.6;max-width:46ch}
+  .lg-left h2{font-family:var(--serif);font-size:42px;font-weight:500;letter-spacing:-.005em;line-height:1.12;max-width:14ch;margin-bottom:18px}
+  .lg-left p{color:#9fac9f;font-size:15px;line-height:1.6;max-width:46ch}
   .lg-left ul{list-style:none;margin-top:26px;display:flex;flex-direction:column;gap:12px}
-  .lg-left li{display:flex;align-items:center;gap:10px;font-size:14px;color:#cbd5e1}
-  .lg-left li svg{width:18px;height:18px;stroke:var(--accent);flex:none}
-  .lg-foot{margin-top:auto;color:#64748b;font-size:12px;padding-top:30px}
+  .lg-left li{display:flex;align-items:center;gap:10px;font-size:14px;color:#c8d2c8}
+  .lg-left li svg{width:18px;height:18px;stroke:#4fae83;flex:none}
+  .lg-foot{margin-top:auto;color:#74816f;font-size:12px;padding-top:30px}
   .lg-right{width:460px;background:#fff;color:var(--ink);display:flex;flex-direction:column;justify-content:center;padding:0 56px}
   .lg-right h3{font-size:22px;font-weight:800;letter-spacing:-.01em}
   .lg-right .psub{color:var(--mut);font-size:13.5px;margin:4px 0 26px}
@@ -346,15 +367,15 @@
   .lg-field label{font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px}
   .lg-field input{width:100%;padding:11px 13px;border:1px solid var(--b12);border-radius:9px;font-size:14px}
   .lg-field input:focus{outline:none;border-color:var(--accent)}
-  .lg-btn{width:100%;padding:12px;border-radius:9px;background:var(--accent);color:#fff;border:none;font-weight:700;font-size:14px;box-shadow:0 2px 6px rgba(37,99,235,.35)}
+  .lg-btn{width:100%;padding:12px;border-radius:9px;background:var(--accent);color:#fff;border:none;font-weight:700;font-size:14px;box-shadow:0 2px 6px rgba(30,110,80,.3)}
   .lg-btn:hover{background:var(--accent-hi)}
   .lg-toggle{margin-top:18px;text-align:center;font-size:13px;color:var(--mut)}
   .lg-toggle a{color:var(--accent);font-weight:700;cursor:pointer}
-  .lg-err{background:var(--red-bg);color:var(--red);border:1px solid #fca5a5;border-radius:9px;padding:10px 12px;font-size:12.5px;font-weight:600;margin-bottom:16px;display:none}
+  .lg-err{background:var(--red-bg);color:var(--red);border:1px solid #e0b4ae;border-radius:9px;padding:10px 12px;font-size:12.5px;font-weight:600;margin-bottom:16px;display:none}
 
   /* role badge + admin */
   .role-badge{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:5px;background:var(--accent-bg);color:var(--accent)}
-  .role-badge.admin{background:#fef2f2;color:var(--red)}
+  .role-badge.admin{background:var(--red-bg);color:var(--red)}
   .role-badge.executive{background:var(--amber-bg);color:var(--amber)}
   .attrib{font-size:10.5px;color:var(--mut2);font-weight:600}
   .side-foot .logout{margin-left:auto;border:none;background:none;color:var(--mut2);cursor:pointer;padding:4px}
@@ -365,13 +386,13 @@
   [data-role="viewer"] .card-foot,[data-role="viewer"] .theme-btn{display:none !important}
   [data-role="viewer"] .ws-btn{pointer-events:none;opacity:.85}
   /* demo bar */
-  .demo-bar{position:fixed;top:0;left:0;right:0;height:44px;z-index:120;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 18px;background:linear-gradient(90deg,#1d4ed8,#2563eb);color:#fff;font-size:13px;font-weight:600;box-shadow:0 2px 10px rgba(15,23,42,.2)}
+  .demo-bar{position:fixed;top:0;left:0;right:0;height:44px;z-index:120;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 18px;background:linear-gradient(90deg,#15573e,#1e6e50);color:#fff;font-size:13px;font-weight:600;box-shadow:0 2px 10px rgba(16,22,19,.25)}
   .demo-bar b{font-weight:800}
   .demo-bar-actions{display:flex;gap:8px}
   .demo-bar button{border:1px solid rgba(255,255,255,.5);background:transparent;color:#fff;font-weight:700;font-size:12.5px;padding:6px 12px;border-radius:8px}
   .demo-bar button.primary{background:#fff;color:var(--accent);border-color:#fff}
   .demo-bar button:hover{background:rgba(255,255,255,.15)}
-  .demo-bar button.primary:hover{background:#f1f5f9}
+  .demo-bar button.primary:hover{background:#eef4ef}
   body.demo .app{height:calc(100vh - 44px);margin-top:44px}
   .admin-table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--b08);border-radius:15px;overflow:hidden}
   .admin-table th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);padding:11px 14px;background:var(--bg2);border-bottom:1px solid var(--b08);font-weight:700}
@@ -476,7 +497,7 @@
       <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Every explanation grounded in your own context</li>
       <li><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Audit-ready sources attached to every number</li>
     </ul>
-    <div class="lg-foot">SOC 2 Type II · Your data stays in your workspace</div>
+    <div class="lg-foot">Your data stays in your workspace · The AI never computes the numbers</div>
   </div>
   <div class="lg-right">
     <h3 id="lg-title">Sign in</h3>
@@ -486,13 +507,13 @@
     <div class="lg-field"><label>Password</label><input id="lg-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')submitAuth()"></div>
     <button class="lg-btn" id="lg-btn" onclick="submitAuth()">Sign in</button>
     <div class="lg-toggle" id="lg-toggle">Need an account? <a onclick="toggleAuthMode()">Sign up</a></div>
-    <button id="lg-demo" style="display:none;margin-top:14px;width:100%;padding:11px;border-radius:10px;border:1.5px dashed var(--accent);background:var(--accent-bg);color:var(--accent);font-weight:700;font-size:13.5px" onclick="enterDemo()">👀 Explore the live demo — no account needed</button>
+    <button id="lg-demo" style="display:none;margin-top:14px;width:100%;padding:11px;border-radius:10px;border:1.5px dashed var(--accent);background:var(--accent-bg);color:var(--accent);font-weight:700;font-size:13.5px" onclick="enterDemo()">Explore the live demo — no account needed</button>
   </div>
 </div>
 
 <a href="#v-dashboard" class="skip-link">Skip to content</a>
 <div class="demo-bar" id="demo-bar" style="display:none">
-  <span>👀 You're exploring the <b>demo</b> — sample data, read-only.</span>
+  <span>You're exploring the <b>demo</b> — sample data, read-only.</span>
   <div class="demo-bar-actions">
     <button onclick="exitDemo()">Exit demo</button>
     <button class="primary" onclick="exitDemo(true)">Sign up to use your data</button>
@@ -900,7 +921,7 @@ initTheme();
 function toggleExport(e){e.stopPropagation();$("export-menu").classList.toggle("open");}
 function reportDelta(label,v,downGood){
   const p=pct(v);if(p===null)return`<span class="rd flat">${label} –</span>`;
-  const good=downGood?v<0:v>0,col=v===0?"#64748b":good?"#15803d":"#dc2626",bg=v===0?"#f1f5f9":good?"#ecfdf3":"#fef2f2";
+  const good=downGood?v<0:v>0,col=v===0?"#5c6a62":good?"#1e6e50":"#b42e2c",bg=v===0?"#f1f3f0":good?"#e9f3ee":"#faeeed";
   return`<span class="rd" style="color:${col};background:${bg}">${v>0?"▲":v<0?"▼":"■"} ${label} ${p}</span>`;
 }
 function buildReportHTML(facts){
@@ -908,14 +929,14 @@ function buildReportHTML(facts){
   const anom=withData.filter(f=>f.is_anomaly).length;
   const mover=withData.filter(f=>f.deltas&&f.deltas.budget_var_pct!=null).sort((a,b)=>Math.abs(b.deltas.budget_var_pct)-Math.abs(a.deltas.budget_var_pct))[0];
   const cards=withData.map(f=>{
-    const dg=f.direction_good==="down",col=catColor(f.category)||"#94a3b8";
+    const dg=f.direction_good==="down",col=catColor(f.category)||"#8a948c";
     const spark=(f.chart_data&&f.chart_data.trend)?sparkline(f.chart_data.trend,f.direction_good,150,40,f.unit):"";
     const src=(f.sources||[]).map(s=>`<span class="src">${esc(s.title||s.id)}</span>`).join("");
     return`<div class="rcard" style="border-left:3px solid ${col}">
       <div class="rc-top"><span class="rc-dot" style="background:${col}"></span><span class="rc-name">${esc(f.metric)}</span>
         <span class="rc-cat">${esc(f.category||"")}</span></div>
       <div class="rc-vrow"><span class="rc-val">${fmt(f.value,f.unit)}</span>${spark}</div>
-      <div class="rc-deltas">${reportDelta("MoM",f.deltas.mom_pct,dg)}${reportDelta("vs plan",f.deltas.budget_var_pct,dg)}${f.is_anomaly?'<span class="rd" style="color:#dc2626;background:#fef2f2">ANOMALY</span>':""}</div>
+      <div class="rc-deltas">${reportDelta("MoM",f.deltas.mom_pct,dg)}${reportDelta("vs plan",f.deltas.budget_var_pct,dg)}${f.is_anomaly?'<span class="rd" style="color:#b42e2c;background:#faeeed">ANOMALY</span>':""}</div>
       <div class="rc-narr">${f.narrative?esc(f.narrative):"<i>No narrative generated for this metric.</i>"}</div>
       ${src?`<div class="rc-src">${src}</div>`:""}
     </div>`;
@@ -924,35 +945,38 @@ function buildReportHTML(facts){
   return`<!doctype html><html><head><meta charset="utf-8"><title>Closebrief Report ${esc(currentPeriod||"")}</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,Segoe UI,sans-serif;color:#0f172a;padding:28px 32px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    :root{--green2:#1e6e50;--red:#b42e2c;--mut2:#8a948c}
+    body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,Segoe UI,sans-serif;color:#16211b;padding:28px 32px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
     @font-face{font-family:'Plus Jakarta Sans';font-weight:400;src:url(/vendor/fonts/pjs-400.woff2) format('woff2')}
     @font-face{font-family:'Plus Jakarta Sans';font-weight:600;src:url(/vendor/fonts/pjs-600.woff2) format('woff2')}
     @font-face{font-family:'Plus Jakarta Sans';font-weight:700;src:url(/vendor/fonts/pjs-700.woff2) format('woff2')}
     @font-face{font-family:'Plus Jakarta Sans';font-weight:800;src:url(/vendor/fonts/pjs-800.woff2) format('woff2')}
-    .rhead{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #2563eb;padding-bottom:14px;margin-bottom:18px}
+    @font-face{font-family:'Newsreader';font-weight:400 700;src:url(/vendor/fonts/newsreader.woff2) format('woff2')}
+    @font-face{font-family:'IBM Plex Mono';font-weight:500;src:url(/vendor/fonts/plexmono-500.woff2) format('woff2')}
+    .rhead{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #1e6e50;padding-bottom:14px;margin-bottom:18px}
     .rhead .mark{display:inline-flex;align-items:center;gap:9px}
-    .rhead .mk{width:26px;height:26px;border-radius:7px;background:#2563eb;display:inline-flex;align-items:center;justify-content:center}
-    .rhead h1{font-size:19px;font-weight:800;letter-spacing:-.02em}
-    .rhead .sub{font-size:12px;color:#64748b;margin-top:2px}
-    .rhead .r{text-align:right;font-size:11.5px;color:#64748b;line-height:1.6}
-    .rsummary{display:flex;gap:26px;background:#f7f9fc;border:1px solid #e6ebf3;border-radius:10px;padding:13px 18px;margin-bottom:20px}
-    .rsummary div{font-size:11.5px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
-    .rsummary b{display:block;font-size:20px;color:#0f172a;font-weight:800;margin-top:3px;text-transform:none;letter-spacing:0}
+    .rhead .mk{width:26px;height:26px;border-radius:7px;background:#1e6e50;display:inline-flex;align-items:center;justify-content:center}
+    .rhead h1{font-family:'Newsreader',Georgia,serif;font-size:20px;font-weight:600;letter-spacing:-.005em}
+    .rhead .sub{font-size:12px;color:#5c6a62;margin-top:2px}
+    .rhead .r{text-align:right;font-size:11.5px;color:#5c6a62;line-height:1.6}
+    .rsummary{display:flex;gap:26px;background:#f4f7f4;border:1px solid #e2e8e2;border-radius:10px;padding:13px 18px;margin-bottom:20px}
+    .rsummary div{font-size:11.5px;color:#5c6a62;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+    .rsummary b{display:block;font-family:'IBM Plex Mono',Menlo,monospace;font-size:19px;color:#16211b;font-weight:500;margin-top:3px;text-transform:none;letter-spacing:0}
     .rgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-    .rcard{border:1px solid #e2e8f0;border-radius:11px;padding:15px 16px;break-inside:avoid}
+    .rcard{border:1px solid #e2e8e2;border-radius:11px;padding:15px 16px;break-inside:avoid}
     .rc-top{display:flex;align-items:center;gap:7px;margin-bottom:8px}
     .rc-dot{width:8px;height:8px;border-radius:50%;flex:none}
     .rc-name{font-weight:700;font-size:14px}
-    .rc-cat{margin-left:auto;font-size:10px;color:#94a3b8;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+    .rc-cat{margin-left:auto;font-size:10px;color:#8a948c;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
     .rc-vrow{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:9px}
-    .rc-val{font-size:26px;font-weight:800;letter-spacing:-.02em}
+    .rc-val{font-family:'IBM Plex Mono',Menlo,monospace;font-size:23px;font-weight:500;letter-spacing:-.02em}
     .rc-deltas{display:flex;gap:7px;margin-bottom:9px}
     .rd{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px}
-    .rd.flat{color:#64748b;background:#f1f5f9}
-    .rc-narr{font-size:12px;line-height:1.55;color:#334155}
+    .rd.flat{color:#5c6a62;background:#f1f3f0}
+    .rc-narr{font-family:'Newsreader',Georgia,serif;font-size:13.5px;line-height:1.6;color:#33413a}
     .rc-src{margin-top:9px;display:flex;flex-wrap:wrap;gap:5px}
-    .src{font-size:9.5px;font-weight:700;color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 7px;border-radius:5px}
-    .rfoot{margin-top:22px;padding-top:12px;border-top:1px solid #e2e8f0;font-size:10.5px;color:#94a3b8;text-align:center}
+    .src{font-size:9.5px;font-weight:700;color:#1e6e50;background:#e9f3ee;border:1px solid #c6ddd1;padding:2px 7px;border-radius:5px}
+    .rfoot{margin-top:22px;padding-top:12px;border-top:1px solid #e2e8e2;font-size:10.5px;color:#8a948c;text-align:center}
     @page{margin:14mm}
     @media print{.rcard{break-inside:avoid}}
   </style></head><body>
@@ -966,7 +990,7 @@ function buildReportHTML(facts){
       <div>Anomalies<b>${anom}</b></div>
       <div>Top mover vs plan<b style="font-size:14px">${mover?esc(mover.metric)+" ("+(pct(mover.deltas.budget_var_pct)||"–")+")":"—"}</b></div>
     </div>
-    <div class="rgrid">${cards||'<p style="color:#94a3b8">No KPI data for this period.</p>'}</div>
+    <div class="rgrid">${cards||'<p style="color:#8a948c">No KPI data for this period.</p>'}</div>
     <div class="rfoot">Generated by Closebrief · ${today} · Confidential</div>
   </body></html>`;
 }
@@ -995,7 +1019,7 @@ async function exportPPTX(){
     await loadPptx();
     const facts=shownFacts.filter(f=>f.has_data);
     const dark=document.documentElement.getAttribute("data-theme")==="dark";
-    const BG=dark?"151D2E":"FFFFFF",INK=dark?"F1F5F9":"0F172A",MUT=dark?"94A3B8":"64748B",ACC="2563EB";
+    const BG=dark?"171F1A":"FFFFFF",INK=dark?"E9EEE9":"16211B",MUT=dark?"93A096":"5C6A62",ACC=dark?"4FAE83":"1E6E50";
     const p=new PptxGenJS();p.layout="LAYOUT_16x9";   // 10 x 5.63in default
     const bg={color:BG};
     // Title slide
@@ -1407,12 +1431,16 @@ async function loadNotifications(){
   $("nt-loading").style.display="";
   try{
     const cfgs=await api("/notifications/configs");
-    const icon={email:"✉️",slack:"💬",webhook:"🔗"};
+    const icon={
+      email:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/>',
+      slack:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+      webhook:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>'};
+    const bell='<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>';
     $("nt-list").innerHTML=cfgs.length?cfgs.map(c=>{
       const cf=c.config||{},target=cf.recipients?cf.recipients.join(", "):(cf.webhook_url||cf.url||"—");
       const events=(cf.events||["all"]).join(", ");
       return`<div class="card" style="margin-top:12px;flex-direction:row;align-items:center;gap:14px">
-        <span style="font-size:22px">${icon[c.channel]||"🔔"}</span>
+        <span style="width:36px;height:36px;border-radius:9px;background:var(--accent-bg);display:inline-flex;align-items:center;justify-content:center;flex:none"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px">${icon[c.channel]||bell}</svg></span>
         <div style="flex:1;min-width:0">
           <b style="text-transform:capitalize">${esc(c.channel)}</b>
           <div style="font-size:12px;color:var(--mut);word-break:break-all">${esc(target)}</div>
@@ -1421,7 +1449,7 @@ async function loadNotifications(){
         <label style="font-size:12px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px">
           <input type="checkbox" ${c.enabled?"checked":""} onchange="ntToggle(${c.id},this.checked)"> Enabled</label>
         <button class="btn sm" onclick="ntTest(${c.id},this)">Send test</button>
-        <button class="ico" title="Delete" onclick="ntDelete(${c.id})">🗑</button>
+        <button class="ico" title="Delete channel" aria-label="Delete channel" onclick="ntDelete(${c.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
       </div>`;
     }).join(""):'<div class="empty-state">No channels configured yet. Add one above to receive alerts.</div>';
   }catch(e){toast(e.message);}
@@ -1620,7 +1648,7 @@ async function loadFacts(){
     const anom=currentFacts.filter(f=>f.is_anomaly).map(f=>f.metric);
     $("dash-title").textContent=fmtPeriodTitle(currentPeriod);
     const aggNote=granularity==="month"?"":" · narratives are written monthly";
-    $("dash-sub").innerHTML=`${currentFacts.length} ${currentFacts.length===1?"KPI":"KPIs"} · <b>${anom.length?plural(anom.length,"anomaly","anomalies"):"all nominal"}</b>${aggNote}`;
+    $("dash-sub").innerHTML=`${currentFacts.length} ${currentFacts.length===1?"KPI":"KPIs"} · <b>${anom.length?plural(anom.length,"anomaly","anomalies"):"no anomalies"}</b>${aggNote}`;
     const anomKey=`anomaly:${currentPeriod}`;
     if(anom.length&&!bannerDismissed(anomKey)){
       $("anomaly-banner").style.display="";
@@ -1675,6 +1703,13 @@ async function loadConflicts(){
 }
 const warnIcon=()=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>`;
 
+/* The signature mark: the auditor's tick. One seal wherever numbers are verified. */
+const TICK='<svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+const seal=ok=>ok
+  ?`<span class="seal" title="Every figure checked against computed facts">${TICK}Verified</span>`
+  :`<span class="seal failed" title="A figure couldn't be verified — review before sharing"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Needs review</span>`;
+const DOCICON='<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
+
 /* ---------- cost & usage ---------- */
 const usd=v=>{v=+v||0;return "$"+(v<1?v.toFixed(4):v.toFixed(2));};
 let costsData=null;
@@ -1687,13 +1722,13 @@ async function loadCosts(){
     const lat=c.latency||{},p95s=Object.values(lat).map(x=>x.p95_ms).filter(v=>v!=null);
     const worstP95=p95s.length?Math.max(...p95s):null;
     const svg=(p,col)=>`<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="--sc:${col}">${p}</svg>`;
-    const tile=(lbl,path,col,val,hint)=>`<div class="stat rise" style="--sc:${col}"><span class="stat-lbl">${svg(path,col)}${lbl}</span><span class="stat-val">${val}</span><span class="stat-hint">${hint}</span></div>`;
+    const tile=(lbl,path,col,val,hint)=>`<div class="stat rise" style="--sc:${col}"><span class="stat-lbl">${svg(path,col)}${lbl}</span><span class="stat-val nbi-num">${val}</span><span class="stat-hint">${hint}</span></div>`;
     $("costs-stats").innerHTML=[
       tile("Total spend",'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',"#008300",usd(c.total_cost_usd),"across all LLM calls"),
       tile("LLM calls",'<path d="M13 2 3 14h7l-1 8 10-12h-7z"/>',"#4a3aa7",c.total_llm_calls||0,"generations + digests"),
-      tile("Cache hit rate",'<path d="M21 12a9 9 0 1 1-6.2-8.5"/><path d="M21 3v6h-6"/>',hr>=0.5?"#0ca30c":"#eda100",hr==null?"—":Math.round(hr*100)+"%",`${cache.hits||0} hits · ${cache.misses||0} misses`),
+      tile("Cache hit rate",'<path d="M21 12a9 9 0 1 1-6.2-8.5"/><path d="M21 3v6h-6"/>',hr>=0.5?"#1e6e50":"#eda100",hr==null?"—":Math.round(hr*100)+"%",`${cache.hits||0} hits · ${cache.misses||0} misses`),
       tile("Worst p95 latency",'<path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/>',worstP95>2000?"#d03b3b":"#2a78d6",worstP95==null?"—":Math.round(worstP95)+" ms","slowest endpoint"),
-    ].join("");countUp();
+    ].join("");
     // Spend-by-day chart (aggregate endpoints per day)
     const byDay={};(c.by_day||[]).forEach(r=>{byDay[r.day]=(byDay[r.day]||0)+(+r.cost_usd||0);});
     const days=Object.keys(byDay).sort();
@@ -1765,28 +1800,16 @@ function renderStatrow(facts){
     warn:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/>',
     trend:'<path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-5"/>'};
   const svg=(p,c)=>`<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="--sc:${c}">${p}</svg>`;
-  const tile=(lbl,path,color,val,hint,count)=>`<div class="stat rise" style="--sc:${color}">
+  const tile=(lbl,path,color,val,hint,mono)=>`<div class="stat rise" style="--sc:${color}">
     <span class="stat-lbl">${svg(path,color)}${lbl}</span>
-    <span class="stat-val"${count!=null?` data-count="${count}"`:""}>${val}</span><span class="stat-hint">${hint}</span></div>`;
+    <span class="stat-val${mono?" nbi-num":""}">${val}</span><span class="stat-hint">${hint}</span></div>`;
   const attn=anom?`${plural(anom,"anomaly","anomalies")}`:"All clear";
   el.innerHTML=[
-    `<div class="stat rise${anom?" alert":""}" style="--sc:${anom?"#d03b3b":"#0ca30c"}"><span class="stat-lbl">${svg(ic.warn,anom?"#d03b3b":"#0ca30c")}Needs attention</span><span class="stat-val">${attn}</span><span class="stat-hint">${anom?"open the flagged card to review":"no anomalies this period"}</span></div>`,
+    `<div class="stat rise${anom?" alert":""}" style="--sc:${anom?"#d03b3b":"#1e6e50"}"><span class="stat-lbl">${svg(ic.warn,anom?"#d03b3b":"#1e6e50")}Needs attention</span><span class="stat-val">${attn}</span><span class="stat-hint">${anom?"open the flagged card to review":"no anomalies this period"}</span></div>`,
     mover?tile("Top mover vs plan",ic.trend,catColor(mover.category)||"#eb6834",esc(mover.metric),`${pct(mover.deltas.budget_var_pct)||"–"} vs budget`):"",
-    tile("Narratives",ic.bolt,"#4a3aa7",`${narr}<small>/${withData.length}</small>`,narr===withData.length?"all explained":`${withData.length-narr} to generate`),
-    tile("Off plan",ic.grid,offPlan?"#b45309":"#2a78d6",offPlan,offPlan?"KPIs behind budget":"everything on or ahead of plan",offPlan)
+    tile("Narratives",ic.bolt,"#4a3aa7",`${narr}<small>/${withData.length}</small>`,narr===withData.length?"all explained":`${withData.length-narr} to generate`,true),
+    tile("Off plan",ic.grid,offPlan?"#b45309":"#2a78d6",offPlan,offPlan?"KPIs behind budget":"everything on or ahead of plan",true)
   ].join("");
-  countUp();
-}
-function countUp(){
-  if(matchMedia("(prefers-reduced-motion:reduce)").matches)return;
-  document.querySelectorAll(".stat-val[data-count]").forEach(el=>{
-    const target=+el.dataset.count;if(!target){el.textContent="0";return;}
-    const dur=Math.min(120*String(target).length+180,700);let t0=null;
-    const step=ts=>{t0??=ts;const p=Math.min((ts-t0)/dur,1);
-      el.textContent=Math.round(target*(1-Math.pow(1-p,3)));
-      if(p<1)requestAnimationFrame(step);};
-    requestAnimationFrame(step);
-  });
 }
 let shownFacts=[];
 function renderPills(){
@@ -1818,14 +1841,14 @@ function renderCards(){
         <div class="narr muted">No data for ${esc(currentPeriod)} in this dataset.</div></div>`;
     }
     // ONE status slot beside the value (was 4 competing badge systems).
-    const status=f.is_anomaly?'<span class="anom">anomaly</span>'
-      :f.faithfulness==="failed"?'<span class="badge failed">review ✗</span>'
-      :f.faithfulness==="passed"?'<span class="badge passed">verified ✓</span>':"";
+    const status=f.is_anomaly?'<span class="anom">Anomaly</span>'
+      :f.faithfulness==="failed"?seal(false)
+      :f.faithfulness==="passed"?seal(true):"";
     const nsrc=(f.sources||[]).length;
     return`<div class="card click ${rise}" ${delay} onclick="openDetail(${i})">
       <div class="card-top">
         <span class="card-name" title="${esc(f.category||"Uncategorized")}"><span class="cat-dot"></span>${hl(f.metric,q)}</span>
-        ${f.chart_data&&f.chart_data.trend?sparkline(f.chart_data.trend,f.direction_good,84,26,f.unit):""}
+        ${f.chart_data&&f.chart_data.trend?sparkline(f.chart_data.trend,f.direction_good,96,28,f.unit):""}
       </div>
       <div class="card-value-row">
         <span style="display:flex;align-items:center;gap:9px"><span class="card-value nbi-num" ${f.unavailable?'title="Ratios/percentages aren\'t aggregated across months — view at Month granularity"':""}>${f.unavailable?"—":fmt(f.value,f.unit)}</span>${status}${f.edited?'<span class="badge edited">edited</span>':""}</span>
@@ -1869,16 +1892,16 @@ function sparkline(trend,dir,w=110,h=34,unit=""){
 }
 function trendColor(trend,dir){
   const v=trend.map(t=>t.value).filter(x=>x!=null);if(v.length<2)return"var(--mut2)";
-  const up=v[v.length-1]>=v[0],good=dir==="down"?!up:up;return good?"#16a34a":"#dc2626";
+  const up=v[v.length-1]>=v[0],good=dir==="down"?!up:up;return good?"var(--green2)":"var(--red)";
 }
 
 /* ---- Chart.js: interactive, theme-aware detail charts ---- */
 const chartReg={};                       // canvasId -> Chart instance
 function cssv(name){return getComputedStyle(document.documentElement).getPropertyValue(name).trim();}
 function chartTheme(){
-  return {ink:cssv("--ink2")||"#334155",mut:cssv("--mut2")||"#94a3b8",
-    grid:cssv("--b08")||"rgba(15,23,42,.08)",accent:cssv("--accent")||"#2563eb",
-    green:cssv("--green2")||"#16a34a",red:cssv("--red")||"#dc2626",card:cssv("--card")||"#fff"};
+  return {ink:cssv("--ink2")||"#33413a",mut:cssv("--mut2")||"#8a948c",
+    grid:cssv("--b08")||"rgba(22,33,27,.09)",accent:cssv("--accent")||"#1e6e50",
+    green:cssv("--green2")||"#25835f",red:cssv("--red")||"#b42e2c",card:cssv("--card")||"#fff"};
 }
 if(window.Chart){
   Chart.defaults.font.family="'Plus Jakarta Sans',system-ui,-apple-system,sans-serif";
@@ -1964,7 +1987,7 @@ function openDetail(i){
   $("d-title").textContent=f.metric;const dg=f.direction_good==="down";
   $("d-sub").innerHTML=`<span class="cat-dot" style="${catStyle(f.category)}"></span>${esc(f.category||"")} · ${esc(currentPeriod)} · ${fmt(f.value,f.unit)} `
     +deltaChip("MoM",f.deltas.mom_pct,dg)+" "+deltaChip("vs plan",f.deltas.budget_var_pct,dg)
-    +(f.is_anomaly?' <span class="anom">ANOMALY</span>':"");
+    +(f.is_anomaly?' <span class="anom">Anomaly</span>':"");
   const cd=f.chart_data||{};
   // Restore canvases (an earlier "no data" state may have replaced them with text).
   $("d-trend").innerHTML=trendTable(cd.trend||[],f.unit);
@@ -1976,7 +1999,7 @@ function openDetail(i){
   $("d-narr").className="narr"+(f.narrative?"":" muted");
   $("d-narr").innerHTML=f.narrative?esc(f.narrative)+(f.edited&&f.original_narrative?`<details class="tbl" style="margin-top:8px"><summary>Show original (pre-edit)</summary><p style="margin-top:6px;color:var(--mut)">${esc(f.original_narrative)}</p></details>`:""):"No narrative yet — generate one from the dashboard card.";
   $("d-narr-meta").textContent=(f.confidence?`${f.confidence} confidence · numbers ${f.faithfulness}`:"")+(f.edited?" · edited by analyst":"")+(f.cost_usd!=null?` · ≈ $${(+f.cost_usd).toFixed(4)}`:"");
-  $("d-chips").innerHTML=(f.sources||[]).map(s=>`<span class="chip" title="Open source note" onclick="showSourceDoc('${esc(s.id)}')">📎 ${esc(s.title||s.id)}</span>`).join("");
+  $("d-chips").innerHTML=(f.sources||[]).map(s=>`<span class="chip" title="Open source note" onclick="showSourceDoc('${esc(s.id)}')">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
   $("d-qa-answer").innerHTML="";$("d-qa").value="";
   loadCorrelations(f.metric);
 }
@@ -2007,10 +2030,10 @@ async function askQA(){
   try{
     const r=await api("/ask",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({metric:detailFact.metric,period:detailFact.period||currentPeriod,question:q})});
-    const srcs=(r.sources||[]).map(s=>`<span class="chip" onclick="showSourceDoc('${esc(s.id)}')">📎 ${esc(s.title||s.id)}</span>`).join("");
+    const srcs=(r.sources||[]).map(s=>`<span class="chip" onclick="showSourceDoc('${esc(s.id)}')">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
     $("d-qa-answer").innerHTML=`<div class="banner info" style="margin:0;display:block">
-      ${esc(r.answer||"No grounded answer available.")}
-      <div class="chips" style="margin-top:8px">${srcs}${r.grounded?'<span class="badge passed">numbers verified ✓</span>':""}</div></div>`;
+      <span style="font-family:var(--serif);font-size:14.5px;font-weight:400;color:var(--ink2)">${esc(r.answer||"No grounded answer available.")}</span>
+      <div class="chips" style="margin-top:8px">${srcs}${r.grounded?seal(true):""}</div></div>`;
   }catch(e){$("d-qa-answer").innerHTML=`<div class="banner err" style="margin:0">${esc(e.message)}</div>`;}
 }
 
@@ -2111,7 +2134,7 @@ async function loadDigest(force){
       ${it.detail?`<p>${esc(it.detail)}</p>`:""}
       <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span class="delta ${it.budget_var_abs<0?"bad":"good"}">${fmt(it.budget_var_abs,"USD")} vs budget (${pct(it.budget_var_pct)||"–"})</span>
-        <span class="badge ${it.faithfulness}">numbers ${it.faithfulness==="passed"?"verified ✓":"flagged ✗"}</span>
+        ${seal(it.faithfulness==="passed")}
         ${it.report_id?`<button class="txtact" style="margin-left:auto" onclick="feedback(${it.report_id},'accepted',this)">Accept</button><button class="txtact bad" onclick="rejectNarr(${it.report_id},this)">Reject</button>`:""}
       </div></div>`).join("")||'<div class="empty-state">No movers with budget data for this period.</div>';
     if(d.cost_usd!=null||d.cached)$("digest-list").insertAdjacentHTML("beforeend",`<div class="cost" style="margin-top:8px">${d.cached?"served from cache (no LLM cost)":"≈ $"+(+d.cost_usd).toFixed(4)+" this run"}</div>`);
@@ -2154,7 +2177,7 @@ async function uploadFile(file){
     if(upload)upload.filename=file.name;   // for the dataset-name default
     if(upload.sheets&&upload.sheets.length>1){$("sheet-pick").style.display="";$("sheet-sel").innerHTML=upload.sheets.map(s=>`<option>${esc(s)}</option>`).join("");}
     else $("sheet-pick").style.display="none";
-    if(upload.suggested_template_id){$("tpl-banner").style.display="";$("tpl-banner").innerHTML=`✨ Recognized format — <button class="btn sm" style="margin-left:8px" onclick="applyTpl(${upload.suggested_template_id})">Apply saved mapping</button>`;}
+    if(upload.suggested_template_id){$("tpl-banner").style.display="";$("tpl-banner").innerHTML=`Recognized format — <button class="btn sm" style="margin-left:8px" onclick="applyTpl(${upload.suggested_template_id})">Apply saved mapping</button>`;}
     else $("tpl-banner").style.display="none";
     setStep(2);await loadSchema();
   }catch(e){$("imp-result").innerHTML=`<div class="banner err">${warnIcon()}${esc(e.message)}</div>`;}
@@ -2230,7 +2253,7 @@ async function confirmKpis(){
 
 // Entry point: boot() handles auth (creates the Supabase client, checks the
 // session) and then calls startApp(), which loads periods and applies the hash.
-console.log("Closebrief UI build: v4.0.0 (rearranged UX: 3-zone header, pills, clamped cards, attention-first)");
+console.log("Closebrief UI build: v5.0.0 (ledger identity: green ink, serif brief, mono figures, verified seal)");
 boot();
 </script>
 </body>
