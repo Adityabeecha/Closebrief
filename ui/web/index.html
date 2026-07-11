@@ -14,6 +14,9 @@
 <meta name="twitter:description" content="Audit-ready variance commentary on your KPIs — deterministic numbers, AI-written prose, every figure verified.">
 
 <link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="7" fill="%231e6e50"/><path d="M8 24v-7M16 24V11M24 24V8" stroke="white" stroke-width="3.4" stroke-linecap="round"/></svg>'>
+<!-- Above-the-fold fonts: preload so first paint doesn't swap from the fallback. -->
+<link rel="preload" as="font" type="font/woff2" href="/vendor/fonts/newsreader.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="/vendor/fonts/plexmono-500.woff2" crossorigin>
 <script src="/vendor/supabase.js"></script>
 <script src="/vendor/chart.min.js"></script>
 <script src="/vendor/sentry.min.js"></script>
@@ -35,7 +38,7 @@
   :root{
     --serif:'Newsreader',Georgia,'Times New Roman',serif;
     --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
-    --accent:#1e6e50; --accent-hi:#15573e; --accent-bg:#e9f3ee;
+    --accent:#1e6e50; --accent-hi:#15573e; --accent-bg:#e9f3ee; --on-accent:#fff;
     --ink:#16211b; --ink2:#33413a; --ink3:#48564e; --mut:#5c6a62; --mut2:#75837a;
     --b08:rgba(22,33,27,.09); --b12:rgba(22,33,27,.14); --b24:rgba(22,33,27,.26);
     --bg:#f7f8f6; --bg2:#f1f3f0; --bg3:#e9ece8; --card:#fff;
@@ -45,7 +48,7 @@
     --wash:#edf2ee; --pop:#16211b; --pop-ink:#fbfcfa;
   }
   :root[data-theme="dark"]{
-    --accent:#4fae83; --accent-hi:#6cc49b; --accent-bg:rgba(79,174,131,.15);
+    --accent:#4fae83; --accent-hi:#6cc49b; --accent-bg:rgba(79,174,131,.15); --on-accent:#0d1411;
     --ink:#e9eee9; --ink2:#d4dcd5; --ink3:#b4bfb6; --mut:#93a096; --mut2:#7d8a80;
     --b08:rgba(233,238,233,.07); --b12:rgba(233,238,233,.12); --b24:rgba(233,238,233,.22);
     --bg:#101613; --bg2:#161d19; --bg3:#212a24; --card:#171f1a;
@@ -128,7 +131,7 @@
   .ws-newbtn{display:flex;align-items:center;gap:8px;width:100%;padding:8px 9px;border-radius:8px;border:1px dashed var(--b12);background:none;color:var(--accent);font-size:12.5px;font-weight:700;margin-top:4px}
   .ws-newbtn:hover{background:var(--accent-bg)}
 
-  .nav{padding:6px 12px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;flex:1;scrollbar-width:none}
+  .nav{padding:14px 12px 6px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;flex:1;scrollbar-width:none}
   .nav::-webkit-scrollbar{width:0;height:0}
   /* Role-gated nav: Cost/Notifications/User Management are admin-only */
   :root:not([data-role="admin"]) .admin-only{display:none !important}
@@ -159,9 +162,10 @@
   select.pill-btn{padding-right:8px}
   .btn{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:9px;font-size:13px;font-weight:700;color:var(--ink2);background:var(--card);border:1px solid var(--b12)}
   .btn:hover{border-color:var(--b24);background:var(--bg2)}
-  .btn.primary{background:linear-gradient(180deg,#27825f,var(--accent));border-color:var(--accent);color:#fff;box-shadow:0 2px 6px rgba(30,110,80,.3)}
+  .btn.primary{background:linear-gradient(180deg,#27825f,var(--accent));border-color:var(--accent);color:var(--on-accent);box-shadow:0 2px 6px rgba(30,110,80,.3)}
   .btn.primary:hover{background:linear-gradient(180deg,var(--accent),var(--accent-hi))}
-  :root[data-theme="dark"] .btn.primary{background:var(--accent);color:#0d1411}
+  :root[data-theme="dark"] .btn.primary{background:var(--accent)}
+  :root[data-theme="dark"] .btn.primary:hover{background:var(--accent-hi)}
   /* Fixed red (not var(--red), which is light in dark mode) so white text stays legible. */
   .btn.danger{background:#b42e2c;border-color:#b42e2c;color:#fff}
   .btn.danger:hover{background:#93312a;border-color:#93312a}
@@ -221,9 +225,8 @@
   .chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
   .chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-bg);border:1px solid rgba(30,110,80,.25);padding:3px 9px;border-radius:6px;cursor:pointer}
   .chip svg{width:11px;height:11px;stroke:currentColor;flex:none}
+  /* Verified/failed status renders via seal() — only the "edited" badge remains. */
   .badge{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:6px}
-  .badge.passed{color:var(--green);background:var(--green-bg)}
-  .badge.failed{color:var(--red);background:var(--red-bg)}
   .badge.edited{color:var(--amber);background:var(--amber-bg)}
   .cost{font-size:11px;font-weight:600;color:var(--mut2);font-variant-numeric:tabular-nums;margin-left:auto}
   .card-foot{display:flex;align-items:center;gap:14px;margin-top:1px;padding-top:10px;border-top:1px solid var(--bg3)}
@@ -258,16 +261,14 @@
   .catbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
   .cpill{border:1px solid var(--b12);background:var(--card);border-radius:20px;padding:6px 13px;font-size:12px;font-weight:700;color:var(--ink3)}
   .cpill:hover{border-color:var(--b24)}
-  .cpill.on{background:var(--accent);color:#fff;border-color:var(--accent)}
-  :root[data-theme="dark"] .cpill.on{color:#0d1411}
+  .cpill.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
   .tool-right{margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
   .tbtn{border:1px solid var(--b12);background:var(--card);border-radius:20px;padding:6px 13px;font-size:12px;font-weight:700;color:var(--ink3)}
   .tbtn:hover{border-color:var(--b24);background:var(--bg2)}
   .period-ctl{display:inline-flex;align-items:stretch;border:1px solid var(--b12);border-radius:9px;overflow:hidden;background:var(--card)}
   .period-ctl .seg{display:inline-flex;border-right:1px solid var(--b08)}
   .period-ctl .seg button{border:none;background:none;padding:7px 10px;font-size:11.5px;font-weight:800;color:var(--mut);border-right:1px solid var(--b08)}
-  .period-ctl .seg button.active{background:var(--accent);color:#fff}
-  :root[data-theme="dark"] .period-ctl .seg button.active,:root[data-theme="dark"] .step.active,:root[data-theme="dark"] .rank-n.top{color:#0d1411}
+  .period-ctl .seg button.active{background:var(--accent);color:var(--on-accent)}
   .period-ctl .seg button:not(.active):hover{background:var(--bg2);color:var(--ink2)}
   .period-ctl .pnav{border:none;background:none;color:var(--ink3);font-size:15px;font-weight:700;padding:0 9px}
   .period-ctl .pnav:hover{background:var(--bg2)}
@@ -299,7 +300,7 @@
   .digest-item{background:var(--card);border:1px solid var(--b08);border-radius:15px;padding:18px 20px;margin-bottom:12px}
   .digest-item .rank{font-size:11px;font-weight:800;color:var(--mut2);letter-spacing:.04em}
   .rank-n{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:22px;border-radius:7px;background:var(--bg3);color:var(--ink3);font-size:11px;font-weight:800;padding:0 5px;margin-right:6px}
-  .rank-n.top{background:var(--accent);color:#fff;box-shadow:0 2px 6px rgba(30,110,80,.3)}
+  .rank-n.top{background:var(--accent);color:var(--on-accent);box-shadow:0 2px 6px rgba(30,110,80,.3)}
   .digest-item h3{font-family:var(--serif);font-size:19px;font-weight:600;margin:6px 0 6px;letter-spacing:-.005em}
   .digest-item p{font-family:var(--serif);font-size:15px;line-height:1.6;color:var(--ink2)}
 
@@ -317,11 +318,14 @@
   .ctx-tag{display:inline-block;font-size:10.5px;font-weight:600;color:var(--mut);background:var(--bg2);border:1px solid var(--b08);padding:2px 7px;border-radius:5px;margin:1px 2px 1px 0}
   .row-del{border:none;background:none;color:var(--mut2);font-size:15px}
   .row-del:hover{color:var(--red)}
+  /* notification-channel icon chip */
+  .nt-ic{width:36px;height:36px;border-radius:9px;background:var(--accent-bg);display:inline-flex;align-items:center;justify-content:center;flex:none}
+  .nt-ic svg{width:17px;height:17px;stroke:var(--accent)}
 
   /* ---------------- IMPORT ---------------- */
   .steps{display:flex;gap:8px;margin-bottom:20px}
   .step{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;padding:6px 13px;border-radius:20px;background:var(--bg3);color:var(--mut)}
-  .step.active{background:var(--accent);color:#fff}
+  .step.active{background:var(--accent);color:var(--on-accent)}
   .step.done{background:var(--green-bg);color:var(--green)}
   .drop{background:var(--card);border:2px dashed var(--b12);border-radius:16px;padding:58px 20px;text-align:center;color:var(--mut)}
   .drop.drag{border-color:var(--accent);background:var(--accent-bg)}
@@ -390,7 +394,9 @@
   .demo-bar b{font-weight:800}
   .demo-bar-actions{display:flex;gap:8px}
   .demo-bar button{border:1px solid rgba(255,255,255,.5);background:transparent;color:#fff;font-weight:700;font-size:12.5px;padding:6px 12px;border-radius:8px}
-  .demo-bar button.primary{background:#fff;color:var(--accent);border-color:#fff}
+  /* The demo bar is theme-independent (fixed green gradient), so its button uses the
+     fixed brand green rather than var(--accent), which lightens in dark mode. */
+  .demo-bar button.primary{background:#fff;color:#1e6e50;border-color:#fff}
   .demo-bar button:hover{background:rgba(255,255,255,.15)}
   .demo-bar button.primary:hover{background:#eef4ef}
   body.demo .app{height:calc(100vh - 44px);margin-top:44px}
@@ -401,7 +407,7 @@
 
   /* ---------------- A11Y ---------------- */
   :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
-  .skip-link{position:fixed;top:-60px;left:12px;z-index:200;background:var(--accent);color:#fff;padding:9px 16px;border-radius:0 0 9px 9px;font-weight:700;font-size:13px;transition:top .18s}
+  .skip-link{position:fixed;top:-60px;left:12px;z-index:200;background:var(--accent);color:var(--on-accent);padding:9px 16px;border-radius:0 0 9px 9px;font-weight:700;font-size:13px;transition:top .18s}
   .skip-link:focus{top:0}
 
   /* ---------------- COMMAND PALETTE ---------------- */
@@ -420,7 +426,7 @@
   .cmdk-item small{margin-left:auto;font-size:11px;color:var(--mut2);font-weight:600}
   .cmdk-item.sel,.cmdk-item:hover{background:var(--accent-bg);color:var(--accent)}
   .cmdk-item.sel .ci-ic,.cmdk-item:hover .ci-ic{background:var(--accent)}
-  .cmdk-item.sel .ci-ic svg,.cmdk-item:hover .ci-ic svg{stroke:#fff}
+  .cmdk-item.sel .ci-ic svg,.cmdk-item:hover .ci-ic svg{stroke:var(--on-accent)}
   .cmdk-empty{padding:26px;text-align:center;color:var(--mut2);font-size:13px}
   .cmdk-foot{display:flex;gap:14px;padding:9px 14px;border-top:1px solid var(--b08);font-size:11px;color:var(--mut2);font-weight:600}
   .cmdk-foot kbd{background:var(--bg3);border:1px solid var(--b08);border-radius:5px;padding:1px 6px;font-family:inherit;font-size:10.5px;margin-right:3px}
@@ -920,10 +926,13 @@ function toggleTheme(){
 initTheme();
 
 /* ---------- export (PDF / PPTX) ---------- */
+/* Fixed brand colors for standalone exports, which can't read the app's CSS
+   tokens at runtime. Keep in sync with --accent / --red in :root. */
+const BRAND={green:"#1e6e50",greenDark:"#4fae83",red:"#b42e2c"};
 function toggleExport(e){e.stopPropagation();$("export-menu").classList.toggle("open");}
 function reportDelta(label,v,downGood){
   const p=pct(v);if(p===null)return`<span class="rd flat">${label} –</span>`;
-  const good=downGood?v<0:v>0,col=v===0?"#5c6a62":good?"#1e6e50":"#b42e2c",bg=v===0?"#f1f3f0":good?"#e9f3ee":"#faeeed";
+  const good=downGood?v<0:v>0,col=v===0?"#5c6a62":good?BRAND.green:BRAND.red,bg=v===0?"#f1f3f0":good?"#e9f3ee":"#faeeed";
   return`<span class="rd" style="color:${col};background:${bg}">${v>0?"▲":v<0?"▼":"■"} ${label} ${p}</span>`;
 }
 function buildReportHTML(facts){
@@ -947,7 +956,7 @@ function buildReportHTML(facts){
   return`<!doctype html><html><head><meta charset="utf-8"><title>Closebrief Report ${esc(currentPeriod||"")}</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    :root{--green2:#1e6e50;--red:#b42e2c;--mut2:#8a948c}
+    :root{--green2:${BRAND.green};--red:${BRAND.red};--mut2:#8a948c}
     body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,Segoe UI,sans-serif;color:#16211b;padding:28px 32px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
     @font-face{font-family:'Plus Jakarta Sans';font-weight:400;src:url(/vendor/fonts/pjs-400.woff2) format('woff2')}
     @font-face{font-family:'Plus Jakarta Sans';font-weight:600;src:url(/vendor/fonts/pjs-600.woff2) format('woff2')}
@@ -955,9 +964,9 @@ function buildReportHTML(facts){
     @font-face{font-family:'Plus Jakarta Sans';font-weight:800;src:url(/vendor/fonts/pjs-800.woff2) format('woff2')}
     @font-face{font-family:'Newsreader';font-weight:400 700;src:url(/vendor/fonts/newsreader.woff2) format('woff2')}
     @font-face{font-family:'IBM Plex Mono';font-weight:500;src:url(/vendor/fonts/plexmono-500.woff2) format('woff2')}
-    .rhead{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #1e6e50;padding-bottom:14px;margin-bottom:18px}
+    .rhead{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid ${BRAND.green};padding-bottom:14px;margin-bottom:18px}
     .rhead .mark{display:inline-flex;align-items:center;gap:9px}
-    .rhead .mk{width:26px;height:26px;border-radius:7px;background:#1e6e50;display:inline-flex;align-items:center;justify-content:center}
+    .rhead .mk{width:26px;height:26px;border-radius:7px;background:${BRAND.green};display:inline-flex;align-items:center;justify-content:center}
     .rhead h1{font-family:'Newsreader',Georgia,serif;font-size:20px;font-weight:600;letter-spacing:-.005em}
     .rhead .sub{font-size:12px;color:#5c6a62;margin-top:2px}
     .rhead .r{text-align:right;font-size:11.5px;color:#5c6a62;line-height:1.6}
@@ -977,7 +986,7 @@ function buildReportHTML(facts){
     .rd.flat{color:#5c6a62;background:#f1f3f0}
     .rc-narr{font-family:'Newsreader',Georgia,serif;font-size:13.5px;line-height:1.6;color:#33413a}
     .rc-src{margin-top:9px;display:flex;flex-wrap:wrap;gap:5px}
-    .src{font-size:9.5px;font-weight:700;color:#1e6e50;background:#e9f3ee;border:1px solid #c6ddd1;padding:2px 7px;border-radius:5px}
+    .src{font-size:9.5px;font-weight:700;color:${BRAND.green};background:#e9f3ee;border:1px solid #c6ddd1;padding:2px 7px;border-radius:5px}
     .rfoot{margin-top:22px;padding-top:12px;border-top:1px solid #e2e8e2;font-size:10.5px;color:#8a948c;text-align:center}
     @page{margin:14mm}
     @media print{.rcard{break-inside:avoid}}
@@ -1021,7 +1030,7 @@ async function exportPPTX(){
     await loadPptx();
     const facts=shownFacts.filter(f=>f.has_data);
     const dark=document.documentElement.getAttribute("data-theme")==="dark";
-    const BG=dark?"171F1A":"FFFFFF",INK=dark?"E9EEE9":"16211B",MUT=dark?"93A096":"5C6A62",ACC=dark?"4FAE83":"1E6E50";
+    const BG=dark?"171F1A":"FFFFFF",INK=dark?"E9EEE9":"16211B",MUT=dark?"93A096":"5C6A62",ACC=(dark?BRAND.greenDark:BRAND.green).slice(1).toUpperCase();
     const p=new PptxGenJS();p.layout="LAYOUT_16x9";   // 10 x 5.63in default
     const bg={color:BG};
     // Title slide
@@ -1433,16 +1442,12 @@ async function loadNotifications(){
   $("nt-loading").style.display="";
   try{
     const cfgs=await api("/notifications/configs");
-    const icon={
-      email:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/>',
-      slack:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
-      webhook:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>'};
-    const bell='<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>';
+    const icon={email:ICON_PATHS.mail,slack:ICON_PATHS.chat,webhook:ICON_PATHS.link};
     $("nt-list").innerHTML=cfgs.length?cfgs.map(c=>{
       const cf=c.config||{},target=cf.recipients?cf.recipients.join(", "):(cf.webhook_url||cf.url||"—");
       const events=(cf.events||["all"]).join(", ");
       return`<div class="card" style="margin-top:12px;flex-direction:row;align-items:center;gap:14px">
-        <span style="width:36px;height:36px;border-radius:9px;background:var(--accent-bg);display:inline-flex;align-items:center;justify-content:center;flex:none"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px">${icon[c.channel]||bell}</svg></span>
+        <span class="nt-ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${icon[c.channel]||ICON_PATHS.bell}</svg></span>
         <div style="flex:1;min-width:0">
           <b style="text-transform:capitalize">${esc(c.channel)}</b>
           <div style="font-size:12px;color:var(--mut);word-break:break-all">${esc(target)}</div>
@@ -1451,7 +1456,7 @@ async function loadNotifications(){
         <label style="font-size:12px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px">
           <input type="checkbox" ${c.enabled?"checked":""} onchange="ntToggle(${c.id},this.checked)"> Enabled</label>
         <button class="btn sm" onclick="ntTest(${c.id},this)">Send test</button>
-        <button class="ico" title="Delete channel" aria-label="Delete channel" onclick="ntDelete(${c.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+        <button class="ico" title="Delete channel" aria-label="Delete channel" onclick="ntDelete(${c.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">${ICON_PATHS.trash}</svg></button>
       </div>`;
     }).join(""):'<div class="empty-state">No channels configured yet. Add one above to receive alerts.</div>';
   }catch(e){toast(e.message);}
@@ -1711,6 +1716,14 @@ const seal=ok=>ok
   ?`<span class="seal" title="Every figure checked against computed facts">${TICK}Verified</span>`
   :`<span class="seal failed" title="A figure couldn't be verified — review before sharing"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Needs review</span>`;
 const DOCICON='<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
+/* Icon registry for JS-rendered markup. The bell mirrors the static sidebar-nav
+   bell — change both together. */
+const ICON_PATHS={
+  bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
+  mail:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/>',
+  chat:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  link:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  trash:'<path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>'};
 
 /* ---------- cost & usage ---------- */
 const usd=v=>{v=+v||0;return "$"+(v<1?v.toFixed(4):v.toFixed(2));};
@@ -1723,13 +1736,13 @@ async function loadCosts(){
     const cache=c.cache||{},hr=cache.hit_rate;
     const lat=c.latency||{},p95s=Object.values(lat).map(x=>x.p95_ms).filter(v=>v!=null);
     const worstP95=p95s.length?Math.max(...p95s):null;
-    const svg=(p,col)=>`<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="--sc:${col}">${p}</svg>`;
-    const tile=(lbl,path,col,val,hint)=>`<div class="stat rise" style="--sc:${col}"><span class="stat-lbl">${svg(path,col)}${lbl}</span><span class="stat-val nbi-num">${val}</span><span class="stat-hint">${hint}</span></div>`;
+    const svg=p=>`<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+    const tile=(lbl,path,col,val,hint)=>`<div class="stat rise" style="--sc:${col}"><span class="stat-lbl">${svg(path)}${lbl}</span><span class="stat-val nbi-num">${val}</span><span class="stat-hint">${hint}</span></div>`;
     $("costs-stats").innerHTML=[
       tile("Total spend",'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',"#008300",usd(c.total_cost_usd),"across all LLM calls"),
       tile("LLM calls",'<path d="M13 2 3 14h7l-1 8 10-12h-7z"/>',"#4a3aa7",c.total_llm_calls||0,"generations + digests"),
-      tile("Cache hit rate",'<path d="M21 12a9 9 0 1 1-6.2-8.5"/><path d="M21 3v6h-6"/>',hr>=0.5?"#1e6e50":"#eda100",hr==null?"—":Math.round(hr*100)+"%",`${cache.hits||0} hits · ${cache.misses||0} misses`),
-      tile("Worst p95 latency",'<path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/>',worstP95>2000?"#d03b3b":"#2a78d6",worstP95==null?"—":Math.round(worstP95)+" ms","slowest endpoint"),
+      tile("Cache hit rate",'<path d="M21 12a9 9 0 1 1-6.2-8.5"/><path d="M21 3v6h-6"/>',hr>=0.5?"var(--green)":"#eda100",hr==null?"—":Math.round(hr*100)+"%",`${cache.hits||0} hits · ${cache.misses||0} misses`),
+      tile("Worst p95 latency",'<path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/>',worstP95>2000?"var(--red)":"#2a78d6",worstP95==null?"—":Math.round(worstP95)+" ms","slowest endpoint"),
     ].join("");
     // Spend-by-day chart (aggregate endpoints per day)
     const byDay={};(c.by_day||[]).forEach(r=>{byDay[r.day]=(byDay[r.day]||0)+(+r.cost_usd||0);});
@@ -1801,16 +1814,17 @@ function renderStatrow(facts){
     bolt:'<path d="M13 2 3 14h7l-1 8 10-12h-7z"/>',
     warn:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/>',
     trend:'<path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-5"/>'};
-  const svg=(p,c)=>`<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="--sc:${c}">${p}</svg>`;
+  // The svg inherits --sc from its .stat container — set the color once, on the tile.
+  const svg=p=>`<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
   const tile=(lbl,path,color,val,hint,mono)=>`<div class="stat rise" style="--sc:${color}">
-    <span class="stat-lbl">${svg(path,color)}${lbl}</span>
+    <span class="stat-lbl">${svg(path)}${lbl}</span>
     <span class="stat-val${mono?" nbi-num":""}">${val}</span><span class="stat-hint">${hint}</span></div>`;
   const attn=anom?`${plural(anom,"anomaly","anomalies")}`:"All clear";
   el.innerHTML=[
-    `<div class="stat rise${anom?" alert":""}" style="--sc:${anom?"#d03b3b":"#1e6e50"}"><span class="stat-lbl">${svg(ic.warn,anom?"#d03b3b":"#1e6e50")}Needs attention</span><span class="stat-val">${attn}</span><span class="stat-hint">${anom?"open the flagged card to review":"no anomalies this period"}</span></div>`,
+    `<div class="stat rise${anom?" alert":""}" style="--sc:${anom?"var(--red)":"var(--accent)"}"><span class="stat-lbl">${svg(ic.warn)}Needs attention</span><span class="stat-val">${attn}</span><span class="stat-hint">${anom?"open the flagged card to review":"no anomalies this period"}</span></div>`,
     mover?tile("Top mover vs plan",ic.trend,catColor(mover.category)||"#eb6834",esc(mover.metric),`${pct(mover.deltas.budget_var_pct)||"–"} vs budget`):"",
     tile("Narratives",ic.bolt,"#4a3aa7",`${narr}<small>/${withData.length}</small>`,narr===withData.length?"all explained":`${withData.length-narr} to generate`,true),
-    tile("Off plan",ic.grid,offPlan?"#b45309":"#2a78d6",offPlan,offPlan?"KPIs behind budget":"everything on or ahead of plan",true)
+    tile("Off plan",ic.grid,offPlan?"var(--amber)":"#2a78d6",offPlan,offPlan?"KPIs behind budget":"everything on or ahead of plan",true)
   ].join("");
 }
 let shownFacts=[];
@@ -2034,7 +2048,7 @@ async function askQA(){
       body:JSON.stringify({metric:detailFact.metric,period:detailFact.period||currentPeriod,question:q})});
     const srcs=(r.sources||[]).map(s=>`<span class="chip" onclick="showSourceDoc('${esc(s.id)}')">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
     $("d-qa-answer").innerHTML=`<div class="banner info" style="margin:0;display:block">
-      <span style="font-family:var(--serif);font-size:14.5px;font-weight:400;color:var(--ink2)">${esc(r.answer||"No grounded answer available.")}</span>
+      <div class="narr" style="font-size:14.5px">${esc(r.answer||"No grounded answer available.")}</div>
       <div class="chips" style="margin-top:8px">${srcs}${r.grounded?seal(true):""}</div></div>`;
   }catch(e){$("d-qa-answer").innerHTML=`<div class="banner err" style="margin:0">${esc(e.message)}</div>`;}
 }
