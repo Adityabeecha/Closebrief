@@ -537,16 +537,18 @@
         <button class="theme-btn" id="theme-btn" title="Toggle dark mode (d)" aria-label="Toggle dark mode" onclick="toggleTheme()" style="width:28px;height:28px"></button>
         <button class="collapse-btn" onclick="toggleCollapse()" title="Collapse sidebar" aria-label="Collapse sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
       </div>
-      <div class="ws">
-        <button class="ws-btn" onclick="toggleWs(event)">
-          <span id="ws-name">Loading…</span>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-        </button>
-        <div class="ws-menu" id="ws-menu"></div>
+      <div>
+        <div class="nav-label" style="padding:0 2px 6px">Workspace</div>
+        <div class="ws">
+          <button class="ws-btn" onclick="toggleWs(event)">
+            <span id="ws-name">Loading…</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="ws-menu" id="ws-menu"></div>
+        </div>
       </div>
     </div>
     <nav class="nav">
-      <div class="nav-label">Workspace</div>
       <button class="nav-item active" data-view="dashboard" onclick="nav('dashboard')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Insights Dashboard</button>
       <button class="nav-item" data-view="digest" onclick="nav('digest')">
