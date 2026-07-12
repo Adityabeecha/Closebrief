@@ -673,10 +673,16 @@ def get_datasets(_: CurrentUser = Depends(require_read)) -> dict:
 
 
 @app.post("/datasets/{dataset_id}/activate")
-def activate_dataset(dataset_id: int, _: CurrentUser = Depends(require_write)) -> dict:
+def activate_dataset(dataset_id: int, _: CurrentUser = Depends(require_read)) -> dict:
+    # Switching the active dataset is navigation, not a data mutation, so the
+    # read-only demo viewer may do it — but only within its own universe. The
+    # scoped existence check also prevents a viewer from flipping is_active on a
+    # real dataset (which set_active would otherwise do by raw id).
     conn = get_connection()
     try:
-        exists = conn.execute("SELECT 1 FROM datasets WHERE id = ?", (dataset_id,)).fetchone()
+        exists = conn.execute(
+            f"SELECT 1 FROM datasets WHERE id = ? AND {_scope_pred()}", (dataset_id,)
+        ).fetchone()
         if not exists:
             raise HTTPException(status_code=404, detail=f"Dataset {dataset_id} not found")
         set_active(conn, dataset_id)

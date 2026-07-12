@@ -13,12 +13,16 @@ from pathlib import Path
 
 from app.compute.kpis import compute_and_store
 from app.datasets import create_dataset
+from app.domains.marketing import MARKETING
 from app.ingestion.ingest import ingest_dataframe, parse_csv
 from app.kpis.library import suggest_kpi
 from app.schemas import ContextDocIn
 
 DEMO_DATASET_NAME = "Demo — Sample FP&A"
 _SAMPLE_CSV = Path(__file__).resolve().parent.parent / "data" / "sample_fpa.csv"
+
+DEMO_MARKETING_NAME = "Demo — Marketing Funnel"
+_SAMPLE_MARKETING_CSV = Path(__file__).resolve().parent.parent / "data" / "sample_marketing.csv"
 
 # Curated notes that make the RAG loop visible in the demo: narratives cite
 # them as source chips, and two of them intentionally conflict.
@@ -37,66 +41,109 @@ _DEMO_CONTEXT = [
      "metric_tags": ["Churned ARR"], "effective_date": "2025-03"},
 ]
 
+# Notes that explain the marketing funnel's moves (Feb push, April CTR dip).
+_MARKETING_CONTEXT = [
+    {"type": "campaign", "title": "February paid brand push",
+     "body": "A concentrated paid brand campaign ran in February 2025, lifting Impressions "
+             "roughly 55% and pulling Conversions up with them.",
+     "metric_tags": ["Impressions", "Conversions"], "effective_date": "2025-02"},
+    {"type": "event_note", "title": "April creative fatigue",
+     "body": "Ad creative fatigued through April 2025; click-through fell from ~4.3% to ~3.1%, "
+             "so Clicks came in behind plan and dragged the rest of the funnel.",
+     "metric_tags": ["Clicks"], "effective_date": "2025-04"},
+]
+
 
 def seed_demo(conn, context_store=None) -> bool:
-    """Create + populate the demo dataset if it doesn't exist. Returns True if
-    seeding ran. Never changes the active dataset when one is already active."""
-    row = conn.execute(
-        "SELECT id FROM datasets WHERE name = ?", (DEMO_DATASET_NAME,)
-    ).fetchone()
-    if row is not None:
-        return False
-    if not _SAMPLE_CSV.exists():
-        return False
+    """Seed the demo datasets (FP&A + Marketing funnel) if absent. Each is
+    idempotent by name and lives in the demo universe (is_demo). Returns True if
+    any seeding ran."""
+    seeded = _seed_fpa(conn, context_store)
+    seeded = _seed_marketing(conn, context_store) or seeded
+    return seeded
 
-    # Its own isolated universe (is_demo) — active within the demo scope only,
-    # never touching the operator's real datasets. uploaded_by is a UUID column
-    # on Postgres, so the seeder passes NULL.
-    ds = create_dataset(conn, DEMO_DATASET_NAME, activate=True, is_demo=True,
-                        uploaded_by=None, uploaded_by_email="demo@closebrief.app")
 
-    df = parse_csv(_SAMPLE_CSV.read_bytes())
-    ingest_dataframe(conn, df, ds)
-    compute_and_store(conn, ds)
-
-    # Pre-select KPIs via the library so the dashboard is curated, not raw.
+def _select_kpis(conn, ds: int, picker) -> None:
+    """Insert kpi_configs for each of the dataset's metrics using `picker(name)`
+    -> {name, category, unit, direction_good} | None."""
     metrics = [r["name"] for r in conn.execute(
         "SELECT name FROM metrics WHERE dataset_id = ?", (ds,)
     ).fetchall()]
     for m in metrics:
-        s = suggest_kpi(m)
+        s = picker(m)
         if s is None:
             continue
         conn.execute(
             """INSERT INTO kpi_configs (dataset_id, source_metric, display_name, category, unit, direction_good)
                VALUES (?, ?, ?, ?, ?, ?)
                ON CONFLICT(dataset_id, source_metric) DO NOTHING""",
-            (ds, m, s["name"], s["category"], s["unit"], s["direction_good"]),
+            (ds, m, s.get("name", m), s["category"], s["unit"], s["direction_good"]),
         )
+
+
+def _seed_context(conn, context_store, docs: list) -> list:
+    added = []
+    if context_store is None:
+        return added
+    for doc in docs:
+        try:
+            d = context_store.add(ContextDocIn(**doc))
+            conn.execute(
+                "UPDATE context_documents SET is_demo = true WHERE id = ?", (d.id,)
+            )
+            added.append(d)
+        except Exception:  # noqa: BLE001 - demo seeding must never block startup
+            pass
+    conn.commit()
+    return added
+
+
+def _seed_fpa(conn, context_store=None) -> bool:
+    if conn.execute("SELECT id FROM datasets WHERE name = ?", (DEMO_DATASET_NAME,)).fetchone():
+        return False
+    if not _SAMPLE_CSV.exists():
+        return False
+    # Its own isolated universe (is_demo), active within the demo scope only.
+    # uploaded_by is a UUID column on Postgres, so the seeder passes NULL.
+    ds = create_dataset(conn, DEMO_DATASET_NAME, activate=True, is_demo=True,
+                        uploaded_by=None, uploaded_by_email="demo@closebrief.app")
+    ingest_dataframe(conn, parse_csv(_SAMPLE_CSV.read_bytes()), ds)
+    compute_and_store(conn, ds)
+    _select_kpis(conn, ds, suggest_kpi)   # curate via the library
     conn.commit()
 
-    # Context notes (best-effort — embedding may need a network/API key).
-    added_docs = []
-    if context_store is not None:
-        for doc in _DEMO_CONTEXT:
-            try:
-                added = context_store.add(ContextDocIn(**doc))
-                # Mark as demo-universe so real sessions never see/retrieve them
-                # (and demo sessions see ONLY these).
-                conn.execute(
-                    "UPDATE context_documents SET is_demo = true WHERE id = ?", (added.id,)
-                )
-                added_docs.append(added)
-            except Exception:  # noqa: BLE001 - demo seeding must never block startup
-                pass
-        conn.commit()
-
-    # Pre-generated narratives + a PVM bridge so the demo is full on first view,
-    # with source chips, verified badges, an anomaly, and a rendered waterfall —
-    # no LLM call and no clicks required.
+    added_docs = _seed_context(conn, context_store, _DEMO_CONTEXT)
+    # Pre-generated narratives + a PVM bridge so the demo is full on first view.
     try:
         _seed_narratives(conn, ds, added_docs)
         _seed_pvm_bridge(conn, ds)
+        conn.commit()
+    except Exception:  # noqa: BLE001 - demo polish is best-effort
+        pass
+    return True
+
+
+def _seed_marketing(conn, context_store=None) -> bool:
+    """The Growth demo (Phase 1): a marketing dataset on the 'marketing' domain so
+    the acquisition funnel renders out of the box. Seeded inactive so FP&A stays
+    the default view; a visitor switches to it via the workspace switcher."""
+    if conn.execute("SELECT id FROM datasets WHERE name = ?", (DEMO_MARKETING_NAME,)).fetchone():
+        return False
+    if not _SAMPLE_MARKETING_CSV.exists():
+        return False
+    ds = create_dataset(conn, DEMO_MARKETING_NAME, activate=False, is_demo=True,
+                        uploaded_by=None, uploaded_by_email="demo@closebrief.app")
+    conn.execute("UPDATE datasets SET domain = 'marketing' WHERE id = ?", (ds,))
+    ingest_dataframe(conn, parse_csv(_SAMPLE_MARKETING_CSV.read_bytes()), ds)
+    compute_and_store(conn, ds)
+    # Curate KPIs from the marketing domain library (funnel stages + CAC/ROAS).
+    lib = {k["name"]: k for k in MARKETING.kpi_library}
+    _select_kpis(conn, ds, lambda m: lib.get(m))
+    conn.commit()
+
+    added_docs = _seed_context(conn, context_store, _MARKETING_CONTEXT)
+    try:
+        _seed_narratives(conn, ds, added_docs)
         conn.commit()
     except Exception:  # noqa: BLE001 - demo polish is best-effort
         pass
