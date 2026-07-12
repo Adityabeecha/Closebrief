@@ -26,6 +26,7 @@ from app.compute.correlations import (
     correlations_for_metric,
     detect_consecutive_trends,
 )
+from app.compute.funnel import compute_funnel
 from app.compute.kpis import compute_and_store
 from app.compute.pvm import bridge_for_metric_row
 from app.config import auth_active, resolved_vector_backend, settings
@@ -49,7 +50,13 @@ from app.domains import get_domain, list_domains, registry
 from app.generation.generate import GenerationFailedFactsOnly, generate_insight
 from app.generation.guard import check_faithfulness
 from app.generation.llm_client import LLMGenerationError, get_llm_client
-from app.generation.prompts import PROMPT_VERSION, QA_SYSTEM_PROMPT, build_qa_prompt
+from app.generation.prompts import (
+    FUNNEL_SYSTEM_PROMPT,
+    PROMPT_VERSION,
+    QA_SYSTEM_PROMPT,
+    build_funnel_prompt,
+    build_qa_prompt,
+)
 from app.ingestion.ingest import IngestValidationError, ingest_dataframe, parse_csv
 from app.ingestion.mapping import MappingError, MappingSpec, normalize, store_normalized
 from app.ingestion.profiler import profile_columns
@@ -485,6 +492,67 @@ def set_active_domain(payload: dict, _: CurrentUser = Depends(require_write)) ->
         return get_domain(slug).public()
     finally:
         conn.close()
+
+
+def _active_domain_slug(conn) -> str:
+    ds = active_dataset_id(conn)
+    if ds is not None:
+        row = conn.execute("SELECT domain FROM datasets WHERE id = ?", (ds,)).fetchone()
+        if row and row["domain"]:
+            return row["domain"]
+    return "fpa"
+
+
+@app.get("/funnel")
+def get_funnel(period: str, _: CurrentUser = Depends(require_read)) -> dict:
+    """Stage-over-stage funnel for the active dataset, if its domain defines one
+    (Phase 1). Deterministic — the LLM is not involved."""
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        if ds is None:
+            raise HTTPException(status_code=400, detail="No active dataset")
+        domain = get_domain(_active_domain_slug(conn))
+        if not domain.funnel:
+            raise HTTPException(status_code=400,
+                                detail=f"The {domain.name} domain has no funnel defined")
+        return compute_funnel(conn, ds, period, domain.funnel)
+    finally:
+        conn.close()
+
+
+@app.post("/funnel/narrative")
+def funnel_narrative(payload: dict, user: CurrentUser = Depends(require_member)) -> dict:
+    """A grounded prose summary of the funnel — numbers computed here, phrased by
+    the LLM under the funnel prompt."""
+    period = (payload.get("period") or "").strip()
+    if not period:
+        raise HTTPException(status_code=422, detail="period is required")
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        if ds is None:
+            raise HTTPException(status_code=400, detail="No active dataset")
+        domain = get_domain(_active_domain_slug(conn))
+        if not domain.funnel:
+            raise HTTPException(status_code=400, detail="No funnel for this domain")
+        funnel = compute_funnel(conn, ds, period, domain.funnel)
+    finally:
+        conn.close()
+    if len([s for s in funnel["stages"] if s["conversion_from_prev"] is not None]) == 0:
+        raise HTTPException(status_code=400, detail="Not enough funnel stages with data")
+    try:
+        result, usage = get_llm_client().generate_narrative(
+            FUNNEL_SYSTEM_PROMPT, build_funnel_prompt(funnel)
+        )
+    except LLMGenerationError as exc:
+        raise HTTPException(status_code=503, detail=f"Funnel narrative unavailable: {exc}") from exc
+    _log_llm_call(
+        "/funnel/narrative",
+        settings.openai_model if settings.llm_provider == "openai" else settings.anthropic_model,
+        usage.prompt_tokens, usage.completion_tokens, usage.cost_usd, None, user.id,
+    )
+    return {"funnel": funnel, "narrative": result.narrative}
 
 
 @app.get("/notifications/configs")

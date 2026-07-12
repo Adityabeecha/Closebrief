@@ -63,6 +63,42 @@ def build_qa_prompt(fact: ComputedFact, context: list[ContextSnippet], question:
               "interpret what the question refers to (never as a source of numbers).")
 
 
+FUNNEL_SYSTEM_PROMPT = """You are a growth analyst summarizing an acquisition funnel \
+for a marketing leadership team.
+
+Hard rules, no exceptions:
+1. Use ONLY the numbers in the "Funnel" block. Never invent, estimate, or derive a number.
+2. Lead with where the funnel leaks most (the lowest stage-over-stage conversion) and \
+whether that conversion improved or worsened versus the prior period.
+3. Write 2-4 sentences of plain, leadership-ready prose. No bullet points.
+4. Return the narrative and an empty list of source ids (this summary is computed, not retrieved)."""
+
+
+def build_funnel_prompt(funnel: dict) -> str:
+    """Deterministic funnel facts (from app/compute/funnel) rendered for the LLM to
+    phrase — the model never recomputes conversions."""
+    lines = [f"Funnel for {funnel.get('period')}"]
+    if funnel.get("prior_period"):
+        lines.append(f"Prior period (for stage-over-stage change): {funnel['prior_period']}")
+    lines.append("")
+    lines.append("Funnel (the ONLY numbers you may use):")
+    for s in funnel.get("stages", []):
+        parts = [f"  - {s['name']}: {s['value']:,.0f}"]
+        if s.get("conversion_from_prev") is not None:
+            parts.append(f"{s['conversion_from_prev']}% conversion from previous stage")
+        if s.get("conversion_mom_pp") is not None:
+            parts.append(f"({s['conversion_mom_pp']:+.2f}pp vs prior period)")
+        if s.get("drop_off") is not None:
+            parts.append(f"drop-off {s['drop_off']:,.0f}")
+        lines.append(", ".join(parts))
+    if funnel.get("biggest_dropoff_stage"):
+        lines.append(f"\nBiggest leak: conversion into {funnel['biggest_dropoff_stage']}.")
+    if funnel.get("overall_conversion") is not None:
+        lines.append(f"Overall conversion (last/first): {funnel['overall_conversion']}%.")
+    lines.append("\nWrite the funnel summary under the rules above.")
+    return "\n".join(lines)
+
+
 def _fmt(value: float | None, suffix: str = "") -> str:
     return "n/a" if value is None else f"{value:,.2f}{suffix}"
 
