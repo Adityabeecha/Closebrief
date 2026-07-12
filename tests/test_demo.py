@@ -46,12 +46,33 @@ def client(tmp_path, monkeypatch):
         yield c
 
 
-def test_demo_sees_only_demo_dataset(client):
+def test_demo_sees_only_demo_datasets(client):
     r = client.get("/datasets", headers=DEMO)
     assert r.status_code == 200
-    names = [d["name"] for d in r.json()["datasets"]]
-    assert names == ["Demo — Sample FP&A"]
+    names = {d["name"] for d in r.json()["datasets"]}
+    assert names == {"Demo — Sample FP&A", "Demo — Marketing Funnel"}
     assert "REAL secret upload" not in names
+
+
+def test_demo_can_switch_datasets_and_see_funnel(client):
+    # A viewer may switch between demo datasets (read-only navigation)...
+    ds = client.get("/datasets", headers=DEMO).json()["datasets"]
+    mkt = next(d for d in ds if d["name"] == "Demo — Marketing Funnel")
+    assert client.post(f"/datasets/{mkt['id']}/activate", headers=DEMO).status_code == 200
+    # ...and the marketing dataset renders the acquisition funnel.
+    dom = client.get("/domain", headers=DEMO).json()
+    assert dom["slug"] == "marketing" and dom["funnel"]
+    periods = client.get("/periods", headers=DEMO).json()
+    r = client.get(f"/funnel?period={periods[-1]}", headers=DEMO)
+    assert r.status_code == 200
+    stages = [s["name"] for s in r.json()["stages"]]
+    assert stages == ["Impressions", "Clicks", "Signups", "Conversions"]
+
+
+def test_demo_cannot_activate_real_dataset(client):
+    # The scoped activate check blocks a viewer from flipping is_active on a real
+    # dataset (id 1 is 'REAL secret upload' created before seeding).
+    assert client.post("/datasets/1/activate", headers=DEMO).status_code == 404
 
 
 def test_demo_writes_are_forbidden(client):
@@ -82,7 +103,7 @@ def test_seed_demo_idempotent(client):
     import app.main as main
     from app.demo import DEMO_DATASET_NAME, seed_demo
     conn = main.get_connection()
-    assert seed_demo(conn) is False  # already seeded by the fixture
+    assert seed_demo(conn) is False  # both already seeded by the fixture
     n = conn.execute(
         "SELECT COUNT(*) AS n FROM datasets WHERE name = ?", (DEMO_DATASET_NAME,)
     ).fetchone()["n"]

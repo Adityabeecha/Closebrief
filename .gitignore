@@ -11,9 +11,10 @@ __pycache__/
 .env.*
 !.env.example
 
-# Local data & generated artifacts (sample dataset whitelisted for demo mode)
+# Local data & generated artifacts (sample datasets whitelisted for demo mode)
 data/*
 !data/sample_fpa.csv
+!data/sample_marketing.csv
 graphify-out/
 
 # OS / editor
