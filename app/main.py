@@ -48,15 +48,13 @@ from app.deps import shared_cache, shared_embedder, shared_vector_store
 from app.digest.digest import DigestOutput, generate_digest
 from app.domains import get_domain, list_domains, registry
 from app.generation.generate import GenerationFailedFactsOnly, generate_insight
-from app.generation.guard import check_faithfulness
 from app.generation.llm_client import LLMGenerationError, get_llm_client
 from app.generation.prompts import (
     FUNNEL_SYSTEM_PROMPT,
     PROMPT_VERSION,
-    QA_SYSTEM_PROMPT,
     build_funnel_prompt,
-    build_qa_prompt,
 )
+from app.generation.qa import answer_question
 from app.grounding import attribute
 from app.ingestion.ingest import IngestValidationError, ingest_dataframe, parse_csv
 from app.ingestion.mapping import MappingError, MappingSpec, normalize, store_normalized
@@ -1609,45 +1607,22 @@ def ask_endpoint(payload: dict, user: CurrentUser = Depends(require_member)) -> 
     finally:
         conn.close()
 
-    base_prompt = build_qa_prompt(fact, context, question, history)
     try:
-        llm_client = get_llm_client()
-        result, usage = llm_client.generate_narrative(QA_SYSTEM_PROMPT, base_prompt)
+        qa = answer_question(get_llm_client(), fact, context, question, history)
     except LLMGenerationError as exc:
         raise HTTPException(status_code=503, detail=f"Q&A unavailable: {exc}") from exc
-
-    passed, unverified = check_faithfulness(result.narrative, fact, context)
-    tot_prompt = usage.prompt_tokens or 0
-    tot_completion = usage.completion_tokens or 0
-    tot_cost = usage.cost_usd or 0.0
-    if not passed:
-        # One stricter retry (same guarantee as narratives) so an answer never
-        # ships an unverifiable figure — regenerate, calling out the bad numbers.
-        stricter = (base_prompt + "\n\nYour previous answer used unverifiable number(s): "
-                    + ", ".join(str(v) for v in unverified)
-                    + '. Rewrite using ONLY the numbers in the Computed facts block, or say '
-                      '"The data available doesn\'t answer that."')
-        try:
-            retry, usage2 = llm_client.generate_narrative(QA_SYSTEM_PROMPT, stricter)
-            tot_prompt += usage2.prompt_tokens or 0
-            tot_completion += usage2.completion_tokens or 0
-            tot_cost += usage2.cost_usd or 0.0
-            passed, _ = check_faithfulness(retry.narrative, fact, context)
-            result = retry   # prefer the retry — either it's clean or it's the honest fallback
-        except LLMGenerationError:
-            pass
 
     context_by_id = {c.id: c for c in context}
     sources = [
         {"id": cid, "type": context_by_id[cid].type, "title": context_by_id[cid].title}
-        for cid in result.sources_used if cid in context_by_id
+        for cid in qa.sources_used if cid in context_by_id
     ]
     _log_llm_call(
         "/ask",
         settings.openai_model if settings.llm_provider == "openai" else settings.anthropic_model,
-        tot_prompt, tot_completion, tot_cost, None, user.id,
+        qa.prompt_tokens, qa.completion_tokens, qa.cost_usd, None, user.id,
     )
-    return {"answer": result.narrative, "sources": sources, "grounded": passed}
+    return {"answer": qa.answer, "sources": sources, "grounded": qa.grounded}
 
 
 @app.post("/digest", response_model=DigestOutput)
