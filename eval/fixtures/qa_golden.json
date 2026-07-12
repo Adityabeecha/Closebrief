@@ -1,0 +1,84 @@
+{
+  "cases": [
+    {
+      "id": "qa_01_revenue_why",
+      "question": "Why did Net Revenue fall in March?",
+      "answerable": true,
+      "fact": {"metric": "Net Revenue", "category": "Revenue", "period": "2025-03",
+               "value": 4200000, "prior_value": 4772727, "unit": "USD",
+               "deltas": {"mom_pct": -12.0, "yoy_pct": 4.5, "budget_var_abs": -370000, "budget_var_pct": -8.1},
+               "trend": "up", "is_anomaly": true},
+      "context_docs": [
+        {"type": "event_note", "title": "March 2025 pricing change",
+         "body": "On March 1 2025 enterprise prices rose 15 percent. Legacy enterprise accounts churned in response.",
+         "metric_tags": ["Net Revenue"], "effective_date": "2025-03"}
+      ]
+    },
+    {
+      "id": "qa_02_revenue_out_of_scope_headcount",
+      "question": "What is our current headcount?",
+      "answerable": false,
+      "fact": {"metric": "Net Revenue", "category": "Revenue", "period": "2025-03",
+               "value": 4200000, "prior_value": 4772727, "unit": "USD",
+               "deltas": {"mom_pct": -12.0, "yoy_pct": 4.5, "budget_var_abs": -370000, "budget_var_pct": -8.1},
+               "trend": "up", "is_anomaly": true},
+      "context_docs": [
+        {"type": "event_note", "title": "March 2025 pricing change",
+         "body": "On March 1 2025 enterprise prices rose 15 percent.",
+         "metric_tags": ["Net Revenue"], "effective_date": "2025-03"}
+      ]
+    },
+    {
+      "id": "qa_03_marketing_why",
+      "question": "Why did Marketing Spend increase this period?",
+      "answerable": true,
+      "fact": {"metric": "Marketing Spend", "category": "Expense", "period": "2025-02",
+               "value": 1200000, "prior_value": 780000, "unit": "USD",
+               "deltas": {"mom_pct": 53.8, "yoy_pct": 20.0, "budget_var_abs": 300000, "budget_var_pct": 33.3},
+               "trend": "up", "is_anomaly": true},
+      "context_docs": [
+        {"type": "event_note", "title": "Q1 brand campaign",
+         "body": "A brand awareness campaign ran in February 2025 with a large budget concentrated that month.",
+         "metric_tags": ["Marketing Spend"], "effective_date": "2025-02"}
+      ]
+    },
+    {
+      "id": "qa_04_churn_vs_year",
+      "question": "How did Churned ARR compare to a year ago?",
+      "answerable": true,
+      "fact": {"metric": "Churned ARR", "category": "Retention", "period": "2025-03",
+               "value": 580000, "prior_value": 540000, "unit": "USD",
+               "deltas": {"mom_pct": 7.4, "yoy_pct": 12.0, "budget_var_abs": 80000, "budget_var_pct": 16.0},
+               "trend": "up", "is_anomaly": false},
+      "context_docs": [
+        {"type": "event_note", "title": "Churn analysis memo",
+         "body": "Churned ARR in Q1 2025 was driven primarily by two SMB logo losses in February.",
+         "metric_tags": ["Churned ARR"], "effective_date": "2025-03"}
+      ]
+    },
+    {
+      "id": "qa_05_no_context_cause",
+      "question": "What caused this change?",
+      "answerable": false,
+      "fact": {"metric": "Gross Margin", "category": "Profitability", "period": "2025-03",
+               "value": 68.0, "prior_value": 66.5, "unit": "%",
+               "deltas": {"mom_pct": 2.3, "yoy_pct": 1.0, "budget_var_abs": 1.5, "budget_var_pct": 2.2},
+               "trend": "up", "is_anomaly": false},
+      "context_docs": []
+    },
+    {
+      "id": "qa_06_forecast_out_of_scope",
+      "question": "What will Net Revenue be next quarter?",
+      "answerable": false,
+      "fact": {"metric": "Net Revenue", "category": "Revenue", "period": "2025-03",
+               "value": 4200000, "prior_value": 4772727, "unit": "USD",
+               "deltas": {"mom_pct": -12.0, "yoy_pct": 4.5, "budget_var_abs": -370000, "budget_var_pct": -8.1},
+               "trend": "up", "is_anomaly": true},
+      "context_docs": [
+        {"type": "event_note", "title": "March 2025 pricing change",
+         "body": "On March 1 2025 enterprise prices rose 15 percent.",
+         "metric_tags": ["Net Revenue"], "effective_date": "2025-03"}
+      ]
+    }
+  ]
+}
