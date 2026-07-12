@@ -303,7 +303,24 @@
   .export-menu button:hover{background:var(--bg2)}
   .export-menu b{font-size:13px;color:var(--ink2);font-weight:700}
   .export-menu span{font-size:11px;color:var(--mut2)}
-  #d-narr{font-size:16.5px;line-height:1.65;max-width:74ch}
+  #d-narr{font-size:16.5px;line-height:1.75;max-width:74ch}
+  /* Narrative Drill-Down (v3.0): each sentence is a clickable, grounded span. */
+  .gsent{cursor:pointer;border-radius:4px;padding:0 1px;transition:background .12s;text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:3px}
+  .gsent.verified{text-decoration-color:var(--green2)}
+  .gsent.context{text-decoration-color:var(--accent)}
+  .gsent.numeric-unverified{text-decoration-color:var(--amber);text-decoration-style:wavy}
+  .gsent.general{text-decoration-color:var(--b24);text-decoration-style:dotted}
+  .gsent:hover{background:var(--bg3)}
+  .gsent.sel{background:var(--accent-bg)}
+  .grounding{margin-top:12px;background:var(--bg2);border:1px solid var(--b08);border-radius:11px;padding:13px 15px;font-size:12.5px;animation:fade .15s ease}
+  .grounding .g-lbl{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--mut2);margin-bottom:7px}
+  .grounding .g-fact{display:flex;align-items:center;gap:8px;padding:4px 0;color:var(--ink2)}
+  .grounding .g-fact b{font-family:var(--mono);font-weight:600;color:var(--ink)}
+  .grounding .g-none{color:var(--mut);font-style:italic}
+  .grounding .g-warn{color:var(--amber);font-weight:600}
+  .g-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--mut);margin-top:8px}
+  .g-legend span{display:inline-flex;align-items:center;gap:5px}
+  .g-legend i{width:14px;height:0;border-top:2px solid;display:inline-block}
   .qa{display:flex;gap:8px;margin-top:12px}
   .qa input{flex:1;padding:9px 12px;border:1px solid var(--b12);border-radius:9px;font-size:13px}
   /* Q&A conversation thread (Phase 3): chat-style question/answer turns. */
@@ -691,6 +708,7 @@
         <div class="panel full">
           <h3>Narrative</h3><div class="psub" id="d-narr-meta"></div>
           <div class="narr" id="d-narr"></div>
+          <div id="d-grounding" class="grounding" style="display:none"></div>
           <div class="qa">
             <input id="d-qa" placeholder="Ask about this metric — follow-ups welcome…" onkeydown="if(event.key==='Enter')askQA()">
             <button class="btn" onclick="askQA()">Ask</button>
@@ -2142,11 +2160,57 @@ function openDetail(i){
   renderBvaChart(cd.budget_vs_actual,f.unit);
   renderBridgeChart(cd.variance_bridge,f.deltas.budget_var_abs,f.unit);
   $("d-narr").className="narr"+(f.narrative?"":" muted");
-  $("d-narr").innerHTML=f.narrative?esc(f.narrative)+(f.edited&&f.original_narrative?`<details class="tbl" style="margin-top:8px"><summary>Show original (pre-edit)</summary><p style="margin-top:6px;color:var(--mut)">${esc(f.original_narrative)}</p></details>`:""):"No narrative yet — generate one from the dashboard card.";
+  $("d-grounding").style.display="none";groundingData=null;
+  if(f.narrative&&f.report_id&&!f.edited){
+    // Drill-down: fetch per-sentence grounding and render clickable sentences.
+    renderGroundedNarrative(f.report_id);
+  }else{
+    $("d-narr").innerHTML=f.narrative?esc(f.narrative)+(f.edited&&f.original_narrative?`<details class="tbl" style="margin-top:8px"><summary>Show original (pre-edit)</summary><p style="margin-top:6px;color:var(--mut)">${esc(f.original_narrative)}</p></details>`:""):"No narrative yet — generate one from the dashboard card.";
+  }
   $("d-narr-meta").textContent=(f.confidence?`${f.confidence} confidence · numbers ${f.faithfulness}`:"")+(f.edited?" · edited by analyst":"")+(f.cost_usd!=null?` · ≈ $${(+f.cost_usd).toFixed(4)}`:"");
   $("d-chips").innerHTML=(f.sources||[]).map(s=>`<span class="chip" title="Open source note" onclick="showSourceDoc('${esc(s.id)}')">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
   $("d-qa-answer").innerHTML="";$("d-qa").value="";qaThread=[];   // fresh conversation per metric
   loadCorrelations(f.metric);
+}
+/* ---------- narrative drill-down (v3.0) ---------- */
+let groundingData=null;
+const G_FIELD={
+  "current value":"current value","prior-period value":"prior-period value",
+  "budget variance (abs)":"budget variance","month-over-month %":"month-over-month",
+  "year-over-year %":"year-over-year","budget variance %":"vs plan"};
+async function renderGroundedNarrative(reportId){
+  const el=$("d-narr");
+  try{groundingData=await api(`/reports/${reportId}/grounding`);}
+  catch{el.textContent=detailFact?detailFact.narrative||"":"";return;}
+  const sents=(groundingData.sentences||[]);
+  if(!sents.length){el.textContent=(detailFact&&detailFact.narrative)||"";return;}
+  el.innerHTML=sents.map(s=>`<span class="gsent ${s.kind}" data-i="${s.idx}" title="Click to see what grounds this sentence" onclick="showSentenceGrounding(${s.idx})">${esc(s.text)}</span>`).join(" ")
+    +`<div class="g-legend">
+        <span><i style="border-color:var(--green2)"></i>traces to a figure</span>
+        <span><i style="border-color:var(--accent)"></i>cites a source</span>
+        <span><i style="border-color:var(--amber);border-top-style:dashed"></i>unverified number</span>
+        <span style="color:var(--mut2)">Click any sentence →</span>
+      </div>`;
+}
+function gFmtVal(v,isPct){return isPct?((v>0?"+":"")+v+"%"):fmt(v,"USD");}
+function showSentenceGrounding(idx){
+  if(!groundingData)return;
+  const s=groundingData.sentences[idx];if(!s)return;
+  document.querySelectorAll("#d-narr .gsent").forEach(e=>e.classList.toggle("sel",+e.dataset.i===idx));
+  const box=$("d-grounding");let html="";
+  const gCheck='<svg viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex:none"><path d="M20 6 9 17l-5-5"/></svg>';
+  if(s.facts&&s.facts.length){
+    html+=`<div class="g-lbl">Grounded in computed facts</div>`
+      +s.facts.map(f=>`<div class="g-fact">${gCheck}<span>${esc(G_FIELD[f.field]||f.field)}</span> = <b>${gFmtVal(f.value,f.is_percent)}</b></div>`).join("");
+  }
+  if(s.context_ids&&s.context_ids.length){
+    const chips=s.context_ids.map(id=>`<span class="chip" onclick="showSourceDoc('${esc(id)}')">${DOCICON}${esc(id)}</span>`).join("");
+    html+=`<div class="g-lbl" style="margin-top:${s.facts&&s.facts.length?"11px":"0"}">Cited context</div><div class="chips">${chips}</div>`;
+  }
+  if(s.kind==="numeric-unverified")
+    html+=`<div class="g-warn" style="margin-top:8px">⚠ Contains a figure not traced to a computed fact — flagged for review, never hidden.</div>`;
+  if(!html)html=`<div class="g-none">General statement — no specific figure or source grounds this sentence.</div>`;
+  box.innerHTML=html;box.style.display="";
 }
 async function loadCorrelations(metric){
   const el=$("d-correlations");el.innerHTML="";

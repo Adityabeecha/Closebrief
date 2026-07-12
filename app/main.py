@@ -57,6 +57,7 @@ from app.generation.prompts import (
     build_funnel_prompt,
     build_qa_prompt,
 )
+from app.grounding import attribute
 from app.ingestion.ingest import IngestValidationError, ingest_dataframe, parse_csv
 from app.ingestion.mapping import MappingError, MappingSpec, normalize, store_normalized
 from app.ingestion.profiler import profile_columns
@@ -1282,43 +1283,80 @@ def _load_bridge(conn, metric: str, period: str) -> dict | None:
     return None
 
 
+def _fact_by_metric_id(conn, metric_id: int, period: str) -> ComputedFact | None:
+    row = conn.execute(
+        """
+        SELECT m.name AS metric, m.category, m.unit, cf.period, cf.value, cf.prior_value,
+               cf.mom_pct, cf.yoy_pct, cf.budget_var_abs, cf.budget_var_pct, cf.trend, cf.is_anomaly
+        FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
+        WHERE cf.metric_id = ? AND cf.period = ?
+        """,
+        (metric_id, period),
+    ).fetchone()
+    if row is None:
+        return None
+    return ComputedFact(
+        metric=row["metric"], category=row["category"], period=row["period"],
+        value=row["value"], unit=row["unit"], prior_value=row["prior_value"],
+        deltas=Deltas(
+            mom_pct=row["mom_pct"], yoy_pct=row["yoy_pct"],
+            budget_var_abs=row["budget_var_abs"], budget_var_pct=row["budget_var_pct"],
+        ),
+        trend=row["trend"], is_anomaly=bool(row["is_anomaly"]),
+        variance_bridge=_load_bridge(conn, row["metric"], period),
+    )
+
+
 def _load_computed_fact(conn, metric: str, period: str) -> ComputedFact:
     metric_id = _active_metric_id(conn, metric)
-    row = None
-    if metric_id is not None:
-        row = conn.execute(
-            """
-            SELECT m.name AS metric, m.category, m.unit, cf.period, cf.value, cf.prior_value,
-                   cf.mom_pct, cf.yoy_pct, cf.budget_var_abs, cf.budget_var_pct, cf.trend, cf.is_anomaly
-            FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
-            WHERE cf.metric_id = ? AND cf.period = ?
-            """,
-            (metric_id, period),
-        ).fetchone()
-    if row is None:
+    fact = _fact_by_metric_id(conn, metric_id, period) if metric_id is not None else None
+    if fact is None:
         raise HTTPException(
             status_code=404,
             detail=f"No computed facts for metric='{metric}' period='{period}'. Run /compute first.",
         )
-    bridge = _load_bridge(conn, metric, period)
+    return fact
 
-    return ComputedFact(
-        metric=row["metric"],
-        category=row["category"],
-        period=row["period"],
-        value=row["value"],
-        unit=row["unit"],
-        prior_value=row["prior_value"],
-        deltas=Deltas(
-            mom_pct=row["mom_pct"],
-            yoy_pct=row["yoy_pct"],
-            budget_var_abs=row["budget_var_abs"],
-            budget_var_pct=row["budget_var_pct"],
-        ),
-        trend=row["trend"],
-        is_anomaly=bool(row["is_anomaly"]),
-        variance_bridge=bridge,
-    )
+
+@app.get("/reports/{report_id}/grounding")
+def report_grounding(report_id: int, _: CurrentUser = Depends(require_read)) -> dict:
+    """Narrative Drill-Down (v3.0): per-sentence attribution to the exact computed
+    facts and context docs that ground it. Deterministic, scoped to the caller's
+    universe, computed on read (no LLM)."""
+    conn = get_connection()
+    try:
+        row = conn.execute(
+            f"""SELECT gr.narrative, gr.sources, gr.period, gr.metric_id
+                FROM generated_reports gr JOIN metrics m ON m.id = gr.metric_id
+                JOIN datasets d ON d.id = m.dataset_id
+                WHERE gr.id = ? AND {_scope_pred('d')}""",
+            (report_id,),
+        ).fetchone()
+        if row is None:
+            raise HTTPException(status_code=404, detail=f"Report {report_id} not found")
+        fact = _fact_by_metric_id(conn, row["metric_id"], row["period"])
+        if fact is None:
+            raise HTTPException(status_code=404, detail="No computed fact for this report")
+        # Rebuild the cited context snippets (bodies needed for causal attribution).
+        try:
+            cited = json.loads(row["sources"]) if row["sources"] else []
+        except (ValueError, TypeError):
+            cited = []
+        ctx = []
+        for s in cited:
+            sid = str(s.get("id", ""))
+            digits = sid.replace("ctx_", "")
+            body = ""
+            if digits.isdigit():
+                b = conn.execute(
+                    "SELECT body FROM context_documents WHERE id = ?", (int(digits),)
+                ).fetchone()
+                body = b["body"] if b else ""
+            ctx.append(ContextSnippet(id=sid, type=s.get("type", "note"),
+                                      title=s.get("title", ""), body=body))
+        return attribute(row["narrative"], fact, ctx)
+    finally:
+        conn.close()
 
 
 def _context_store(conn) -> ContextStore:
