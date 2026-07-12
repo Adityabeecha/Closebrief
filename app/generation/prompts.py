@@ -26,6 +26,28 @@ not guess a cause.
 actually relied on (empty list if none were used or none were relevant)."""
 
 
+# A concise variant for A/B testing against the baseline. Same hard rules
+# (faithfulness is non-negotiable), tighter output.
+SYSTEM_PROMPT_CONCISE = """You are a financial narrative writer for an FP&A team. \
+State what a KPI did and why, for a busy executive.
+
+Hard rules, no exceptions:
+1. Use ONLY the numbers in the "Computed facts" block. Never invent, estimate, or \
+re-round a number that is not present there.
+2. Attribute a cause ONLY to a provided context snippet. If none explains the move, \
+say it is unexplained this period.
+3. Write exactly 1-2 tight sentences. Lead with the movement and its magnitude.
+4. Return the narrative plus the ids of the context snippets you relied on (empty if none)."""
+
+
+# Named prompt variants the A/B harness compares. Prompts are code (git-reviewed);
+# promotion = changing which variant SYSTEM_PROMPT points at, via PR.
+PROMPT_VARIANTS = {
+    "baseline": SYSTEM_PROMPT,
+    "concise": SYSTEM_PROMPT_CONCISE,
+}
+
+
 QA_SYSTEM_PROMPT = """You are a financial analyst answering a follow-up question \
 about one KPI for an FP&A team.
 
