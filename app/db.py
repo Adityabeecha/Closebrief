@@ -183,6 +183,19 @@ CREATE TABLE IF NOT EXISTS scheduled_jobs (
     enabled INTEGER NOT NULL DEFAULT 1,
     last_run_at TEXT,
     next_run_at TEXT,
+    last_status TEXT,                 -- 'ok' | 'skipped' | 'error'
+    last_error TEXT,
+    fail_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS scheduler_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    job_id INTEGER,
+    kind TEXT NOT NULL,
+    status TEXT NOT NULL,             -- 'ok' | 'skipped' | 'error'
+    detail TEXT,
+    latency_ms REAL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -232,6 +245,10 @@ _SQLITE_MIGRATIONS = [
     "ALTER TABLE kpi_configs ADD COLUMN aggregation_type TEXT",
     # v3.1 demo isolation for context docs (retrieval + library + conflicts)
     "ALTER TABLE context_documents ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 0",
+    # v3.0 scheduler observability (dev DBs that already have scheduled_jobs)
+    "ALTER TABLE scheduled_jobs ADD COLUMN last_status TEXT",
+    "ALTER TABLE scheduled_jobs ADD COLUMN last_error TEXT",
+    "ALTER TABLE scheduled_jobs ADD COLUMN fail_count INTEGER NOT NULL DEFAULT 0",
 ]
 
 PG_SCHEMA_PATH = Path(__file__).parent / "migrations" / "pg_schema.sql"
