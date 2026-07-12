@@ -709,6 +709,7 @@
       </div>
       <div class="digest-wrap" id="digest-list"></div>
       <div class="loading" id="digest-loading" style="display:none"><span class="spin"></span> Writing your digest…</div>
+      <div class="digest-wrap" id="digest-history" style="margin-top:26px"></div>
     </section>
 
     <!-- ---------- CONTEXT ---------- -->
@@ -822,6 +823,24 @@
       </div>
       <div id="nt-list"></div>
       <div class="loading" id="nt-loading" style="display:none"><span class="spin"></span> Loading…</div>
+
+      <h1 style="font-size:19px;margin:30px 0 4px">Schedules</h1>
+      <div class="sub" style="margin-bottom:14px">Run digests and anomaly scans automatically. An external cron calls the app with your scheduler token — see the setup note after adding one.</div>
+      <div class="ctx-form" style="grid-template-columns:1fr 1fr 1fr;align-items:end">
+        <div><label class="lbl">Job</label>
+          <select id="sch-kind" onchange="schKindFields()">
+            <option value="digest">Scheduled digest</option>
+            <option value="anomaly_scan">Anomaly scan</option>
+          </select></div>
+        <div><label class="lbl">Cadence</label>
+          <select id="sch-cadence">
+            <option value="daily">Daily</option><option value="weekly" selected>Weekly</option><option value="monthly">Monthly</option>
+          </select></div>
+        <div id="sch-topn-wrap"><label class="lbl">Digest size (top N movers)</label>
+          <input id="sch-topn" type="number" min="1" max="20" value="5"></div>
+        <div class="ctx-full" style="text-align:right"><button class="btn primary" onclick="schCreate()">Add schedule</button></div>
+      </div>
+      <div id="sch-list"></div>
     </section>
 
     <!-- ---------- ADMIN ---------- -->
@@ -1485,7 +1504,45 @@ async function loadNotifications(){
     }).join(""):'<div class="empty-state">No channels configured yet. Add one above to receive alerts.</div>';
   }catch(e){toast(e.message);}
   finally{$("nt-loading").style.display="none";}
+  loadSchedules();
 }
+/* ---------- schedules (Phase 2+4) ---------- */
+function schKindFields(){$("sch-topn-wrap").style.display=$("sch-kind").value==="digest"?"":"none";}
+const CADENCE_LABEL={daily:"Daily",weekly:"Weekly",monthly:"Monthly"};
+async function loadSchedules(){
+  let jobs;try{jobs=await api("/schedules");}catch{return;}   // admin-only; ignore if forbidden
+  const kindLabel={digest:"Scheduled digest",anomaly_scan:"Anomaly scan"};
+  $("sch-list").innerHTML=jobs.length?jobs.map(j=>`
+    <div class="card" style="margin-top:12px;flex-direction:row;align-items:center;gap:14px">
+      <span class="nt-ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${j.kind==="digest"?'<path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/>':'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>'}</svg></span>
+      <div style="flex:1;min-width:0">
+        <b>${esc(kindLabel[j.kind]||j.kind)}</b>
+        <div style="font-size:12px;color:var(--mut)">${esc(CADENCE_LABEL[j.cadence]||j.cadence)}${j.kind==="digest"&&j.config&&j.config.top_n?` · top ${j.config.top_n}`:""}${j.next_run_at?` · next ${esc(String(j.next_run_at).slice(0,16).replace("T"," "))}`:""}</div>
+      </div>
+      <label style="font-size:12px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px">
+        <input type="checkbox" ${j.enabled?"checked":""} onchange="schToggle(${j.id},this.checked)"> Enabled</label>
+      <button class="ico" title="Delete schedule" aria-label="Delete schedule" onclick="schDelete(${j.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">${ICON_PATHS.trash}</svg></button>
+    </div>`).join(""):'<div class="empty-state" style="padding:26px">No schedules yet. Add one above to run digests or anomaly scans automatically.</div>';
+}
+async function schCreate(){
+  const kind=$("sch-kind").value,cadence=$("sch-cadence").value;
+  const body={kind,cadence};
+  if(kind==="digest")body.top_n=Math.max(1,Math.min(20,parseInt($("sch-topn").value)||5));
+  try{await api("/schedules",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    toast("Schedule added");loadSchedules();
+    let seen=false;try{seen=localStorage.getItem("cb-sched-hint")==="1";}catch{}
+    if(!seen){try{localStorage.setItem("cb-sched-hint","1");}catch{}
+    _openModalRaw({title:"One more step to activate scheduling",okLabel:"Got it",
+      body:`<div style="font-size:13.5px;line-height:1.6;color:var(--ink2)">
+        <p style="margin-bottom:10px">Schedules run when an external cron calls Closebrief. Render's free tier has no built-in cron, so:</p>
+        <ol style="margin:0 0 4px 18px;display:flex;flex-direction:column;gap:7px">
+          <li>Set a <b>SCHEDULER_TOKEN</b> env var in Render (any long random secret).</li>
+          <li>At <b>cron-job.org</b> (free), add a job that POSTs to <code>${esc(location.origin)}/internal/scheduler/tick</code> with header <code>X-Scheduler-Token: &lt;your token&gt;</code>, every hour.</li>
+        </ol></div>`,getValue:()=>true});}
+  }catch(e){toast(e.message);}
+}
+async function schToggle(id,enabled){try{await api(`/schedules/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({enabled})});}catch(e){toast(e.message);loadSchedules();}}
+async function schDelete(id){if(!await modalConfirm("Delete schedule","Remove this scheduled job?",{okLabel:"Delete"}))return;try{await api(`/schedules/${id}`,{method:"DELETE"});toast("Deleted");loadSchedules();}catch(e){toast(e.message);}}
 async function ntCreate(){
   const channel=$("nt-channel").value,raw=$("nt-target").value.trim();
   if(!raw){toast("Enter a target (recipients or URL)");return;}
@@ -2248,7 +2305,25 @@ async function loadDigest(force){
         ${it.report_id?`<button class="txtact" style="margin-left:auto" onclick="feedback(${it.report_id},'accepted',this)">Accept</button><button class="txtact bad" onclick="rejectNarr(${it.report_id},this)">Reject</button>`:""}
       </div></div>`).join("")||'<div class="empty-state">No movers with budget data for this period.</div>';
     if(d.cost_usd!=null||d.cached)$("digest-list").insertAdjacentHTML("beforeend",`<div class="cost" style="margin-top:8px">${d.cached?"served from cache (no LLM cost)":"≈ $"+(+d.cost_usd).toFixed(4)+" this run"}</div>`);
-  }catch(e){toast("Digest failed: "+e.message);}finally{$("digest-loading").style.display="none";}
+  }catch(e){toast("Digest failed: "+e.message);}finally{$("digest-loading").style.display="none";loadDigestHistory();}
+}
+// Period-over-period: past digests (manual + scheduled), newest first (Phase 4).
+async function loadDigestHistory(){
+  const el=$("digest-history");if(!el)return;
+  let runs;try{runs=await api("/digests/history");}catch{el.innerHTML="";return;}
+  if(!runs||runs.length<2){el.innerHTML="";return;}   // need history to compare
+  el.innerHTML=`<h3 style="font-family:var(--serif);font-size:17px;font-weight:600;margin-bottom:10px">Digest history</h3>`
+    +runs.map(r=>{
+      const when=r.created_at?String(r.created_at).slice(0,10):"";
+      const top=(r.items||[]).slice(0,3).map(it=>esc(it.metric)).join(", ");
+      return `<div class="digest-item" style="padding:13px 18px">
+        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+          <b style="font-size:14px">${esc(r.period)}</b>
+          <span class="fh-sub" style="font-size:11.5px;color:var(--mut2)">${esc(r.trigger)} · ${esc(when)}${r.cost_usd!=null?" · ≈ $"+(+r.cost_usd).toFixed(4):""}</span>
+        </div>
+        ${top?`<div style="font-size:12.5px;color:var(--mut);margin-top:4px">Top movers: ${top}</div>`:""}
+      </div>`;
+    }).join("");
 }
 
 /* ---------- context ---------- */
