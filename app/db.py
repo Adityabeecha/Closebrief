@@ -173,6 +173,29 @@ CREATE TABLE IF NOT EXISTS notification_configs (
     enabled INTEGER NOT NULL DEFAULT 1,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS scheduled_jobs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind TEXT NOT NULL,               -- 'digest' | 'anomaly_scan'
+    cadence TEXT NOT NULL,            -- 'daily' | 'weekly' | 'monthly'
+    dataset_id INTEGER,               -- NULL = active real dataset at run time
+    config TEXT NOT NULL DEFAULT '{}',
+    enabled INTEGER NOT NULL DEFAULT 1,
+    last_run_at TEXT,
+    next_run_at TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS digest_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    dataset_id INTEGER,
+    period TEXT NOT NULL,
+    top_n INTEGER NOT NULL,
+    items TEXT NOT NULL,              -- JSON snapshot of the digest items
+    cost_usd REAL,
+    trigger TEXT NOT NULL DEFAULT 'manual',  -- 'manual' | 'scheduled'
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 # Columns added after first release; applied to pre-existing SQLite DBs on startup.

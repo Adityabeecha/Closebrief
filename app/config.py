@@ -85,6 +85,9 @@ class Settings(BaseSettings):
     # When set, EmailChannel sends via https://api.resend.com instead of SMTP.
     resend_api_key: str = ""
     webhook_secret: str = ""          # HMAC-SHA256 signing key for outbound webhooks
+    # Shared secret an external cron sends (X-Scheduler-Token) to POST
+    # /internal/scheduler/tick. Empty = scheduling disabled (endpoint returns 503).
+    scheduler_token: str = ""
 
 
 settings = Settings()

@@ -43,10 +43,11 @@ Separate the two lines with a single newline character.
 Use ONLY the numbers provided. Never invent or derive new figures."""
 
 
-def _load_facts_for_period(conn: sqlite3.Connection, period: str) -> list[ComputedFact]:
+def _load_facts_for_period(conn: sqlite3.Connection, period: str,
+                           dataset_id: int | None = None) -> list[ComputedFact]:
     from app.datasets import active_dataset_id
 
-    ds = active_dataset_id(conn)
+    ds = dataset_id if dataset_id is not None else active_dataset_id(conn)
     rows = conn.execute(
         """
         SELECT m.name AS metric, m.category, m.unit, cf.period, cf.value, cf.prior_value,
@@ -78,9 +79,10 @@ def _load_facts_for_period(conn: sqlite3.Connection, period: str) -> list[Comput
 
 
 def generate_digest(
-    conn: sqlite3.Connection, period: str, llm_client: LLMClient, top_n: int = 5
+    conn: sqlite3.Connection, period: str, llm_client: LLMClient, top_n: int = 5,
+    dataset_id: int | None = None,
 ) -> DigestOutput:
-    facts = _load_facts_for_period(conn, period)
+    facts = _load_facts_for_period(conn, period, dataset_id=dataset_id)
     ranked = sorted(
         (f for f in facts if f.deltas.budget_var_abs is not None),
         key=lambda f: abs(f.deltas.budget_var_abs),
@@ -106,7 +108,7 @@ def generate_digest(
         headline = lines[0] if lines else text
         detail = " ".join(lines[1:]) if len(lines) > 1 else ""
         passed, _ = check_faithfulness(text, fact)
-        report_id = _persist_digest_item(conn, fact, text, passed, usage, latency_ms)
+        report_id = _persist_digest_item(conn, fact, text, passed, usage, latency_ms, dataset_id)
         items.append(
             DigestItem(
                 metric=fact.metric,
@@ -130,12 +132,13 @@ def _persist_digest_item(
     passed: bool,
     usage: TokenUsage,
     latency_ms: float,
+    dataset_id: int | None = None,
 ) -> int | None:
     """Digest lines are narratives too: persist them with full telemetry so
     they are auditable and can receive feedback."""
     from app.datasets import active_dataset_id
 
-    ds = active_dataset_id(conn)
+    ds = dataset_id if dataset_id is not None else active_dataset_id(conn)
     mrow = conn.execute(
         "SELECT id FROM metrics WHERE name = ? AND dataset_id = ?", (fact.metric, ds)
     ).fetchone()
