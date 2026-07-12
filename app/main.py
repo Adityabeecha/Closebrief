@@ -1,3 +1,4 @@
+import hmac
 import json
 import time
 from collections import defaultdict, deque
@@ -7,6 +8,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
+from app import scheduling
 from app.auth import CurrentUser, authenticate, get_current_user, invalidate_role_cache, require_role
 from app.cache import make_insight_key
 from app.compute.aggregate import (
@@ -59,6 +61,7 @@ from app.notifications.channels import NotificationError, make_channel
 from app.notifications.scheduler import deliver as notif_deliver
 from app.notifications.scheduler import list_configs as notif_list_configs
 from app.retrieval.retrieve import retrieve
+from app.scheduling import record_digest_run
 from app.schemas import (
     ComputedFact,
     ContextDoc,
@@ -182,6 +185,7 @@ async def _auth_middleware(request: Request, call_next):
         or path in _OPEN_PATHS
         or path.startswith("/docs")
         or path.startswith("/vendor/")   # static frontend libs, needed pre-login
+        or path.startswith("/internal/")  # cron endpoints: gated by their own shared token
     ):
         return await call_next(request)
     try:
@@ -1514,7 +1518,10 @@ def digest_endpoint(period: str, top_n: int = 5, force: bool = False,
     conn = get_connection()
     try:
         llm_client = get_llm_client()
-        digest = generate_digest(conn, period, llm_client, top_n)
+        digest = generate_digest(conn, period, llm_client, top_n, dataset_id=ds)
+        # Persist to history so the Digest page can compare period-over-period.
+        record_digest_run(conn, ds, period, top_n,
+                          [it.model_dump() for it in digest.items], digest.cost_usd, "manual")
     except LLMGenerationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     finally:
@@ -1530,6 +1537,89 @@ def digest_endpoint(period: str, top_n: int = 5, force: bool = False,
         "narrative": it.detail,
     } for it in digest.items])
     return digest
+
+
+# ---------- Scheduling: jobs, digest history, and the cron tick (v3.1) ----------
+
+
+@app.get("/schedules")
+def list_schedules(_: CurrentUser = Depends(require_admin)) -> list[dict]:
+    conn = get_connection()
+    try:
+        return scheduling.list_jobs(conn)
+    finally:
+        conn.close()
+
+
+@app.post("/schedules", status_code=201)
+def create_schedule(payload: dict, _: CurrentUser = Depends(require_admin)) -> dict:
+    kind = (payload.get("kind") or "").strip()
+    cadence = (payload.get("cadence") or "").strip()
+    if kind not in scheduling.KINDS:
+        raise HTTPException(status_code=422, detail=f"kind must be one of {scheduling.KINDS}")
+    if cadence not in scheduling.CADENCES:
+        raise HTTPException(status_code=422, detail=f"cadence must be one of {scheduling.CADENCES}")
+    conn = get_connection()
+    try:
+        job_id = scheduling.create_job(
+            conn, kind, cadence,
+            dataset_id=payload.get("dataset_id"),
+            config={"top_n": int(payload.get("top_n", 5))} if kind == "digest" else {},
+            enabled=bool(payload.get("enabled", True)),
+        )
+        return {"id": job_id}
+    finally:
+        conn.close()
+
+
+@app.patch("/schedules/{job_id}")
+def update_schedule(job_id: int, payload: dict, _: CurrentUser = Depends(require_admin)) -> dict:
+    conn = get_connection()
+    try:
+        scheduling.set_job_enabled(conn, job_id, bool(payload.get("enabled", True)))
+        return {"id": job_id}
+    finally:
+        conn.close()
+
+
+@app.delete("/schedules/{job_id}", status_code=204)
+def remove_schedule(job_id: int, _: CurrentUser = Depends(require_admin)) -> None:
+    conn = get_connection()
+    try:
+        if not scheduling.delete_job(conn, job_id):
+            raise HTTPException(status_code=404, detail=f"Schedule {job_id} not found")
+    finally:
+        conn.close()
+
+
+@app.get("/digests/history")
+def digest_history(_: CurrentUser = Depends(require_read)) -> list[dict]:
+    conn = get_connection()
+    try:
+        return scheduling.list_digest_runs(conn, active_dataset_id(conn))
+    finally:
+        conn.close()
+
+
+@app.post("/internal/scheduler/tick")
+def scheduler_tick(request: Request) -> dict:
+    """Cron entry point. Gated by the shared SCHEDULER_TOKEN (no user JWT), so an
+    external pinger can drive scheduled digests + anomaly scans. Disabled (503)
+    until SCHEDULER_TOKEN is configured."""
+    if not settings.scheduler_token:
+        raise HTTPException(status_code=503, detail="Scheduling is not configured")
+    token = request.headers.get("x-scheduler-token", "")
+    if not hmac.compare_digest(token, settings.scheduler_token):
+        raise HTTPException(status_code=401, detail="Invalid scheduler token")
+    try:
+        llm_client = get_llm_client()
+    except Exception:  # noqa: BLE001 - anomaly scans still run deterministically without an LLM
+        llm_client = None
+    conn = get_connection()
+    try:
+        return scheduling.run_due_jobs(conn, llm_client=llm_client)
+    finally:
+        conn.close()
 
 
 @app.post("/feedback", status_code=201)

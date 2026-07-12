@@ -44,3 +44,5 @@ services:
         sync: false
       - key: SENTRY_DSN
         sync: false
+      - key: SCHEDULER_TOKEN   # shared secret; an external cron sends it as
+        sync: false            # X-Scheduler-Token to POST /internal/scheduler/tick
