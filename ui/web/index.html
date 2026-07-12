@@ -194,6 +194,24 @@
   .stat.alert{border-color:var(--red);background:var(--red-bg)}
   .stat.alert .stat-val{color:var(--red);font-size:20px}
 
+  /* ---------------- FUNNEL (Phase 1) ---------------- */
+  .funnel{background:var(--card);border:1px solid var(--b08);border-radius:15px;padding:18px 20px;margin-bottom:18px;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+  .funnel-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+  .funnel-head h3{font-family:var(--serif);font-size:17px;font-weight:600}
+  .funnel-head .fh-sub{font-size:12px;color:var(--mut)}
+  .funnel-stages{display:flex;gap:10px;align-items:stretch;overflow-x:auto}
+  .fstage{flex:1;min-width:120px;display:flex;flex-direction:column;gap:5px}
+  .fstage .bar{height:8px;border-radius:5px;background:var(--accent);opacity:.85}
+  .fstage .fs-name{font-size:11.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.04em}
+  .fstage .fs-val{font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:-.02em}
+  .fconv{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:var(--mut);font-family:var(--mono)}
+  .fconv .pp{padding:1px 6px;border-radius:5px}
+  .fconv .pp.good{color:var(--green);background:var(--green-bg)}
+  .fconv .pp.bad{color:var(--red);background:var(--red-bg)}
+  .fstage.leak .fs-name{color:var(--red)}
+  .fstage.leak .bar{background:var(--red)}
+  .funnel-narr{margin-top:14px;font-family:var(--serif);font-size:14.5px;line-height:1.6;color:var(--ink2)}
+
   /* ---------------- CARDS ---------------- */
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;align-items:start}
   .card{background:var(--card);border:1px solid var(--b08);border-left:3px solid var(--cat,var(--b08));border-radius:15px;padding:20px;display:flex;flex-direction:column;gap:13px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 4px 12px rgba(15,23,42,.03);transition:box-shadow .16s,transform .16s,border-color .16s}
@@ -632,6 +650,7 @@
       </div>
       <div class="banner ok" id="import-banner" style="display:none"></div>
       <div class="statrow" id="statrow"></div>
+      <div id="funnel-panel" style="display:none"></div>
       <div class="filter-pills" id="filter-pills"></div>
       <div class="banner warn" id="anomaly-banner" style="display:none"></div>
       <div class="banner warn" id="conflict-banner" style="display:none"></div>
@@ -746,7 +765,7 @@
           <div><label class="lbl">What kind of data is this?</label>
             <select id="imp-domain">
               <option value="fpa">FP&amp;A — financials</option>
-              <option value="marketing" disabled>Marketing &amp; Growth (coming soon)</option>
+              <option value="marketing">Marketing &amp; Growth — acquisition funnel</option>
               <option value="ops" disabled>Operations (coming soon)</option>
             </select></div>
         </div>
@@ -1518,13 +1537,15 @@ async function setUserRole(uid,role){
 
 /* ---------- datasets ---------- */
 const DOMAIN_LABEL={fpa:"FP&A",marketing:"Marketing",ops:"Ops"};
-let activeDatasetObj=null;
+let activeDatasetObj=null, activeDomain=null;
 async function loadDatasets(){
   const d=await api("/datasets");
   activeDatasetId=d.active_id;
   datasetsCache=d.datasets;                       // for id -> name lookups (no strings in onclick)
   const active=d.datasets.find(x=>x.is_active);
   activeDatasetObj=active||null;
+  // The active domain drives funnel rendering (marketing defines an ordered funnel).
+  try{activeDomain=await api("/domain");}catch{activeDomain=null;}
   $("ws-name").textContent=active?active.name:"No dataset";
   const rows=d.datasets.map(ds=>`
     <div class="ws-item" onclick="activateDataset(${ds.id})">
@@ -1667,7 +1688,7 @@ async function loadFacts(){
       $("anomaly-banner").innerHTML=warnIcon()+`<span>Anomalous movement: ${anom.map(esc).join(", ")}. Open a card for the full story.</span>`+dismissX(anomKey,"anomaly-banner");
     }else $("anomaly-banner").style.display="none";
     updateGenButton();maybePromptGenerate();setFreshness();
-    loadConflicts();
+    loadConflicts();renderFunnel();
   }catch(e){
     $("statrow").innerHTML="";$("dash-sub").textContent="Couldn't load data";
     $("cards").innerHTML=`<div class="empty-state" style="grid-column:1/-1;padding:56px 20px">
@@ -1714,6 +1735,51 @@ async function loadConflicts(){
   }catch{$("conflict-banner").style.display="none";}
 }
 const warnIcon=()=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/></svg>`;
+
+/* ---------- funnel (Phase 1: stage-over-stage acquisition funnel) ---------- */
+async function renderFunnel(){
+  const el=$("funnel-panel");if(!el)return;
+  // Only the marketing (or any funnel-defining) domain shows a funnel.
+  if(!activeDomain||!(activeDomain.funnel&&activeDomain.funnel.length)||granularity!=="month"){el.style.display="none";el.innerHTML="";return;}
+  let f;
+  try{f=await api(`/funnel?period=${encodeURIComponent(currentPeriod)}`);}
+  catch{el.style.display="none";return;}
+  const stages=(f.stages||[]).filter(s=>s.value!=null);
+  if(stages.length<2){el.style.display="none";return;}
+  const max=Math.max(...stages.map(s=>s.value))||1;
+  const ppChip=v=>v==null?"":`<span class="pp ${v>0?"good":v<0?"bad":""}">${v>0?"+":""}${v}pp</span>`;
+  const cards=stages.map(s=>{
+    const leak=s.name===f.biggest_dropoff_stage?" leak":"";
+    const conv=s.conversion_from_prev!=null
+      ? `<span class="fconv">${s.conversion_from_prev}% of prev ${ppChip(s.conversion_mom_pp)}</span>` : `<span class="fconv">entry</span>`;
+    return `<div class="fstage${leak}">
+      <span class="fs-name">${esc(s.name)}</span>
+      <span class="fs-val nbi-num">${(+s.value).toLocaleString()}</span>
+      <div class="bar" style="width:${Math.max(8,Math.round(s.value/max*100))}%"></div>
+      ${conv}</div>`;
+  }).join("");
+  const leakLine=f.biggest_dropoff_stage
+    ? `Biggest leak into <b>${esc(f.biggest_dropoff_stage)}</b>` : "";
+  el.style.display="";
+  el.innerHTML=`<div class="funnel">
+    <div class="funnel-head">
+      <div><h3>Acquisition funnel</h3><div class="fh-sub">${esc(fmtPeriodTitle(currentPeriod).replace(" close","").replace(" overview",""))} · overall ${f.overall_conversion!=null?f.overall_conversion+"% end-to-end":"—"}</div></div>
+      <div class="fh-sub">${leakLine} ${activeDomain.narrative_style?'· <button class="txtact acc" onclick="explainFunnel(this)">Explain funnel</button>':""}</div>
+    </div>
+    <div class="funnel-stages">${cards}</div>
+    <div class="funnel-narr" id="funnel-narr" style="display:none"></div>
+  </div>`;
+}
+async function explainFunnel(btn){
+  const box=$("funnel-narr");if(!box)return;
+  btn.disabled=true;btn.textContent="Explaining…";
+  box.style.display="";box.innerHTML='<span class="spin"></span> Writing funnel summary…';
+  try{
+    const r=await api("/funnel/narrative",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({period:currentPeriod})});
+    box.textContent=r.narrative||"No summary available.";
+  }catch(e){box.innerHTML=`<span style="color:var(--red)">${esc(e.message)}</span>`;}
+  finally{btn.disabled=false;btn.textContent="Explain funnel";}
+}
 
 /* The signature mark: the auditor's tick. One seal wherever numbers are verified. */
 const TICK='<svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';

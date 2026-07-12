@@ -14,6 +14,9 @@ class DomainConfig:
     kpi_library: list[dict] = field(default_factory=list)
     narrative_style: str = "executive"   # "executive" | "operational"
     description: str = ""
+    # Ordered funnel stages (metric names) for stage-over-stage analysis, e.g.
+    # ["Impressions", "Clicks", "Signups", "Conversions"]. Empty = no funnel.
+    funnel: list[str] = field(default_factory=list)
 
     def public(self) -> dict:
         """Serializable summary for the /domains endpoint (no prompt text)."""
@@ -23,4 +26,5 @@ class DomainConfig:
             "narrative_style": self.narrative_style,
             "description": self.description,
             "kpi_count": len(self.kpi_library),
+            "funnel": self.funnel,
         }
