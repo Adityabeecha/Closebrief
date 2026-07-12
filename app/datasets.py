@@ -19,6 +19,12 @@ def set_demo_scope(is_demo: bool) -> None:
     _demo_scope.set(bool(is_demo))
 
 
+def is_demo_scope() -> bool:
+    """True when the current request is a demo (viewer) session. Used to keep
+    cache keys from colliding across the demo/real universe boundary."""
+    return _demo_scope.get()
+
+
 def _scope_pred(alias: str = "") -> str:
     # `true`/`false` literals work on both SQLite (INTEGER 0/1) and Postgres (BOOLEAN).
     p = f"{alias}." if alias else ""

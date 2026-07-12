@@ -30,9 +30,11 @@ from app.config import auth_active, resolved_vector_backend, settings
 from app.context.conflicts import find_conflicts
 from app.context.store import ContextStore
 from app.datasets import (
+    _scope_pred,
     active_dataset_id,
     create_dataset,
     delete_dataset,
+    is_demo_scope,
     list_datasets,
     set_active,
     set_demo_scope,
@@ -51,7 +53,7 @@ from app.ingestion.mapping import MappingError, MappingSpec, normalize, store_no
 from app.ingestion.profiler import profile_columns
 from app.ingestion.templates import get_template as load_template
 from app.ingestion.templates import save_template as save_mapping_template
-from app.ingestion.upload import UploadError, create_upload, load_upload_frame
+from app.ingestion.upload import MAX_UPLOAD_BYTES, UploadError, create_upload, load_upload_frame
 from app.kpis.library import KPI_LIBRARY, suggest_kpi
 from app.notifications.channels import NotificationError, make_channel
 from app.notifications.scheduler import deliver as notif_deliver
@@ -105,6 +107,10 @@ app.add_middleware(
 require_read = require_role("viewer", "analyst", "executive", "admin")
 require_write = require_role("analyst", "admin")   # viewer excluded -> demo writes 403
 require_admin = require_role("admin")
+# Signed-in members only (excludes the anonymous demo "viewer"). Used to gate
+# paid LLM calls and feedback writes so a read-only demo session can neither
+# spend the LLM budget nor mutate real reports.
+require_member = require_role("analyst", "executive", "admin")
 
 # Paths reachable without a token: the app shell, health, the public auth config
 # the frontend needs to boot the login form, and the API docs.
@@ -114,6 +120,17 @@ _OPEN_PATHS = {"/", "/health", "/auth/config", "/openapi.json", "/docs", "/redoc
 @app.on_event("startup")
 def _startup() -> None:
     init_db()
+    # Index the hot lookup in /facts (feedback by report). IF NOT EXISTS is
+    # portable across SQLite and Postgres and idempotent on every boot.
+    try:
+        conn = get_connection()
+        try:
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_feedback_report ON feedback(report_id)")
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception:  # noqa: BLE001 - index is an optimization, never block boot
+        pass
     if settings.demo_mode:
         # Seed the sample dataset on a background thread — embedding the demo
         # context docs takes a few seconds and must not delay boot / the health
@@ -138,6 +155,20 @@ def _startup() -> None:
 _LATENCIES: dict[str, deque] = defaultdict(lambda: deque(maxlen=500))
 _RATE_BUCKETS: dict[str, deque] = defaultdict(deque)
 _RATE_LIMIT_PER_MINUTE = 240  # generous: the UI's generate-all bursts stay well under
+# Bounds so request-spray (random paths / many IPs) can't grow these unboundedly.
+_MAX_LATENCY_PATHS = 200
+_last_bucket_sweep = 0.0
+
+
+def _sweep_rate_buckets(now: float) -> None:
+    """Drop IP buckets with no requests in the last minute, at most once a minute,
+    so _RATE_BUCKETS stays proportional to *recently active* IPs, not all-time."""
+    global _last_bucket_sweep
+    if now - _last_bucket_sweep < 60:
+        return
+    _last_bucket_sweep = now
+    for ip in [ip for ip, b in _RATE_BUCKETS.items() if not b or now - b[-1] > 60]:
+        del _RATE_BUCKETS[ip]
 
 
 @app.middleware("http")
@@ -168,6 +199,7 @@ async def _auth_middleware(request: Request, call_next):
 async def _telemetry_middleware(request, call_next):
     client_ip = request.client.host if request.client else "?"
     now = time.time()
+    _sweep_rate_buckets(now)
     bucket = _RATE_BUCKETS[client_ip]
     while bucket and now - bucket[0] > 60:
         bucket.popleft()
@@ -177,7 +209,11 @@ async def _telemetry_middleware(request, call_next):
 
     t0 = time.perf_counter()
     response = await call_next(request)
-    _LATENCIES[request.url.path].append((time.perf_counter() - t0) * 1000)
+    # Only record latency for real (matched) routes, and cap distinct paths so a
+    # 404-spray of random URLs can't grow the dict without bound.
+    path = request.url.path
+    if response.status_code != 404 and (path in _LATENCIES or len(_LATENCIES) < _MAX_LATENCY_PATHS):
+        _LATENCIES[path].append((time.perf_counter() - t0) * 1000)
     return response
 
 
@@ -747,7 +783,7 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
 
 @app.get("/facts")
 def list_facts(period: str, granularity: str = "month", include_charts: bool = True,
-               _: CurrentUser = Depends(require_read)) -> list[dict]:
+               user: CurrentUser = Depends(require_read)) -> list[dict]:
     """Dashboard cards for the ACTIVE dataset. Driven by the user's KPI
     selection (kpi_configs): shows exactly the selected KPIs, each LEFT JOINed
     to its computed fact for the period — so a selected KPI with no data for
@@ -807,29 +843,42 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
                 (period, ds),
             ).fetchall()
 
+        sensitive = user.role == "admin"   # gate cost/latency/emails to admins
+        # Batch the per-card report + feedback lookups into two queries instead of
+        # ~3 per card (was an N+1 over the dashboard's hot path).
+        metric_ids = [r["metric_id"] for r in rows if r["metric_id"] is not None]
+        reports_by_metric, edited_by_report, reviewer_by_report = {}, {}, {}
+        if metric_ids:
+            ph = ",".join("?" * len(metric_ids))
+            for rr in conn.execute(
+                f"""SELECT gr.id, gr.metric_id, gr.narrative, gr.sources, gr.confidence,
+                           gr.faithfulness, gr.cost_usd, gr.latency_ms, gr.user_email
+                    FROM generated_reports gr
+                    WHERE gr.metric_id IN ({ph}) AND gr.period = ?
+                      AND (gr.prompt_version IS NULL OR gr.prompt_version NOT LIKE '%-digest')
+                    ORDER BY gr.id ASC""",
+                (*metric_ids, period),
+            ).fetchall():
+                reports_by_metric[rr["metric_id"]] = rr   # ASC → latest id wins
+            report_ids = [rr["id"] for rr in reports_by_metric.values()]
+            if report_ids:
+                ph2 = ",".join("?" * len(report_ids))
+                for fr in conn.execute(
+                    f"""SELECT report_id, action, edited_text, user_email
+                        FROM feedback WHERE report_id IN ({ph2}) ORDER BY id ASC""",
+                    tuple(report_ids),
+                ).fetchall():
+                    if fr["action"] == "edited" and fr["edited_text"] is not None:
+                        edited_by_report[fr["report_id"]] = fr["edited_text"]
+                    if fr["user_email"] is not None:
+                        reviewer_by_report[fr["report_id"]] = fr["user_email"]
+
         out = []
         for r in rows:
             has_data = r["metric_id"] is not None and r["value"] is not None
-            report = None
-            if has_data:
-                report = conn.execute(
-                    """
-                    SELECT gr.id, gr.narrative, gr.sources, gr.confidence, gr.faithfulness,
-                           gr.cost_usd, gr.latency_ms, gr.user_email,
-                           (SELECT edited_text FROM feedback
-                            WHERE report_id = gr.id AND action = 'edited' AND edited_text IS NOT NULL
-                            ORDER BY id DESC LIMIT 1) AS edited_text,
-                           (SELECT user_email FROM feedback
-                            WHERE report_id = gr.id AND user_email IS NOT NULL
-                            ORDER BY id DESC LIMIT 1) AS reviewer_email
-                    FROM generated_reports gr
-                    WHERE gr.metric_id = ? AND gr.period = ?
-                      AND (gr.prompt_version IS NULL OR gr.prompt_version NOT LIKE '%-digest')
-                    ORDER BY gr.id DESC LIMIT 1
-                    """,
-                    (r["metric_id"], period),
-                ).fetchone()
-            edited = report["edited_text"] if report else None
+            report = reports_by_metric.get(r["metric_id"]) if has_data else None
+            edited = edited_by_report.get(report["id"]) if report else None
+            reviewer = reviewer_by_report.get(report["id"]) if report else None
             out.append({
                 "metric": r["metric"],
                 "category": r["category"],
@@ -852,10 +901,12 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
                 "sources": json.loads(report["sources"]) if (report and report["sources"]) else [],
                 "confidence": report["confidence"] if report else None,
                 "faithfulness": report["faithfulness"] if report else None,
-                "cost_usd": report["cost_usd"] if report else None,
-                "latency_ms": report["latency_ms"] if report else None,
-                "generated_by": report["user_email"] if report else None,
-                "reviewed_by": report["reviewer_email"] if report else None,
+                # Cost, latency and user emails are operational/PII detail — only
+                # admins see them (matches /costs being admin-only).
+                "cost_usd": report["cost_usd"] if (report and sensitive) else None,
+                "latency_ms": report["latency_ms"] if (report and sensitive) else None,
+                "generated_by": report["user_email"] if (report and sensitive) else None,
+                "reviewed_by": reviewer if (report and sensitive) else None,
                 "chart_data": (
                     _chart_data(conn, r["metric_id"], r["metric"], period)
                     if include_charts and has_data else None
@@ -871,11 +922,19 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
 
 
 @app.post("/ingest", response_model=IngestSummary)
-async def ingest(file: UploadFile, user: CurrentUser = Depends(require_write)) -> IngestSummary:
+def ingest(file: UploadFile, user: CurrentUser = Depends(require_write)) -> IngestSummary:
     """Shortcut ingest for files already in the canonical format
     (period, metric, value, budget). Arbitrary layouts go through the
-    flexible flow: /ingest/upload -> schema -> mapping."""
-    raw = await file.read()
+    flexible flow: /ingest/upload -> schema -> mapping.
+
+    Sync def (not async): the parse/compute below is blocking CPU/IO work, so
+    FastAPI runs it in a threadpool instead of stalling the event loop."""
+    raw = file.file.read()
+    if len(raw) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File exceeds the {MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit",
+        )
     try:
         df = parse_csv(raw)
     except IngestValidationError as exc:
@@ -898,8 +957,9 @@ async def ingest(file: UploadFile, user: CurrentUser = Depends(require_write)) -
 
 
 @app.post("/ingest/upload")
-async def ingest_upload(file: UploadFile, _: CurrentUser = Depends(require_write)) -> dict:
-    raw = await file.read()
+def ingest_upload(file: UploadFile, _: CurrentUser = Depends(require_write)) -> dict:
+    # Sync def: create_upload does blocking pandas work (size cap enforced there).
+    raw = file.file.read()
     conn = get_connection()
     try:
         return create_upload(conn, raw, file.filename or "upload.csv")
@@ -1243,7 +1303,7 @@ def delete_context(doc_id: int, _: CurrentUser = Depends(require_write)) -> None
 
 
 @app.post("/generate-insight", response_model=InsightOutput)
-def generate_insight_endpoint(req: GenerateInsightRequest, user: CurrentUser = Depends(require_read)) -> InsightOutput:
+def generate_insight_endpoint(req: GenerateInsightRequest, user: CurrentUser = Depends(require_member)) -> InsightOutput:
     conn = get_connection()
     try:
         fact = _load_computed_fact(conn, req.metric, req.period)
@@ -1274,7 +1334,9 @@ def generate_insight_endpoint(req: GenerateInsightRequest, user: CurrentUser = D
         if not context and req.use_retrieval:
             # Retrieval (query embedding + vector search) is itself cached,
             # namespace-scoped: any context/data change invalidates it.
-            retr_key = f"retrieval:{req.metric}:{req.period}:k{settings.retrieval_k}"
+            # Key by dataset id so the demo and real universes never share a
+            # retrieval entry (their datasets always have distinct ids).
+            retr_key = f"retrieval:ds{ds}:{req.metric}:{req.period}:k{settings.retrieval_k}"
             cached_retr = shared_cache().get(retr_key)
             if cached_retr is not None:
                 context = [ContextSnippet(**c) for c in cached_retr["context"]]
@@ -1310,7 +1372,9 @@ def generate_insight_endpoint(req: GenerateInsightRequest, user: CurrentUser = D
         req.period,
         fact.model_dump(),
         [(c.id, c.title, c.body) for c in context],
-        f"{PROMPT_VERSION}:{domain_slug}",   # domain changes the system prompt
+        # Include dataset id + demo scope so equal-valued facts in different
+        # datasets (or the demo universe) never collide on one cached narrative.
+        f"{PROMPT_VERSION}:{domain_slug}:ds{ds}:{'demo' if is_demo_scope() else 'real'}",
         settings.llm_provider,
         settings.openai_model if settings.llm_provider == "openai" else settings.anthropic_model,
     )
@@ -1384,7 +1448,7 @@ def _persist_report(insight: InsightOutput, user: CurrentUser) -> int:
 
 
 @app.post("/ask")
-def ask_endpoint(payload: dict, user: CurrentUser = Depends(require_read)) -> dict:
+def ask_endpoint(payload: dict, user: CurrentUser = Depends(require_member)) -> dict:
     """Grounded Q&A about one metric (v2.9). Same guarantees as narratives:
     numbers only from computed facts, causes only from retrieved context, and
     an honest "the data doesn't answer that" when neither covers the question."""
@@ -1430,7 +1494,7 @@ def ask_endpoint(payload: dict, user: CurrentUser = Depends(require_read)) -> di
 
 @app.post("/digest", response_model=DigestOutput)
 def digest_endpoint(period: str, top_n: int = 5, force: bool = False,
-                    user: CurrentUser = Depends(require_read)) -> DigestOutput:
+                    user: CurrentUser = Depends(require_member)) -> DigestOutput:
     cache = shared_cache()
     # Keyed by the active dataset so a demo-universe digest can never be served
     # to a real session for the same period (and vice-versa), nor across datasets.
@@ -1469,11 +1533,17 @@ def digest_endpoint(period: str, top_n: int = 5, force: bool = False,
 
 
 @app.post("/feedback", status_code=201)
-def feedback_endpoint(fb: FeedbackIn, user: CurrentUser = Depends(require_read)) -> dict:
+def feedback_endpoint(fb: FeedbackIn, user: CurrentUser = Depends(require_member)) -> dict:
     conn = get_connection()
     try:
+        # Scope the report to the caller's universe (demo vs real) so feedback can
+        # never reach across it — the report's dataset must match the request scope.
         exists = conn.execute(
-            "SELECT 1 FROM generated_reports WHERE id = ?", (fb.report_id,)
+            f"""SELECT 1 FROM generated_reports gr
+                JOIN metrics m ON m.id = gr.metric_id
+                JOIN datasets d ON d.id = m.dataset_id
+                WHERE gr.id = ? AND {_scope_pred('d')}""",
+            (fb.report_id,),
         ).fetchone()
         if not exists:
             raise HTTPException(status_code=404, detail=f"Report {fb.report_id} not found")
@@ -1518,7 +1588,15 @@ def admin_set_role(user_id: str, role: str, current: CurrentUser = Depends(requi
         raise HTTPException(status_code=400, detail="You cannot demote yourself")
     conn = get_connection()
     try:
-        row = conn.execute("SELECT 1 FROM app_roles WHERE user_id = ?", (user_id,)).fetchone()
+        # A malformed id (e.g. not a UUID) makes Postgres raise on the cast; treat
+        # that as "not found" rather than leaking a 500.
+        try:
+            row = conn.execute(
+                "SELECT 1 FROM app_roles WHERE user_id = ?", (user_id,)
+            ).fetchone()
+        except Exception:  # noqa: BLE001 - invalid id -> 404, not 500
+            conn.rollback()
+            row = None
         if not row:
             raise HTTPException(status_code=404, detail=f"User {user_id} not found")
         conn.execute(
