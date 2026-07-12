@@ -158,9 +158,13 @@ def test_user_attribution_on_feedback(make_client):
     hdr = _bearer(sub="a1", email="a@co.com")
     # Seed a report row directly, then post feedback and check attribution.
     from app.db import get_connection
+    from app.workspaces import ensure_user_workspace
     conn = get_connection()
     try:
-        conn.execute("INSERT INTO datasets (name, is_active) VALUES ('d', 1)")
+        # v4.0: the report's dataset must belong to the caller's workspace, else
+        # tenant scoping (correctly) hides it. a1 resolves to this workspace.
+        ws = ensure_user_workspace(conn, "a1", "a@co.com")
+        conn.execute("INSERT INTO datasets (name, is_active, workspace_id) VALUES ('d', 1, ?)", (ws,))
         conn.execute("INSERT INTO metrics (dataset_id, name) VALUES (1, 'Rev')")
         conn.execute(
             "INSERT INTO generated_reports (metric_id, period, confidence, faithfulness) VALUES (1,'2025-01','High','passed')"

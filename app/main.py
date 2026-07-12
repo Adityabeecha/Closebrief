@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
-from app import scheduling
+from app import scheduling, workspaces
 from app.auth import CurrentUser, authenticate, get_current_user, invalidate_role_cache, require_role
 from app.cache import make_insight_key
 from app.compute.aggregate import (
@@ -41,6 +41,7 @@ from app.datasets import (
     list_datasets,
     set_active,
     set_demo_scope,
+    set_workspace_scope,
 )
 from app.db import get_connection, init_db
 from app.demo import seed_demo
@@ -82,6 +83,7 @@ from app.schemas import (
     KPIConfigPayload,
     TrendStreak,
 )
+from app.workspaces import resolve_workspace
 
 # Error + performance monitoring (v2.0). No-op unless SENTRY_DSN is set, so it
 # stays silent in local dev and tests.
@@ -201,7 +203,27 @@ async def _auth_middleware(request: Request, call_next):
     request.state.user = user
     # Scope every dataset query to the caller's universe: demo (viewer) sessions
     # see only the demo dataset; everyone else sees only real datasets.
-    set_demo_scope(user.role == "viewer")
+    is_demo = user.role == "viewer"
+    set_demo_scope(is_demo)
+    # v4.0 tenancy: for a real, authenticated user, resolve the active workspace
+    # from verified membership (X-Workspace-Id is validated, never trusted blindly)
+    # and scope all data to it. Skipped for demo and for local-dev (auth off), which
+    # stay single-tenant. Failure to resolve leaves scope unset (fail-closed on data
+    # is handled by endpoints returning empty for an unknown workspace).
+    set_workspace_scope(None)
+    if auth_active() and not is_demo:
+        requested = request.headers.get("x-workspace-id")
+        try:
+            req_ws = int(requested) if requested else None
+        except ValueError:
+            req_ws = None
+        conn = get_connection()
+        try:
+            ws_id = resolve_workspace(conn, user.id, user.email, req_ws)
+            set_workspace_scope(ws_id)
+            request.state.workspace_id = ws_id
+        finally:
+            conn.close()
     return await call_next(request)
 
 
@@ -1833,3 +1855,82 @@ def admin_set_role(user_id: str, role: str, current: CurrentUser = Depends(requi
 def whoami(user: CurrentUser = Depends(get_current_user)) -> dict:
     """The current user's identity + role, for the frontend header/badge."""
     return {"id": user.id, "email": user.email, "role": user.role}
+
+
+# ---------- Workspaces (v4.0 multi-tenancy) ----------
+
+
+def _require_ws_admin(conn, ws_id: int, user: CurrentUser) -> None:
+    """The caller must be an admin of this workspace (or the local-dev bypass)."""
+    if not auth_active():
+        return
+    if workspaces.member_role(conn, ws_id, user.id) != "admin":
+        raise HTTPException(status_code=403, detail="Requires workspace admin")
+
+
+@app.get("/workspaces")
+def list_workspaces(request: Request, user: CurrentUser = Depends(get_current_user)) -> dict:
+    """The caller's workspaces + which one is active for this request."""
+    conn = get_connection()
+    try:
+        mine = workspaces.list_user_workspaces(conn, user.id)
+        active = getattr(request.state, "workspace_id", None)
+        return {"active_id": active, "workspaces": mine}
+    finally:
+        conn.close()
+
+
+@app.post("/workspaces", status_code=201)
+def create_workspace_endpoint(payload: dict, user: CurrentUser = Depends(get_current_user)) -> dict:
+    name = (payload.get("name") or "").strip()
+    if not name:
+        raise HTTPException(status_code=422, detail="name is required")
+    conn = get_connection()
+    try:
+        ws_id = workspaces.create_workspace(conn, name, user.id, user.email)
+        return {"id": ws_id, "name": name, "role": "admin"}
+    finally:
+        conn.close()
+
+
+@app.get("/workspaces/{ws_id}/members")
+def list_ws_members(ws_id: int, user: CurrentUser = Depends(get_current_user)) -> list[dict]:
+    conn = get_connection()
+    try:
+        if auth_active() and not workspaces.is_member(conn, ws_id, user.id):
+            raise HTTPException(status_code=404, detail="Workspace not found")
+        return workspaces.list_members(conn, ws_id)
+    finally:
+        conn.close()
+
+
+@app.post("/workspaces/{ws_id}/invites", status_code=201)
+def create_ws_invite(ws_id: int, payload: dict, request: Request,
+                     user: CurrentUser = Depends(get_current_user)) -> dict:
+    role = (payload.get("role") or "analyst").strip()
+    if role not in workspaces.WS_ROLES:
+        raise HTTPException(status_code=422, detail=f"role must be one of {workspaces.WS_ROLES}")
+    conn = get_connection()
+    try:
+        _require_ws_admin(conn, ws_id, user)
+        token = workspaces.create_invite(conn, ws_id, role, payload.get("email"))
+    finally:
+        conn.close()
+    # An accept link the invitee opens; the frontend calls POST /workspaces/join.
+    base = str(request.base_url).rstrip("/")
+    return {"token": token, "invite_url": f"{base}/?invite={token}", "role": role}
+
+
+@app.post("/workspaces/join")
+def join_workspace(payload: dict, user: CurrentUser = Depends(get_current_user)) -> dict:
+    token = (payload.get("token") or "").strip()
+    if not token:
+        raise HTTPException(status_code=422, detail="token is required")
+    conn = get_connection()
+    try:
+        ws_id = workspaces.accept_invite(conn, token, user.id, user.email)
+        if ws_id is None:
+            raise HTTPException(status_code=400, detail="Invalid or already-used invite")
+        return {"workspace_id": ws_id}
+    finally:
+        conn.close()

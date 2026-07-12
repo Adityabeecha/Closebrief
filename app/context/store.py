@@ -38,10 +38,12 @@ class ContextStore:
         self._vs = vector_store
 
     def add(self, doc: ContextDocIn) -> ContextDoc:
+        from app.datasets import current_workspace
+
         cur = self._conn.execute(
             """
-            INSERT INTO context_documents (type, title, body, metric_tags, effective_date)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO context_documents (type, title, body, metric_tags, effective_date, workspace_id)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
             (
                 doc.type,
@@ -49,6 +51,7 @@ class ContextStore:
                 doc.body,
                 json.dumps(doc.metric_tags),
                 doc.effective_date,
+                current_workspace(),
             ),
         )
         self._conn.commit()

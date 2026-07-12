@@ -15,6 +15,32 @@ from pathlib import Path
 from app.config import session_pool_url, settings
 
 _SQLITE_SCHEMA = """
+-- v4.0 multi-tenancy: a workspace is a tenant. Data roots (datasets,
+-- context_documents) carry workspace_id; everything else hangs off a dataset.
+CREATE TABLE IF NOT EXISTS workspaces (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS workspace_members (
+    workspace_id INTEGER NOT NULL REFERENCES workspaces(id),
+    user_id TEXT NOT NULL,
+    email TEXT,
+    role TEXT NOT NULL DEFAULT 'analyst',   -- per-workspace: admin|analyst|executive
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (workspace_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS workspace_invites (
+    token TEXT PRIMARY KEY,
+    workspace_id INTEGER NOT NULL REFERENCES workspaces(id),
+    role TEXT NOT NULL DEFAULT 'analyst',
+    email TEXT,
+    accepted INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS datasets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -22,6 +48,7 @@ CREATE TABLE IF NOT EXISTS datasets (
     is_active INTEGER NOT NULL DEFAULT 0,
     domain TEXT NOT NULL DEFAULT 'fpa',
     is_demo INTEGER NOT NULL DEFAULT 0,
+    workspace_id INTEGER,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -72,6 +99,7 @@ CREATE TABLE IF NOT EXISTS context_documents (
     metric_tags TEXT NOT NULL DEFAULT '',
     effective_date TEXT,
     is_demo INTEGER NOT NULL DEFAULT 0,
+    workspace_id INTEGER,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -249,6 +277,9 @@ _SQLITE_MIGRATIONS = [
     "ALTER TABLE scheduled_jobs ADD COLUMN last_status TEXT",
     "ALTER TABLE scheduled_jobs ADD COLUMN last_error TEXT",
     "ALTER TABLE scheduled_jobs ADD COLUMN fail_count INTEGER NOT NULL DEFAULT 0",
+    # v4.0 multi-tenancy (data roots carry workspace_id)
+    "ALTER TABLE datasets ADD COLUMN workspace_id INTEGER",
+    "ALTER TABLE context_documents ADD COLUMN workspace_id INTEGER",
 ]
 
 PG_SCHEMA_PATH = Path(__file__).parent / "migrations" / "pg_schema.sql"
@@ -262,7 +293,7 @@ PG_SCHEMA_PATH = Path(__file__).parent / "migrations" / "pg_schema.sql"
 _LASTROWID_TABLES = re.compile(
     r"^\s*INSERT(\s+OR\s+IGNORE)?\s+INTO\s+"
     r"(context_documents|generated_reports|feedback|datasets|metrics"
-    r"|scheduled_jobs|digest_runs)\b",
+    r"|scheduled_jobs|digest_runs|workspaces)\b",
     re.I,
 )
 _OR_IGNORE = re.compile(r"^(\s*INSERT)\s+OR\s+IGNORE\s+", re.I)
