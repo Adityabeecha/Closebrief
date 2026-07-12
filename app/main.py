@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
-from app import scheduling, workspaces
+from app import billing, scheduling, workspaces
 from app.auth import CurrentUser, authenticate, get_current_user, invalidate_role_cache, require_role
 from app.cache import make_insight_key
 from app.compute.aggregate import (
@@ -36,6 +36,7 @@ from app.datasets import (
     _scope_pred,
     active_dataset_id,
     create_dataset,
+    current_workspace,
     delete_dataset,
     is_demo_scope,
     list_datasets,
@@ -328,15 +329,36 @@ def _log_llm_call(endpoint: str, model, prompt_tokens, completion_tokens, cost_u
         try:
             conn.execute(
                 """INSERT INTO llm_calls (endpoint, model, prompt_tokens,
-                       completion_tokens, cost_usd, latency_ms, user_id)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
-                (endpoint, model, prompt_tokens, completion_tokens, cost_usd, latency_ms, user_id),
+                       completion_tokens, cost_usd, latency_ms, user_id, workspace_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (endpoint, model, prompt_tokens, completion_tokens, cost_usd, latency_ms,
+                 user_id, current_workspace()),
             )
             conn.commit()
         finally:
             conn.close()
     except Exception:
         pass  # cost logging must never fail a request
+
+
+def _enforce_budget() -> None:
+    """Pre-flight spend limit: block LLM work when the active workspace is over its
+    monthly budget. No-op outside a workspace scope (local-dev/tests/demo)."""
+    ws = current_workspace()
+    if ws is None:
+        return
+    conn = get_connection()
+    try:
+        if billing.is_over_budget(conn, ws):
+            u = billing.usage(conn, ws)
+            raise HTTPException(
+                status_code=402,
+                detail=(f"Workspace monthly LLM budget reached "
+                        f"(${u['month_to_date_usd']:.2f} of ${u['monthly_budget_usd']:.2f}). "
+                        f"Raise the limit in workspace settings to continue."),
+            )
+    finally:
+        conn.close()
 
 
 _UI_INDEX = Path(__file__).resolve().parent.parent / "ui" / "web" / "index.html"
@@ -565,6 +587,7 @@ def get_funnel(period: str, _: CurrentUser = Depends(require_read)) -> dict:
 def funnel_narrative(payload: dict, user: CurrentUser = Depends(require_member)) -> dict:
     """A grounded prose summary of the funnel — numbers computed here, phrased by
     the LLM under the funnel prompt."""
+    _enforce_budget()
     period = (payload.get("period") or "").strip()
     if not period:
         raise HTTPException(status_code=422, detail="period is required")
@@ -1459,6 +1482,7 @@ def delete_context(doc_id: int, _: CurrentUser = Depends(require_write)) -> None
 
 @app.post("/generate-insight", response_model=InsightOutput)
 def generate_insight_endpoint(req: GenerateInsightRequest, user: CurrentUser = Depends(require_member)) -> InsightOutput:
+    _enforce_budget()
     conn = get_connection()
     try:
         fact = _load_computed_fact(conn, req.metric, req.period)
@@ -1607,6 +1631,7 @@ def ask_endpoint(payload: dict, user: CurrentUser = Depends(require_member)) -> 
     """Grounded Q&A about one metric (v2.9). Same guarantees as narratives:
     numbers only from computed facts, causes only from retrieved context, and
     an honest "the data doesn't answer that" when neither covers the question."""
+    _enforce_budget()
     metric = (payload.get("metric") or "").strip()
     period = (payload.get("period") or "").strip()
     question = (payload.get("question") or "").strip()
@@ -1650,6 +1675,7 @@ def ask_endpoint(payload: dict, user: CurrentUser = Depends(require_member)) -> 
 @app.post("/digest", response_model=DigestOutput)
 def digest_endpoint(period: str, top_n: int = 5, force: bool = False,
                     user: CurrentUser = Depends(require_member)) -> DigestOutput:
+    _enforce_budget()
     cache = shared_cache()
     # Keyed by the active dataset so a demo-universe digest can never be served
     # to a real session for the same period (and vice-versa), nor across datasets.
@@ -1932,5 +1958,38 @@ def join_workspace(payload: dict, user: CurrentUser = Depends(get_current_user))
         if ws_id is None:
             raise HTTPException(status_code=400, detail="Invalid or already-used invite")
         return {"workspace_id": ws_id}
+    finally:
+        conn.close()
+
+
+@app.get("/workspaces/{ws_id}/usage")
+def workspace_usage(ws_id: int, user: CurrentUser = Depends(get_current_user)) -> dict:
+    """Month-to-date LLM spend + budget for a workspace the caller belongs to."""
+    conn = get_connection()
+    try:
+        if auth_active() and not workspaces.is_member(conn, ws_id, user.id):
+            raise HTTPException(status_code=404, detail="Workspace not found")
+        return billing.usage(conn, ws_id)
+    finally:
+        conn.close()
+
+
+@app.put("/workspaces/{ws_id}/limit")
+def set_workspace_limit(ws_id: int, payload: dict, user: CurrentUser = Depends(get_current_user)) -> dict:
+    """Set the workspace's plan and/or explicit monthly budget (admin only)."""
+    conn = get_connection()
+    try:
+        _require_ws_admin(conn, ws_id, user)
+        plan = payload.get("plan")
+        if plan is not None and plan not in billing.TIER_BUDGETS:
+            raise HTTPException(status_code=422, detail=f"plan must be one of {list(billing.TIER_BUDGETS)}")
+        if plan is not None:
+            conn.execute("UPDATE workspaces SET plan = ? WHERE id = ?", (plan, ws_id))
+        if "monthly_budget_usd" in payload:
+            b = payload["monthly_budget_usd"]
+            conn.execute("UPDATE workspaces SET monthly_budget_usd = ? WHERE id = ?",
+                         (float(b) if b is not None else None, ws_id))
+        conn.commit()
+        return billing.usage(conn, ws_id)
     finally:
         conn.close()
