@@ -33,7 +33,7 @@ CREATE TABLE context_documents (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     type TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL,
     metric_tags TEXT NOT NULL DEFAULT '', effective_date TEXT,
-    is_demo INTEGER NOT NULL DEFAULT 0,
+    is_demo INTEGER NOT NULL DEFAULT 0, workspace_id INTEGER,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 """

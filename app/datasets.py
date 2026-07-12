@@ -13,6 +13,11 @@ import contextvars
 
 # True while serving a demo (viewer) request. Default False = the real universe.
 _demo_scope: contextvars.ContextVar[bool] = contextvars.ContextVar("demo_scope", default=False)
+# v4.0 tenancy: the active workspace for the request (None = unscoped, e.g. tests
+# and local dev — preserves single-tenant behavior). Set from verified membership.
+_workspace_scope: contextvars.ContextVar[int | None] = contextvars.ContextVar(
+    "workspace_scope", default=None
+)
 
 
 def set_demo_scope(is_demo: bool) -> None:
@@ -25,19 +30,37 @@ def is_demo_scope() -> bool:
     return _demo_scope.get()
 
 
+def set_workspace_scope(workspace_id: int | None) -> None:
+    _workspace_scope.set(int(workspace_id) if workspace_id is not None else None)
+
+
+def current_workspace() -> int | None:
+    return _workspace_scope.get()
+
+
 def _scope_pred(alias: str = "") -> str:
     # `true`/`false` literals work on both SQLite (INTEGER 0/1) and Postgres (BOOLEAN).
     p = f"{alias}." if alias else ""
-    return f"{p}is_demo = true" if _demo_scope.get() else f"COALESCE({p}is_demo, false) = false"
+    if _demo_scope.get():
+        return f"{p}is_demo = true"   # demo is its own universe, workspace-agnostic
+    pred = f"COALESCE({p}is_demo, false) = false"
+    ws = _workspace_scope.get()
+    if ws is not None:
+        # ws is a server-resolved integer from workspace_members — safe to inline.
+        pred += f" AND {p}workspace_id = {int(ws)}"
+    return pred
 
 
 def create_dataset(conn, name: str, source_upload_id: str | None = None, activate: bool = True,
                    uploaded_by: str | None = None, uploaded_by_email: str | None = None,
-                   is_demo: bool = False) -> int:
+                   is_demo: bool = False, workspace_id: int | None = None) -> int:
+    # Real datasets belong to the active workspace (if any); demo datasets don't.
+    ws = None if is_demo else (workspace_id if workspace_id is not None else current_workspace())
     cur = conn.execute(
-        """INSERT INTO datasets (name, source_upload_id, is_active, uploaded_by, uploaded_by_email, is_demo)
-           VALUES (?, ?, 0, ?, ?, ?)""",
-        (name, source_upload_id, uploaded_by, uploaded_by_email, bool(is_demo)),
+        """INSERT INTO datasets (name, source_upload_id, is_active, uploaded_by,
+                                 uploaded_by_email, is_demo, workspace_id)
+           VALUES (?, ?, 0, ?, ?, ?, ?)""",
+        (name, source_upload_id, uploaded_by, uploaded_by_email, bool(is_demo), ws),
     )
     dataset_id = int(cur.lastrowid)
     if activate:
