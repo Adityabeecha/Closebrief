@@ -12,12 +12,15 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import ipaddress
 import json
 import smtplib
+import socket
 import urllib.error
 import urllib.request
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from urllib.parse import urlparse
 
 from app.config import settings
 from app.notifications import templates
@@ -25,6 +28,31 @@ from app.notifications import templates
 
 class NotificationError(RuntimeError):
     pass
+
+
+def validate_public_url(url: str) -> str:
+    """Reject anything that isn't a plain http(s) URL resolving to a public IP —
+    blocks SSRF to loopback, private ranges, and the cloud metadata endpoint
+    (169.254.169.254). Operator-configured webhook/Slack URLs pass through here.
+    """
+    try:
+        parsed = urlparse(url)
+    except ValueError as exc:
+        raise NotificationError(f"Invalid URL: {url!r}") from exc
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        raise NotificationError("Webhook URL must be an http(s) URL")
+    try:
+        infos = socket.getaddrinfo(parsed.hostname, parsed.port or 443, proto=socket.IPPROTO_TCP)
+    except OSError as exc:
+        raise NotificationError(f"Could not resolve host {parsed.hostname!r}") from exc
+    for info in infos:
+        ip = ipaddress.ip_address(info[4][0])
+        if (ip.is_private or ip.is_loopback or ip.is_link_local
+                or ip.is_reserved or ip.is_multicast or ip.is_unspecified):
+            raise NotificationError(
+                f"Webhook host {parsed.hostname!r} resolves to a non-public address — blocked"
+            )
+    return url
 
 
 class NotificationChannel:
@@ -121,7 +149,7 @@ class SlackChannel(NotificationChannel):
         url = self.config.get("webhook_url")
         if not url:
             raise NotificationError("No Slack webhook_url configured")
-        return url
+        return validate_public_url(url)
 
     def send_digest(self, period: str, items: list[dict]) -> None:
         _http_post_json(self._url(), templates.slack_digest_blocks(period, items))
@@ -137,7 +165,7 @@ class WebhookChannel(NotificationChannel):
         url = self.config.get("url")
         if not url:
             raise NotificationError("No webhook url configured")
-        return url
+        return validate_public_url(url)
 
     @staticmethod
     def sign(body: bytes) -> str:
