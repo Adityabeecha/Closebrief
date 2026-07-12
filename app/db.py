@@ -244,7 +244,8 @@ PG_SCHEMA_PATH = Path(__file__).parent / "migrations" / "pg_schema.sql"
 # INSERTs whose callers read cur.lastrowid — auto-append RETURNING id on PG.
 _LASTROWID_TABLES = re.compile(
     r"^\s*INSERT(\s+OR\s+IGNORE)?\s+INTO\s+"
-    r"(context_documents|generated_reports|feedback|datasets|metrics)\b",
+    r"(context_documents|generated_reports|feedback|datasets|metrics"
+    r"|scheduled_jobs|digest_runs)\b",
     re.I,
 )
 _OR_IGNORE = re.compile(r"^(\s*INSERT)\s+OR\s+IGNORE\s+", re.I)
