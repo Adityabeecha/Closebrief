@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
-from app import billing, scheduling, workspaces
+from app import audit, billing, scheduling, workspaces
 from app.auth import CurrentUser, authenticate, get_current_user, invalidate_role_cache, require_role
 from app.cache import make_insight_key
 from app.compute.aggregate import (
@@ -1435,6 +1435,8 @@ def add_context(doc: ContextDocIn, user: CurrentUser = Depends(require_write)) -
             (user.id, user.id, added.id),
         )
         conn.commit()
+        audit.record(conn, "create", "context", added.id, actor_id=user.id,
+                     actor_email=user.email, summary={"title": added.title})
     finally:
         conn.close()
     shared_cache().bump_namespace()  # context changes change retrieval results
@@ -1621,7 +1623,11 @@ def _persist_report(insight: InsightOutput, user: CurrentUser) -> int:
             ),
         )
         conn.commit()
-        return int(cur.lastrowid)
+        rid = int(cur.lastrowid)
+        audit.record(conn, "generate", "report", rid, actor_id=user.id, actor_email=user.email,
+                     summary={"metric": insight.metric, "period": insight.period,
+                              "faithfulness": insight.faithfulness})
+        return rid
     finally:
         conn.close()
 
@@ -1820,6 +1826,8 @@ def feedback_endpoint(fb: FeedbackIn, user: CurrentUser = Depends(require_member
             (fb.report_id, fb.action, fb.edited_text, fb.reason, user.id, user.email),
         )
         conn.commit()
+        audit.record(conn, fb.action, "report", fb.report_id, actor_id=user.id,
+                     actor_email=user.email, summary={"edited": bool(fb.edited_text)})
         return {"feedback_id": int(cur.lastrowid)}
     finally:
         conn.close()
@@ -1970,6 +1978,27 @@ def workspace_usage(ws_id: int, user: CurrentUser = Depends(get_current_user)) -
         if auth_active() and not workspaces.is_member(conn, ws_id, user.id):
             raise HTTPException(status_code=404, detail="Workspace not found")
         return billing.usage(conn, ws_id)
+    finally:
+        conn.close()
+
+
+@app.get("/audit")
+def audit_list(_: CurrentUser = Depends(require_read)) -> list[dict]:
+    """The active workspace's audit trail (recent first). Admin-relevant but
+    readable by any member for transparency."""
+    conn = get_connection()
+    try:
+        return audit.list_entries(conn, current_workspace())
+    finally:
+        conn.close()
+
+
+@app.get("/audit/verify")
+def audit_verify(_: CurrentUser = Depends(require_admin)) -> dict:
+    """Recompute the hash chain to prove the trail hasn't been tampered with."""
+    conn = get_connection()
+    try:
+        return audit.verify(conn, current_workspace())
     finally:
         conn.close()
 
