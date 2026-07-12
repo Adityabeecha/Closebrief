@@ -26,5 +26,15 @@ jobs:
       - name: Install (app + dev deps)
         run: pip install .[dev]
 
-      - name: Full eval
+      - name: Full eval (recall, faithfulness, groundedness, Q&A)
         run: python -m eval.run
+
+      - name: Prompt A/B (baseline vs concise)
+        run: python -m eval.ab --out ab_results.json
+
+      - name: Upload A/B results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ab-results
+          path: ab_results.json

@@ -33,6 +33,7 @@ CREATE TABLE context_documents (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     type TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL,
     metric_tags TEXT NOT NULL DEFAULT '', effective_date TEXT,
+    is_demo INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 """
@@ -158,6 +159,55 @@ def eval_generation(cases: list[dict], tmp_dir: Path, k: int = 5, backend: str =
     return faith_rate, ground_rate, faith_failures, ground_failures, narratives
 
 
+QA_FIXTURES = Path(__file__).parent / "fixtures" / "qa_golden.json"
+_DECLINE = ("doesn't answer", "does not answer", "cannot answer", "can't answer",
+            "not available", "no data", "unable to", "don't have", "do not have",
+            "unexplained", "not enough")
+
+
+def load_qa_cases() -> list[dict]:
+    return json.loads(QA_FIXTURES.read_text(encoding="utf-8"))["cases"]
+
+
+def eval_qa(cases: list[dict], tmp_dir: Path, k: int = 5, backend: str = "faiss"):
+    """Q&A faithfulness (target 100%) + appropriateness: answerable questions get
+    a grounded answer; out-of-scope questions are declined, never fabricated."""
+    from app.generation.llm_client import LLMGenerationError, get_llm_client
+    from app.generation.qa import answer_question
+
+    llm = get_llm_client()
+    faithful = appropriate = total = 0
+    faith_failures, appr_failures = [], []
+    for case in cases:
+        fact = ComputedFact(**case["fact"])
+        store, embedder, vs, _ = build_case_store(case, tmp_dir, backend)
+        chunks = retrieve(fact.metric, fact.period, store, embedder, vs, k=k)
+        context = [ContextSnippet(id=f"ctx_{c.id:03d}", type=c.type, title=c.title, body=c.body)
+                   for c in chunks]
+        try:
+            qa = answer_question(llm, fact, context, case["question"])
+        except LLMGenerationError:
+            faith_failures.append(f"{case['id']}: LLM unavailable")
+            continue
+        total += 1
+        if qa.grounded:
+            faithful += 1
+        else:
+            faith_failures.append(f"{case['id']}: answer not faithful — {qa.answer[:80]!r}")
+        # Appropriateness: out-of-scope questions must decline rather than answer.
+        declined = any(p in qa.answer.lower() for p in _DECLINE)
+        ok = declined if not case["answerable"] else not declined
+        if ok:
+            appropriate += 1
+        else:
+            appr_failures.append(
+                f"{case['id']}: {'should have declined' if not case['answerable'] else 'wrongly declined'} "
+                f"— {qa.answer[:80]!r}")
+    faith_rate = faithful / total if total else 0.0
+    appr_rate = appropriate / total if total else 0.0
+    return faith_rate, appr_rate, faith_failures, appr_failures
+
+
 def eval_acceptance() -> str:
     """Edit-free acceptance rate from the live app DB feedback table."""
     from app.db import get_connection
@@ -215,6 +265,16 @@ def main() -> int:
                 print(f"    FAIL {f}")
             print(f"Groundedness:        {ground:.0%}")
             for f in ground_failures:
+                print(f"    FAIL {f}")
+
+            qa_cases = load_qa_cases()
+            qa_faith, qa_appr, qa_ff, qa_af = eval_qa(qa_cases, tmp_dir, k=args.k, backend=args.backend)
+            print(f"\nQ&A cases:           {len(qa_cases)}")
+            print(f"Q&A faithfulness:    {qa_faith:.0%}")
+            for f in qa_ff:
+                print(f"    FAIL {f}")
+            print(f"Q&A appropriateness: {qa_appr:.0%}")
+            for f in qa_af:
                 print(f"    FAIL {f}")
 
     print(f"Edit-free acceptance: {eval_acceptance()}")
