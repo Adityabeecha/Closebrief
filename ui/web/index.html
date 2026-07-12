@@ -585,7 +585,15 @@
         <button class="collapse-btn" onclick="toggleCollapse()" title="Collapse sidebar" aria-label="Collapse sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
       </div>
       <div>
-        <div class="nav-label" style="padding:0 2px 6px">Workspace</div>
+        <div class="nav-label" id="wsp-label" style="padding:0 2px 6px;display:none">Workspace</div>
+        <div class="ws" id="wsp-wrap" style="display:none">
+          <button class="ws-btn" onclick="toggleWsp(event)">
+            <span id="wsp-name">…</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="ws-menu" id="wsp-menu"></div>
+        </div>
+        <div class="nav-label" id="ds-label" style="padding:0 2px 6px">Dataset</div>
         <div class="ws">
           <button class="ws-btn" onclick="toggleWs(event)">
             <span id="ws-name">Loading…</span>
@@ -1292,10 +1300,13 @@ function catColor(c){const i=catSlots[c??"Uncategorized"];return i==null?"":CAT_
 function catStyle(c){const col=catColor(c);return col?`--cat:${col}`:"";}
 
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
+let activeWorkspaceId=null;   // v4.0: the tenant scope for every request
 async function api(path,opts,_retried){
   opts=opts||{};
   if(authToken){opts.headers={...(opts.headers||{}),Authorization:"Bearer "+authToken};}
   else if(demoSession){opts.headers={...(opts.headers||{}),"X-Closebrief-Demo":"1"};}
+  // Tenant scope: the server validates membership, so a spoofed id can't leak data.
+  if(activeWorkspaceId!=null)opts.headers={...(opts.headers||{}),"X-Workspace-Id":String(activeWorkspaceId)};
   const r=await fetch(path,opts);
   if(r.status===401){
     // A stored session's access-token expires after ~1h. Before bouncing to
@@ -1476,6 +1487,8 @@ async function startApp(){
   if(authToken){
     try{currentUser=await api("/me");}catch{currentUser={email:"user",role:"analyst"};}
     applyRole(currentUser);
+    try{activeWorkspaceId=+localStorage.getItem("cb-ws")||null;}catch{}
+    await loadWorkspaces();   // resolve tenant scope before loading any data
   }else if(demoSession){currentUser={email:"demo@closebrief.app",role:"viewer"};applyRole(currentUser);}
   else{applyRole({email:"local@dev",role:"admin"});}
   loadPeriods().then(()=>{const h=location.hash.slice(1);
@@ -1651,7 +1664,40 @@ async function renameDataset(id){
   catch(e){toast(e.message);}
 }
 function toggleWs(e){e.stopPropagation();$("ws-menu").classList.toggle("open");}
-document.addEventListener("click",()=>{$("ws-menu").classList.remove("open");$("export-menu")?.classList.remove("open");document.querySelectorAll(".ws-kmenu").forEach(m=>m.classList.remove("open"));});
+document.addEventListener("click",()=>{$("ws-menu").classList.remove("open");$("wsp-menu")?.classList.remove("open");$("export-menu")?.classList.remove("open");document.querySelectorAll(".ws-kmenu").forEach(m=>m.classList.remove("open"));});
+/* ---------- workspaces (v4.0 tenancy) ---------- */
+async function loadWorkspaces(){
+  if(!authToken){$("wsp-wrap").style.display="none";$("wsp-label").style.display="none";return;}
+  let d;try{d=await api("/workspaces");}catch{return;}
+  const list=d.workspaces||[];
+  activeWorkspaceId=d.active_id!=null?d.active_id:((list[0]&&list[0].id)||null);
+  try{if(activeWorkspaceId!=null)localStorage.setItem("cb-ws",String(activeWorkspaceId));}catch{}
+  const active=list.find(w=>w.id===activeWorkspaceId)||list[0];
+  $("wsp-name").textContent=active?active.name:"Workspace";
+  $("wsp-wrap").style.display="";$("wsp-label").style.display="";
+  $("wsp-menu").innerHTML=list.map(w=>`
+    <button class="ws-item" onclick="switchWorkspace(${w.id})" style="width:100%">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${w.id===activeWorkspaceId?'var(--accent)':'var(--mut2)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 21V8l6-4 6 4v13"/></svg>
+      <span class="ws-info"><b>${esc(w.name)}</b><span style="text-transform:capitalize">${esc(w.role)}</span></span>
+    </button>`).join("")
+    +`<button class="ws-newbtn" onclick="createWorkspaceUI()">+ New workspace</button>`;
+}
+function toggleWsp(e){e.stopPropagation();$("wsp-menu").classList.toggle("open");}
+async function switchWorkspace(id){
+  $("wsp-menu").classList.remove("open");
+  if(id===activeWorkspaceId)return;
+  activeWorkspaceId=id;try{localStorage.setItem("cb-ws",String(id));}catch{}
+  toast("Switched workspace");
+  await loadWorkspaces();await loadPeriods();
+}
+async function createWorkspaceUI(){
+  const name=await modalInput("New workspace",{label:"Workspace name",placeholder:"Acme Finance",okLabel:"Create",required:true});
+  if(!name)return;
+  try{const r=await api("/workspaces",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});
+    activeWorkspaceId=r.id;try{localStorage.setItem("cb-ws",String(r.id));}catch{}
+    toast("Workspace created");await loadWorkspaces();await loadPeriods();
+  }catch(e){toast(e.message);}
+}
 // Keyboard shortcuts. Ignore while typing in a field.
 document.addEventListener("keydown",e=>{
   // Overlays (shortcuts help / source viewer): Escape closes.
