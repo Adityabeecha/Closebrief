@@ -288,6 +288,11 @@
   #d-narr{font-size:16.5px;line-height:1.65;max-width:74ch}
   .qa{display:flex;gap:8px;margin-top:12px}
   .qa input{flex:1;padding:9px 12px;border:1px solid var(--b12);border-radius:9px;font-size:13px}
+  /* Q&A conversation thread (Phase 3): chat-style question/answer turns. */
+  .qa-thread{display:flex;flex-direction:column;gap:12px;max-height:420px;overflow-y:auto}
+  .qa-turn{display:flex;flex-direction:column;gap:7px}
+  .qa-q{align-self:flex-end;max-width:85%;background:var(--accent);color:var(--on-accent);font-weight:600;font-size:13px;padding:8px 13px;border-radius:13px 13px 3px 13px}
+  .qa-a{align-self:flex-start;max-width:92%;background:var(--bg2);border:1px solid var(--b08);padding:10px 14px;border-radius:13px 13px 13px 3px}
   details.tbl{margin-top:10px;font-size:12px}
   details.tbl summary{cursor:pointer;color:var(--mut);font-weight:600;font-size:11.5px}
   details.tbl table{border-collapse:collapse;margin-top:8px;width:100%}
@@ -667,7 +672,7 @@
           <h3>Narrative</h3><div class="psub" id="d-narr-meta"></div>
           <div class="narr" id="d-narr"></div>
           <div class="qa">
-            <input id="d-qa" placeholder="Ask a follow-up about this metric…" onkeydown="if(event.key==='Enter')askQA()">
+            <input id="d-qa" placeholder="Ask about this metric — follow-ups welcome…" onkeydown="if(event.key==='Enter')askQA()">
             <button class="btn" onclick="askQA()">Ask</button>
           </div>
           <div id="d-qa-answer" style="margin-top:10px"></div>
@@ -2016,7 +2021,7 @@ function openDetail(i){
   $("d-narr").innerHTML=f.narrative?esc(f.narrative)+(f.edited&&f.original_narrative?`<details class="tbl" style="margin-top:8px"><summary>Show original (pre-edit)</summary><p style="margin-top:6px;color:var(--mut)">${esc(f.original_narrative)}</p></details>`:""):"No narrative yet — generate one from the dashboard card.";
   $("d-narr-meta").textContent=(f.confidence?`${f.confidence} confidence · numbers ${f.faithfulness}`:"")+(f.edited?" · edited by analyst":"")+(f.cost_usd!=null?` · ≈ $${(+f.cost_usd).toFixed(4)}`:"");
   $("d-chips").innerHTML=(f.sources||[]).map(s=>`<span class="chip" title="Open source note" onclick="showSourceDoc('${esc(s.id)}')">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
-  $("d-qa-answer").innerHTML="";$("d-qa").value="";
+  $("d-qa-answer").innerHTML="";$("d-qa").value="";qaThread=[];   // fresh conversation per metric
   loadCorrelations(f.metric);
 }
 async function loadCorrelations(metric){
@@ -2039,18 +2044,41 @@ async function regenDetail(){
   const i=f?shownFacts.indexOf(f):-1;
   if(i>=0)openDetail(i);
 }
+// Conversation memory (Phase 3): a per-metric thread of {question, answer} turns.
+// openDetail resets it; askQA sends the recent turns so follow-ups ("why?",
+// "vs last year?") resolve against the conversation.
+let qaThread=[];
+function renderQAThread(pending){
+  const el=$("d-qa-answer");if(!el)return;
+  if(!qaThread.length&&!pending){el.innerHTML="";return;}
+  const turns=qaThread.map(t=>{
+    const srcs=(t.sources||[]).map(s=>`<span class="chip" onclick="showSourceDoc('${esc(s.id)}')">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
+    return `<div class="qa-turn">
+      <div class="qa-q">${esc(t.question)}</div>
+      <div class="qa-a"><div class="narr" style="font-size:14.5px">${esc(t.answer)}</div>
+        ${(srcs||t.grounded)?`<div class="chips" style="margin-top:8px">${srcs}${t.grounded?seal(true):""}</div>`:""}</div>
+    </div>`;
+  }).join("");
+  const wait=pending?`<div class="qa-turn"><div class="qa-q">${esc(pending)}</div>
+    <div class="qa-a"><div class="loading" style="padding:6px 0"><span class="spin"></span> Thinking…</div></div></div>`:"";
+  el.innerHTML=`<div class="qa-thread">${turns}${wait}</div>`;
+  el.scrollTop=el.scrollHeight;
+}
 async function askQA(){
   const q=$("d-qa").value.trim();if(!q||!detailFact)return;
   if(detailFact.aggregated){$("d-qa-answer").innerHTML='<div class="banner info" style="margin:0">Follow-up Q&A works at the monthly level — switch the dashboard to Month, open this metric, and ask again.</div>';return;}
-  $("d-qa-answer").innerHTML='<div class="loading" style="padding:12px"><span class="spin"></span> Thinking…</div>';
+  $("d-qa").value="";
+  renderQAThread(q);   // show the question immediately with a thinking indicator
   try{
+    const history=qaThread.map(t=>({question:t.question,answer:t.answer}));
     const r=await api("/ask",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({metric:detailFact.metric,period:detailFact.period||currentPeriod,question:q})});
-    const srcs=(r.sources||[]).map(s=>`<span class="chip" onclick="showSourceDoc('${esc(s.id)}')">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
-    $("d-qa-answer").innerHTML=`<div class="banner info" style="margin:0;display:block">
-      <div class="narr" style="font-size:14.5px">${esc(r.answer||"No grounded answer available.")}</div>
-      <div class="chips" style="margin-top:8px">${srcs}${r.grounded?seal(true):""}</div></div>`;
-  }catch(e){$("d-qa-answer").innerHTML=`<div class="banner err" style="margin:0">${esc(e.message)}</div>`;}
+      body:JSON.stringify({metric:detailFact.metric,period:detailFact.period||currentPeriod,question:q,history})});
+    qaThread.push({question:q,answer:r.answer||"No grounded answer available.",sources:r.sources||[],grounded:r.grounded});
+    renderQAThread();
+  }catch(e){
+    renderQAThread();
+    $("d-qa-answer").insertAdjacentHTML("beforeend",`<div class="banner err" style="margin:8px 0 0">${esc(e.message)}</div>`);
+  }
 }
 
 /* ---------- generation & feedback ---------- */

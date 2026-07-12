@@ -1463,6 +1463,10 @@ def ask_endpoint(payload: dict, user: CurrentUser = Depends(require_member)) -> 
         raise HTTPException(status_code=422, detail="metric, period, and question are required")
     if len(question) > 500:
         raise HTTPException(status_code=422, detail="Question too long (max 500 chars)")
+    # Conversation memory (Phase 3): prior [{question, answer}] turns in this
+    # thread, so follow-ups resolve against the chat. Client-managed and capped.
+    history = payload.get("history")
+    history = history[-6:] if isinstance(history, list) else None
 
     conn = get_connection()
     try:
@@ -1477,7 +1481,7 @@ def ask_endpoint(payload: dict, user: CurrentUser = Depends(require_member)) -> 
     try:
         llm_client = get_llm_client()
         result, usage = llm_client.generate_narrative(
-            QA_SYSTEM_PROMPT, build_qa_prompt(fact, context, question)
+            QA_SYSTEM_PROMPT, build_qa_prompt(fact, context, question, history)
         )
     except LLMGenerationError as exc:
         raise HTTPException(status_code=503, detail=f"Q&A unavailable: {exc}") from exc
