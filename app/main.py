@@ -1590,15 +1590,34 @@ def ask_endpoint(payload: dict, user: CurrentUser = Depends(require_member)) -> 
     finally:
         conn.close()
 
+    base_prompt = build_qa_prompt(fact, context, question, history)
     try:
         llm_client = get_llm_client()
-        result, usage = llm_client.generate_narrative(
-            QA_SYSTEM_PROMPT, build_qa_prompt(fact, context, question, history)
-        )
+        result, usage = llm_client.generate_narrative(QA_SYSTEM_PROMPT, base_prompt)
     except LLMGenerationError as exc:
         raise HTTPException(status_code=503, detail=f"Q&A unavailable: {exc}") from exc
 
-    passed, _unverified = check_faithfulness(result.narrative, fact, context)
+    passed, unverified = check_faithfulness(result.narrative, fact, context)
+    tot_prompt = usage.prompt_tokens or 0
+    tot_completion = usage.completion_tokens or 0
+    tot_cost = usage.cost_usd or 0.0
+    if not passed:
+        # One stricter retry (same guarantee as narratives) so an answer never
+        # ships an unverifiable figure — regenerate, calling out the bad numbers.
+        stricter = (base_prompt + "\n\nYour previous answer used unverifiable number(s): "
+                    + ", ".join(str(v) for v in unverified)
+                    + '. Rewrite using ONLY the numbers in the Computed facts block, or say '
+                      '"The data available doesn\'t answer that."')
+        try:
+            retry, usage2 = llm_client.generate_narrative(QA_SYSTEM_PROMPT, stricter)
+            tot_prompt += usage2.prompt_tokens or 0
+            tot_completion += usage2.completion_tokens or 0
+            tot_cost += usage2.cost_usd or 0.0
+            passed, _ = check_faithfulness(retry.narrative, fact, context)
+            result = retry   # prefer the retry — either it's clean or it's the honest fallback
+        except LLMGenerationError:
+            pass
+
     context_by_id = {c.id: c for c in context}
     sources = [
         {"id": cid, "type": context_by_id[cid].type, "title": context_by_id[cid].title}
@@ -1607,7 +1626,7 @@ def ask_endpoint(payload: dict, user: CurrentUser = Depends(require_member)) -> 
     _log_llm_call(
         "/ask",
         settings.openai_model if settings.llm_provider == "openai" else settings.anthropic_model,
-        usage.prompt_tokens, usage.completion_tokens, usage.cost_usd, None, user.id,
+        tot_prompt, tot_completion, tot_cost, None, user.id,
     )
     return {"answer": result.narrative, "sources": sources, "grounded": passed}
 
