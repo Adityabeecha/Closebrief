@@ -280,11 +280,18 @@ class PostgresConnection:
 
     def close(self):
         if self._pool is not None:
-            # Return to the pool clean; psycopg pool resets state on putconn.
+            # Return to the pool clean; psycopg resets state on putconn. If the
+            # rollback fails the connection is poisoned (e.g. aborted txn on a
+            # broken socket) — discard it instead of handing the fault to the
+            # next request that draws it from the pool.
             try:
                 self._raw.rollback()
             except Exception:
-                pass
+                try:
+                    self._pool.putconn(self._raw, close=True)
+                except Exception:
+                    pass
+                return
             self._pool.putconn(self._raw)
         else:
             self._raw.close()
