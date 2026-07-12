@@ -11,10 +11,13 @@ as ISO-8601 text so the same code works on SQLite (dev) and Postgres (prod).
 from __future__ import annotations
 
 import json
+import time
 from datetime import datetime, timedelta, timezone
 
 KINDS = ("digest", "anomaly_scan")
 CADENCES = ("daily", "weekly", "monthly")
+# After this many consecutive failures, alert the operator via configured channels.
+FAIL_ALERT_THRESHOLD = 3
 
 
 # --------------------------------------------------------------------------
@@ -60,7 +63,7 @@ def _parse(ts: str | None) -> datetime | None:
 def list_jobs(conn) -> list[dict]:
     rows = conn.execute(
         """SELECT id, kind, cadence, dataset_id, config, enabled, last_run_at,
-                  next_run_at, created_at
+                  next_run_at, last_status, last_error, fail_count, created_at
            FROM scheduled_jobs ORDER BY id"""
     ).fetchall()
     return [
@@ -71,6 +74,8 @@ def list_jobs(conn) -> list[dict]:
             "enabled": bool(r["enabled"]),
             "last_run_at": str(r["last_run_at"]) if r["last_run_at"] else None,
             "next_run_at": str(r["next_run_at"]) if r["next_run_at"] else None,
+            "last_status": r["last_status"], "last_error": r["last_error"],
+            "fail_count": r["fail_count"] or 0,
             "created_at": str(r["created_at"]) if r["created_at"] else None,
         }
         for r in rows
@@ -238,9 +243,32 @@ def _anomaly_narrative(conn, ds: int, metric: str, period: str, llm_client) -> s
         return ""
 
 
+def _status_of(result: dict) -> tuple[str, str | None]:
+    if "error" in result:
+        return "error", str(result["error"])
+    if "skipped" in result:
+        return "skipped", str(result["skipped"])
+    return "ok", None
+
+
+def _alert_job_failure(conn, job: dict, error: str) -> None:
+    """After repeated failures, tell the operator via the configured channels."""
+    from app.notifications.scheduler import deliver
+    try:
+        deliver(conn, "anomaly_detected", items=[{
+            "metric": f"Scheduled {job['kind']} job #{job['id']}",
+            "period": "", "value": "failing",
+            "delta": f"{FAIL_ALERT_THRESHOLD}+ consecutive failures",
+            "narrative": f"The scheduled {job['kind']} job keeps failing: {error[:200]}",
+        }])
+    except Exception:  # noqa: BLE001 - alerting failure must not abort the tick
+        pass
+
+
 def run_due_jobs(conn, now: datetime | None = None, llm_client=None) -> dict:
     """Run every enabled job whose next_run_at has passed. Operates strictly on
-    the real (non-demo) universe. Returns a per-job summary."""
+    the real (non-demo) universe. Logs each run, tracks last status + consecutive
+    failures, and alerts the operator after repeated failures."""
     from app.datasets import set_demo_scope
 
     set_demo_scope(False)
@@ -252,6 +280,7 @@ def run_due_jobs(conn, now: datetime | None = None, llm_client=None) -> dict:
         nxt = _parse(job["next_run_at"])
         if nxt is not None and nxt > now:
             continue
+        t0 = time.perf_counter()
         try:
             if job["kind"] == "digest":
                 result = _run_digest_job(conn, job, llm_client)
@@ -261,10 +290,25 @@ def run_due_jobs(conn, now: datetime | None = None, llm_client=None) -> dict:
                 result = {"skipped": f"unknown kind {job['kind']}"}
         except Exception as e:  # noqa: BLE001 - one job's failure must not abort the tick
             result = {"error": str(e)}
+        latency_ms = round((time.perf_counter() - t0) * 1000, 1)
+        status, detail = _status_of(result)
+        fail_count = (job["fail_count"] + 1) if status == "error" else 0
+
         conn.execute(
-            "UPDATE scheduled_jobs SET last_run_at = ?, next_run_at = ? WHERE id = ?",
-            (now.isoformat(), advance(now, job["cadence"]).isoformat(), job["id"]),
+            """INSERT INTO scheduler_runs (job_id, kind, status, detail, latency_ms)
+               VALUES (?, ?, ?, ?, ?)""",
+            (job["id"], job["kind"], status, detail, latency_ms),
+        )
+        conn.execute(
+            """UPDATE scheduled_jobs
+               SET last_run_at = ?, next_run_at = ?, last_status = ?, last_error = ?,
+                   fail_count = ? WHERE id = ?""",
+            (now.isoformat(), advance(now, job["cadence"]).isoformat(),
+             status, detail if status == "error" else None, fail_count, job["id"]),
         )
         conn.commit()
-        ran.append({"id": job["id"], "kind": job["kind"], **result})
+        if status == "error" and fail_count == FAIL_ALERT_THRESHOLD:
+            _alert_job_failure(conn, job, detail or "")
+        ran.append({"id": job["id"], "kind": job["kind"], "status": status,
+                    "latency_ms": latency_ms, **result})
     return {"now": now.isoformat(), "ran": ran}

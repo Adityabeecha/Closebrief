@@ -250,9 +250,16 @@ def _percentile(values: list[float], pct: float) -> float:
     return round(ordered[idx], 1)
 
 
-def _notify_async(event: str, period: str | None = None, items: list[dict] | None = None) -> None:
+# Alert latency samples (ms from anomaly detection to delivery completion), so
+# the "< 30s from compute" success criterion is measurable in the Cost page.
+_ALERT_LATENCIES: deque = deque(maxlen=200)
+
+
+def _notify_async(event: str, period: str | None = None, items: list[dict] | None = None,
+                  detected_at: float | None = None) -> None:
     """Fan a notification event out to configured channels on a daemon thread —
-    delivery (SMTP/HTTP) must never add latency or failures to the request."""
+    delivery (SMTP/HTTP) must never add latency or failures to the request.
+    When `detected_at` is given, record the detection→delivery latency."""
     import threading
 
     def _run():
@@ -260,6 +267,8 @@ def _notify_async(event: str, period: str | None = None, items: list[dict] | Non
             conn = get_connection()
             try:
                 notif_deliver(conn, event, period=period, items=items)
+                if detected_at is not None:
+                    _ALERT_LATENCIES.append((time.time() - detected_at) * 1000)
             finally:
                 conn.close()
         except Exception:  # noqa: BLE001 - best-effort by design
@@ -270,7 +279,8 @@ def _notify_async(event: str, period: str | None = None, items: list[dict] | Non
 
 def _notify_anomalies(conn, dataset_id: int) -> None:
     """After a compute pass: alert channels about anomalies in the dataset's
-    latest period (if any)."""
+    latest period (if any). Stamps detection time so alert latency is tracked."""
+    detected_at = time.time()
     rows = conn.execute(
         """
         SELECT m.name AS metric, cf.period, cf.value, cf.mom_pct
@@ -289,7 +299,7 @@ def _notify_anomalies(conn, dataset_id: int) -> None:
         "value": f"{r['value']:,.0f}",
         "delta": f"{r['mom_pct']:+.1f}% MoM" if r["mom_pct"] is not None else "",
     } for r in rows]
-    _notify_async("anomaly_detected", items=items)
+    _notify_async("anomaly_detected", items=items, detected_at=detected_at)
 
 
 def _log_llm_call(endpoint: str, model, prompt_tokens, completion_tokens, cost_usd, latency_ms, user_id=None):
@@ -404,11 +414,20 @@ def costs(_: CurrentUser = Depends(require_admin)) -> dict:
         for path, v in _LATENCIES.items()
         if v and path in ("/generate-insight", "/digest", "/facts")
     }
+    alert_samples = list(_ALERT_LATENCIES)
+    alert_latency = {
+        "p50_ms": _percentile(alert_samples, 50) if alert_samples else None,
+        "p95_ms": _percentile(alert_samples, 95) if alert_samples else None,
+        "n": len(alert_samples),
+        # The success criterion: anomaly alert reaches channels < 30s from compute.
+        "within_30s": (max(alert_samples) <= 30000) if alert_samples else None,
+    }
     return {
         "total_llm_calls": total["calls"] or 0,
         "total_cost_usd": round(total["cost_usd"] or 0.0, 6),
         "by_day": by_day,
         "latency": latency,
+        "alert_latency": alert_latency,
         "cache": shared_cache().stats(),
     }
 
