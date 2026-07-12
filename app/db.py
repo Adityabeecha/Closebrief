@@ -230,6 +230,21 @@ CREATE TABLE IF NOT EXISTS scheduler_runs (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- v4.0 immutable audit trail (append-only, hash-chained per workspace).
+CREATE TABLE IF NOT EXISTS audit_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    workspace_id INTEGER,
+    actor_id TEXT,
+    actor_email TEXT,
+    action TEXT NOT NULL,
+    entity_type TEXT NOT NULL,
+    entity_id TEXT,
+    summary TEXT,
+    row_hash TEXT NOT NULL,
+    prev_hash TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS digest_runs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     dataset_id INTEGER,
