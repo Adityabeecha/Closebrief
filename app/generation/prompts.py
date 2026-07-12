@@ -40,9 +40,27 @@ that" — do not guess.
 list if none)."""
 
 
-def build_qa_prompt(fact: ComputedFact, context: list[ContextSnippet], question: str) -> str:
+def build_qa_prompt(fact: ComputedFact, context: list[ContextSnippet], question: str,
+                    history: list[dict] | None = None) -> str:
+    """QA prompt for one metric. `history` is prior [{question, answer}] turns in
+    this thread so follow-ups like "why?" or "and vs last year?" resolve against
+    the conversation — the numbers still come only from the facts block."""
     base = build_user_prompt(fact, context)
-    return base + f'\n\nQuestion from the analyst: "{question.strip()}"\nAnswer it under the rules above.'
+    convo = ""
+    if history:
+        lines = ["", "Conversation so far (earlier turns in this thread):"]
+        for turn in history[-6:]:   # cap: recent turns only, keeps tokens bounded
+            q = str(turn.get("question", "")).strip()
+            a = str(turn.get("answer", "")).strip()[:600]
+            if q and a:
+                lines.append(f'  Q: "{q}"')
+                lines.append(f"  A: {a}")
+        if len(lines) > 2:
+            convo = "\n".join(lines)
+    return (base + convo
+            + f'\n\nNew question from the analyst: "{question.strip()}"'
+            + "\nAnswer it under the rules above, using the conversation only to "
+              "interpret what the question refers to (never as a source of numbers).")
 
 
 def _fmt(value: float | None, suffix: str = "") -> str:
