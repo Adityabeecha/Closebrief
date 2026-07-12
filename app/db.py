@@ -20,6 +20,8 @@ _SQLITE_SCHEMA = """
 CREATE TABLE IF NOT EXISTS workspaces (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
+    plan TEXT NOT NULL DEFAULT 'free',
+    monthly_budget_usd REAL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -183,6 +185,7 @@ CREATE TABLE IF NOT EXISTS llm_calls (
     cost_usd REAL,
     latency_ms REAL,
     user_id TEXT,
+    workspace_id INTEGER,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -280,6 +283,10 @@ _SQLITE_MIGRATIONS = [
     # v4.0 multi-tenancy (data roots carry workspace_id)
     "ALTER TABLE datasets ADD COLUMN workspace_id INTEGER",
     "ALTER TABLE context_documents ADD COLUMN workspace_id INTEGER",
+    # v4.0 per-workspace usage metering + spend limits
+    "ALTER TABLE llm_calls ADD COLUMN workspace_id INTEGER",
+    "ALTER TABLE workspaces ADD COLUMN plan TEXT NOT NULL DEFAULT 'free'",
+    "ALTER TABLE workspaces ADD COLUMN monthly_budget_usd REAL",
 ]
 
 PG_SCHEMA_PATH = Path(__file__).parent / "migrations" / "pg_schema.sql"
