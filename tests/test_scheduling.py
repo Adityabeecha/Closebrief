@@ -143,6 +143,44 @@ def test_anomaly_scan_tick_runs_without_llm(client):
 
 
 # ------------------------------------------------------------- the cron endpoint
+def test_run_records_status_and_log(client):
+    from app import scheduling
+    rows = ["period,metric,value,budget"] + [f"2025-{i:02d},Signups,100,100" for i in range(1, 12)]
+    rows.append("2025-12,Signups,1000,110")
+    ds = _ingest(client, "\n".join(rows))
+    conn = _conn()
+    try:
+        scheduling.create_job(conn, "anomaly_scan", "daily", dataset_id=ds)
+        scheduling.run_due_jobs(conn, llm_client=None)
+        job = scheduling.list_jobs(conn)[0]
+        assert job["last_status"] == "ok" and job["fail_count"] == 0
+        n = conn.execute("SELECT COUNT(*) AS n FROM scheduler_runs WHERE status='ok'").fetchone()["n"]
+        assert n == 1
+    finally:
+        conn.close()
+
+
+class _BoomLLM:
+    def generate_narrative(self, system, prompt):
+        raise RuntimeError("llm down")
+
+
+def test_failure_increments_fail_count(client):
+    from app import scheduling
+    ds = _ingest(client, "period,metric,value,budget\n2025-01,Rev,100,100\n2025-02,Rev,200,100\n")
+    conn = _conn()
+    try:
+        scheduling.create_job(conn, "digest", "daily", dataset_id=ds)
+        scheduling.run_due_jobs(conn, llm_client=_BoomLLM())
+        job = scheduling.list_jobs(conn)[0]
+        assert job["last_status"] == "error" and job["fail_count"] == 1
+        assert job["last_error"]
+        errs = conn.execute("SELECT COUNT(*) AS n FROM scheduler_runs WHERE status='error'").fetchone()["n"]
+        assert errs == 1
+    finally:
+        conn.close()
+
+
 def test_tick_endpoint_disabled_without_token(client):
     r = client.post("/internal/scheduler/tick")
     assert r.status_code == 503
