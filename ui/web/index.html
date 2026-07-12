@@ -411,7 +411,8 @@
   /* viewer (demo) = strictly read-only: hide every write action + admin surface */
   [data-role="viewer"] .exec-hide,[data-role="viewer"] .write-hide,[data-role="viewer"] #nav-admin,
   [data-role="viewer"] .card-foot,[data-role="viewer"] .theme-btn{display:none !important}
-  [data-role="viewer"] .ws-btn{pointer-events:none;opacity:.85}
+  /* Demo viewers may switch between the demo datasets (read-only navigation);
+     rename/delete/import stay hidden via .exec-hide. */
   /* demo bar */
   .demo-bar{position:fixed;top:0;left:0;right:0;height:44px;z-index:120;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 18px;background:linear-gradient(90deg,#15573e,#1e6e50);color:#fff;font-size:13px;font-weight:600;box-shadow:0 2px 10px rgba(16,22,19,.25)}
   .demo-bar b{font-weight:800}
