@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
-from app import audit, billing, scheduling, workspaces
+from app import audit, billing, connectors, scheduling, workspaces
 from app.auth import CurrentUser, authenticate, get_current_user, invalidate_role_cache, require_role
 from app.cache import make_insight_key
 from app.compute.aggregate import (
@@ -1978,6 +1978,66 @@ def workspace_usage(ws_id: int, user: CurrentUser = Depends(get_current_user)) -
         if auth_active() and not workspaces.is_member(conn, ws_id, user.id):
             raise HTTPException(status_code=404, detail="Workspace not found")
         return billing.usage(conn, ws_id)
+    finally:
+        conn.close()
+
+
+# ---------- Live data connectors (v4.0) ----------
+
+
+@app.get("/connectors")
+def list_connectors_endpoint(_: CurrentUser = Depends(require_read)) -> list[dict]:
+    conn = get_connection()
+    try:
+        return connectors.list_connectors(conn, current_workspace())
+    finally:
+        conn.close()
+
+
+@app.post("/connectors", status_code=201)
+def create_connector_endpoint(payload: dict, user: CurrentUser = Depends(require_write)) -> dict:
+    kind = (payload.get("kind") or "").strip()
+    name = (payload.get("name") or "").strip()
+    if kind not in connectors.KINDS:
+        raise HTTPException(status_code=422, detail=f"kind must be one of {connectors.KINDS}")
+    if not name:
+        raise HTTPException(status_code=422, detail="name is required")
+    conn = get_connection()
+    try:
+        try:
+            cid = connectors.create_connector(
+                conn, kind, name, payload.get("config") or {},
+                payload.get("dataset_name") or name, current_workspace())
+        except ValueError as e:
+            raise HTTPException(status_code=422, detail=str(e)) from e
+        audit.record(conn, "create", "connector", cid, actor_id=user.id,
+                     actor_email=user.email, summary={"kind": kind, "name": name})
+        return {"id": cid}
+    finally:
+        conn.close()
+
+
+@app.post("/connectors/{connector_id}/sync")
+def sync_connector_endpoint(connector_id: int, user: CurrentUser = Depends(require_write)) -> dict:
+    conn = get_connection()
+    try:
+        try:
+            result = connectors.sync_connector(conn, connector_id, current_workspace())
+        except ValueError as e:
+            raise HTTPException(status_code=404, detail=str(e)) from e
+        audit.record(conn, "sync", "connector", connector_id, actor_id=user.id,
+                     actor_email=user.email, summary=result)
+        return result
+    finally:
+        conn.close()
+
+
+@app.delete("/connectors/{connector_id}", status_code=204)
+def delete_connector_endpoint(connector_id: int, _: CurrentUser = Depends(require_write)) -> None:
+    conn = get_connection()
+    try:
+        if not connectors.delete_connector(conn, connector_id, current_workspace()):
+            raise HTTPException(status_code=404, detail=f"Connector {connector_id} not found")
     finally:
         conn.close()
 
