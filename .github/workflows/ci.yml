@@ -49,6 +49,44 @@ jobs:
             echo "::error::Recall@5 ${recall}% is below the 90% gate"; exit 1
           fi
 
+  postgres:
+    name: Test · Postgres (catches dialect bugs SQLite hides)
+    runs-on: ubuntu-latest
+    # The SAME suite as `quality`, but pointed at a real Postgres via
+    # TEST_DATABASE_URL (see tests/dbharness.py). SQLite is permissive about
+    # things Postgres rejects — `col IS ?`, BOOLEAN vs INTEGER, cursor.rowcount —
+    # so this job is what stops those prod-only regressions reaching Render.
+    # pgvector image because the base schema does `CREATE EXTENSION vector`.
+    env:
+      APP_ENV: test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/closebrief_test
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: closebrief_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install (app + dev deps)
+        run: pip install .[dev]
+
+      - name: Test on Postgres (skip SQLite-only attribution tests)
+        run: pytest -q -m "not sqlite_only"
+
   docker:
     name: Docker build smoke test
     runs-on: ubuntu-latest

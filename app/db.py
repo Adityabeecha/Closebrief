@@ -367,11 +367,18 @@ _LASTROWID_TABLES = re.compile(
 _OR_IGNORE = re.compile(r"^(\s*INSERT)\s+OR\s+IGNORE\s+", re.I)
 
 
-def _translate(sql: str) -> str:
-    """sqlite dialect -> postgres dialect for the statements this app uses."""
-    # Escape literal % (e.g. LIKE '%-digest') to %% first so psycopg doesn't
-    # read it as a client-side placeholder.
-    out = sql.replace("%", "%%")
+def _translate(sql: str, has_params: bool = True) -> str:
+    """sqlite dialect -> postgres dialect for the statements this app uses.
+
+    `has_params` must reflect whether params are passed to execute(): psycopg
+    only collapses `%%`->`%` (and reads `%s`) when binding params. With no
+    params it sends the string verbatim, so escaping `%` there would corrupt a
+    literal like `LIKE '%revenue%'` into `%%revenue%%`. Only escape when binding."""
+    out = sql
+    if has_params:
+        # Escape literal % (e.g. LIKE '%-digest') to %% so psycopg doesn't read
+        # it as a client-side placeholder; it collapses back when binding params.
+        out = out.replace("%", "%%")
     # SQLite's null-safe `col IS ?` / `col IS NOT ?` is invalid on Postgres (IS
     # only takes NULL/TRUE/FALSE); use the standard IS [NOT] DISTINCT FROM.
     out = out.replace(" IS NOT ?", " IS DISTINCT FROM ?").replace(" IS ?", " IS NOT DISTINCT FROM ?")
@@ -419,7 +426,7 @@ class PostgresConnection:
                 pass
 
     def execute(self, sql: str, params=()):
-        pg_sql = _translate(sql)
+        pg_sql = _translate(sql, has_params=bool(params))
         wants_id = bool(_LASTROWID_TABLES.match(sql)) and "RETURNING" not in pg_sql.upper()
         if wants_id:
             pg_sql = pg_sql.rstrip().rstrip(";") + " RETURNING id"
