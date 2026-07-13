@@ -14,7 +14,7 @@ import json
 import time
 from datetime import datetime, timedelta, timezone
 
-KINDS = ("digest", "anomaly_scan", "connector_sync")
+KINDS = ("digest", "anomaly_scan", "connector_sync", "retention_purge")
 CADENCES = ("daily", "weekly", "monthly")
 # After this many consecutive failures, alert the operator via configured channels.
 FAIL_ALERT_THRESHOLD = 3
@@ -265,7 +265,7 @@ def _alert_job_failure(conn, job: dict, error: str) -> None:
         pass
 
 
-def _run_connector_sync_job(conn, job: dict) -> dict:
+def _run_connector_sync_job(conn) -> dict:
     """Sync every enabled connector (each in its own workspace scope). Replaces
     manual CSV upload with scheduled pulls (Phase: Live Data Connectors)."""
     from app import connectors
@@ -301,7 +301,10 @@ def run_due_jobs(conn, now: datetime | None = None, llm_client=None) -> dict:
             elif job["kind"] == "anomaly_scan":
                 result = _run_anomaly_job(conn, job, llm_client)
             elif job["kind"] == "connector_sync":
-                result = _run_connector_sync_job(conn, job)
+                result = _run_connector_sync_job(conn)
+            elif job["kind"] == "retention_purge":
+                from app.retention import run_retention
+                result = run_retention(conn)
             else:
                 result = {"skipped": f"unknown kind {job['kind']}"}
         except Exception as e:  # noqa: BLE001 - one job's failure must not abort the tick
