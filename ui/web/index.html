@@ -693,7 +693,11 @@
           <div class="sub" id="dash-sub">—</div>
           <div class="sub" id="dash-fresh" style="font-size:11.5px;color:var(--mut2);margin-top:2px"></div>
         </div>
-        <button class="btn primary exec-hide cta" id="gen-all" onclick="generateAll()">Generate narratives</button>
+        <div class="head-actions">
+          <button class="btn" id="export-pack-btn" onclick="exportBoardPack()" title="Assemble this period into a shareable, print-ready board pack">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8"/></svg>Board pack</button>
+          <button class="btn primary exec-hide cta" id="gen-all" onclick="generateAll()">Generate narratives</button>
+        </div>
       </div>
       <div class="toolbar">
         <div class="search">
@@ -1646,6 +1650,27 @@ function ntChannelFields(){
   else if(ch==="slack"){lbl.textContent="Slack webhook URL";inp.placeholder="https://hooks.slack.com/services/…";}
   else{lbl.textContent="Webhook URL";inp.placeholder="https://your-service.com/hook";}
 }
+/* ---- Board pack export (v5.1) ---- */
+async function exportBoardPack(){
+  if(!currentPeriod){toast("Import data first");return;}
+  const btn=$("export-pack-btn");if(btn)btn.disabled=true;
+  try{
+    // Fetch with auth headers (a plain new-tab URL wouldn't carry the bearer),
+    // then open the returned HTML from a blob so it prints/saves cleanly.
+    const headers={};
+    if(authToken)headers.Authorization="Bearer "+authToken;
+    else if(demoSession)headers["X-Closebrief-Demo"]="1";
+    if(activeWorkspaceId!=null)headers["X-Workspace-Id"]=String(activeWorkspaceId);
+    const r=await fetch(`/board-pack?period=${encodeURIComponent(currentPeriod)}`,{headers});
+    if(!r.ok){let d=r.statusText;try{d=(await r.json()).detail||d;}catch{}throw new Error(d);}
+    const url=URL.createObjectURL(new Blob([await r.text()],{type:"text/html"}));
+    const win=window.open(url,"_blank");
+    if(!win)toast("Allow pop-ups to open the board pack");
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch(e){toast("Export failed: "+e.message);}
+  finally{if(btn)btn.disabled=false;}
+}
+
 /* ================= ADVANCED ANALYTICS (v5.0) ================= */
 let _anMetrics=[], _lastForecast=null, _scnT=null;
 function _metricList(){return (currentFacts||[]).filter(f=>f.has_data).map(f=>({name:f.metric,unit:f.unit}));}

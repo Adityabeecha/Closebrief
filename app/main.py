@@ -6,10 +6,11 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 from app import audit, billing, connectors, review, scheduling, workspaces
 from app.auth import CurrentUser, authenticate, get_current_user, invalidate_role_cache, require_role
+from app.board_pack import build_board_pack_html
 from app.cache import make_insight_key
 from app.compute import derived as derived_metrics
 from app.compute.aggregate import (
@@ -1888,6 +1889,29 @@ def digest_endpoint(period: str, top_n: int = 5, force: bool = False,
         "narrative": it.detail,
     } for it in digest.items])
     return digest
+
+
+@app.get("/board-pack")
+def board_pack(period: str, user: CurrentUser = Depends(require_read)) -> HTMLResponse:
+    """A self-contained, print-ready HTML board pack for the active dataset and
+    period — the same KPIs/deltas/narratives as the dashboard, assembled into one
+    shareable document (save-as-PDF or email). Deterministic; no LLM call here."""
+    period = (period or "").strip()
+    if not period:
+        raise HTTPException(status_code=422, detail="period is required")
+    # Reuse the dashboard's exact facts (respects workspace/demo scope + charts).
+    facts = list_facts(period=period, granularity="month", include_charts=True, user=user)
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        ds_name = None
+        if ds is not None:
+            row = conn.execute("SELECT name FROM datasets WHERE id = ?", (ds,)).fetchone()
+            ds_name = row["name"] if row else None
+    finally:
+        conn.close()
+    doc = build_board_pack_html(facts, period, {"dataset_name": ds_name})
+    return HTMLResponse(doc)
 
 
 # ---------- Scheduling: jobs, digest history, and the cron tick (v3.1) ----------
