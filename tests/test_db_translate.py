@@ -10,6 +10,13 @@ def test_placeholders_and_percent():
     assert _translate("WHERE p NOT LIKE '%-digest'") == "WHERE p NOT LIKE '%%-digest'"
 
 
+def test_percent_not_escaped_without_params():
+    # No params -> psycopg sends the string verbatim (no %% collapse), so a
+    # literal % must be left alone or the value would be corrupted to %%.
+    assert _translate("WHERE name = 'GM %'", has_params=False) == "WHERE name = 'GM %'"
+    assert _translate("WHERE name = 'GM %'", has_params=True) == "WHERE name = 'GM %%'"
+
+
 def test_null_safe_is_becomes_distinct_from():
     # SQLite's `col IS ?` is null-safe equality; Postgres needs IS NOT DISTINCT FROM.
     assert _translate("WHERE workspace_id IS ?") == "WHERE workspace_id IS NOT DISTINCT FROM %s"
