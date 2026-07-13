@@ -370,8 +370,13 @@ _OR_IGNORE = re.compile(r"^(\s*INSERT)\s+OR\s+IGNORE\s+", re.I)
 def _translate(sql: str) -> str:
     """sqlite dialect -> postgres dialect for the statements this app uses."""
     # Escape literal % (e.g. LIKE '%-digest') to %% first so psycopg doesn't
-    # read it as a client-side placeholder, THEN turn ? into %s placeholders.
-    out = sql.replace("%", "%%").replace("?", "%s")
+    # read it as a client-side placeholder.
+    out = sql.replace("%", "%%")
+    # SQLite's null-safe `col IS ?` / `col IS NOT ?` is invalid on Postgres (IS
+    # only takes NULL/TRUE/FALSE); use the standard IS [NOT] DISTINCT FROM.
+    out = out.replace(" IS NOT ?", " IS DISTINCT FROM ?").replace(" IS ?", " IS NOT DISTINCT FROM ?")
+    # THEN turn ? into %s placeholders.
+    out = out.replace("?", "%s")
     if _OR_IGNORE.match(out):
         out = _OR_IGNORE.sub(r"\1 ", out)
         out = out.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
