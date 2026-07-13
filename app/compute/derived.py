@@ -34,8 +34,14 @@ def create_derived_metric(conn: sqlite3.Connection, dataset_id: int, name: str, 
         (dataset_id, name, formula, unit, category, direction_good),
     )
     did = int(cur.lastrowid)
-    # Register it as a metric + a board KPI so it renders like any other.
+    # Register it as a metric + a board KPI so it renders like any other. Propagate
+    # unit/category/direction onto the metrics row too, so generation (which reads
+    # m.unit) sees the real unit and a %-KPI narrative passes the faithfulness guard.
     get_or_create_metric(conn, dataset_id, name)
+    conn.execute(
+        "UPDATE metrics SET unit = ?, category = ?, direction_good = ? WHERE dataset_id = ? AND name = ?",
+        (unit, category, direction_good, dataset_id, name),
+    )
     conn.execute(
         """INSERT INTO kpi_configs (dataset_id, source_metric, display_name, category, unit, direction_good)
            VALUES (?, ?, ?, ?, ?, ?)
@@ -44,6 +50,17 @@ def create_derived_metric(conn: sqlite3.Connection, dataset_id: int, name: str, 
     )
     conn.commit()
     return did
+
+
+def refresh(conn: sqlite3.Connection, dataset_id: int) -> None:
+    """Recompute base facts, then (re)materialize derived metrics from them and
+    recompute again so derived KPIs stay current after any base-data change
+    (import, connector sync, manual compute). Safe to call when there are no
+    derived metrics (materialize returns 0 → single compute)."""
+    from app.compute.kpis import compute_and_store
+    compute_and_store(conn, dataset_id)
+    if materialize(conn, dataset_id) > 0:
+        compute_and_store(conn, dataset_id)
 
 
 def materialize(conn: sqlite3.Connection, dataset_id: int) -> int:
