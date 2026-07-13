@@ -44,6 +44,13 @@ class Settings(BaseSettings):
     # Render free tier (no preDeployCommand) self-migrate on first boot. The
     # migration is idempotent; disable only if you manage schema out-of-band.
     auto_migrate: bool = True
+    # v4.0 tenancy backstop: when true, each Postgres connection sets an
+    # app.workspace_id GUC so RLS policies enforce workspace isolation at the DB
+    # layer (defense in depth on top of app-level scoping). Off by default —
+    # enable only after verifying on a Postgres instance. The RLS policies are
+    # fail-open (allow-all when the GUC is unset), so migrations/background jobs
+    # are unaffected either way.
+    rls_enabled: bool = False
 
     # Vector backend: "auto" (pgvector when database_url set, else FAISS),
     # "faiss", or "pgvector".
