@@ -32,6 +32,7 @@ from app.compute.formula import FormulaError
 from app.compute.funnel import compute_funnel
 from app.compute.kpis import compute_and_store
 from app.compute.pvm import bridge_for_metric_row
+from app.compute.scenario import run_scenario
 from app.config import auth_active, resolved_vector_backend, settings
 from app.context.conflicts import find_conflicts
 from app.context.store import ContextStore
@@ -663,6 +664,44 @@ def get_forecast(metric: str, horizon: int = 3, _: CurrentUser = Depends(require
         "projections": [{"period": p, "value": v} for p, v in zip(periods, proj)],
         "mape": backtest_mape(values),
     }
+
+
+@app.post("/scenario")
+def run_scenario_endpoint(payload: dict, _: CurrentUser = Depends(require_read)) -> dict:
+    """What-if on a metric: apply price/volume/mix levers, get the projected value
+    and impact instantly (deterministic, no LLM)."""
+    metric = (payload.get("metric") or "").strip()
+    if not metric:
+        raise HTTPException(status_code=422, detail="metric is required")
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        if ds is None:
+            raise HTTPException(status_code=400, detail="No active dataset")
+        period = (payload.get("period") or "").strip()
+        row = conn.execute(
+            """SELECT cf.value, cf.budget_var_abs FROM computed_facts cf
+               JOIN metrics m ON m.id = cf.metric_id
+               WHERE m.dataset_id = ? AND m.name = ?
+               """ + ("AND cf.period = ? " if period else "")
+            + "ORDER BY cf.period DESC LIMIT 1",
+            ((ds, metric, period) if period else (ds, metric)),
+        ).fetchone()
+        if row is None or row["value"] is None:
+            raise HTTPException(status_code=404, detail=f"No data for metric '{metric}'")
+        base = float(row["value"])
+        budget = (base - float(row["budget_var_abs"])) if row["budget_var_abs"] is not None else None
+    finally:
+        conn.close()
+
+    def _num(k):
+        try:
+            return float(payload.get(k, 0) or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
+    return run_scenario(base, budget, price_pct=_num("price_pct"),
+                        volume_pct=_num("volume_pct"), mix_pct=_num("mix_pct"))
 
 
 @app.post("/forecast/narrative")
