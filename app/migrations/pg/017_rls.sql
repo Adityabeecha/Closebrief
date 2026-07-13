@@ -15,21 +15,21 @@ ALTER TABLE context_documents FORCE  ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS ws_isolation ON datasets;
 CREATE POLICY ws_isolation ON datasets
     USING (
-        coalesce(current_setting('app.workspace_id', true), '') = ''
-        OR workspace_id = current_setting('app.workspace_id', true)::int
+        nullif(current_setting('app.workspace_id', true), '') IS NULL
+        OR workspace_id = nullif(current_setting('app.workspace_id', true), '')::int
     )
     WITH CHECK (
-        coalesce(current_setting('app.workspace_id', true), '') = ''
-        OR workspace_id = current_setting('app.workspace_id', true)::int
+        nullif(current_setting('app.workspace_id', true), '') IS NULL
+        OR workspace_id = nullif(current_setting('app.workspace_id', true), '')::int
     );
 
 DROP POLICY IF EXISTS ws_isolation ON context_documents;
 CREATE POLICY ws_isolation ON context_documents
     USING (
-        coalesce(current_setting('app.workspace_id', true), '') = ''
-        OR workspace_id = current_setting('app.workspace_id', true)::int
+        nullif(current_setting('app.workspace_id', true), '') IS NULL
+        OR workspace_id = nullif(current_setting('app.workspace_id', true), '')::int
     )
     WITH CHECK (
-        coalesce(current_setting('app.workspace_id', true), '') = ''
-        OR workspace_id = current_setting('app.workspace_id', true)::int
+        nullif(current_setting('app.workspace_id', true), '') IS NULL
+        OR workspace_id = nullif(current_setting('app.workspace_id', true), '')::int
     );
