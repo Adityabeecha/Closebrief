@@ -368,6 +368,22 @@ class PostgresConnection:
         self._raw = raw
         self._pool = pool
 
+    def _set_rls_scope(self) -> None:
+        """Set the app.workspace_id GUC from the current tenant scope so RLS
+        policies filter to it. Empty string = 'unscoped' (policies allow all).
+        Best-effort — a failure here must never break the connection."""
+        try:
+            from app.datasets import current_workspace
+            ws = current_workspace()
+            self._raw.execute("SELECT set_config('app.workspace_id', %s, false)",
+                              (str(int(ws)) if ws is not None else "",))
+            self._raw.commit()
+        except Exception:
+            try:
+                self._raw.rollback()
+            except Exception:
+                pass
+
     def execute(self, sql: str, params=()):
         pg_sql = _translate(sql)
         wants_id = bool(_LASTROWID_TABLES.match(sql)) and "RETURNING" not in pg_sql.upper()
@@ -391,6 +407,14 @@ class PostgresConnection:
 
     def close(self):
         if self._pool is not None:
+            # Clear the tenant GUC so a pooled connection never carries one
+            # request's workspace scope into the next checkout.
+            if settings.rls_enabled:
+                try:
+                    self._raw.execute("SELECT set_config('app.workspace_id', '', false)")
+                    self._raw.commit()
+                except Exception:
+                    pass
             # Return to the pool clean; psycopg resets state on putconn. If the
             # rollback fails the connection is poisoned (e.g. aborted txn on a
             # broken socket) — discard it instead of handing the fault to the
@@ -431,7 +455,10 @@ def get_connection():
     """Postgres (pooled) when DATABASE_URL is set; SQLite otherwise."""
     if settings.database_url:
         pool = _get_pg_pool()
-        return PostgresConnection(pool.getconn(), pool)
+        conn = PostgresConnection(pool.getconn(), pool)
+        if settings.rls_enabled:
+            conn._set_rls_scope()   # RLS backstop: scope this connection to the tenant
+        return conn
     Path(settings.db_path).parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(settings.db_path)
     conn.row_factory = sqlite3.Row
