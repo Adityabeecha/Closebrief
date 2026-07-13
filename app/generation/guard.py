@@ -98,6 +98,12 @@ def _allowed_values(fact: ComputedFact) -> tuple[set[float], set[float]]:
     for p in (fact.deltas.mom_pct, fact.deltas.yoy_pct, fact.deltas.budget_var_pct):
         if p is not None:
             percents.add(p)
+    # A percent-unit metric's own value IS a percent (e.g. Gross Margin 60% or a
+    # derived %-KPI), so allow it to verify when cited with a "%" sign.
+    if (fact.unit or "").lower() in ("%", "percent"):
+        percents.add(fact.value)
+        if fact.prior_value is not None:
+            percents.add(fact.prior_value)
 
     return magnitudes, percents
 
