@@ -8,7 +8,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
-from app import audit, billing, connectors, scheduling, workspaces
+from app import audit, billing, connectors, review, scheduling, workspaces
 from app.auth import CurrentUser, authenticate, get_current_user, invalidate_role_cache, require_role
 from app.cache import make_insight_key
 from app.compute import derived as derived_metrics
@@ -1982,7 +1982,7 @@ def feedback_endpoint(fb: FeedbackIn, user: CurrentUser = Depends(require_member
         # Scope the report to the caller's universe (demo vs real) so feedback can
         # never reach across it — the report's dataset must match the request scope.
         exists = conn.execute(
-            f"""SELECT 1 FROM generated_reports gr
+            f"""SELECT gr.narrative FROM generated_reports gr
                 JOIN metrics m ON m.id = gr.metric_id
                 JOIN datasets d ON d.id = m.dataset_id
                 WHERE gr.id = ? AND {_scope_pred('d')}""",
@@ -1996,9 +1996,75 @@ def feedback_endpoint(fb: FeedbackIn, user: CurrentUser = Depends(require_member
             (fb.report_id, fb.action, fb.edited_text, fb.reason, user.id, user.email),
         )
         conn.commit()
+        # Version history (v5.0): an edit snapshots a new version. The first edit
+        # also captures the original (v1) so the diff chain starts from generation.
+        if fb.action == "edited" and fb.edited_text:
+            have = conn.execute(
+                "SELECT COUNT(*) AS n FROM report_versions WHERE report_id = ?", (fb.report_id,)
+            ).fetchone()["n"]
+            if have == 0 and exists["narrative"]:
+                review.add_version(conn, fb.report_id, exists["narrative"], None, "original")
+            review.add_version(conn, fb.report_id, fb.edited_text, user.id, user.email)
         audit.record(conn, fb.action, "report", fb.report_id, actor_id=user.id,
                      actor_email=user.email, summary={"edited": bool(fb.edited_text)})
         return {"feedback_id": int(cur.lastrowid)}
+    finally:
+        conn.close()
+
+
+# ---------- Collaborative review (v5.0) ----------
+
+
+def _scoped_report(conn, report_id: int):
+    return conn.execute(
+        f"""SELECT gr.id FROM generated_reports gr
+            JOIN metrics m ON m.id = gr.metric_id JOIN datasets d ON d.id = m.dataset_id
+            WHERE gr.id = ? AND {_scope_pred('d')}""",
+        (report_id,),
+    ).fetchone()
+
+
+@app.post("/reports/{report_id}/assign")
+def assign_report(report_id: int, payload: dict, user: CurrentUser = Depends(require_member)) -> dict:
+    """Assign a narrative to a reviewer (status → pending)."""
+    conn = get_connection()
+    try:
+        if _scoped_report(conn, report_id) is None:
+            raise HTTPException(status_code=404, detail="Report not found")
+        review.assign(conn, report_id, payload.get("user_id"), payload.get("email"))
+        audit.record(conn, "assign", "report", report_id, actor_id=user.id, actor_email=user.email,
+                     summary={"assigned_email": payload.get("email")})
+        return {"report_id": report_id, "review_status": "pending"}
+    finally:
+        conn.close()
+
+
+@app.post("/reports/{report_id}/review")
+def review_report(report_id: int, payload: dict, user: CurrentUser = Depends(require_member)) -> dict:
+    """Record a review decision (approved | changes_requested)."""
+    status = (payload.get("status") or "").strip()
+    if status not in review.REVIEW_STATUSES:
+        raise HTTPException(status_code=422, detail=f"status must be one of {review.REVIEW_STATUSES}")
+    conn = get_connection()
+    try:
+        if _scoped_report(conn, report_id) is None:
+            raise HTTPException(status_code=404, detail="Report not found")
+        review.set_status(conn, report_id, status)
+        audit.record(conn, status, "report", report_id, actor_id=user.id, actor_email=user.email,
+                     summary={"note": payload.get("note")})
+        return {"report_id": report_id, "review_status": status}
+    finally:
+        conn.close()
+
+
+@app.get("/reports/{report_id}/versions")
+def report_versions(report_id: int, _: CurrentUser = Depends(require_read)) -> list[dict]:
+    """Version history of a narrative with a unified diff between each version."""
+    conn = get_connection()
+    try:
+        if _scoped_report(conn, report_id) is None:
+            raise HTTPException(status_code=404, detail="Report not found")
+        return review.list_versions(conn, report_id)
     finally:
         conn.close()
 
