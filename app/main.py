@@ -11,6 +11,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from app import audit, billing, connectors, scheduling, workspaces
 from app.auth import CurrentUser, authenticate, get_current_user, invalidate_role_cache, require_role
 from app.cache import make_insight_key
+from app.compute import derived as derived_metrics
 from app.compute.aggregate import (
     GRANULARITIES,
     aggregate_series,
@@ -26,6 +27,7 @@ from app.compute.correlations import (
     correlations_for_metric,
     detect_consecutive_trends,
 )
+from app.compute.formula import FormulaError
 from app.compute.funnel import compute_funnel
 from app.compute.kpis import compute_and_store
 from app.compute.pvm import bridge_for_metric_row
@@ -1246,6 +1248,38 @@ def configure_kpis(payload: KPIConfigPayload, _: CurrentUser = Depends(require_w
         conn.close()
     shared_cache().bump_namespace()
     return {"kpis_configured": len(payload.kpis)}
+
+
+@app.post("/kpis/derived", status_code=201)
+def create_derived_kpi(payload: dict, user: CurrentUser = Depends(require_write)) -> dict:
+    """v5.0 Custom KPI Builder: define a derived metric by formula, e.g.
+    {"name": "Gross Margin %", "formula": "([Net Revenue]-[COGS])/[Net Revenue]*100"}.
+    The value is computed deterministically per period, so it gets full delta/
+    trend/anomaly + narrative support and passes the faithfulness guard."""
+    name = (payload.get("name") or "").strip()
+    formula = (payload.get("formula") or "").strip()
+    if not name or not formula:
+        raise HTTPException(status_code=422, detail="name and formula are required")
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        if ds is None:
+            raise HTTPException(status_code=409, detail="No active dataset — import data first")
+        try:
+            did = derived_metrics.create_derived_metric(
+                conn, ds, name, formula,
+                unit=payload.get("unit", "USD"), category=payload.get("category", "Derived"),
+                direction_good=payload.get("direction_good", "up"))
+        except FormulaError as e:
+            raise HTTPException(status_code=422, detail=str(e)) from e
+        derived_metrics.materialize(conn, ds)
+        compute_and_store(conn, ds)
+        audit.record(conn, "create", "derived_kpi", did, actor_id=user.id,
+                     actor_email=user.email, summary={"name": name, "formula": formula})
+    finally:
+        conn.close()
+    shared_cache().bump_namespace()
+    return {"id": did, "name": name}
 
 
 @app.get("/kpis")
