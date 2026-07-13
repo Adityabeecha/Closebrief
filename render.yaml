@@ -26,6 +26,8 @@ services:
         value: "true"
       - key: DEMO_MODE           # seeds sample data; anonymous read-only browsing
         value: "true"
+      - key: RLS_ENABLED         # DB-level workspace isolation backstop (Postgres RLS);
+        value: "true"            # fail-open, so demo (unscoped) still browses freely
       - key: OPENAI_API_KEY
         sync: false
       - key: OPENAI_MODEL
