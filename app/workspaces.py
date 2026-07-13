@@ -113,6 +113,7 @@ def accept_invite(conn, token: str, user_id: str, email: str | None) -> int | No
     if row is None or row["accepted"]:
         return None
     add_member(conn, int(row["workspace_id"]), user_id, email, row["role"])
-    conn.execute("UPDATE workspace_invites SET accepted = 1 WHERE token = ?", (token,))
+    # `true` works on SQLite (INTEGER) and Postgres (BOOLEAN); `= 1` errors on PG.
+    conn.execute("UPDATE workspace_invites SET accepted = true WHERE token = ?", (token,))
     conn.commit()
     return int(row["workspace_id"])
