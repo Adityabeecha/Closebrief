@@ -529,7 +529,54 @@
     .demo-bar-actions .primary{display:none}   /* keep just "Exit demo" on tiny screens */
     .cmdk,.cmdk-back .cmdk{width:94vw}
     .kpi-grid,.kpi-grid.hdr{grid-template-columns:1fr!important}
+    .an-grid{grid-template-columns:1fr}
   }
+
+  /* ---------------- ADVANCED ANALYTICS (v5.0) ---------------- */
+  .an-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .an-ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 14px}
+  .an-ctl .lbl{margin:0}
+  .an-metric{font-size:11px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+  .an-empty{font-size:12.5px;color:var(--mut2);padding:18px 0}
+  /* Scenario levers */
+  .lever{margin:12px 0}
+  .lever-top{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;font-weight:600;color:var(--ink2);margin-bottom:5px}
+  .lever-val{font-variant-numeric:tabular-nums;font-weight:700}
+  .lever-val.pos{color:var(--green)} .lever-val.neg{color:var(--red)}
+  .lever input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
+  .scn-out{display:flex;gap:18px;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--b08);border-radius:11px;padding:13px 16px;margin-top:14px}
+  .scn-cell{display:flex;flex-direction:column;gap:3px}
+  .scn-cell .k{font-size:10.5px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+  .scn-cell .v{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .scn-cell .v.pos{color:var(--green)} .scn-cell .v.neg{color:var(--red)}
+  /* Custom KPI builder */
+  .fbuild{display:flex;flex-direction:column;gap:10px}
+  .fchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+  .fchip{font-size:11.5px;font-weight:600;padding:4px 9px;border-radius:7px;background:var(--bg2);border:1px solid var(--b12);color:var(--ink3);cursor:pointer}
+  .fchip:hover{border-color:var(--accent);color:var(--accent)}
+  .frow{display:flex;gap:10px;flex-wrap:wrap}
+  .frow>*{flex:1;min-width:120px}
+  /* Cross-domain signals */
+  .xd-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--b08)}
+  .xd-item:last-child{border-bottom:none}
+  .xd-r{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;flex:none;width:52px;text-align:center}
+  .xd-r.pos{color:var(--green)} .xd-r.neg{color:var(--red)}
+  .xd-body{min-width:0;flex:1;font-size:13px}
+  .xd-pair{font-weight:700;color:var(--ink);line-height:1.4}
+  .xd-meta{font-size:11.5px;color:var(--mut2);margin-top:2px}
+  .xd-arrow{color:var(--mut2);font-weight:700}
+  /* Review workflow (detail) */
+  .rev-strip{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:10px 0 4px}
+  .rev-badge{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:999px}
+  .rev-badge.pending{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bd)}
+  .rev-badge.approved{background:var(--green-bg);color:var(--green);border:1px solid var(--green2)}
+  .rev-badge.changes_requested{background:var(--red-bg);color:var(--red);border:1px solid var(--red)}
+  .rev-badge.none{background:var(--bg3);color:var(--mut);border:1px solid var(--b12)}
+  .ver-item{padding:10px 0;border-top:1px solid var(--b08)}
+  .ver-head{font-size:12px;font-weight:700;color:var(--ink2);display:flex;gap:8px;align-items:baseline}
+  .ver-head .when{font-weight:500;color:var(--mut2)}
+  .ver-diff{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;line-height:1.5;white-space:pre-wrap;margin-top:6px;background:var(--bg2);border-radius:8px;padding:9px 11px;overflow-x:auto}
+  .ver-diff .add{color:var(--green2)} .ver-diff .del{color:var(--red)}
 </style>
 </head>
 <body>
@@ -610,6 +657,8 @@
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>Executive Digest</button>
       <button class="nav-item" data-view="context" onclick="nav('context')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Context Library</button>
+      <button class="nav-item" data-view="analytics" onclick="nav('analytics')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>Advanced Analytics</button>
       <button class="nav-item exec-hide" data-view="import" onclick="nav('import')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>Import &amp; Mapping</button>
       <button class="nav-item admin-only" data-view="costs" onclick="nav('costs')">
@@ -715,6 +764,13 @@
         </div>
         <div class="panel full">
           <h3>Narrative</h3><div class="psub" id="d-narr-meta"></div>
+          <div class="rev-strip" id="d-rev-strip" style="display:none">
+            <span class="rev-badge none" id="d-rev-badge">Not reviewed</span>
+            <button class="btn sm write-hide" onclick="reviewReport('approved')">Approve</button>
+            <button class="btn sm write-hide" onclick="reviewReport('changes_requested')">Request changes</button>
+            <button class="btn sm" id="d-ver-btn" onclick="toggleVersions()">History</button>
+          </div>
+          <div id="d-versions" style="display:none;margin:4px 0 10px"></div>
           <div class="narr" id="d-narr"></div>
           <div id="d-grounding" class="grounding" style="display:none"></div>
           <div class="qa">
@@ -725,6 +781,82 @@
           <div id="d-correlations" style="margin-top:12px"></div>
           <div class="chips" id="d-chips" style="margin-top:12px"></div>
         </div>
+      </div>
+    </section>
+
+    <!-- ---------- ADVANCED ANALYTICS ---------- -->
+    <section id="v-analytics" class="wrap" style="display:none">
+      <div class="head">
+        <div>
+          <h1>Advanced Analytics</h1>
+          <div class="sub">Deterministic forecasting, what-if scenarios, custom KPIs &amp; cross-dataset signals — numbers computed exactly, never by the model.</div>
+        </div>
+      </div>
+      <div class="an-grid">
+
+        <!-- Forecast -->
+        <div class="panel">
+          <h3>Forecast</h3><div class="psub">Holt-Winters projection with a backtested error band (MAPE)</div>
+          <div class="an-ctl">
+            <select id="fc-metric" class="pill-btn"></select>
+            <select id="fc-horizon" class="pill-btn" aria-label="Horizon">
+              <option value="3">3 periods</option><option value="6">6 periods</option>
+              <option value="9">9 periods</option><option value="12">12 periods</option>
+            </select>
+            <button class="btn primary sm" onclick="runForecast()">Project</button>
+          </div>
+          <div class="chart-box" id="box-c-forecast" style="height:220px"><canvas id="c-forecast"></canvas></div>
+          <div id="fc-meta" class="statrow" style="margin:14px 0 0;grid-template-columns:1fr 1fr"></div>
+          <div id="fc-narr" style="margin-top:12px"></div>
+          <button class="btn sm write-hide" id="fc-narr-btn" style="margin-top:10px;display:none" onclick="forecastNarrative()">Explain this forecast</button>
+        </div>
+
+        <!-- Scenario -->
+        <div class="panel">
+          <h3>What-if scenario</h3><div class="psub">Apply price / volume / mix levers to the latest actual — instant, deterministic</div>
+          <div class="an-ctl"><select id="scn-metric" class="pill-btn" onchange="runScenario()"></select></div>
+          <div class="lever" data-lever="price">
+            <div class="lever-top"><span>Price</span><span class="lever-val" id="scn-price-v">0%</span></div>
+            <input type="range" min="-50" max="50" value="0" step="1" oninput="onLever()" onchange="runScenario()" id="scn-price">
+          </div>
+          <div class="lever" data-lever="volume">
+            <div class="lever-top"><span>Volume</span><span class="lever-val" id="scn-volume-v">0%</span></div>
+            <input type="range" min="-50" max="50" value="0" step="1" oninput="onLever()" onchange="runScenario()" id="scn-volume">
+          </div>
+          <div class="lever" data-lever="mix">
+            <div class="lever-top"><span>Mix</span><span class="lever-val" id="scn-mix-v">0%</span></div>
+            <input type="range" min="-50" max="50" value="0" step="1" oninput="onLever()" onchange="runScenario()" id="scn-mix">
+          </div>
+          <div class="scn-out" id="scn-out"><div class="an-empty">Pick a metric and move a lever to project.</div></div>
+        </div>
+
+        <!-- Custom KPI builder (create needs analyst/admin — hidden for executives & viewers) -->
+        <div class="panel exec-hide">
+          <h3>Custom KPI</h3><div class="psub">Define a metric by formula over existing metrics — it flows through compute, so it gets full trend, variance &amp; narrative support</div>
+          <div class="fbuild">
+            <div><label class="lbl">Name</label><input id="kb-name" class="modal-field" placeholder="Gross Margin %"></div>
+            <div><label class="lbl">Formula</label><input id="kb-formula" class="modal-field" placeholder="([Net Revenue] - [COGS]) / [Net Revenue] * 100"></div>
+            <div>
+              <label class="lbl">Insert a metric</label>
+              <div class="fchips" id="kb-chips"></div>
+            </div>
+            <div class="frow">
+              <div><label class="lbl">Unit</label>
+                <select id="kb-unit" class="modal-field"><option value="%">%</option><option value="USD">USD</option><option value="count">count</option></select></div>
+              <div><label class="lbl">Category</label><input id="kb-cat" class="modal-field" value="Derived"></div>
+              <div><label class="lbl">Good direction</label>
+                <select id="kb-dir" class="modal-field"><option value="up">Higher is better</option><option value="down">Lower is better</option></select></div>
+            </div>
+            <div><button class="btn primary" id="kb-btn" onclick="createDerivedKpi()">Create KPI</button></div>
+          </div>
+        </div>
+
+        <!-- Cross-domain signals -->
+        <div class="panel">
+          <h3>Cross-dataset signals</h3><div class="psub">Strongest correlations between metrics in different datasets, with the best lead/lag</div>
+          <div id="xd-list"><div class="an-empty">Loading…</div></div>
+        </div>
+
       </div>
     </section>
 
@@ -1389,11 +1521,12 @@ function toggleCollapse(){
 try{if(localStorage.getItem("cb-side-collapsed")==="1")document.body.classList.add("side-collapsed");}catch{}
 function nav(v){
   closeSidebar();   // dismiss the mobile drawer on navigation
-  for(const s of["dashboard","detail","digest","context","import","costs","notifications","admin"])$("v-"+s).style.display=s===v?"":"none";
-  for(const s of["dashboard","digest","context","import","costs","notifications","admin"])
+  for(const s of["dashboard","detail","digest","context","analytics","import","costs","notifications","admin"])$("v-"+s).style.display=s===v?"":"none";
+  for(const s of["dashboard","digest","context","analytics","import","costs","notifications","admin"])
     document.querySelector(`[data-view=${s}]`)?.classList.toggle("active",s===v||(v==="detail"&&s==="dashboard"));
   if(v!=="detail"&&location.hash!=="#"+v)history.replaceState(null,"","#"+v);
   if(v==="context")loadContext();
+  if(v==="analytics")loadAnalytics();
   if(v==="digest")loadDigest(false);
   if(v==="costs")loadCosts();
   if(v==="notifications")loadNotifications();
@@ -1513,6 +1646,174 @@ function ntChannelFields(){
   else if(ch==="slack"){lbl.textContent="Slack webhook URL";inp.placeholder="https://hooks.slack.com/services/…";}
   else{lbl.textContent="Webhook URL";inp.placeholder="https://your-service.com/hook";}
 }
+/* ================= ADVANCED ANALYTICS (v5.0) ================= */
+let _anMetrics=[], _lastForecast=null, _scnT=null;
+function _metricList(){return (currentFacts||[]).filter(f=>f.has_data).map(f=>({name:f.metric,unit:f.unit}));}
+function _fillMetricSelect(id){
+  const sel=$(id);if(!sel)return;const prev=sel.value;
+  sel.innerHTML=_anMetrics.length?_anMetrics.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join("")
+    :'<option value="">No metrics — import data first</option>';
+  if(prev&&_anMetrics.some(m=>m.name===prev))sel.value=prev;
+}
+async function loadAnalytics(){
+  // currentFacts is normally populated by the dashboard; on a deep-link, fetch it.
+  if(!(currentFacts&&currentFacts.length)&&currentPeriod){
+    try{currentFacts=await api(`/facts?period=${encodeURIComponent(currentPeriod)}&granularity=${granularity}`);}catch{}
+  }
+  _anMetrics=_metricList();
+  _fillMetricSelect("fc-metric");_fillMetricSelect("scn-metric");
+  const chips=$("kb-chips");
+  if(chips)chips.innerHTML=_anMetrics.length
+    ?_anMetrics.map((m,i)=>`<span class="fchip" onclick="insertMetricToken(${i})">${esc(m.name)}</span>`).join("")
+    :'<span class="an-empty">No metrics yet — import data first.</span>';
+  onLever();
+  $("scn-out").innerHTML='<div class="an-empty">Pick a metric and move a lever to project.</div>';
+  loadCrossDomain();
+}
+/* ---- Forecast ---- */
+async function runForecast(){
+  const metric=$("fc-metric").value;if(!metric){toast("Pick a metric first");return;}
+  const horizon=$("fc-horizon").value||3;
+  $("fc-meta").innerHTML="";$("fc-narr").innerHTML="";$("fc-narr-btn").style.display="none";
+  const box=$("box-c-forecast");box.innerHTML='<div class="loading">Projecting…</div>';
+  try{
+    const fc=await api(`/forecast?metric=${encodeURIComponent(metric)}&horizon=${horizon}`);
+    _lastForecast=fc;renderForecastChart(fc);
+    const mape=fc.mape==null?"–":(+fc.mape.toFixed(1))+"%";
+    const next=fc.projections&&fc.projections[0]?fc.projections[0].value:null;
+    $("fc-meta").innerHTML=
+      `<div class="stat"><div class="stat-lbl">Next period</div><div class="card-value">${fmt(next,fc.unit)}</div></div>`+
+      `<div class="stat" style="--sc:var(--mut)"><div class="stat-lbl">Backtest MAPE</div><div class="card-value">${mape}</div></div>`;
+    $("fc-narr-btn").style.display="";
+  }catch(e){if(chartReg["c-forecast"]){chartReg["c-forecast"].destroy();delete chartReg["c-forecast"];}box.innerHTML=`<div class="an-empty">${esc(e.message)}</div>`;}
+}
+function renderForecastChart(fc){
+  ensureCanvas("c-forecast");const box=$("box-c-forecast");
+  const hist=fc.history||[],proj=fc.projections||[];
+  if(!hist.length&&!proj.length){if(chartReg["c-forecast"]){chartReg["c-forecast"].destroy();delete chartReg["c-forecast"];}box.innerHTML='<div class="an-empty">Not enough history to forecast.</div>';return;}
+  const th=chartTheme();
+  const labels=[...hist.map(h=>h.period),...proj.map(p=>p.period)].map(p=>String(p).slice(2));
+  const actual=[...hist.map(h=>h.value),...proj.map(()=>null)];
+  const forecast=[...hist.map(()=>null),...proj.map(p=>p.value)];
+  if(hist.length&&proj.length)forecast[hist.length-1]=hist[hist.length-1].value;   // connect the dashed line to the last actual
+  mkChart("c-forecast",{type:"line",
+    data:{labels,datasets:[
+      {label:"Actual",data:actual,borderColor:th.accent,borderWidth:2,tension:.3,pointRadius:0,pointHoverRadius:4,spanGaps:false,
+        fill:true,backgroundColor:ctx=>{const{chartArea,ctx:c}=ctx.chart;if(!chartArea)return"transparent";
+          const g=c.createLinearGradient(0,chartArea.top,0,chartArea.bottom);g.addColorStop(0,th.accent+"33");g.addColorStop(1,th.accent+"03");return g;}},
+      {label:"Forecast",data:forecast,borderColor:th.accent,borderWidth:2,borderDash:[5,4],tension:.3,pointRadius:0,pointHoverRadius:4,spanGaps:true}]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+      plugins:{legend:{display:false},tooltip:tooltipCfg(fc.unit)},
+      scales:{y:{grid:{color:th.grid},ticks:{color:th.mut,maxTicksLimit:5,callback:v=>fmt(v,fc.unit)},border:{display:false}},
+        x:{grid:{display:false},ticks:{color:th.mut,maxRotation:0,autoSkip:true,maxTicksLimit:8},border:{color:th.grid}}}}});
+}
+async function forecastNarrative(){
+  const metric=$("fc-metric").value;if(!metric)return;
+  const horizon=+($("fc-horizon").value||3),btn=$("fc-narr-btn"),t=btn.textContent;
+  btn.disabled=true;btn.textContent="Thinking…";
+  try{
+    const r=await api("/forecast/narrative",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({metric,horizon})});
+    $("fc-narr").innerHTML=`<div class="narr">${esc(r.narrative)}</div>`;
+  }catch(e){toast("Narrative unavailable: "+e.message);}
+  finally{btn.disabled=false;btn.textContent=t;}
+}
+/* ---- Scenario (what-if) ---- */
+function onLever(){
+  for(const k of["price","volume","mix"]){
+    const el=$("scn-"+k);if(!el)continue;const v=+el.value,out=$("scn-"+k+"-v");
+    out.textContent=(v>0?"+":"")+v+"%";out.className="lever-val"+(v>0?" pos":v<0?" neg":"");
+  }
+}
+function runScenario(){
+  const metric=$("scn-metric").value;if(!metric)return;
+  clearTimeout(_scnT);
+  _scnT=setTimeout(async()=>{
+    const body={metric,price_pct:+$("scn-price").value,volume_pct:+$("scn-volume").value,mix_pct:+$("scn-mix").value};
+    try{
+      const r=await api("/scenario",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+      const unit=(_anMetrics.find(m=>m.name===metric)||{}).unit;
+      const cls=r.impact_abs>0?"pos":r.impact_abs<0?"neg":"",sign=r.impact_abs>0?"+":"";
+      $("scn-out").innerHTML=
+        `<div class="scn-cell"><span class="k">Base</span><span class="v">${fmt(r.base_value,unit)}</span></div>`+
+        `<div class="scn-cell"><span class="k">Projected</span><span class="v ${cls}">${fmt(r.projected_value,unit)}</span></div>`+
+        `<div class="scn-cell"><span class="k">Impact</span><span class="v ${cls}">${sign}${fmt(r.impact_abs,unit)}${r.impact_pct!=null?` · ${sign}${(+r.impact_pct.toFixed(1))}%`:""}</span></div>`+
+        (r.vs_budget!=null?`<div class="scn-cell"><span class="k">vs Budget</span><span class="v ${r.vs_budget>=0?"pos":"neg"}">${fmt(r.vs_budget,unit)}</span></div>`:"");
+    }catch(e){$("scn-out").innerHTML=`<div class="an-empty">${esc(e.message)}</div>`;}
+  },120);
+}
+/* ---- Custom KPI (formula builder) ---- */
+function insertMetricToken(i){
+  const m=_anMetrics[i];if(!m)return;const inp=$("kb-formula");
+  const sep=(inp.value&&!/[\s([+\-*/]$/.test(inp.value))?" ":"";
+  inp.value+=sep+"["+m.name+"]";inp.focus();
+}
+async function createDerivedKpi(){
+  const name=$("kb-name").value.trim(),formula=$("kb-formula").value.trim();
+  if(!name||!formula){toast("Name and formula are required");return;}
+  const btn=$("kb-btn");btn.disabled=true;
+  try{
+    await api("/kpis/derived",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({name,formula,unit:$("kb-unit").value,category:$("kb-cat").value.trim()||"Derived",direction_good:$("kb-dir").value})});
+    toast("Created “"+name+"”");
+    $("kb-name").value="";$("kb-formula").value="";
+    await loadFacts();                 // recompute pulls the new derived metric onto the board
+    _anMetrics=_metricList();_fillMetricSelect("fc-metric");_fillMetricSelect("scn-metric");
+    const chips=$("kb-chips");if(chips)chips.innerHTML=_anMetrics.map((m,i)=>`<span class="fchip" onclick="insertMetricToken(${i})">${esc(m.name)}</span>`).join("");
+  }catch(e){toast("Failed: "+e.message);}
+  finally{btn.disabled=false;}
+}
+/* ---- Cross-dataset signals ---- */
+async function loadCrossDomain(){
+  const box=$("xd-list");if(!box)return;box.innerHTML='<div class="an-empty">Loading…</div>';
+  try{
+    const rows=await api("/insights/cross-domain");
+    if(!rows.length){box.innerHTML='<div class="an-empty">Need at least two datasets with overlapping periods to surface cross-dataset signals.</div>';return;}
+    box.innerHTML=rows.slice(0,12).map(p=>{
+      const cls=p.direction==="positive"?"pos":"neg";
+      const lag=p.lag?`${Math.abs(p.lag)}-period ${p.lag>0?"lead":"lag"}`:"same period";
+      return `<div class="xd-item"><div class="xd-r ${cls}">${p.r>0?"+":""}${p.r}</div>
+        <div class="xd-body"><div class="xd-pair">${esc(p.metric_a)} <span class="xd-arrow">↔</span> ${esc(p.metric_b)}</div>
+        <div class="xd-meta">${esc(p.dataset_a)} → ${esc(p.dataset_b)} · ${lag} · ${p.months} mo overlap</div></div></div>`;
+    }).join("");
+  }catch(e){box.innerHTML=`<div class="an-empty">${esc(e.message)}</div>`;}
+}
+/* ---- Collaborative review (detail view) ---- */
+function renderReviewStrip(f){
+  const strip=$("d-rev-strip");if(!strip)return;
+  if(!f||!f.report_id){strip.style.display="none";$("d-versions").style.display="none";return;}
+  strip.style.display="";
+  const st=f.review_status||"none",badge=$("d-rev-badge");
+  badge.className="rev-badge "+st;
+  badge.textContent=({pending:"Pending review",approved:"Approved",changes_requested:"Changes requested"})[st]||"Not reviewed";
+  const vb=$("d-versions");vb.style.display="none";vb.innerHTML="";$("d-ver-btn").textContent="History";
+}
+async function reviewReport(status){
+  if(!detailFact||!detailFact.report_id)return;
+  try{
+    await api(`/reports/${detailFact.report_id}/review`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({status})});
+    detailFact.review_status=status;renderReviewStrip(detailFact);
+    const cf=(currentFacts||[]).find(x=>x.report_id===detailFact.report_id);if(cf)cf.review_status=status;
+    toast(status==="approved"?"Narrative approved":"Changes requested");
+  }catch(e){toast("Failed: "+e.message);}
+}
+async function toggleVersions(){
+  const box=$("d-versions");
+  if(box.style.display!=="none"){box.style.display="none";$("d-ver-btn").textContent="History";return;}
+  if(!detailFact||!detailFact.report_id)return;
+  box.style.display="";$("d-ver-btn").textContent="Hide history";box.innerHTML='<div class="an-empty">Loading…</div>';
+  try{
+    const vers=await api(`/reports/${detailFact.report_id}/versions`);
+    if(!vers.length){box.innerHTML='<div class="an-empty">No prior versions — edits to the narrative create new versions.</div>';return;}
+    box.innerHTML=vers.map(v=>{
+      // diff is an array of unified-diff lines (never a string).
+      const lines=Array.isArray(v.diff)?v.diff:(v.diff?String(v.diff).split("\n"):[]);
+      const diff=lines.length?`<div class="ver-diff">${lines.map(l=>{const e=esc(l);
+        return /^\+/.test(l)&&!/^\+\+\+/.test(l)?`<span class="add">${e}</span>`:/^-/.test(l)&&!/^---/.test(l)?`<span class="del">${e}</span>`:e;}).join("\n")}</div>`:"";
+      return `<div class="ver-item"><div class="ver-head">v${v.version}${v.editor_email?` · ${esc(v.editor_email)}`:""}<span class="when">${esc(v.created_at||"")}</span></div>${diff}</div>`;
+    }).join("");
+  }catch(e){box.innerHTML=`<div class="an-empty">${esc(e.message)}</div>`;}
+}
+
 async function loadNotifications(){
   $("nt-loading").style.display="";
   try{
@@ -2209,6 +2510,7 @@ function openDetail(i){
   renderBvaChart(cd.budget_vs_actual,f.unit);
   renderBridgeChart(cd.variance_bridge,f.deltas.budget_var_abs,f.unit);
   $("d-narr").className="narr"+(f.narrative?"":" muted");
+  renderReviewStrip(f);
   $("d-grounding").style.display="none";groundingData=null;
   if(f.narrative&&f.report_id&&!f.edited){
     // Drill-down: fetch per-sentence grounding and render clickable sentences.
