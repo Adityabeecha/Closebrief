@@ -283,7 +283,7 @@ def run_due_jobs(conn, now: datetime | None = None, llm_client=None) -> dict:
     """Run every enabled job whose next_run_at has passed. Operates strictly on
     the real (non-demo) universe. Logs each run, tracks last status + consecutive
     failures, and alerts the operator after repeated failures."""
-    from app.datasets import set_demo_scope
+    from app.datasets import set_demo_scope, set_workspace_scope
 
     set_demo_scope(False)
     now = now or _now()
@@ -294,6 +294,9 @@ def run_due_jobs(conn, now: datetime | None = None, llm_client=None) -> dict:
         nxt = _parse(job["next_run_at"])
         if nxt is not None and nxt > now:
             continue
+        # Reset tenant scope before each job so one job (e.g. connector_sync, which
+        # enters a connector's workspace) can't leak scope into the next.
+        set_workspace_scope(None)
         t0 = time.perf_counter()
         try:
             if job["kind"] == "digest":

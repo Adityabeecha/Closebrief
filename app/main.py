@@ -227,14 +227,14 @@ async def _auth_middleware(request: Request, call_next):
             req_ws = None
         conn = get_connection()
         try:
-            ws_id = resolve_workspace(conn, user.id, user.email, req_ws)
+            ws_id, ws_role = resolve_workspace(conn, user.id, user.email, req_ws)
             set_workspace_scope(ws_id)
             request.state.workspace_id = ws_id
-            # Expose the caller's membership role in the active workspace (for /me
-            # and the UI). Workspace-scoped admin actions (invites, limits, members)
-            # enforce this via _require_ws_admin; global RBAC (app_roles) still
-            # governs app-level admin (user management, cross-workspace).
-            request.state.ws_role = workspaces.member_role(conn, ws_id, user.id)
+            # The caller's membership role in the active workspace (resolved in the
+            # same query, for /me and the UI). Workspace-scoped admin actions
+            # (invites, limits, members) enforce this via _require_ws_admin; global
+            # RBAC (app_roles) still governs app-level admin.
+            request.state.ws_role = ws_role
         finally:
             conn.close()
     return await call_next(request)
@@ -639,11 +639,9 @@ def _metric_history(conn, ds: int, metric: str) -> list[dict]:
     return [{"period": r["period"], "value": r["value"]} for r in rows]
 
 
-@app.get("/forecast")
-def get_forecast(metric: str, horizon: int = 3, _: CurrentUser = Depends(require_read)) -> dict:
-    """Deterministic forward projection for a metric (v5.0). Holt-Winters/linear,
-    with a backtest MAPE. The LLM is not involved."""
-    horizon = max(1, min(12, horizon))
+def _forecast_inputs(metric: str, horizon: int) -> dict:
+    """Shared by /forecast and /forecast/narrative: load history for the active
+    dataset's metric and build the deterministic projection + backtest MAPE."""
     conn = get_connection()
     try:
         ds = active_dataset_id(conn)
@@ -660,11 +658,22 @@ def get_forecast(metric: str, horizon: int = 3, _: CurrentUser = Depends(require
     proj = forecast(values, horizon)
     periods = next_periods(hist[-1]["period"], horizon)
     return {
-        "metric": metric, "unit": unit,
-        "history": hist[-6:],
+        "metric": metric, "unit": unit, "history": hist,
         "projections": [{"period": p, "value": v} for p, v in zip(periods, proj)],
         "mape": backtest_mape(values),
     }
+
+
+@app.get("/forecast")
+def get_forecast(metric: str, horizon: int = 3, _: CurrentUser = Depends(require_read)) -> dict:
+    """Deterministic forward projection for a metric (v5.0). Holt-Winters/linear,
+    with a backtest MAPE. The LLM is not involved."""
+    metric = (metric or "").strip()
+    if not metric:
+        raise HTTPException(status_code=422, detail="metric is required")
+    fc = _forecast_inputs(metric, max(1, min(12, horizon)))
+    return {"metric": fc["metric"], "unit": fc["unit"], "history": fc["history"][-6:],
+            "projections": fc["projections"], "mape": fc["mape"]}
 
 
 @app.get("/insights/cross-domain")
@@ -725,35 +734,21 @@ def forecast_narrative(payload: dict, user: CurrentUser = Depends(require_member
     forecast numbers."""
     _enforce_budget()
     metric = (payload.get("metric") or "").strip()
-    horizon = max(1, min(12, int(payload.get("horizon", 3))))
     if not metric:
         raise HTTPException(status_code=422, detail="metric is required")
-    conn = get_connection()
-    try:
-        ds = active_dataset_id(conn)
-        if ds is None:
-            raise HTTPException(status_code=400, detail="No active dataset")
-        hist = _metric_history(conn, ds, metric)
-        if len(hist) < 2:
-            raise HTTPException(status_code=400, detail="Not enough history to forecast")
-        unit = (conn.execute("SELECT unit FROM metrics WHERE dataset_id = ? AND name = ?",
-                             (ds, metric)).fetchone() or {"unit": "USD"})["unit"]
-    finally:
-        conn.close()
-    values = [h["value"] for h in hist]
-    proj = forecast(values, horizon)
-    periods = next_periods(hist[-1]["period"], horizon)
-    projections = [{"period": p, "value": v} for p, v in zip(periods, proj)]
-    mape = backtest_mape(values)
+    horizon = max(1, min(12, int(payload.get("horizon", 3))))
+    fc = _forecast_inputs(metric, horizon)
     try:
         result, usage = get_llm_client().generate_narrative(
-            FORECAST_SYSTEM_PROMPT, build_forecast_prompt(metric, unit, hist, projections, mape))
+            FORECAST_SYSTEM_PROMPT,
+            build_forecast_prompt(metric, fc["unit"], fc["history"], fc["projections"], fc["mape"]))
     except LLMGenerationError as exc:
         raise HTTPException(status_code=503, detail=f"Forecast narrative unavailable: {exc}") from exc
     _log_llm_call("/forecast/narrative",
                   settings.openai_model if settings.llm_provider == "openai" else settings.anthropic_model,
                   usage.prompt_tokens, usage.completion_tokens, usage.cost_usd, None, user.id)
-    return {"metric": metric, "projections": projections, "mape": mape, "narrative": result.narrative}
+    return {"metric": metric, "projections": fc["projections"], "mape": fc["mape"],
+            "narrative": result.narrative}
 
 
 @app.get("/notifications/configs")
@@ -1468,6 +1463,9 @@ def compute(_: CurrentUser = Depends(require_write)) -> dict:
         ds = active_dataset_id(conn)
         facts = compute_and_store(conn, ds)
         if ds is not None:
+            # Refresh derived KPIs off the new base facts so they don't go stale.
+            if derived_metrics.materialize(conn, ds) > 0:
+                facts = compute_and_store(conn, ds)
             _notify_anomalies(conn, ds)
     finally:
         conn.close()
