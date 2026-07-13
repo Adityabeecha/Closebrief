@@ -230,6 +230,21 @@ CREATE TABLE IF NOT EXISTS scheduler_runs (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- v4.0 live data connectors: scheduled syncs replace manual CSV upload.
+CREATE TABLE IF NOT EXISTS connectors (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    workspace_id INTEGER,
+    kind TEXT NOT NULL,               -- 'csv_url' | 'google_sheets'
+    name TEXT NOT NULL,
+    config TEXT NOT NULL DEFAULT '{}',
+    dataset_name TEXT,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    last_sync_at TEXT,
+    last_status TEXT,
+    last_error TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- v4.0 immutable audit trail (append-only, hash-chained per workspace).
 CREATE TABLE IF NOT EXISTS audit_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -315,7 +330,7 @@ PG_SCHEMA_PATH = Path(__file__).parent / "migrations" / "pg_schema.sql"
 _LASTROWID_TABLES = re.compile(
     r"^\s*INSERT(\s+OR\s+IGNORE)?\s+INTO\s+"
     r"(context_documents|generated_reports|feedback|datasets|metrics"
-    r"|scheduled_jobs|digest_runs|workspaces)\b",
+    r"|scheduled_jobs|digest_runs|workspaces|connectors)\b",
     re.I,
 )
 _OR_IGNORE = re.compile(r"^(\s*INSERT)\s+OR\s+IGNORE\s+", re.I)
