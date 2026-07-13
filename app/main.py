@@ -27,6 +27,7 @@ from app.compute.correlations import (
     correlations_for_metric,
     detect_consecutive_trends,
 )
+from app.compute.forecast import backtest_mape, forecast, next_periods
 from app.compute.formula import FormulaError
 from app.compute.funnel import compute_funnel
 from app.compute.kpis import compute_and_store
@@ -54,8 +55,10 @@ from app.domains import get_domain, list_domains, registry
 from app.generation.generate import GenerationFailedFactsOnly, generate_insight
 from app.generation.llm_client import LLMGenerationError, get_llm_client
 from app.generation.prompts import (
+    FORECAST_SYSTEM_PROMPT,
     FUNNEL_SYSTEM_PROMPT,
     PROMPT_VERSION,
+    build_forecast_prompt,
     build_funnel_prompt,
 )
 from app.generation.qa import answer_question
@@ -623,6 +626,80 @@ def funnel_narrative(payload: dict, user: CurrentUser = Depends(require_member))
         usage.prompt_tokens, usage.completion_tokens, usage.cost_usd, None, user.id,
     )
     return {"funnel": funnel, "narrative": result.narrative}
+
+
+def _metric_history(conn, ds: int, metric: str) -> list[dict]:
+    rows = conn.execute(
+        """SELECT cf.period, cf.value FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
+           WHERE m.dataset_id = ? AND m.name = ? AND cf.value IS NOT NULL ORDER BY cf.period""",
+        (ds, metric),
+    ).fetchall()
+    return [{"period": r["period"], "value": r["value"]} for r in rows]
+
+
+@app.get("/forecast")
+def get_forecast(metric: str, horizon: int = 3, _: CurrentUser = Depends(require_read)) -> dict:
+    """Deterministic forward projection for a metric (v5.0). Holt-Winters/linear,
+    with a backtest MAPE. The LLM is not involved."""
+    horizon = max(1, min(12, horizon))
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        if ds is None:
+            raise HTTPException(status_code=400, detail="No active dataset")
+        hist = _metric_history(conn, ds, metric)
+        if len(hist) < 2:
+            raise HTTPException(status_code=400, detail="Not enough history to forecast")
+        unit = (conn.execute("SELECT unit FROM metrics WHERE dataset_id = ? AND name = ?",
+                             (ds, metric)).fetchone() or {"unit": "USD"})["unit"]
+    finally:
+        conn.close()
+    values = [h["value"] for h in hist]
+    proj = forecast(values, horizon)
+    periods = next_periods(hist[-1]["period"], horizon)
+    return {
+        "metric": metric, "unit": unit,
+        "history": hist[-6:],
+        "projections": [{"period": p, "value": v} for p, v in zip(periods, proj)],
+        "mape": backtest_mape(values),
+    }
+
+
+@app.post("/forecast/narrative")
+def forecast_narrative(payload: dict, user: CurrentUser = Depends(require_member)) -> dict:
+    """Forward-looking commentary phrased by the LLM around the deterministic
+    forecast numbers."""
+    _enforce_budget()
+    metric = (payload.get("metric") or "").strip()
+    horizon = max(1, min(12, int(payload.get("horizon", 3))))
+    if not metric:
+        raise HTTPException(status_code=422, detail="metric is required")
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        if ds is None:
+            raise HTTPException(status_code=400, detail="No active dataset")
+        hist = _metric_history(conn, ds, metric)
+        if len(hist) < 2:
+            raise HTTPException(status_code=400, detail="Not enough history to forecast")
+        unit = (conn.execute("SELECT unit FROM metrics WHERE dataset_id = ? AND name = ?",
+                             (ds, metric)).fetchone() or {"unit": "USD"})["unit"]
+    finally:
+        conn.close()
+    values = [h["value"] for h in hist]
+    proj = forecast(values, horizon)
+    periods = next_periods(hist[-1]["period"], horizon)
+    projections = [{"period": p, "value": v} for p, v in zip(periods, proj)]
+    mape = backtest_mape(values)
+    try:
+        result, usage = get_llm_client().generate_narrative(
+            FORECAST_SYSTEM_PROMPT, build_forecast_prompt(metric, unit, hist, projections, mape))
+    except LLMGenerationError as exc:
+        raise HTTPException(status_code=503, detail=f"Forecast narrative unavailable: {exc}") from exc
+    _log_llm_call("/forecast/narrative",
+                  settings.openai_model if settings.llm_provider == "openai" else settings.anthropic_model,
+                  usage.prompt_tokens, usage.completion_tokens, usage.cost_usd, None, user.id)
+    return {"metric": metric, "projections": projections, "mape": mape, "narrative": result.narrative}
 
 
 @app.get("/notifications/configs")

@@ -121,6 +121,36 @@ def build_funnel_prompt(funnel: dict) -> str:
     return "\n".join(lines)
 
 
+FORECAST_SYSTEM_PROMPT = """You are an FP&A analyst writing a short forward-looking \
+outlook for an executive.
+
+Hard rules, no exceptions:
+1. Use ONLY the numbers in the "Forecast" block (projected values, budget, MAPE). \
+Never invent or recompute a number.
+2. Say plainly that these are model projections, not actuals. Note the forecast \
+error (MAPE) if given, and whether the projection is above or below budget.
+3. Write 2-3 sentences of plain, executive-ready prose. No bullet points.
+4. Return the narrative and an empty list of source ids (this outlook is computed)."""
+
+
+def build_forecast_prompt(metric: str, unit: str, history_tail: list[dict],
+                          projections: list[dict], mape: float | None) -> str:
+    lines = [f"Metric: {metric}", "", "Recent actuals:"]
+    for h in history_tail[-4:]:
+        lines.append(f"  - {h['period']}: {_fmt(h['value'])}")
+    lines.append("")
+    lines.append("Forecast (the ONLY numbers you may use — model projections):")
+    for p in projections:
+        line = f"  - {p['period']}: projected {_fmt(p['value'])}"
+        if p.get("budget") is not None:
+            line += f" vs budget {_fmt(p['budget'])} ({'above' if p['value'] >= p['budget'] else 'below'} plan)"
+        lines.append(line)
+    if mape is not None:
+        lines.append(f"\nBacktest error (MAPE): {mape}%")
+    lines.append("\nWrite the outlook under the rules above.")
+    return "\n".join(lines)
+
+
 def _fmt(value: float | None, suffix: str = "") -> str:
     return "n/a" if value is None else f"{value:,.2f}{suffix}"
 
