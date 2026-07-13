@@ -5,6 +5,7 @@ import hmac
 import json
 
 import pytest
+from dbharness import use_test_db
 
 SAMPLE = [
     {"metric": "Net Revenue", "period": "2025-03", "value": "$5.33M",
@@ -70,18 +71,18 @@ def test_deliver_filters_by_event(monkeypatch, tmp_path):
     """deliver() only calls channels subscribed to the event, and reports
     per-config failures without aborting the fan-out."""
     from app.config import settings
-    monkeypatch.setattr(settings, "database_url", "")
+    use_test_db(monkeypatch)
     monkeypatch.setattr(settings, "db_path", str(tmp_path / "notif.db"))
     import app.db as db
     db.init_db()
     conn = db.get_connection()
     conn.execute(
-        "INSERT INTO notification_configs (channel, config, enabled) VALUES ('webhook', ?, 1)",
-        (json.dumps({"url": "http://localhost:1/nope", "events": ["digest_generated"]}),),
+        "INSERT INTO notification_configs (channel, config, enabled) VALUES ('webhook', ?, ?)",
+        (json.dumps({"url": "http://localhost:1/nope", "events": ["digest_generated"]}), True),
     )
     conn.execute(
-        "INSERT INTO notification_configs (channel, config, enabled) VALUES ('webhook', ?, 1)",
-        (json.dumps({"url": "http://localhost:1/nope", "events": ["anomaly_detected"]}),),
+        "INSERT INTO notification_configs (channel, config, enabled) VALUES ('webhook', ?, ?)",
+        (json.dumps({"url": "http://localhost:1/nope", "events": ["anomaly_detected"]}), True),
     )
     conn.commit()
 

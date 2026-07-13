@@ -2,12 +2,13 @@
 streaks, period comparison). Pure/deterministic — no LLM, no HTTP."""
 
 import pytest
+from dbharness import use_test_db
 
 
 @pytest.fixture
 def conn(tmp_path, monkeypatch):
     from app.config import settings
-    monkeypatch.setattr(settings, "database_url", "")
+    use_test_db(monkeypatch)
     monkeypatch.setattr(settings, "db_path", str(tmp_path / "corr.db"))
     import app.db as db
     db.init_db()
