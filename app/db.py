@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS workspaces (
     name TEXT NOT NULL,
     plan TEXT NOT NULL DEFAULT 'free',
     monthly_budget_usd REAL,
+    retention_days INTEGER,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -317,6 +318,7 @@ _SQLITE_MIGRATIONS = [
     "ALTER TABLE llm_calls ADD COLUMN workspace_id INTEGER",
     "ALTER TABLE workspaces ADD COLUMN plan TEXT NOT NULL DEFAULT 'free'",
     "ALTER TABLE workspaces ADD COLUMN monthly_budget_usd REAL",
+    "ALTER TABLE workspaces ADD COLUMN retention_days INTEGER",
 ]
 
 PG_SCHEMA_PATH = Path(__file__).parent / "migrations" / "pg_schema.sql"

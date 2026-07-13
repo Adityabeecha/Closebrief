@@ -2070,6 +2070,23 @@ def audit_verify(_: CurrentUser = Depends(require_admin)) -> dict:
         conn.close()
 
 
+@app.put("/workspaces/{ws_id}/retention")
+def set_workspace_retention(ws_id: int, payload: dict,
+                            user: CurrentUser = Depends(get_current_user)) -> dict:
+    """Set the workspace's data-retention window in days (null = keep forever).
+    A scheduled retention_purge job enforces it. Admin only."""
+    conn = get_connection()
+    try:
+        _require_ws_admin(conn, ws_id, user)
+        days = payload.get("retention_days")
+        conn.execute("UPDATE workspaces SET retention_days = ? WHERE id = ?",
+                     (int(days) if days is not None else None, ws_id))
+        conn.commit()
+        return {"workspace_id": ws_id, "retention_days": (int(days) if days is not None else None)}
+    finally:
+        conn.close()
+
+
 @app.put("/workspaces/{ws_id}/limit")
 def set_workspace_limit(ws_id: int, payload: dict, user: CurrentUser = Depends(get_current_user)) -> dict:
     """Set the workspace's plan and/or explicit monthly budget (admin only)."""
