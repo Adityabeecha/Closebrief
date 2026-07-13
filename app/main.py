@@ -223,6 +223,11 @@ async def _auth_middleware(request: Request, call_next):
             ws_id = resolve_workspace(conn, user.id, user.email, req_ws)
             set_workspace_scope(ws_id)
             request.state.workspace_id = ws_id
+            # Expose the caller's membership role in the active workspace (for /me
+            # and the UI). Workspace-scoped admin actions (invites, limits, members)
+            # enforce this via _require_ws_admin; global RBAC (app_roles) still
+            # governs app-level admin (user management, cross-workspace).
+            request.state.ws_role = workspaces.member_role(conn, ws_id, user.id)
         finally:
             conn.close()
     return await call_next(request)
@@ -1886,9 +1891,11 @@ def admin_set_role(user_id: str, role: str, current: CurrentUser = Depends(requi
 
 
 @app.get("/me")
-def whoami(user: CurrentUser = Depends(get_current_user)) -> dict:
-    """The current user's identity + role, for the frontend header/badge."""
-    return {"id": user.id, "email": user.email, "role": user.role}
+def whoami(request: Request, user: CurrentUser = Depends(get_current_user)) -> dict:
+    """The current user's identity, global role, and (if in a workspace) their
+    per-workspace role."""
+    return {"id": user.id, "email": user.email, "role": user.role,
+            "workspace_role": getattr(request.state, "ws_role", None)}
 
 
 # ---------- Workspaces (v4.0 multi-tenancy) ----------
