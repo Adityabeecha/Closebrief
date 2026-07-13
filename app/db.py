@@ -260,6 +260,17 @@ CREATE TABLE IF NOT EXISTS connectors (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- v5.0 collaborative review: narrative version history (diffs computed on read).
+CREATE TABLE IF NOT EXISTS report_versions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    report_id INTEGER NOT NULL,
+    version INTEGER NOT NULL,
+    narrative TEXT,
+    editor_id TEXT,
+    editor_email TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- v4.0 immutable audit trail (append-only, hash-chained per workspace).
 CREATE TABLE IF NOT EXISTS audit_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -333,6 +344,10 @@ _SQLITE_MIGRATIONS = [
     "ALTER TABLE workspaces ADD COLUMN plan TEXT NOT NULL DEFAULT 'free'",
     "ALTER TABLE workspaces ADD COLUMN monthly_budget_usd REAL",
     "ALTER TABLE workspaces ADD COLUMN retention_days INTEGER",
+    # v5.0 collaborative review workflow on reports
+    "ALTER TABLE generated_reports ADD COLUMN review_status TEXT",
+    "ALTER TABLE generated_reports ADD COLUMN assigned_to TEXT",
+    "ALTER TABLE generated_reports ADD COLUMN assigned_email TEXT",
 ]
 
 PG_SCHEMA_PATH = Path(__file__).parent / "migrations" / "pg_schema.sql"
