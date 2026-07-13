@@ -27,6 +27,7 @@ from app.compute.correlations import (
     correlations_for_metric,
     detect_consecutive_trends,
 )
+from app.compute.cross_domain import cross_domain_correlations
 from app.compute.forecast import backtest_mape, forecast, next_periods
 from app.compute.formula import FormulaError
 from app.compute.funnel import compute_funnel
@@ -664,6 +665,20 @@ def get_forecast(metric: str, horizon: int = 3, _: CurrentUser = Depends(require
         "projections": [{"period": p, "value": v} for p, v in zip(periods, proj)],
         "mape": backtest_mape(values),
     }
+
+
+@app.get("/insights/cross-domain")
+def cross_domain_endpoint(_: CurrentUser = Depends(require_read)) -> list[dict]:
+    """Strong correlations between metrics in different datasets of the workspace
+    (e.g. Marketing spend → FP&A revenue), with the best lead/lag. Deterministic."""
+    conn = get_connection()
+    try:
+        ds_ids = [d["id"] for d in list_datasets(conn)]
+        if len(ds_ids) < 2:
+            return []
+        return cross_domain_correlations(conn, ds_ids)
+    finally:
+        conn.close()
 
 
 @app.post("/scenario")
