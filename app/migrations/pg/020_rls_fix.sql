@@ -1,17 +1,6 @@
--- v4.0 tenancy backstop: Row-Level Security on the two data roots, so a workspace
--- can never read/write another's rows even if an app query forgets its scope
--- (defense in depth over app-level scoping).
---
--- FAIL-OPEN by design: when the app.workspace_id GUC is unset (migrations,
--- background jobs, or rls_enabled=false) the policy allows all rows, so enabling
--- RLS here changes nothing until the app starts setting the GUC (rls_enabled=true).
--- When the GUC is a workspace id, only that workspace's rows are visible/writable.
-
-ALTER TABLE datasets          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE datasets          FORCE  ROW LEVEL SECURITY;
-ALTER TABLE context_documents ENABLE ROW LEVEL SECURITY;
-ALTER TABLE context_documents FORCE  ROW LEVEL SECURITY;
-
+-- Harden the RLS policies from 017: cast via nullif so an empty GUC ('') never
+-- reaches ''::int (Postgres may evaluate both OR branches, which would error).
+-- nullif('', '') -> NULL, and NULL::int -> NULL (safe). Fail-open preserved.
 DROP POLICY IF EXISTS ws_isolation ON datasets;
 CREATE POLICY ws_isolation ON datasets
     USING (
