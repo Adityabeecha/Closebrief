@@ -18,13 +18,17 @@ def _cutoff(days: int) -> str:
 def purge_workspace(conn, workspace_id: int, retention_days: int) -> dict:
     """Delete telemetry older than the window for one workspace. Returns counts."""
     cutoff = _cutoff(retention_days)
-    cur = conn.execute(
+    # Count before delete — the Postgres cursor wrapper does not expose rowcount.
+    removed = conn.execute(
+        "SELECT COUNT(*) AS n FROM llm_calls WHERE workspace_id = ? AND created_at < ?",
+        (workspace_id, cutoff),
+    ).fetchone()["n"]
+    conn.execute(
         "DELETE FROM llm_calls WHERE workspace_id = ? AND created_at < ?",
         (workspace_id, cutoff),
     )
-    removed = cur.rowcount if cur.rowcount is not None and cur.rowcount >= 0 else 0
     conn.commit()
-    return {"workspace_id": workspace_id, "llm_calls_purged": removed}
+    return {"workspace_id": workspace_id, "llm_calls_purged": int(removed)}
 
 
 def run_retention(conn) -> dict:

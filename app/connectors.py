@@ -112,10 +112,11 @@ def all_enabled(conn) -> list[tuple[int, int | None]]:
 def sync_connector(conn, connector_id: int, workspace_id: int | None, *, fetch=fetch_bytes) -> dict:
     """Fetch the source, ingest into the connector's dataset, recompute. `fetch`
     is injectable so tests run without network. Idempotent per period."""
-    from app.compute.kpis import compute_and_store
+    from app.compute.derived import refresh as _recompute_with_derived
     from app.datasets import (
         active_dataset_id,
         create_dataset,
+        current_workspace,
         set_active,
         set_workspace_scope,
     )
@@ -134,7 +135,8 @@ def sync_connector(conn, connector_id: int, workspace_id: int | None, *, fetch=f
         )
         conn.commit()
 
-    try:
+    prior_scope = current_workspace()   # restore afterwards so a scheduled tick
+    try:                                # doesn't leak this connector's workspace
         raw = fetch(build_url(kind, cfg))
         if len(raw) > _MAX_SYNC_BYTES:
             raise ValueError(f"source exceeds the {_MAX_SYNC_BYTES // (1024 * 1024)}MB limit")
@@ -148,7 +150,7 @@ def sync_connector(conn, connector_id: int, workspace_id: int | None, *, fetch=f
         ds_id = ds["id"] if ds else create_dataset(
             conn, ds_name, activate=False, workspace_id=row["workspace_id"])
         ingest_dataframe(conn, df, ds_id)
-        compute_and_store(conn, ds_id)
+        _recompute_with_derived(conn, ds_id)
         if active_dataset_id(conn) is None:
             set_active(conn, ds_id)
         _finish("ok", None)
@@ -156,3 +158,5 @@ def sync_connector(conn, connector_id: int, workspace_id: int | None, *, fetch=f
     except Exception as e:  # noqa: BLE001 - report per-connector, never crash the tick
         _finish("error", str(e)[:300])
         return {"status": "error", "error": str(e)}
+    finally:
+        set_workspace_scope(prior_scope)

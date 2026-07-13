@@ -93,6 +93,37 @@ def test_derived_kpi_end_to_end_and_faithful(client):
     assert passed is True
 
 
+def test_derived_unit_propagated_to_metrics_row(client):
+    # Regression: the derived metric's unit must reach the metrics table, else
+    # generation loads unit='USD' and a %-KPI narrative fails the faithfulness guard.
+    _ingest(client, "period,metric,value,budget\n2025-03,Net Revenue,100,90\n2025-03,COGS,40,42\n")
+    client.post("/kpis/derived", json={
+        "name": "GM %", "unit": "%", "formula": "([Net Revenue]-[COGS])/[Net Revenue]*100"})
+    import app.main as main
+    conn = main.get_connection()
+    unit = conn.execute("SELECT unit FROM metrics WHERE name='GM %'").fetchone()["unit"]
+    conn.close()
+    assert unit == "%"
+
+
+def test_derived_refreshes_on_recompute(client):
+    # Regression: new base data + /compute must re-materialize the derived metric.
+    _ingest(client, "period,metric,value,budget\n2025-02,Rev,90,90\n2025-02,COGS,40,40\n")
+    client.post("/kpis/derived", json={"name": "GM", "formula": "[Rev]-[COGS]"})
+    import app.main as main
+    conn = main.get_connection()
+    ds = conn.execute("SELECT id FROM datasets ORDER BY id DESC LIMIT 1").fetchone()["id"]
+    for m, v in (("Rev", 100), ("COGS", 45)):
+        mid = conn.execute("SELECT id FROM metrics WHERE dataset_id=? AND name=?", (ds, m)).fetchone()["id"]
+        conn.execute("INSERT INTO metric_values (metric_id, period, value) VALUES (?, '2025-03', ?)", (mid, v))
+    conn.commit()
+    conn.close()
+    client.post("/compute")
+    facts = client.get("/facts", params={"period": "2025-03"}).json()
+    gm = next(f for f in facts if f["metric"] == "GM")
+    assert gm["value"] == 55.0   # 100 - 45, freshly materialized for the new period
+
+
 def test_derived_bad_formula_422(client):
     _ingest(client, "period,metric,value,budget\n2025-03,Rev,100,90\n")
     assert client.post("/kpis/derived", json={

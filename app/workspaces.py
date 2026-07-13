@@ -67,12 +67,21 @@ def ensure_user_workspace(conn, user_id: str, email: str | None) -> int:
 
 
 def resolve_workspace(conn, user_id: str, email: str | None,
-                      requested: int | None) -> int:
-    """The active workspace for a request: the requested one if the user is a
-    member, else their first workspace (provisioning one if they have none)."""
-    if requested is not None and is_member(conn, requested, user_id):
-        return requested
-    return ensure_user_workspace(conn, user_id, email)
+                      requested: int | None) -> tuple[int, str]:
+    """The active workspace + the caller's role in it for a request: the requested
+    one if the user is a member, else their first workspace (provisioning one if
+    they have none). Returns (workspace_id, role) from a single membership read so
+    the middleware doesn't need a second query for the role."""
+    mine = list_user_workspaces(conn, user_id)   # [{id, name, role}]
+    if requested is not None:
+        for w in mine:
+            if w["id"] == requested:
+                return requested, w["role"]
+    if mine:
+        return mine[0]["id"], mine[0]["role"]
+    name = f"{(email or 'My').split('@')[0]}'s workspace"
+    ws = create_workspace(conn, name, user_id, email)   # creator is admin
+    return ws, "admin"
 
 
 def list_members(conn, ws_id: int) -> list[dict]:
