@@ -3,6 +3,7 @@
 import time
 
 import pytest
+from dbharness import use_test_db
 
 from app.compute.scenario import run_scenario
 
@@ -33,7 +34,7 @@ def client(tmp_path, monkeypatch):
     import app.main as main
     from app.config import settings
 
-    monkeypatch.setattr(settings, "database_url", "")
+    use_test_db(monkeypatch)
     monkeypatch.setattr(settings, "redis_url", "")
     monkeypatch.setattr(settings, "db_path", str(tmp_path / "test.db"))
     monkeypatch.setattr(settings, "vector_backend", "faiss")

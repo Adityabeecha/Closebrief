@@ -6,6 +6,14 @@ import time
 
 import jwt
 import pytest
+from dbharness import use_test_db
+
+# This file's premise is string-identified users (JWT `sub` -> user_id). Postgres
+# types the attribution columns (user_id, app_roles.user_id, …) as UUID and
+# returns UUID objects, so these short string ids and the assertions on them are
+# inherently SQLite-only. The data/dialect layer is covered on Postgres by the
+# rest of the suite (see tests/dbharness.py); RBAC logic here is DB-agnostic.
+pytestmark = pytest.mark.sqlite_only
 
 SECRET = "test-jwt-secret-at-least-32-bytes-long-xyz"
 
@@ -29,7 +37,7 @@ def make_client(tmp_path, monkeypatch):
     from app.config import settings
 
     def _build(auth_on: bool, seed_roles: dict | None = None):
-        monkeypatch.setattr(settings, "database_url", "")
+        use_test_db(monkeypatch)
         monkeypatch.setattr(settings, "redis_url", "")
         monkeypatch.setattr(settings, "db_path", str(tmp_path / f"auth_{auth_on}_{time.time_ns()}.db"))
         monkeypatch.setattr(settings, "vector_backend", "faiss")

@@ -31,10 +31,16 @@ class CurrentUser(BaseModel):
     role: str  # viewer | analyst | executive | admin
 
 
-ANONYMOUS_ADMIN = CurrentUser(id="local-dev", email="local@dev", role="admin")
+# Fixed sentinel UUIDs (not "local-dev"/"demo"): the Postgres schema types the
+# attribution columns (user_id, uploaded_by, …) as UUID, so a non-UUID id would
+# fail to insert on an auth-off / demo deployment backed by Postgres. Real users
+# always carry Supabase UUIDs; these are the zero-config bypass identities.
+ANONYMOUS_ADMIN = CurrentUser(id="00000000-0000-0000-0000-000000000000",
+                              email="local@dev", role="admin")
 # Demo sessions: a real, recognized identity with the most-restricted role, so
 # every write is rejected by the normal role guards (403), not the auth gate.
-DEMO_USER = CurrentUser(id="demo", email="demo@closebrief.app", role="viewer")
+DEMO_USER = CurrentUser(id="00000000-0000-0000-0000-0000000000de",
+                        email="demo@closebrief.app", role="viewer")
 
 # ---- JWKS cache (asymmetric keys), refreshed hourly ----
 _jwks_client: Optional["jwt.PyJWKClient"] = None

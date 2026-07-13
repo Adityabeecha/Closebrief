@@ -34,7 +34,14 @@ local = [
 ]
 
 [tool.pytest.ini_options]
-pythonpath = ["."]
+# "." for the app package; "tests" so shared helpers (dbharness) import cleanly.
+pythonpath = [".", "tests"]
+markers = [
+    # Tests coupled to SQLite's typeless columns (they assert on short string
+    # user ids that Postgres's UUID attribution columns reject). The Postgres CI
+    # job runs `-m 'not sqlite_only'`; they still run in the default SQLite job.
+    "sqlite_only: run only under SQLite, not the Postgres CI job",
+]
 
 [tool.ruff]
 target-version = "py311"
