@@ -443,6 +443,14 @@ def ui_root() -> FileResponse:
 _UI_VENDOR = _UI_INDEX.parent / "vendor"
 
 
+@app.get("/app.js", include_in_schema=False)
+def ui_appjs() -> FileResponse:
+    # The app's own script, split out of index.html. no-cache like the shell so
+    # UI fixes are picked up immediately (they ship together).
+    return FileResponse(_UI_INDEX.parent / "app.js", media_type="application/javascript",
+                        headers={"Cache-Control": "no-cache"})
+
+
 @app.get("/vendor/{filename:path}", include_in_schema=False)
 def ui_vendor(filename: str) -> FileResponse:
     path = (_UI_VENDOR / filename).resolve()
