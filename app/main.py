@@ -3,7 +3,6 @@ import json
 import logging
 import time
 from collections import defaultdict, deque
-from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -12,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 from app import audit, billing, connectors, review, scheduling, workspaces
-from app.auth import CurrentUser, authenticate, get_current_user, invalidate_role_cache, require_role
+from app.auth import CurrentUser, authenticate, get_current_user
 from app.board_pack import build_board_pack_html
 from app.cache import make_insight_key
 from app.compute import derived as derived_metrics
@@ -31,14 +30,10 @@ from app.compute.correlations import (
     correlations_for_metric,
     detect_consecutive_trends,
 )
-from app.compute.cross_domain import cross_domain_correlations
-from app.compute.forecast import backtest_mape, forecast, next_periods
 from app.compute.formula import FormulaError
 from app.compute.funnel import compute_funnel
 from app.compute.kpis import compute_and_store
 from app.compute.pvm import bridge_for_metric_row
-from app.compute.root_cause import decompose as root_cause_decompose
-from app.compute.scenario import run_scenario
 from app.config import auth_active, resolved_vector_backend, settings
 from app.context.conflicts import find_conflicts
 from app.context.store import ContextStore
@@ -62,13 +57,9 @@ from app.domains import get_domain, list_domains, registry
 from app.generation.generate import GenerationFailedFactsOnly, generate_insight
 from app.generation.llm_client import LLMGenerationError, get_llm_client
 from app.generation.prompts import (
-    FORECAST_SYSTEM_PROMPT,
     FUNNEL_SYSTEM_PROMPT,
     PROMPT_VERSION,
-    ROOT_CAUSE_SYSTEM_PROMPT,
-    build_forecast_prompt,
     build_funnel_prompt,
-    build_root_cause_prompt,
 )
 from app.generation.qa import answer_question
 from app.grounding import attribute
@@ -79,9 +70,7 @@ from app.ingestion.templates import get_template as load_template
 from app.ingestion.templates import save_template as save_mapping_template
 from app.ingestion.upload import MAX_UPLOAD_BYTES, UploadError, create_upload, load_upload_frame
 from app.kpis.library import KPI_LIBRARY, suggest_kpi
-from app.notifications.channels import NotificationError, make_channel
 from app.notifications.scheduler import deliver as notif_deliver
-from app.notifications.scheduler import list_configs as notif_list_configs
 from app.retrieval.retrieve import retrieve
 from app.scheduling import record_digest_run
 from app.schemas import (
@@ -169,15 +158,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Role-guard dependencies (v1.2). read = any authenticated role; write excludes
-# executives (read-only); admin only for user management.
-require_read = require_role("viewer", "analyst", "executive", "admin")
-require_write = require_role("analyst", "admin")   # viewer excluded -> demo writes 403
-require_admin = require_role("admin")
-# Signed-in members only (excludes the anonymous demo "viewer"). Used to gate
-# paid LLM calls and feedback writes so a read-only demo session can neither
-# spend the LLM budget nor mutate real reports.
-require_member = require_role("analyst", "executive", "admin")
+# Role-guard dependencies live in app.api so routers share one definition.
+from app.api import require_admin, require_member, require_read, require_write  # noqa: E402
+from app.services import bg_executor as _bg_executor  # noqa: E402
+from app.services import enforce_budget as _enforce_budget  # noqa: E402
+from app.services import log_llm_call as _log_llm_call  # noqa: E402
 
 # Paths reachable without a token: the app shell, health, the public auth config
 # the frontend needs to boot the login form, and the API docs.
@@ -185,10 +170,6 @@ _OPEN_PATHS = {"/", "/health", "/auth/config", "/openapi.json", "/docs", "/redoc
 
 
 
-
-# Bounded pool for best-effort background work (notification fan-out, review
-# nudges) so a burst of events can't spawn unbounded daemon threads.
-_bg_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="cb-bg")
 
 # ---- request telemetry: latency ring buffer + naive per-IP rate limit ----
 # NOTE: these + the auth role cache (app/auth.py) are per-process, in-memory.
@@ -332,39 +313,6 @@ def _notify_async(event: str, period: str | None = None, items: list[dict] | Non
     _bg_executor.submit(_run)
 
 
-def _email_review_nudge_async(to_email: str | None, metric: str, period: str,
-                              assigned_by: str | None) -> None:
-    """Email a reviewer that a narrative was assigned to them, on the background
-    pool (best-effort; delivery must never block or fail the assign request)."""
-    if not to_email:
-        return
-
-    def _run():
-        try:
-            import urllib.parse
-
-            from app.notifications.channels import EmailChannel
-            who = assigned_by or "A teammate"
-            subject = f"[Closebrief] Review requested: {metric} ({period})"
-            base = (settings.app_base_url or "").rstrip("/")
-            link = ""
-            if base:
-                url = f"{base}/#metric={urllib.parse.quote(metric)}&period={urllib.parse.quote(period)}"
-                link = (f"<p><a href='{url}' style='display:inline-block;background:#1e6e50;color:#fff;"
-                        f"padding:9px 16px;border-radius:8px;text-decoration:none;font-weight:600'>"
-                        f"Review in Closebrief</a></p>")
-            html = (
-                f"<p>{who} assigned you a narrative to review in Closebrief.</p>"
-                f"<p style='font-size:16px'><b>{metric}</b> — {period}</p>"
-                f"{link or '<p>Open Closebrief to approve it or request changes.</p>'}"
-            )
-            EmailChannel({"recipients": [to_email]})._send(subject, html)
-        except Exception:  # noqa: BLE001 - best-effort by design
-            pass
-
-    _bg_executor.submit(_run)
-
-
 def _notify_anomalies(conn, dataset_id: int) -> None:
     """After a compute pass: alert channels about anomalies in the dataset's
     latest period (if any). Stamps detection time so alert latency is tracked."""
@@ -388,44 +336,6 @@ def _notify_anomalies(conn, dataset_id: int) -> None:
         "delta": f"{r['mom_pct']:+.1f}% MoM" if r["mom_pct"] is not None else "",
     } for r in rows]
     _notify_async("anomaly_detected", items=items, detected_at=detected_at)
-
-
-def _log_llm_call(endpoint: str, model, prompt_tokens, completion_tokens, cost_usd, latency_ms, user_id=None):
-    try:
-        conn = get_connection()
-        try:
-            conn.execute(
-                """INSERT INTO llm_calls (endpoint, model, prompt_tokens,
-                       completion_tokens, cost_usd, latency_ms, user_id, workspace_id)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                (endpoint, model, prompt_tokens, completion_tokens, cost_usd, latency_ms,
-                 user_id, current_workspace()),
-            )
-            conn.commit()
-        finally:
-            conn.close()
-    except Exception:
-        pass  # cost logging must never fail a request
-
-
-def _enforce_budget() -> None:
-    """Pre-flight spend limit: block LLM work when the active workspace is over its
-    monthly budget. No-op outside a workspace scope (local-dev/tests/demo)."""
-    ws = current_workspace()
-    if ws is None:
-        return
-    conn = get_connection()
-    try:
-        if billing.is_over_budget(conn, ws):
-            u = billing.usage(conn, ws)
-            raise HTTPException(
-                status_code=402,
-                detail=(f"Workspace monthly LLM budget reached "
-                        f"(${u['month_to_date_usd']:.2f} of ${u['monthly_budget_usd']:.2f}). "
-                        f"Raise the limit in workspace settings to continue."),
-            )
-    finally:
-        conn.close()
 
 
 _UI_INDEX = Path(__file__).resolve().parent.parent / "ui" / "web" / "index.html"
@@ -691,277 +601,6 @@ def funnel_narrative(payload: dict, user: CurrentUser = Depends(require_member))
         usage.prompt_tokens, usage.completion_tokens, usage.cost_usd, None, user.id,
     )
     return {"funnel": funnel, "narrative": result.narrative}
-
-
-def _metric_history(conn, ds: int, metric: str) -> list[dict]:
-    rows = conn.execute(
-        """SELECT cf.period, cf.value FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
-           WHERE m.dataset_id = ? AND m.name = ? AND cf.value IS NOT NULL ORDER BY cf.period""",
-        (ds, metric),
-    ).fetchall()
-    return [{"period": r["period"], "value": r["value"]} for r in rows]
-
-
-def _forecast_inputs(metric: str, horizon: int) -> dict:
-    """Shared by /forecast and /forecast/narrative: load history for the active
-    dataset's metric and build the deterministic projection + backtest MAPE."""
-    conn = get_connection()
-    try:
-        ds = active_dataset_id(conn)
-        if ds is None:
-            raise HTTPException(status_code=400, detail="No active dataset")
-        hist = _metric_history(conn, ds, metric)
-        if len(hist) < 2:
-            raise HTTPException(status_code=400, detail="Not enough history to forecast")
-        unit = (conn.execute("SELECT unit FROM metrics WHERE dataset_id = ? AND name = ?",
-                             (ds, metric)).fetchone() or {"unit": "USD"})["unit"]
-    finally:
-        conn.close()
-    values = [h["value"] for h in hist]
-    proj = forecast(values, horizon)
-    periods = next_periods(hist[-1]["period"], horizon)
-    return {
-        "metric": metric, "unit": unit, "history": hist,
-        "projections": [{"period": p, "value": v} for p, v in zip(periods, proj)],
-        "mape": backtest_mape(values),
-        # Sample size behind the backtest — a 0% MAPE on a handful of points is
-        # not real accuracy, so the UI caveats the error when this is small.
-        "n_history": len(values),
-    }
-
-
-@app.get("/forecast")
-def get_forecast(metric: str, horizon: int = 3, _: CurrentUser = Depends(require_read)) -> dict:
-    """Deterministic forward projection for a metric (v5.0). Holt-Winters/linear,
-    with a backtest MAPE. The LLM is not involved."""
-    metric = (metric or "").strip()
-    if not metric:
-        raise HTTPException(status_code=422, detail="metric is required")
-    fc = _forecast_inputs(metric, max(1, min(12, horizon)))
-    return {"metric": fc["metric"], "unit": fc["unit"], "history": fc["history"][-6:],
-            "projections": fc["projections"], "mape": fc["mape"], "n_history": fc["n_history"]}
-
-
-@app.get("/insights/cross-domain")
-def cross_domain_endpoint(_: CurrentUser = Depends(require_read)) -> list[dict]:
-    """Strong correlations between metrics in different datasets of the workspace
-    (e.g. Marketing spend → FP&A revenue), with the best lead/lag. Deterministic."""
-    conn = get_connection()
-    try:
-        ds_ids = [d["id"] for d in list_datasets(conn)]
-        if len(ds_ids) < 2:
-            return []
-        return cross_domain_correlations(conn, ds_ids)
-    finally:
-        conn.close()
-
-
-@app.post("/scenario")
-def run_scenario_endpoint(payload: dict, _: CurrentUser = Depends(require_read)) -> dict:
-    """What-if on a metric: apply price/volume/mix levers, get the projected value
-    and impact instantly (deterministic, no LLM)."""
-    metric = (payload.get("metric") or "").strip()
-    if not metric:
-        raise HTTPException(status_code=422, detail="metric is required")
-    conn = get_connection()
-    try:
-        ds = active_dataset_id(conn)
-        if ds is None:
-            raise HTTPException(status_code=400, detail="No active dataset")
-        period = (payload.get("period") or "").strip()
-        row = conn.execute(
-            """SELECT cf.value, cf.budget_var_abs FROM computed_facts cf
-               JOIN metrics m ON m.id = cf.metric_id
-               WHERE m.dataset_id = ? AND m.name = ?
-               """ + ("AND cf.period = ? " if period else "")
-            + "ORDER BY cf.period DESC LIMIT 1",
-            ((ds, metric, period) if period else (ds, metric)),
-        ).fetchone()
-        if row is None or row["value"] is None:
-            raise HTTPException(status_code=404, detail=f"No data for metric '{metric}'")
-        base = float(row["value"])
-        budget = (base - float(row["budget_var_abs"])) if row["budget_var_abs"] is not None else None
-    finally:
-        conn.close()
-
-    def _num(k):
-        try:
-            return float(payload.get(k, 0) or 0)
-        except (TypeError, ValueError):
-            return 0.0
-
-    return run_scenario(base, budget, price_pct=_num("price_pct"),
-                        volume_pct=_num("volume_pct"), mix_pct=_num("mix_pct"))
-
-
-@app.post("/forecast/narrative")
-def forecast_narrative(payload: dict, user: CurrentUser = Depends(require_member)) -> dict:
-    """Forward-looking commentary phrased by the LLM around the deterministic
-    forecast numbers."""
-    _enforce_budget()
-    metric = (payload.get("metric") or "").strip()
-    if not metric:
-        raise HTTPException(status_code=422, detail="metric is required")
-    horizon = max(1, min(12, int(payload.get("horizon", 3))))
-    fc = _forecast_inputs(metric, horizon)
-    try:
-        result, usage = get_llm_client().generate_narrative(
-            FORECAST_SYSTEM_PROMPT,
-            build_forecast_prompt(metric, fc["unit"], fc["history"], fc["projections"], fc["mape"]))
-    except LLMGenerationError as exc:
-        raise HTTPException(status_code=503, detail=f"Forecast narrative unavailable: {exc}") from exc
-    _log_llm_call("/forecast/narrative",
-                  settings.openai_model if settings.llm_provider == "openai" else settings.anthropic_model,
-                  usage.prompt_tokens, usage.completion_tokens, usage.cost_usd, None, user.id)
-    return {"metric": metric, "projections": fc["projections"], "mape": fc["mape"],
-            "narrative": result.narrative}
-
-
-@app.get("/insights/root-cause")
-def root_cause(metric: str, period: str, _: CurrentUser = Depends(require_read)) -> dict:
-    """Deterministic root-cause decomposition of a metric's move in a period:
-    z-score vs its own baseline, price/volume/mix attribution, correlated movers,
-    and trend streak. No LLM — every number is computed."""
-    metric = (metric or "").strip()
-    period = (period or "").strip()
-    if not metric or not period:
-        raise HTTPException(status_code=422, detail="metric and period are required")
-    conn = get_connection()
-    try:
-        ds = active_dataset_id(conn)
-        if ds is None:
-            raise HTTPException(status_code=400, detail="No active dataset")
-        rc = root_cause_decompose(conn, ds, metric, period)
-    finally:
-        conn.close()
-    if rc is None:
-        raise HTTPException(status_code=404, detail=f"No data for '{metric}' in {period}")
-    return rc
-
-
-@app.post("/insights/root-cause/narrative")
-def root_cause_narrative(payload: dict, user: CurrentUser = Depends(require_member)) -> dict:
-    """Grounded 'why did it move' commentary phrased by the LLM around the
-    deterministic root-cause decomposition."""
-    _enforce_budget()
-    metric = (payload.get("metric") or "").strip()
-    period = (payload.get("period") or "").strip()
-    if not metric or not period:
-        raise HTTPException(status_code=422, detail="metric and period are required")
-    conn = get_connection()
-    try:
-        ds = active_dataset_id(conn)
-        if ds is None:
-            raise HTTPException(status_code=400, detail="No active dataset")
-        rc = root_cause_decompose(conn, ds, metric, period)
-    finally:
-        conn.close()
-    if rc is None:
-        raise HTTPException(status_code=404, detail=f"No data for '{metric}' in {period}")
-    try:
-        result, usage = get_llm_client().generate_narrative(
-            ROOT_CAUSE_SYSTEM_PROMPT, build_root_cause_prompt(rc))
-    except LLMGenerationError as exc:
-        raise HTTPException(status_code=503, detail=f"Root-cause narrative unavailable: {exc}") from exc
-    _log_llm_call("/insights/root-cause/narrative",
-                  settings.openai_model if settings.llm_provider == "openai" else settings.anthropic_model,
-                  usage.prompt_tokens, usage.completion_tokens, usage.cost_usd, None, user.id)
-    return {**rc, "narrative": result.narrative}
-
-
-@app.get("/notifications/configs")
-def list_notification_configs(_: CurrentUser = Depends(require_admin)) -> list[dict]:
-    conn = get_connection()
-    try:
-        return notif_list_configs(conn)
-    finally:
-        conn.close()
-
-
-@app.post("/notifications/configs", status_code=201)
-def create_notification_config(payload: dict, _: CurrentUser = Depends(require_admin)) -> dict:
-    channel = payload.get("channel")
-    if channel not in ("email", "slack", "webhook"):
-        raise HTTPException(status_code=422, detail="channel must be email|slack|webhook")
-    config = payload.get("config") or {}
-    # Use a Python bool: psycopg maps it to Postgres BOOLEAN, sqlite3 to 0/1.
-    enabled = bool(payload.get("enabled", True))
-    conn = get_connection()
-    try:
-        cur = conn.execute(
-            "INSERT INTO notification_configs (channel, config, enabled) VALUES (?, ?, ?)",
-            (channel, json.dumps(config), enabled),
-        )
-        conn.commit()
-        new_id = cur.lastrowid if hasattr(cur, "lastrowid") and cur.lastrowid else conn.execute(
-            "SELECT MAX(id) AS id FROM notification_configs"
-        ).fetchone()["id"]
-        return {"id": new_id, "channel": channel, "config": config, "enabled": bool(enabled)}
-    finally:
-        conn.close()
-
-
-@app.put("/notifications/{config_id}")
-def update_notification_config(config_id: int, payload: dict, _: CurrentUser = Depends(require_admin)) -> dict:
-    conn = get_connection()
-    try:
-        row = conn.execute(
-            "SELECT id FROM notification_configs WHERE id = ?", (config_id,)
-        ).fetchone()
-        if row is None:
-            raise HTTPException(status_code=404, detail="config not found")
-        config = payload.get("config")
-        enabled = payload.get("enabled")
-        if config is not None:
-            conn.execute(
-                "UPDATE notification_configs SET config = ? WHERE id = ?",
-                (json.dumps(config), config_id),
-            )
-        if enabled is not None:
-            conn.execute(
-                "UPDATE notification_configs SET enabled = ? WHERE id = ?",
-                (bool(enabled), config_id),
-            )
-        conn.commit()
-        return {"id": config_id, "updated": True}
-    finally:
-        conn.close()
-
-
-@app.delete("/notifications/{config_id}", status_code=204)
-def delete_notification_config(config_id: int, _: CurrentUser = Depends(require_admin)) -> None:
-    conn = get_connection()
-    try:
-        conn.execute("DELETE FROM notification_configs WHERE id = ?", (config_id,))
-        conn.commit()
-    finally:
-        conn.close()
-
-
-@app.post("/notifications/test/{config_id}")
-def test_notification_config(config_id: int, _: CurrentUser = Depends(require_admin)) -> dict:
-    """Send a sample anomaly alert through one config to verify delivery."""
-    conn = get_connection()
-    try:
-        row = conn.execute(
-            "SELECT channel, config FROM notification_configs WHERE id = ?", (config_id,)
-        ).fetchone()
-        if row is None:
-            raise HTTPException(status_code=404, detail="config not found")
-        sample = [{
-            "metric": "Net Revenue", "period": "2025-03",
-            "value": "$5.33M", "delta": "+27.6% vs plan",
-            "narrative": "This is a Closebrief test notification.",
-        }]
-        try:
-            make_channel(row["channel"], json.loads(row["config"] or "{}")).send_anomaly_alert(sample)
-        except NotificationError as e:
-            raise HTTPException(status_code=400, detail=str(e)) from e
-        except Exception as e:  # noqa: BLE001 - surface delivery failures to the caller
-            raise HTTPException(status_code=502, detail=f"Delivery failed: {e}") from e
-        return {"ok": True}
-    finally:
-        conn.close()
 
 
 @app.get("/context/conflicts")
@@ -2165,162 +1804,6 @@ def feedback_endpoint(fb: FeedbackIn, user: CurrentUser = Depends(require_member
 # ---------- Collaborative review (v5.0) ----------
 
 
-def _scoped_report(conn, report_id: int):
-    return conn.execute(
-        f"""SELECT gr.id FROM generated_reports gr
-            JOIN metrics m ON m.id = gr.metric_id JOIN datasets d ON d.id = m.dataset_id
-            WHERE gr.id = ? AND {_scope_pred('d')}""",
-        (report_id,),
-    ).fetchone()
-
-
-@app.post("/reports/{report_id}/assign")
-def assign_report(report_id: int, payload: dict, user: CurrentUser = Depends(require_member)) -> dict:
-    """Assign a narrative to a reviewer (status → pending) and email them a nudge."""
-    email = (payload.get("email") or "").strip() or None
-    conn = get_connection()
-    try:
-        if _scoped_report(conn, report_id) is None:
-            raise HTTPException(status_code=404, detail="Report not found")
-        review.assign(conn, report_id, payload.get("user_id"), email)
-        row = conn.execute(
-            """SELECT m.name AS metric, gr.period FROM generated_reports gr
-               JOIN metrics m ON m.id = gr.metric_id WHERE gr.id = ?""",
-            (report_id,),
-        ).fetchone()
-        audit.record(conn, "assign", "report", report_id, actor_id=user.id, actor_email=user.email,
-                     summary={"assigned_email": email})
-    finally:
-        conn.close()
-    if email and row:
-        _email_review_nudge_async(email, row["metric"], row["period"], user.email)
-    return {"report_id": report_id, "review_status": "pending", "assigned_email": email}
-
-
-@app.post("/reports/{report_id}/review")
-def review_report(report_id: int, payload: dict, user: CurrentUser = Depends(require_member)) -> dict:
-    """Record a review decision (approved | changes_requested)."""
-    status = (payload.get("status") or "").strip()
-    if status not in review.REVIEW_STATUSES:
-        raise HTTPException(status_code=422, detail=f"status must be one of {review.REVIEW_STATUSES}")
-    conn = get_connection()
-    try:
-        if _scoped_report(conn, report_id) is None:
-            raise HTTPException(status_code=404, detail="Report not found")
-        review.set_status(conn, report_id, status)
-        audit.record(conn, status, "report", report_id, actor_id=user.id, actor_email=user.email,
-                     summary={"note": payload.get("note")})
-        return {"report_id": report_id, "review_status": status}
-    finally:
-        conn.close()
-
-
-@app.get("/reports/review-queue")
-def review_queue(all_datasets: bool = False,
-                 user: CurrentUser = Depends(require_read)) -> list[dict]:
-    """Narratives assigned to the current user and still pending review. Defaults
-    to the active dataset (so opening one lands on its card); all_datasets=true
-    spans the workspace, and each item carries its dataset so the UI can switch to
-    it on open. Drives the review inbox and its unread badge."""
-    conn = get_connection()
-    try:
-        base = (
-            """SELECT gr.id AS report_id, m.name AS metric, gr.period,
-                      gr.review_status, gr.assigned_email, gr.narrative,
-                      d.id AS dataset_id, d.name AS dataset_name
-               FROM generated_reports gr
-               JOIN metrics m ON m.id = gr.metric_id
-               JOIN datasets d ON d.id = m.dataset_id
-               WHERE gr.review_status = 'pending'
-                 AND (gr.assigned_to = ? OR gr.assigned_email = ?) AND """
-        )
-        if all_datasets:
-            rows = conn.execute(
-                base + _scope_pred("d") + " ORDER BY gr.id DESC",
-                (user.id, user.email),
-            ).fetchall()
-        else:
-            ds = active_dataset_id(conn)
-            if ds is None:
-                return []
-            rows = conn.execute(
-                base + "d.id = ? ORDER BY gr.id DESC",
-                (user.id, user.email, ds),
-            ).fetchall()
-        return [{
-            "report_id": r["report_id"], "metric": r["metric"], "period": r["period"],
-            "review_status": r["review_status"], "assigned_email": r["assigned_email"],
-            "dataset_id": r["dataset_id"], "dataset_name": r["dataset_name"],
-            "preview": (r["narrative"] or "")[:160],
-        } for r in rows]
-    finally:
-        conn.close()
-
-
-@app.get("/reports/{report_id}/versions")
-def report_versions(report_id: int, _: CurrentUser = Depends(require_read)) -> list[dict]:
-    """Version history of a narrative with a unified diff between each version."""
-    conn = get_connection()
-    try:
-        if _scoped_report(conn, report_id) is None:
-            raise HTTPException(status_code=404, detail="Report not found")
-        return review.list_versions(conn, report_id)
-    finally:
-        conn.close()
-
-
-# ---------- Admin: user management (v1.2 Phase 2) ----------
-
-
-@app.get("/admin/users")
-def admin_list_users(_: CurrentUser = Depends(require_admin)) -> list[dict]:
-    conn = get_connection()
-    try:
-        rows = conn.execute(
-            "SELECT user_id, email, role, created_at, updated_at FROM app_roles ORDER BY created_at"
-        ).fetchall()
-        return [
-            {"user_id": str(r["user_id"]), "email": r["email"], "role": r["role"],
-             "created_at": str(r["created_at"]), "updated_at": str(r["updated_at"])}
-            for r in rows
-        ]
-    finally:
-        conn.close()
-
-
-@app.put("/admin/users/{user_id}/role")
-def admin_set_role(user_id: str, role: str, current: CurrentUser = Depends(require_admin)) -> dict:
-    # "viewer" is reserved for anonymous demo sessions — assigning it to a real
-    # account would demo-scope them (they'd see only the demo dataset).
-    assignable = ("analyst", "executive", "admin")
-    if role not in assignable:
-        raise HTTPException(status_code=422, detail=f"role must be one of {assignable}")
-    if user_id == current.id and role != "admin":
-        raise HTTPException(status_code=400, detail="You cannot demote yourself")
-    conn = get_connection()
-    try:
-        # A malformed id (e.g. not a UUID) makes Postgres raise on the cast; treat
-        # that as "not found" rather than leaking a 500.
-        try:
-            row = conn.execute(
-                "SELECT 1 FROM app_roles WHERE user_id = ?", (user_id,)
-            ).fetchone()
-        except Exception:  # noqa: BLE001 - invalid id -> 404, not 500
-            conn.rollback()
-            row = None
-        if not row:
-            raise HTTPException(status_code=404, detail=f"User {user_id} not found")
-        conn.execute(
-            "UPDATE app_roles SET role = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?",
-            (role, user_id),
-        )
-        conn.commit()
-    finally:
-        conn.close()
-    invalidate_role_cache(user_id)  # so the change takes effect immediately
-    return {"user_id": user_id, "role": role}
-
-
 @app.get("/me")
 def whoami(request: Request, user: CurrentUser = Depends(get_current_user)) -> dict:
     """The current user's identity, global role, and (if in a workspace) their
@@ -2537,3 +2020,15 @@ def set_workspace_limit(ws_id: int, payload: dict, user: CurrentUser = Depends(g
         return billing.usage(conn, ws_id)
     finally:
         conn.close()
+
+
+# ---- Feature routers split out of this module (app/routers/*) ----
+from app.routers import admin as _admin_router  # noqa: E402
+from app.routers import insights as _insights_router  # noqa: E402
+from app.routers import notifications as _notif_router  # noqa: E402
+from app.routers import review as _review_router  # noqa: E402
+
+app.include_router(_admin_router.router)
+app.include_router(_notif_router.router)
+app.include_router(_review_router.router)
+app.include_router(_insights_router.router)
