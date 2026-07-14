@@ -34,6 +34,7 @@ from app.compute.formula import FormulaError
 from app.compute.funnel import compute_funnel
 from app.compute.kpis import compute_and_store
 from app.compute.pvm import bridge_for_metric_row
+from app.compute.root_cause import decompose as root_cause_decompose
 from app.compute.scenario import run_scenario
 from app.config import auth_active, resolved_vector_backend, settings
 from app.context.conflicts import find_conflicts
@@ -61,8 +62,10 @@ from app.generation.prompts import (
     FORECAST_SYSTEM_PROMPT,
     FUNNEL_SYSTEM_PROMPT,
     PROMPT_VERSION,
+    ROOT_CAUSE_SYSTEM_PROMPT,
     build_forecast_prompt,
     build_funnel_prompt,
+    build_root_cause_prompt,
 )
 from app.generation.qa import answer_question
 from app.grounding import attribute
@@ -775,6 +778,58 @@ def forecast_narrative(payload: dict, user: CurrentUser = Depends(require_member
                   usage.prompt_tokens, usage.completion_tokens, usage.cost_usd, None, user.id)
     return {"metric": metric, "projections": fc["projections"], "mape": fc["mape"],
             "narrative": result.narrative}
+
+
+@app.get("/insights/root-cause")
+def root_cause(metric: str, period: str, _: CurrentUser = Depends(require_read)) -> dict:
+    """Deterministic root-cause decomposition of a metric's move in a period:
+    z-score vs its own baseline, price/volume/mix attribution, correlated movers,
+    and trend streak. No LLM — every number is computed."""
+    metric = (metric or "").strip()
+    period = (period or "").strip()
+    if not metric or not period:
+        raise HTTPException(status_code=422, detail="metric and period are required")
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        if ds is None:
+            raise HTTPException(status_code=400, detail="No active dataset")
+        rc = root_cause_decompose(conn, ds, metric, period)
+    finally:
+        conn.close()
+    if rc is None:
+        raise HTTPException(status_code=404, detail=f"No data for '{metric}' in {period}")
+    return rc
+
+
+@app.post("/insights/root-cause/narrative")
+def root_cause_narrative(payload: dict, user: CurrentUser = Depends(require_member)) -> dict:
+    """Grounded 'why did it move' commentary phrased by the LLM around the
+    deterministic root-cause decomposition."""
+    _enforce_budget()
+    metric = (payload.get("metric") or "").strip()
+    period = (payload.get("period") or "").strip()
+    if not metric or not period:
+        raise HTTPException(status_code=422, detail="metric and period are required")
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        if ds is None:
+            raise HTTPException(status_code=400, detail="No active dataset")
+        rc = root_cause_decompose(conn, ds, metric, period)
+    finally:
+        conn.close()
+    if rc is None:
+        raise HTTPException(status_code=404, detail=f"No data for '{metric}' in {period}")
+    try:
+        result, usage = get_llm_client().generate_narrative(
+            ROOT_CAUSE_SYSTEM_PROMPT, build_root_cause_prompt(rc))
+    except LLMGenerationError as exc:
+        raise HTTPException(status_code=503, detail=f"Root-cause narrative unavailable: {exc}") from exc
+    _log_llm_call("/insights/root-cause/narrative",
+                  settings.openai_model if settings.llm_provider == "openai" else settings.anthropic_model,
+                  usage.prompt_tokens, usage.completion_tokens, usage.cost_usd, None, user.id)
+    return {**rc, "narrative": result.narrative}
 
 
 @app.get("/notifications/configs")

@@ -151,6 +151,51 @@ def build_forecast_prompt(metric: str, unit: str, history_tail: list[dict],
     return "\n".join(lines)
 
 
+ROOT_CAUSE_SYSTEM_PROMPT = """You are an FP&A analyst explaining WHY a metric \
+moved this period, for an executive.
+
+Hard rules, no exceptions:
+1. Use ONLY the numbers in the "Decomposition" block (the variance, the \
+price/volume/mix split, correlated movers, the baseline/z-score). Never invent \
+or recompute a number.
+2. Lead with the single biggest driver. When a price/volume/mix split is given, \
+attribute the move concretely (how much came from each).
+3. If a z-score is given, say plainly how unusual this is versus the metric's own \
+recent baseline. Treat correlated movers as context, not proven causation.
+4. Write 2-4 sentences of plain, executive-ready prose. No bullet points.
+5. Return the narrative and an empty list of source ids (this explanation is computed)."""
+
+
+def build_root_cause_prompt(rc: dict) -> str:
+    lines = [f"Metric: {rc['metric']} ({rc['period']})", f"Value: {_fmt(rc.get('value'))}"]
+    if rc.get("prior_value") is not None:
+        lines.append(f"Prior period: {_fmt(rc['prior_value'])}")
+    if rc.get("mom_pct") is not None:
+        lines.append(f"Month-over-month: {rc['mom_pct']:+.1f}%")
+    if rc.get("budget_var_pct") is not None:
+        lines.append(f"Vs plan: {rc['budget_var_pct']:+.1f}% ({_fmt(rc.get('budget_var_abs'))})")
+    if rc.get("z_score") is not None:
+        lines.append(
+            f"Baseline: mean {_fmt(rc.get('baseline_mean'))}; this period is "
+            f"{rc['z_score']} std devs from it"
+            + (" (flagged as an anomaly)" if rc.get("is_anomaly") else ""))
+    lines += ["", "Decomposition (the ONLY numbers you may use):"]
+    if rc.get("pvm"):
+        lines.append("  Price/Volume/Mix split of the variance:")
+        for c in rc["pvm"]:
+            lines.append(f"    - {c['component']}: {_fmt(c['impact'])} ({c['share_pct']:g}% of the swing)")
+    if rc.get("trend"):
+        t = rc["trend"]
+        lines.append(f"  Trend: {t.get('months')} consecutive months {t.get('direction')}")
+    if rc.get("drivers"):
+        lines.append("  Correlated movers (context only, not causation):")
+        for d in rc["drivers"]:
+            lines.append(f"    - {d['metric']} (r={d['r']}, {d['direction']})")
+    lines.append(f"\nBiggest single factor: {rc.get('primary_factor')}")
+    lines.append("\nExplain why the metric moved, under the rules above.")
+    return "\n".join(lines)
+
+
 def _fmt(value: float | None, suffix: str = "") -> str:
     return "n/a" if value is None else f"{value:,.2f}{suffix}"
 
