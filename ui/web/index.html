@@ -589,6 +589,19 @@
   .rq-period{font-size:11.5px;font-weight:700;color:var(--mut2);flex:none}
   .rq-open{flex:none;color:var(--accent)}
   .nav-badge{margin-left:auto;background:var(--accent);color:var(--on-accent);font-size:10.5px;font-weight:800;min-width:18px;height:18px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px}
+  /* Root-cause drill-down */
+  .rc-panel{border:1px solid var(--b12);border-radius:12px;padding:15px 17px;background:var(--bg2)}
+  .rc-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+  .rc-title{font-size:13px;font-weight:800;color:var(--ink)}
+  .rc-z{font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;white-space:nowrap}
+  .rc-z.hi{background:var(--red-bg);color:var(--red)} .rc-z.mid{background:var(--amber-bg);color:var(--amber)} .rc-z.lo{background:var(--green-bg);color:var(--green)}
+  .rc-sec-label{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--mut2);margin:12px 0 5px}
+  .rc-bar{margin:7px 0}
+  .rc-bar-top{display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:3px;font-variant-numeric:tabular-nums}
+  .rc-track{height:8px;background:var(--bg3);border-radius:5px;overflow:hidden}
+  .rc-fill{height:100%;border-radius:5px}
+  .rc-fill.pos{background:var(--green)} .rc-fill.neg{background:var(--red)}
+  .rc-drivers{font-size:12.5px;color:var(--mut)} .rc-drivers b{color:var(--ink2)}
 </style>
 </head>
 <body>
@@ -758,6 +771,7 @@
       <div class="head">
         <div><h1 id="d-title">Metric</h1><div class="sub" id="d-sub"></div></div>
         <div class="head-actions">
+          <button class="btn" id="d-rc-btn" onclick="loadRootCause()" title="Deterministic decomposition of what moved this metric">Why did this move?</button>
           <button class="btn" id="d-regen" onclick="regenDetail()">Regenerate</button>
         </div>
       </div>
@@ -803,6 +817,7 @@
             <button class="btn" onclick="askQA()">Ask</button>
           </div>
           <div id="d-qa-answer" style="margin-top:10px"></div>
+          <div id="d-rootcause" style="display:none;margin-top:14px"></div>
           <div id="d-correlations" style="margin-top:12px"></div>
           <div class="chips" id="d-chips" style="margin-top:12px"></div>
         </div>
@@ -1684,6 +1699,52 @@ function ntChannelFields(){
   else if(ch==="slack"){lbl.textContent="Slack webhook URL";inp.placeholder="https://hooks.slack.com/services/…";}
   else{lbl.textContent="Webhook URL";inp.placeholder="https://your-service.com/hook";}
 }
+/* ---- Anomaly root-cause drill-down (v5.3) ---- */
+async function loadRootCause(){
+  if(!detailFact)return;
+  const box=$("d-rootcause");box.style.display="";box.innerHTML='<div class="an-empty">Analysing what moved…</div>';
+  try{
+    const rc=await api(`/insights/root-cause?metric=${encodeURIComponent(detailFact.metric)}&period=${encodeURIComponent(currentPeriod)}`);
+    renderRootCause(rc);
+  }catch(e){box.innerHTML=`<div class="an-empty">${esc(e.message)}</div>`;}
+}
+function renderRootCause(rc){
+  const box=$("d-rootcause"),unit=rc.unit;
+  let z="";
+  if(rc.z_score!=null){
+    const a=Math.abs(rc.z_score),cls=a>=2?"hi":a>=1?"mid":"lo";
+    z=`<span class="rc-z ${cls}">${rc.z_score>0?"+":""}${rc.z_score}σ vs baseline${rc.is_anomaly?" · anomaly":""}</span>`;
+  }
+  let bars="";
+  if(rc.pvm&&rc.pvm.length){
+    const max=Math.max(...rc.pvm.map(c=>Math.abs(c.impact)))||1;
+    bars=`<div class="rc-sec-label">Price / Volume / Mix of the swing</div>`+rc.pvm.map(c=>{
+      const w=Math.round(100*Math.abs(c.impact)/max),cls=c.impact>=0?"pos":"neg";
+      return `<div class="rc-bar"><div class="rc-bar-top"><span>${esc(c.component)}</span><span>${fmt(c.impact,unit)} · ${c.share_pct}%</span></div>
+        <div class="rc-track"><div class="rc-fill ${cls}" style="width:${w}%"></div></div></div>`;
+    }).join("");
+  }
+  let trend="";
+  if(rc.trend)trend=`<div class="rc-drivers" style="margin-top:10px">Trend: <b>${rc.trend.months} consecutive months ${esc(rc.trend.direction)}</b></div>`;
+  let drivers="";
+  if(rc.drivers&&rc.drivers.length)
+    drivers=`<div class="rc-sec-label">Moved with</div><div class="rc-drivers">`+rc.drivers.map(d=>`<b>${esc(d.metric)}</b> (r=${d.r})`).join(" · ")+`</div>`;
+  box.innerHTML=`<div class="rc-panel">
+    <div class="rc-head"><span class="rc-title">Root cause — ${esc(rc.primary_factor||"")}</span>${z}</div>
+    ${bars}${trend}${drivers}
+    <div style="margin-top:12px"><button class="btn sm write-hide" id="d-rc-narr-btn" onclick="rootCauseNarrative()">Explain (AI)</button></div>
+    <div id="d-rc-narr" style="margin-top:10px"></div></div>`;
+}
+async function rootCauseNarrative(){
+  if(!detailFact)return;
+  const btn=$("d-rc-narr-btn"),t=btn.textContent;btn.disabled=true;btn.textContent="Thinking…";
+  try{
+    const r=await api("/insights/root-cause/narrative",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({metric:detailFact.metric,period:currentPeriod})});
+    $("d-rc-narr").innerHTML=`<div class="narr">${esc(r.narrative)}</div>`;
+  }catch(e){toast("Explanation unavailable: "+e.message);}
+  finally{btn.disabled=false;btn.textContent=t;}
+}
+
 /* ---- Board pack export (v5.1) ---- */
 async function exportBoardPack(){
   if(!currentPeriod){toast("Import data first");return;}
@@ -2632,6 +2693,7 @@ function openDetail(i){
   renderBridgeChart(cd.variance_bridge,f.deltas.budget_var_abs,f.unit);
   $("d-narr").className="narr"+(f.narrative?"":" muted");
   renderReviewStrip(f);
+  {const rc=$("d-rootcause");if(rc){rc.style.display="none";rc.innerHTML="";}}
   $("d-grounding").style.display="none";groundingData=null;
   if(f.narrative&&f.report_id&&!f.edited){
     // Drill-down: fetch per-sentence grounding and render clickable sentences.
