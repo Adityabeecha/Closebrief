@@ -68,3 +68,26 @@ def test_version_history_and_diffs(client):
     assert versions[2]["narrative"].endswith("pricing and volume.")
     # A diff exists between v1 and v2.
     assert any(line.startswith("+") for line in versions[1]["diff"])
+
+
+def test_assign_returns_email_and_facts_expose_status(client):
+    rid = _seed_report(client)
+    r = client.post(f"/reports/{rid}/assign", json={"email": "cfo@co.com"})
+    assert r.json()["assigned_email"] == "cfo@co.com"
+    # Review status + assignee now ride on the fact so the dashboard can show them.
+    rev = [f for f in client.get("/facts?period=2025-03&granularity=month").json()
+           if f["metric"] == "Rev"][0]
+    assert rev["review_status"] == "pending" and rev["assigned_email"] == "cfo@co.com"
+
+
+def test_review_queue_lists_pending_for_me_and_clears_on_review(client):
+    from app.auth import ANONYMOUS_ADMIN
+    rid = _seed_report(client)
+    # Assign to the current (auth-bypass) user so it lands in *their* queue.
+    client.post(f"/reports/{rid}/assign", json={"email": ANONYMOUS_ADMIN.email})
+    q = client.get("/reports/review-queue").json()
+    assert len(q) == 1 and q[0]["report_id"] == rid and q[0]["metric"] == "Rev"
+    assert q[0]["review_status"] == "pending" and q[0]["preview"]
+    # Approving (or requesting changes) removes it from the pending queue.
+    client.post(f"/reports/{rid}/review", json={"status": "approved"})
+    assert client.get("/reports/review-queue").json() == []
