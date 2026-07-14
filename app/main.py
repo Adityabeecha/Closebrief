@@ -2049,10 +2049,17 @@ def create_schedule(payload: dict, _: CurrentUser = Depends(require_admin)) -> d
         raise HTTPException(status_code=422, detail=f"cadence must be one of {scheduling.CADENCES}")
     conn = get_connection()
     try:
+        if kind == "digest":
+            config = {"top_n": int(payload.get("top_n", 5))}
+        elif kind == "board_pack":
+            recipients = [e.strip() for e in (payload.get("recipients") or []) if e and e.strip()]
+            config = {"recipients": recipients}
+        else:
+            config = {}
         job_id = scheduling.create_job(
             conn, kind, cadence,
             dataset_id=payload.get("dataset_id"),
-            config={"top_n": int(payload.get("top_n", 5))} if kind == "digest" else {},
+            config=config,
             enabled=bool(payload.get("enabled", True)),
         )
         return {"id": job_id}
@@ -2201,28 +2208,41 @@ def review_report(report_id: int, payload: dict, user: CurrentUser = Depends(req
 
 
 @app.get("/reports/review-queue")
-def review_queue(user: CurrentUser = Depends(require_read)) -> list[dict]:
-    """Narratives assigned to the current user that are still pending review, in
-    the active dataset — so opening one lands on its metric card. Drives the
-    review inbox and its unread badge."""
+def review_queue(all_datasets: bool = False,
+                 user: CurrentUser = Depends(require_read)) -> list[dict]:
+    """Narratives assigned to the current user and still pending review. Defaults
+    to the active dataset (so opening one lands on its card); all_datasets=true
+    spans the workspace, and each item carries its dataset so the UI can switch to
+    it on open. Drives the review inbox and its unread badge."""
     conn = get_connection()
     try:
-        ds = active_dataset_id(conn)
-        if ds is None:
-            return []
-        rows = conn.execute(
+        base = (
             """SELECT gr.id AS report_id, m.name AS metric, gr.period,
-                      gr.review_status, gr.assigned_email, gr.narrative
+                      gr.review_status, gr.assigned_email, gr.narrative,
+                      d.id AS dataset_id, d.name AS dataset_name
                FROM generated_reports gr
                JOIN metrics m ON m.id = gr.metric_id
-               WHERE m.dataset_id = ? AND gr.review_status = 'pending'
-                 AND (gr.assigned_to = ? OR gr.assigned_email = ?)
-               ORDER BY gr.id DESC""",
-            (ds, user.id, user.email),
-        ).fetchall()
+               JOIN datasets d ON d.id = m.dataset_id
+               WHERE gr.review_status = 'pending'
+                 AND (gr.assigned_to = ? OR gr.assigned_email = ?) AND """
+        )
+        if all_datasets:
+            rows = conn.execute(
+                base + _scope_pred("d") + " ORDER BY gr.id DESC",
+                (user.id, user.email),
+            ).fetchall()
+        else:
+            ds = active_dataset_id(conn)
+            if ds is None:
+                return []
+            rows = conn.execute(
+                base + "d.id = ? ORDER BY gr.id DESC",
+                (user.id, user.email, ds),
+            ).fetchall()
         return [{
             "report_id": r["report_id"], "metric": r["metric"], "period": r["period"],
             "review_status": r["review_status"], "assigned_email": r["assigned_email"],
+            "dataset_id": r["dataset_id"], "dataset_name": r["dataset_name"],
             "preview": (r["narrative"] or "")[:160],
         } for r in rows]
     finally:

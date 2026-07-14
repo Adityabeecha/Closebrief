@@ -207,3 +207,53 @@ def test_schedules_crud_endpoints(client):
     assert client.patch(f"/schedules/{jid}", json={"enabled": False}).status_code == 200
     assert client.delete(f"/schedules/{jid}").status_code == 204
     assert client.delete(f"/schedules/{jid}").status_code == 404
+
+
+# ------------------------------------------------------------ board pack (v5.5)
+def _rising(metric="Revenue"):
+    return "\n".join(["period,metric,value,budget"]
+                     + [f"2025-{i:02d},{metric},{100 + i * 10},{100 + i * 10 - 3}" for i in range(1, 7)])
+
+
+def test_board_pack_scheduled_delivery(client, monkeypatch):
+    from app import scheduling
+    from app.notifications import channels
+    sent = {}
+
+    def _capture(self, subject, html):
+        sent.update(subject=subject, html=html, to=self.config.get("recipients"))
+
+    monkeypatch.setattr(channels.EmailChannel, "_send", _capture)
+    ds = _ingest(client, _rising())
+    conn = _conn()
+    try:
+        scheduling.create_job(conn, "board_pack", "monthly", dataset_id=ds,
+                              config={"recipients": ["cfo@co.com"]})
+        result = scheduling.run_due_jobs(conn, llm_client=None)   # no LLM needed
+        assert len(result["ran"]) == 1
+        jr = result["ran"][0]
+        assert jr["kind"] == "board_pack" and jr["recipients"] == 1 and jr["period"] == "2025-06"
+        assert sent["to"] == ["cfo@co.com"]
+        assert "Board Pack" in sent["html"] and "Revenue" in sent["html"]
+    finally:
+        conn.close()
+
+
+def test_board_pack_skips_without_recipients(client):
+    from app import scheduling
+    ds = _ingest(client, _rising())
+    conn = _conn()
+    try:
+        scheduling.create_job(conn, "board_pack", "monthly", dataset_id=ds, config={})
+        result = scheduling.run_due_jobs(conn, llm_client=None)
+        assert result["ran"][0].get("skipped")
+    finally:
+        conn.close()
+
+
+def test_board_pack_schedule_stores_recipients(client):
+    r = client.post("/schedules", json={"kind": "board_pack", "cadence": "monthly",
+                                        "recipients": ["a@co.com", " ", "b@co.com"]})
+    assert r.status_code == 201, r.text
+    job = next(j for j in client.get("/schedules").json() if j["id"] == r.json()["id"])
+    assert job["config"]["recipients"] == ["a@co.com", "b@co.com"]   # blanks stripped

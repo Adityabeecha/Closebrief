@@ -36,6 +36,12 @@ local = [
 [tool.pytest.ini_options]
 # "." for the app package; "tests" so shared helpers (dbharness) import cleanly.
 pythonpath = [".", "tests"]
+filterwarnings = [
+    # Starlette's TestClient warns that httpx will require "httpx2"; it's a
+    # third-party test-only deprecation we don't control. Silence it so a real
+    # regression warning isn't lost in the noise. Revisit on the next httpx bump.
+    "ignore:Using .httpx.*deprecated",
+]
 markers = [
     # Tests coupled to SQLite's typeless columns (they assert on short string
     # user ids that Postgres's UUID attribution columns reject). The Postgres CI

@@ -14,7 +14,7 @@ import json
 import time
 from datetime import datetime, timedelta, timezone
 
-KINDS = ("digest", "anomaly_scan", "connector_sync", "retention_purge")
+KINDS = ("digest", "anomaly_scan", "connector_sync", "retention_purge", "board_pack")
 CADENCES = ("daily", "weekly", "monthly")
 # After this many consecutive failures, alert the operator via configured channels.
 FAIL_ALERT_THRESHOLD = 3
@@ -193,6 +193,32 @@ def _run_digest_job(conn, job: dict, llm_client) -> dict:
     return {"period": period, "items": len(items), "delivered_to": delivery["sent"]}
 
 
+def _run_board_pack_job(conn, job: dict) -> dict:
+    """Assemble the board pack for the latest period and email it to the job's
+    configured recipients. Deterministic — no LLM call."""
+    from app.board_pack import build_board_pack_html, collect_facts
+    from app.notifications.channels import EmailChannel, NotificationError
+
+    recipients = job["config"].get("recipients") or []
+    if not recipients:
+        return {"skipped": "no recipients configured"}
+    ds = _resolve_dataset(conn, job)
+    if ds is None:
+        return {"skipped": "no dataset"}
+    period = _latest_period(conn, ds)
+    if not period:
+        return {"skipped": "no data"}
+    row = conn.execute("SELECT name FROM datasets WHERE id = ?", (ds,)).fetchone()
+    ds_name = row["name"] if row else "Dataset"
+    facts = collect_facts(conn, ds, period)
+    html = build_board_pack_html(facts, period, {"dataset_name": ds_name})
+    try:
+        EmailChannel({"recipients": recipients})._send(f"Board pack — {ds_name} — {period}", html)
+    except NotificationError as e:
+        return {"error": str(e)}
+    return {"period": period, "recipients": len(recipients), "kpis": len(facts)}
+
+
 def _run_anomaly_job(conn, job: dict, llm_client) -> dict:
     """Recompute the dataset, then alert on anomalies in the latest period. If an
     LLM is available each anomaly gets a one-line grounded narrative; otherwise
@@ -308,6 +334,8 @@ def run_due_jobs(conn, now: datetime | None = None, llm_client=None) -> dict:
             elif job["kind"] == "retention_purge":
                 from app.retention import run_retention
                 result = run_retention(conn)
+            elif job["kind"] == "board_pack":
+                result = _run_board_pack_job(conn, job)
             else:
                 result = {"skipped": f"unknown kind {job['kind']}"}
         except Exception as e:  # noqa: BLE001 - one job's failure must not abort the tick
