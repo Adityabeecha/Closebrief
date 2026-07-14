@@ -1484,6 +1484,15 @@ function catColor(c){const i=catSlots[c??"Uncategorized"];return i==null?"":CAT_
 function catStyle(c){const col=catColor(c);return col?`--cat:${col}`:"";}
 
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
+// Map common backend errors to human-friendly copy; falls back to the raw message.
+function errMsg(e){
+  const m=(e&&e.message)||String(e||"Something went wrong");
+  if(/budget/i.test(m))return "Monthly AI budget reached — raise the limit or wait for the next cycle.";
+  if(/session expired/i.test(m))return "Your session expired — please sign in again.";
+  if(/no active dataset/i.test(m))return "No active dataset — import data first.";
+  if(/not enough history/i.test(m))return "Not enough history for this metric yet.";
+  return m;
+}
 let activeWorkspaceId=null;   // v4.0: the tenant scope for every request
 async function api(path,opts,_retried){
   opts=opts||{};
@@ -1721,7 +1730,7 @@ async function loadRootCause(){
   try{
     const rc=await api(`/insights/root-cause?metric=${encodeURIComponent(detailFact.metric)}&period=${encodeURIComponent(currentPeriod)}`);
     renderRootCause(rc);
-  }catch(e){box.innerHTML=`<div class="an-empty">${esc(e.message)}</div>`;}
+  }catch(e){box.innerHTML=`<div class="an-empty">${esc(errMsg(e))}</div>`;}
 }
 function renderRootCause(rc){
   const box=$("d-rootcause"),unit=rc.unit;
@@ -1756,7 +1765,7 @@ async function rootCauseNarrative(){
   try{
     const r=await api("/insights/root-cause/narrative",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({metric:detailFact.metric,period:currentPeriod})});
     $("d-rc-narr").innerHTML=`<div class="narr">${esc(r.narrative)}</div>`;
-  }catch(e){toast("Explanation unavailable: "+e.message);}
+  }catch(e){toast("Explanation unavailable: "+errMsg(e));}
   finally{btn.disabled=false;btn.textContent=t;}
 }
 
@@ -1777,7 +1786,7 @@ async function exportBoardPack(){
     const win=window.open(url,"_blank");
     if(!win)toast("Allow pop-ups to open the board pack");
     setTimeout(()=>URL.revokeObjectURL(url),60000);
-  }catch(e){toast("Export failed: "+e.message);}
+  }catch(e){toast("Export failed: "+errMsg(e));}
   finally{if(btn)btn.disabled=false;}
 }
 
@@ -1814,13 +1823,15 @@ async function runForecast(){
   try{
     const fc=await api(`/forecast?metric=${encodeURIComponent(metric)}&horizon=${horizon}`);
     _lastForecast=fc;renderForecastChart(fc);
+    const thin=(fc.n_history||0)<8;               // too few points for a trustworthy backtest
     const mape=fc.mape==null?"–":(+fc.mape.toFixed(1))+"%";
     const next=fc.projections&&fc.projections[0]?fc.projections[0].value:null;
     $("fc-meta").innerHTML=
       `<div class="stat"><div class="stat-lbl">Next period</div><div class="card-value">${fmt(next,fc.unit)}</div></div>`+
-      `<div class="stat" style="--sc:var(--mut)"><div class="stat-lbl">Backtest MAPE</div><div class="card-value">${mape}</div></div>`;
+      `<div class="stat" style="--sc:var(--mut)"><div class="stat-lbl">Backtest MAPE</div><div class="card-value">${mape}</div>`+
+      `${thin?'<div class="psub" style="margin-top:2px">Only '+(fc.n_history||0)+' periods — treat as indicative</div>':""}</div>`;
     $("fc-narr-btn").style.display="";
-  }catch(e){if(chartReg["c-forecast"]){chartReg["c-forecast"].destroy();delete chartReg["c-forecast"];}box.innerHTML=`<div class="an-empty">${esc(e.message)}</div>`;}
+  }catch(e){if(chartReg["c-forecast"]){chartReg["c-forecast"].destroy();delete chartReg["c-forecast"];}box.innerHTML=`<div class="an-empty">${esc(errMsg(e))}</div>`;}
 }
 function renderForecastChart(fc){
   ensureCanvas("c-forecast");const box=$("box-c-forecast");
@@ -1849,7 +1860,7 @@ async function forecastNarrative(){
   try{
     const r=await api("/forecast/narrative",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({metric,horizon})});
     $("fc-narr").innerHTML=`<div class="narr">${esc(r.narrative)}</div>`;
-  }catch(e){toast("Narrative unavailable: "+e.message);}
+  }catch(e){toast("Narrative unavailable: "+errMsg(e));}
   finally{btn.disabled=false;btn.textContent=t;}
 }
 /* ---- Scenario (what-if) ---- */
@@ -1873,7 +1884,7 @@ function runScenario(){
         `<div class="scn-cell"><span class="k">Projected</span><span class="v ${cls}">${fmt(r.projected_value,unit)}</span></div>`+
         `<div class="scn-cell"><span class="k">Impact</span><span class="v ${cls}">${sign}${fmt(r.impact_abs,unit)}${r.impact_pct!=null?` · ${sign}${(+r.impact_pct.toFixed(1))}%`:""}</span></div>`+
         (r.vs_budget!=null?`<div class="scn-cell"><span class="k">vs Budget</span><span class="v ${r.vs_budget>=0?"pos":"neg"}">${fmt(r.vs_budget,unit)}</span></div>`:"");
-    }catch(e){$("scn-out").innerHTML=`<div class="an-empty">${esc(e.message)}</div>`;}
+    }catch(e){$("scn-out").innerHTML=`<div class="an-empty">${esc(errMsg(e))}</div>`;}
   },120);
 }
 /* ---- Custom KPI (formula builder) ---- */
@@ -1894,7 +1905,7 @@ async function createDerivedKpi(){
     await loadFacts();                 // recompute pulls the new derived metric onto the board
     _anMetrics=_metricList();_fillMetricSelect("fc-metric");_fillMetricSelect("scn-metric");
     const chips=$("kb-chips");if(chips)chips.innerHTML=_anMetrics.map((m,i)=>`<span class="fchip" onclick="insertMetricToken(${i})">${esc(m.name)}</span>`).join("");
-  }catch(e){toast("Failed: "+e.message);}
+  }catch(e){toast("Failed: "+errMsg(e));}
   finally{btn.disabled=false;}
 }
 /* ---- Cross-dataset signals ---- */
@@ -1910,7 +1921,7 @@ async function loadCrossDomain(){
         <div class="xd-body"><div class="xd-pair">${esc(p.metric_a)} <span class="xd-arrow">↔</span> ${esc(p.metric_b)}</div>
         <div class="xd-meta">${esc(p.dataset_a)} → ${esc(p.dataset_b)} · ${lag} · ${p.months} mo overlap</div></div></div>`;
     }).join("");
-  }catch(e){box.innerHTML=`<div class="an-empty">${esc(e.message)}</div>`;}
+  }catch(e){box.innerHTML=`<div class="an-empty">${esc(errMsg(e))}</div>`;}
 }
 /* ---- Collaborative review (detail view) ---- */
 function renderReviewStrip(f){
@@ -1932,7 +1943,7 @@ async function reviewReport(status){
     const cf=(currentFacts||[]).find(x=>x.report_id===detailFact.report_id);if(cf)cf.review_status=status;
     toast(status==="approved"?"Narrative approved":"Changes requested");
     refreshReviewBadge();
-  }catch(e){toast("Failed: "+e.message);}
+  }catch(e){toast("Failed: "+errMsg(e));}
 }
 /* ---- Reviewer assignment + review queue (v5.2) ---- */
 async function loadWsMembers(){
@@ -1959,14 +1970,14 @@ async function assignReviewer(){
     renderReviewStrip(detailFact);$("d-assign-email").value="";
     toast("Assigned to "+email+" — they’ve been emailed");
     refreshReviewBadge();
-  }catch(e){toast("Assign failed: "+e.message);}
+  }catch(e){toast("Assign failed: "+errMsg(e));}
 }
 let _reviewItems=[];
 async function loadReview(){
   const box=$("rq-list");if(box)box.innerHTML='<div class="an-empty">Loading…</div>';
   let items=[];
   try{items=await api("/reports/review-queue");}
-  catch(e){if(box)box.innerHTML=`<div class="an-empty">${esc(e.message)}</div>`;return;}
+  catch(e){if(box)box.innerHTML=`<div class="an-empty">${esc(errMsg(e))}</div>`;return;}
   _reviewItems=items;updateReviewBadge(items.length);
   if(!box)return;
   if(!items.length){box.innerHTML='<div class="an-empty">Nothing awaiting your review in this dataset. Narratives assigned to you show up here.</div>';return;}
@@ -2008,7 +2019,7 @@ async function toggleVersions(){
         return /^\+/.test(l)&&!/^\+\+\+/.test(l)?`<span class="add">${e}</span>`:/^-/.test(l)&&!/^---/.test(l)?`<span class="del">${e}</span>`:e;}).join("\n")}</div>`:"";
       return `<div class="ver-item"><div class="ver-head">v${v.version}${v.editor_email?` · ${esc(v.editor_email)}`:""}<span class="when">${esc(v.created_at||"")}</span></div>${diff}</div>`;
     }).join("");
-  }catch(e){box.innerHTML=`<div class="an-empty">${esc(e.message)}</div>`;}
+  }catch(e){box.innerHTML=`<div class="an-empty">${esc(errMsg(e))}</div>`;}
 }
 
 async function loadNotifications(){
@@ -2828,7 +2839,7 @@ async function genOne(metric,btn){
     if(currentPeriod!==gp||activeDatasetId!==gd){generatingSet.delete(metric);return;}   // user moved on — drop result
     applyGenerated(r);generatingSet.delete(metric);renderCards();updateGenButton();
     toast(r.faithfulness==="failed"?`${metric}: numbers need review`:(r.cached?"Served from cache — no LLM cost":`Narrative written for ${metric}`));
-  }catch(e){generatingSet.delete(metric);renderCards();toast("Failed: "+e.message);}
+  }catch(e){generatingSet.delete(metric);renderCards();toast("Failed: "+errMsg(e));}
 }
 // Rough per-narrative cost estimate (gpt-4o-class: ~1.5k prompt + ~180 completion tokens).
 const EST_COST_PER_NARR=0.006;

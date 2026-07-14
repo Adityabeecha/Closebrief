@@ -1,4 +1,12 @@
+import os
+
 import pytest
+
+# Sentry initialises at import time in app.main from settings.sentry_dsn, so a
+# per-test fixture is too late to stop it. Blank the env var here — conftest is
+# imported before any test module imports app.main — so a populated .env never
+# makes the suite fire real Sentry network calls (slow + flaky). Env wins over .env.
+os.environ["SENTRY_DSN"] = ""
 
 
 @pytest.fixture(autouse=True)
