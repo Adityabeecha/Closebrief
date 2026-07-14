@@ -53,6 +53,28 @@ def test_slack_block_format():
     assert "Net Revenue" in json.dumps(payload)
 
 
+def test_slack_blocks_include_drill_links(monkeypatch):
+    from app.config import settings
+    from app.notifications.templates import slack_anomaly_blocks, slack_digest_blocks
+    monkeypatch.setattr(settings, "app_base_url", "https://app.example.com")
+    d = slack_digest_blocks("2025-03", SAMPLE)
+    accessories = [b["accessory"] for b in d["blocks"] if b.get("accessory")]
+    assert len(accessories) == len(SAMPLE)                       # a drill button per metric
+    assert accessories[0]["url"] == "https://app.example.com/#metric=Net%20Revenue&period=2025-03"
+    assert any(b["type"] == "actions" for b in d["blocks"])      # footer 'Open dashboard'
+    assert any(b.get("accessory") for b in slack_anomaly_blocks(SAMPLE)["blocks"])
+    json.dumps(d)                                               # Block Kit stays serializable
+
+
+def test_slack_no_button_when_base_url_empty(monkeypatch):
+    from app.config import settings
+    from app.notifications.templates import slack_digest_blocks
+    monkeypatch.setattr(settings, "app_base_url", "")
+    d = slack_digest_blocks("2025-03", SAMPLE)
+    assert not any(b.get("accessory") for b in d["blocks"])
+    assert not any(b["type"] == "actions" for b in d["blocks"])
+
+
 def test_make_channel_unknown_raises():
     from app.notifications.channels import NotificationError, make_channel
     with pytest.raises(NotificationError):
