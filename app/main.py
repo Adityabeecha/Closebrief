@@ -1,7 +1,10 @@
 import hmac
 import json
+import logging
 import time
 from collections import defaultdict, deque
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile
@@ -109,11 +112,52 @@ if settings.sentry_dsn:
         profiles_sample_rate=0.1,
     )
 
+logger = logging.getLogger("closebrief")
+
+
+@asynccontextmanager
+async def lifespan(_app: "FastAPI"):
+    """Startup: create/migrate schema, add the hot /facts index, and (in demo
+    mode) seed the sample dataset off-thread. Failures in the optional steps are
+    logged, never fatal — boot and the health check must not be blocked."""
+    init_db()
+    # Index the hot lookup in /facts (feedback by report). IF NOT EXISTS is
+    # portable across SQLite and Postgres and idempotent on every boot.
+    try:
+        conn = get_connection()
+        try:
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_feedback_report ON feedback(report_id)")
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception:  # noqa: BLE001 - index is an optimization, never block boot
+        logger.warning("could not create idx_feedback_report", exc_info=True)
+    if settings.demo_mode:
+        # Seed the sample dataset on a background thread — embedding the demo
+        # context docs takes a few seconds and must not delay boot / the health
+        # check (idempotent, so a restart mid-seed is safe).
+        import threading
+
+        def _seed():
+            try:
+                conn = get_connection()
+                try:
+                    seed_demo(conn, _context_store(conn))
+                finally:
+                    conn.close()
+            except Exception:  # noqa: BLE001 - must never block startup, but must be visible
+                logger.exception("demo seed failed")
+
+        threading.Thread(target=_seed, daemon=True).start()
+    yield
+
+
 app = FastAPI(
     title="Closebrief",
     description="RAG-based AI agent for automated FP&A variance commentary. "
     "The LLM never computes numbers — see app/compute/kpis.py for the deterministic layer.",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 # CORS: the frontend authenticates against Supabase directly (cross-origin) and
@@ -140,41 +184,17 @@ require_member = require_role("analyst", "executive", "admin")
 _OPEN_PATHS = {"/", "/health", "/auth/config", "/openapi.json", "/docs", "/redoc"}
 
 
-@app.on_event("startup")
-def _startup() -> None:
-    init_db()
-    # Index the hot lookup in /facts (feedback by report). IF NOT EXISTS is
-    # portable across SQLite and Postgres and idempotent on every boot.
-    try:
-        conn = get_connection()
-        try:
-            conn.execute("CREATE INDEX IF NOT EXISTS idx_feedback_report ON feedback(report_id)")
-            conn.commit()
-        finally:
-            conn.close()
-    except Exception:  # noqa: BLE001 - index is an optimization, never block boot
-        pass
-    if settings.demo_mode:
-        # Seed the sample dataset on a background thread — embedding the demo
-        # context docs takes a few seconds and must not delay boot / the health
-        # check (idempotent, so a restart mid-seed is safe).
-        import threading
 
-        def _seed():
-            try:
-                conn = get_connection()
-                try:
-                    seed_demo(conn, _context_store(conn))
-                finally:
-                    conn.close()
-            except Exception:  # noqa: BLE001 - demo seeding must never block startup
-                pass
 
-        threading.Thread(target=_seed, daemon=True).start()
-
+# Bounded pool for best-effort background work (notification fan-out, review
+# nudges) so a burst of events can't spawn unbounded daemon threads.
+_bg_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="cb-bg")
 
 # ---- request telemetry: latency ring buffer + naive per-IP rate limit ----
-
+# NOTE: these + the auth role cache (app/auth.py) are per-process, in-memory.
+# That's correct on the single-process free tier, but if this ever runs multiple
+# workers they won't share state — the rate limit would be per-worker and a role
+# change could take up to the cache TTL to propagate. Move to Redis before scaling out.
 _LATENCIES: dict[str, deque] = defaultdict(lambda: deque(maxlen=500))
 _RATE_BUCKETS: dict[str, deque] = defaultdict(deque)
 _RATE_LIMIT_PER_MINUTE = 240  # generous: the UI's generate-all bursts stay well under
@@ -294,11 +314,9 @@ _ALERT_LATENCIES: deque = deque(maxlen=200)
 
 def _notify_async(event: str, period: str | None = None, items: list[dict] | None = None,
                   detected_at: float | None = None) -> None:
-    """Fan a notification event out to configured channels on a daemon thread —
-    delivery (SMTP/HTTP) must never add latency or failures to the request.
+    """Fan a notification event out to configured channels on the background pool
+    — delivery (SMTP/HTTP) must never add latency or failures to the request.
     When `detected_at` is given, record the detection→delivery latency."""
-    import threading
-
     def _run():
         try:
             conn = get_connection()
@@ -311,32 +329,40 @@ def _notify_async(event: str, period: str | None = None, items: list[dict] | Non
         except Exception:  # noqa: BLE001 - best-effort by design
             pass
 
-    threading.Thread(target=_run, daemon=True).start()
+    _bg_executor.submit(_run)
 
 
 def _email_review_nudge_async(to_email: str | None, metric: str, period: str,
                               assigned_by: str | None) -> None:
-    """Email a reviewer that a narrative was assigned to them, on a daemon thread
-    (best-effort; delivery must never block or fail the assign request)."""
+    """Email a reviewer that a narrative was assigned to them, on the background
+    pool (best-effort; delivery must never block or fail the assign request)."""
     if not to_email:
         return
-    import threading
 
     def _run():
         try:
+            import urllib.parse
+
             from app.notifications.channels import EmailChannel
             who = assigned_by or "A teammate"
             subject = f"[Closebrief] Review requested: {metric} ({period})"
+            base = (settings.app_base_url or "").rstrip("/")
+            link = ""
+            if base:
+                url = f"{base}/#metric={urllib.parse.quote(metric)}&period={urllib.parse.quote(period)}"
+                link = (f"<p><a href='{url}' style='display:inline-block;background:#1e6e50;color:#fff;"
+                        f"padding:9px 16px;border-radius:8px;text-decoration:none;font-weight:600'>"
+                        f"Review in Closebrief</a></p>")
             html = (
                 f"<p>{who} assigned you a narrative to review in Closebrief.</p>"
                 f"<p style='font-size:16px'><b>{metric}</b> — {period}</p>"
-                f"<p>Open Closebrief to approve it or request changes.</p>"
+                f"{link or '<p>Open Closebrief to approve it or request changes.</p>'}"
             )
             EmailChannel({"recipients": [to_email]})._send(subject, html)
         except Exception:  # noqa: BLE001 - best-effort by design
             pass
 
-    threading.Thread(target=_run, daemon=True).start()
+    _bg_executor.submit(_run)
 
 
 def _notify_anomalies(conn, dataset_id: int) -> None:
@@ -690,6 +716,9 @@ def _forecast_inputs(metric: str, horizon: int) -> dict:
         "metric": metric, "unit": unit, "history": hist,
         "projections": [{"period": p, "value": v} for p, v in zip(periods, proj)],
         "mape": backtest_mape(values),
+        # Sample size behind the backtest — a 0% MAPE on a handful of points is
+        # not real accuracy, so the UI caveats the error when this is small.
+        "n_history": len(values),
     }
 
 
@@ -702,7 +731,7 @@ def get_forecast(metric: str, horizon: int = 3, _: CurrentUser = Depends(require
         raise HTTPException(status_code=422, detail="metric is required")
     fc = _forecast_inputs(metric, max(1, min(12, horizon)))
     return {"metric": fc["metric"], "unit": fc["unit"], "history": fc["history"][-6:],
-            "projections": fc["projections"], "mape": fc["mape"]}
+            "projections": fc["projections"], "mape": fc["mape"], "n_history": fc["n_history"]}
 
 
 @app.get("/insights/cross-domain")
@@ -1126,7 +1155,8 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
             "is_anomaly": False, "aggregated": True, "granularity": granularity,
             "aggregation_type": agg,
             "unavailable": bool(cur and cur.get("unavailable")),
-            "report_id": None, "narrative": None, "sources": [],
+            "report_id": None, "review_status": None, "assigned_email": None,
+            "narrative": None, "sources": [],
             "confidence": None, "faithfulness": None,
             "chart_data": {"trend": trend} if (include_charts and trend) else None,
             "trend_streak": None,
