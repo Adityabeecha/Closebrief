@@ -120,6 +120,48 @@ h1{font-size:27px;font-weight:800;margin:6px 0 3px;letter-spacing:-.01em}
 """
 
 
+def collect_facts(conn, dataset_id: int, period: str, trend_window: int = 12) -> list[dict]:
+    """Assemble board-pack fact dicts for a dataset/period straight from the store
+    (no request/user needed) — value, deltas, latest narrative, and a trend series
+    for the sparkline. Shared by the /board-pack endpoint's scheduler counterpart
+    so on-demand and scheduled packs render identically. Movers first."""
+    rows = conn.execute(
+        """SELECT m.id AS metric_id, m.name AS metric, m.category, m.unit, m.direction_good,
+                  cf.value, cf.prior_value, cf.mom_pct, cf.yoy_pct,
+                  cf.budget_var_abs, cf.budget_var_pct, cf.is_anomaly
+           FROM metrics m JOIN computed_facts cf ON cf.metric_id = m.id AND cf.period = ?
+           WHERE m.dataset_id = ?
+           ORDER BY ABS(COALESCE(cf.budget_var_abs, 0)) DESC, m.name""",
+        (period, dataset_id),
+    ).fetchall()
+    out = []
+    for r in rows:
+        rep = conn.execute(
+            """SELECT narrative FROM generated_reports
+               WHERE metric_id = ? AND period = ?
+                 AND (prompt_version IS NULL OR prompt_version NOT LIKE '%-digest')
+               ORDER BY id DESC LIMIT 1""",
+            (r["metric_id"], period),
+        ).fetchone()
+        trend = [
+            {"period": t["period"], "value": t["value"], "budget": t["budget"]}
+            for t in reversed(conn.execute(
+                """SELECT period, value, budget FROM metric_values
+                   WHERE metric_id = ? AND period <= ? ORDER BY period DESC LIMIT ?""",
+                (r["metric_id"], period, trend_window)).fetchall())
+        ]
+        out.append({
+            "metric": r["metric"], "category": r["category"], "period": period,
+            "value": r["value"], "unit": r["unit"], "direction_good": r["direction_good"],
+            "has_data": r["value"] is not None, "is_anomaly": bool(r["is_anomaly"]),
+            "narrative": rep["narrative"] if rep else None,
+            "deltas": {"mom_pct": r["mom_pct"], "yoy_pct": r["yoy_pct"],
+                       "budget_var_abs": r["budget_var_abs"], "budget_var_pct": r["budget_var_pct"]},
+            "chart_data": {"trend": trend},
+        })
+    return out
+
+
 def build_board_pack_html(facts: list[dict], period: str, meta: dict | None = None) -> str:
     """Render the board pack. `facts` is the /facts payload (dicts with metric,
     value, unit, deltas, narrative, is_anomaly, chart_data). `meta` may carry
