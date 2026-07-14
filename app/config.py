@@ -78,6 +78,10 @@ class Settings(BaseSettings):
     # --- Monitoring (v2.0) ---
     sentry_dsn: str = ""              # empty -> Sentry disabled
 
+    # Public base URL of the app, used to build drill-in links in Slack/email
+    # notifications (e.g. https://closebrief.onrender.com). No link when empty.
+    app_base_url: str = "https://closebrief.onrender.com"
+
     # --- Notifications (v2.1) ---
     smtp_host: str = ""
     smtp_port: int = 587
