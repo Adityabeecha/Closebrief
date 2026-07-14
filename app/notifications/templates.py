@@ -62,28 +62,75 @@ def render_anomaly_email(anomalies: list[dict]) -> tuple[str, str]:
     return subject, body
 
 
+def _drill_url(metric: str | None, period: str | None = None) -> str | None:
+    """Deep link that opens `metric` (optionally at `period`) in the app. None
+    when no public base URL is configured (the button is then omitted)."""
+    import urllib.parse
+
+    from app.config import settings
+    base = (settings.app_base_url or "").rstrip("/")
+    if not base:
+        return None
+    frag = f"#metric={urllib.parse.quote(metric or '')}"
+    if period:
+        frag += f"&period={urllib.parse.quote(period)}"
+    return f"{base}/{frag}"
+
+
+def _delta_emoji(delta: str) -> str:
+    d = (delta or "").lstrip()
+    if d.startswith("+"):
+        return "📈 "
+    if d.startswith("-") or d.startswith("−"):
+        return "📉 "
+    return ""
+
+
+def _slack_item_block(item: dict) -> dict:
+    """One metric as a Slack section, with a 'View' drill button when possible."""
+    metric = item.get("metric", "")
+    text = f"*{metric}* — {item.get('value','')}  {_delta_emoji(item.get('delta',''))}{item.get('delta','')}"
+    if item.get("narrative"):
+        text += f"\n{item['narrative']}"
+    block: dict = {"type": "section", "text": {"type": "mrkdwn", "text": text}}
+    url = _drill_url(metric, item.get("period"))
+    if url:
+        block["accessory"] = {
+            "type": "button", "text": {"type": "plain_text", "text": "View"},
+            "url": url, "action_id": "open_metric",
+        }
+    return block
+
+
 def slack_anomaly_blocks(anomalies: list[dict]) -> dict:
-    """Slack Block Kit payload for an anomaly alert."""
+    """Slack Block Kit payload for an anomaly alert, with per-metric drill links."""
+    n = len(anomalies)
     blocks: list[dict] = [
-        {"type": "header", "text": {"type": "plain_text", "text": f"⚠ {len(anomalies)} anomaly(ies) detected"}}
+        {"type": "header", "text": {"type": "plain_text", "text": f"⚠ {n} anomaly{'ies' if n != 1 else ''} detected"}},
     ]
     for a in anomalies:
-        line = f"*{a.get('metric','')}* — {a.get('value','')}  ({a.get('delta','')})"
-        if a.get("narrative"):
-            line += f"\n{a['narrative']}"
-        blocks.append({"type": "section", "text": {"type": "mrkdwn", "text": line}})
-    return {"text": f"{len(anomalies)} anomaly(ies) detected", "blocks": blocks}
+        blocks.append(_slack_item_block(a))
+    return {"text": f"{n} anomaly{'ies' if n != 1 else ''} detected", "blocks": blocks}
 
 
 def slack_digest_blocks(period: str, items: list[dict]) -> dict:
+    """Slack Block Kit digest: header, per-metric sections with drill buttons, and
+    a footer link to the full dashboard."""
     blocks: list[dict] = [
-        {"type": "header", "text": {"type": "plain_text", "text": f"Closebrief digest — {period}"}}
+        {"type": "header", "text": {"type": "plain_text", "text": f"Closebrief digest — {period}"}},
+        {"type": "context", "elements": [
+            {"type": "mrkdwn",
+             "text": f"Top {len(items)} mover{'s' if len(items) != 1 else ''} this period "
+                     f"· deterministic figures, grounded commentary"}]},
+        {"type": "divider"},
     ]
     for it in items:
-        blocks.append({
-            "type": "section",
-            "text": {"type": "mrkdwn", "text": f"*{it.get('metric','')}*: {it.get('value','')} ({it.get('delta','')})"},
-        })
+        blocks.append(_slack_item_block({**it, "period": it.get("period") or period}))
+    base = (_drill_url("", None) or "").split("#")[0]
+    if base:
+        blocks.append({"type": "actions", "elements": [
+            {"type": "button", "text": {"type": "plain_text", "text": "Open dashboard"},
+             "url": base, "action_id": "open_dashboard", "style": "primary"}]})
     return {"text": f"Closebrief digest — {period}", "blocks": blocks}
 
 

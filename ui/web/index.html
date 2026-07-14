@@ -1678,8 +1678,8 @@ async function startApp(){
   }else if(demoSession){currentUser={email:"demo@closebrief.app",role:"viewer"};applyRole(currentUser);}
   else{applyRole({email:"local@dev",role:"admin"});}
   loadPeriods().then(()=>{const h=location.hash.slice(1);
-    if(["digest","context","import","costs","notifications","admin"].includes(h))nav(h);
-    else if(h.startsWith("metric")){const i=currentFacts.findIndex(f=>f.has_data);if(i>=0)openDetail(i);}
+    if(["dashboard","digest","context","analytics","review","import","costs","notifications","admin"].includes(h))nav(h);
+    else if(h.startsWith("metric"))openMetricFromHash(h);
   });
 }
 function applyRole(u){
@@ -1699,6 +1699,21 @@ function ntChannelFields(){
   else if(ch==="slack"){lbl.textContent="Slack webhook URL";inp.placeholder="https://hooks.slack.com/services/…";}
   else{lbl.textContent="Webhook URL";inp.placeholder="https://your-service.com/hook";}
 }
+/* ---- Deep link from Slack/email: #metric=NAME&period=P ---- */
+function openMetricFromHash(h){
+  const p=new URLSearchParams(h);            // "metric=NAME&period=P"
+  const name=p.get("metric"),period=p.get("period");
+  const go=()=>{
+    const f=(currentFacts||[]).find(x=>x.metric===name&&x.has_data)||(currentFacts||[]).find(x=>x.has_data);
+    if(!f)return;
+    nav("dashboard");const i=shownFacts.indexOf(f);
+    if(i>=0)openDetail(i);else{searchQuery="";renderCards();openDetail(shownFacts.indexOf(f));}
+  };
+  const sel=$("period-select");
+  if(period&&sel&&sel.value!==period&&[...sel.options].some(o=>o.value===period)){sel.value=period;loadFacts().then(go);}
+  else go();
+}
+
 /* ---- Anomaly root-cause drill-down (v5.3) ---- */
 async function loadRootCause(){
   if(!detailFact)return;
