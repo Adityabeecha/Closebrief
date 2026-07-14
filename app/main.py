@@ -311,6 +311,31 @@ def _notify_async(event: str, period: str | None = None, items: list[dict] | Non
     threading.Thread(target=_run, daemon=True).start()
 
 
+def _email_review_nudge_async(to_email: str | None, metric: str, period: str,
+                              assigned_by: str | None) -> None:
+    """Email a reviewer that a narrative was assigned to them, on a daemon thread
+    (best-effort; delivery must never block or fail the assign request)."""
+    if not to_email:
+        return
+    import threading
+
+    def _run():
+        try:
+            from app.notifications.channels import EmailChannel
+            who = assigned_by or "A teammate"
+            subject = f"[Closebrief] Review requested: {metric} ({period})"
+            html = (
+                f"<p>{who} assigned you a narrative to review in Closebrief.</p>"
+                f"<p style='font-size:16px'><b>{metric}</b> — {period}</p>"
+                f"<p>Open Closebrief to approve it or request changes.</p>"
+            )
+            EmailChannel({"recipients": [to_email]})._send(subject, html)
+        except Exception:  # noqa: BLE001 - best-effort by design
+            pass
+
+    threading.Thread(target=_run, daemon=True).start()
+
+
 def _notify_anomalies(conn, dataset_id: int) -> None:
     """After a compute pass: alert channels about anomalies in the dataset's
     latest period (if any). Stamps detection time so alert latency is tracked."""
@@ -1127,7 +1152,8 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
             ph = ",".join("?" * len(metric_ids))
             for rr in conn.execute(
                 f"""SELECT gr.id, gr.metric_id, gr.narrative, gr.sources, gr.confidence,
-                           gr.faithfulness, gr.cost_usd, gr.latency_ms, gr.user_email
+                           gr.faithfulness, gr.cost_usd, gr.latency_ms, gr.user_email,
+                           gr.review_status, gr.assigned_email
                     FROM generated_reports gr
                     WHERE gr.metric_id IN ({ph}) AND gr.period = ?
                       AND (gr.prompt_version IS NULL OR gr.prompt_version NOT LIKE '%-digest')
@@ -1170,6 +1196,8 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
                 "trend": r["trend"],
                 "is_anomaly": bool(r["is_anomaly"]) if r["is_anomaly"] is not None else False,
                 "report_id": report["id"] if report else None,
+                "review_status": report["review_status"] if report else None,
+                "assigned_email": report["assigned_email"] if report else None,
                 "narrative": (edited or report["narrative"]) if report else None,
                 "original_narrative": report["narrative"] if (report and edited) else None,
                 "edited": edited is not None,
@@ -2048,17 +2076,25 @@ def _scoped_report(conn, report_id: int):
 
 @app.post("/reports/{report_id}/assign")
 def assign_report(report_id: int, payload: dict, user: CurrentUser = Depends(require_member)) -> dict:
-    """Assign a narrative to a reviewer (status → pending)."""
+    """Assign a narrative to a reviewer (status → pending) and email them a nudge."""
+    email = (payload.get("email") or "").strip() or None
     conn = get_connection()
     try:
         if _scoped_report(conn, report_id) is None:
             raise HTTPException(status_code=404, detail="Report not found")
-        review.assign(conn, report_id, payload.get("user_id"), payload.get("email"))
+        review.assign(conn, report_id, payload.get("user_id"), email)
+        row = conn.execute(
+            """SELECT m.name AS metric, gr.period FROM generated_reports gr
+               JOIN metrics m ON m.id = gr.metric_id WHERE gr.id = ?""",
+            (report_id,),
+        ).fetchone()
         audit.record(conn, "assign", "report", report_id, actor_id=user.id, actor_email=user.email,
-                     summary={"assigned_email": payload.get("email")})
-        return {"report_id": report_id, "review_status": "pending"}
+                     summary={"assigned_email": email})
     finally:
         conn.close()
+    if email and row:
+        _email_review_nudge_async(email, row["metric"], row["period"], user.email)
+    return {"report_id": report_id, "review_status": "pending", "assigned_email": email}
 
 
 @app.post("/reports/{report_id}/review")
@@ -2075,6 +2111,35 @@ def review_report(report_id: int, payload: dict, user: CurrentUser = Depends(req
         audit.record(conn, status, "report", report_id, actor_id=user.id, actor_email=user.email,
                      summary={"note": payload.get("note")})
         return {"report_id": report_id, "review_status": status}
+    finally:
+        conn.close()
+
+
+@app.get("/reports/review-queue")
+def review_queue(user: CurrentUser = Depends(require_read)) -> list[dict]:
+    """Narratives assigned to the current user that are still pending review, in
+    the active dataset — so opening one lands on its metric card. Drives the
+    review inbox and its unread badge."""
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        if ds is None:
+            return []
+        rows = conn.execute(
+            """SELECT gr.id AS report_id, m.name AS metric, gr.period,
+                      gr.review_status, gr.assigned_email, gr.narrative
+               FROM generated_reports gr
+               JOIN metrics m ON m.id = gr.metric_id
+               WHERE m.dataset_id = ? AND gr.review_status = 'pending'
+                 AND (gr.assigned_to = ? OR gr.assigned_email = ?)
+               ORDER BY gr.id DESC""",
+            (ds, user.id, user.email),
+        ).fetchall()
+        return [{
+            "report_id": r["report_id"], "metric": r["metric"], "period": r["period"],
+            "review_status": r["review_status"], "assigned_email": r["assigned_email"],
+            "preview": (r["narrative"] or "")[:160],
+        } for r in rows]
     finally:
         conn.close()
 
