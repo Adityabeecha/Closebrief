@@ -586,6 +586,7 @@
   .rq-main{min-width:0;flex:1}
   .rq-metric{font-size:14.5px;font-weight:800;color:var(--ink)}
   .rq-preview{font-size:12.5px;color:var(--mut);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rq-meta{font-size:11px;font-weight:700;color:var(--mut2);margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
   .rq-period{font-size:11.5px;font-weight:700;color:var(--mut2);flex:none}
   .rq-open{flex:none;color:var(--accent)}
   .nav-badge{margin-left:auto;background:var(--accent);color:var(--on-accent);font-size:10.5px;font-weight:800;min-width:18px;height:18px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px}
@@ -905,7 +906,7 @@
       <div class="head">
         <div>
           <h1>Review Queue</h1>
-          <div class="sub">Narratives assigned to you and awaiting your approval in this dataset</div>
+          <div class="sub">Narratives assigned to you and awaiting approval, across all your datasets</div>
         </div>
         <button class="btn" onclick="loadReview()">Refresh</button>
       </div>
@@ -1042,6 +1043,7 @@
           <select id="sch-kind" onchange="schKindFields()">
             <option value="digest">Scheduled digest</option>
             <option value="anomaly_scan">Anomaly scan</option>
+            <option value="board_pack">Board pack email</option>
           </select></div>
         <div><label class="lbl">Cadence</label>
           <select id="sch-cadence">
@@ -1049,6 +1051,8 @@
           </select></div>
         <div id="sch-topn-wrap"><label class="lbl">Digest size (top N movers)</label>
           <input id="sch-topn" type="number" min="1" max="20" value="5"></div>
+        <div id="sch-recip-wrap" style="display:none"><label class="lbl">Email recipients (comma-separated)</label>
+          <input id="sch-recip" type="text" placeholder="cfo@co.com, board@co.com"></div>
         <div class="ctx-full" style="text-align:right"><button class="btn primary" onclick="schCreate()">Add schedule</button></div>
       </div>
       <div id="sch-list"></div>
@@ -1976,19 +1980,25 @@ let _reviewItems=[];
 async function loadReview(){
   const box=$("rq-list");if(box)box.innerHTML='<div class="an-empty">Loading…</div>';
   let items=[];
-  try{items=await api("/reports/review-queue");}
+  try{items=await api("/reports/review-queue?all_datasets=true");}
   catch(e){if(box)box.innerHTML=`<div class="an-empty">${esc(errMsg(e))}</div>`;return;}
   _reviewItems=items;updateReviewBadge(items.length);
   if(!box)return;
-  if(!items.length){box.innerHTML='<div class="an-empty">Nothing awaiting your review in this dataset. Narratives assigned to you show up here.</div>';return;}
+  if(!items.length){box.innerHTML='<div class="an-empty">Nothing awaiting your review. Narratives assigned to you across your datasets show up here.</div>';return;}
   box.innerHTML=items.map((it,i)=>`<div class="rq-item" onclick="openReviewItem(${i})">
     <div class="rq-main"><div class="rq-metric">${esc(it.metric)}</div>
-    <div class="rq-preview">${esc(it.preview||"No preview")}</div></div>
+    <div class="rq-preview">${esc(it.preview||"No preview")}</div>
+    <div class="rq-meta">${esc(it.dataset_name||"")}</div></div>
     <span class="rq-period">${esc(it.period)}</span>
     <svg class="rq-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>`).join("");
 }
 async function openReviewItem(i){
   const it=_reviewItems[i];if(!it)return;
+  // Switch to the item's dataset first when it isn't the active one.
+  if(it.dataset_id!=null&&it.dataset_id!==activeDatasetId){
+    try{await api(`/datasets/${it.dataset_id}/activate`,{method:"POST"});await loadPeriods();}
+    catch(e){toast("Couldn't open: "+errMsg(e));return;}
+  }
   const sel=$("period-select");
   if(sel&&it.period&&sel.value!==it.period&&[...sel.options].some(o=>o.value===it.period)){sel.value=it.period;await loadFacts();}
   nav("dashboard");
@@ -2002,7 +2012,7 @@ function updateReviewBadge(n){
   if(n>0){b.textContent=n;b.style.display="";}else b.style.display="none";
 }
 async function refreshReviewBadge(){
-  try{updateReviewBadge((await api("/reports/review-queue")).length);}catch{}
+  try{updateReviewBadge((await api("/reports/review-queue?all_datasets=true")).length);}catch{}
 }
 async function toggleVersions(){
   const box=$("d-versions");
@@ -2048,11 +2058,11 @@ async function loadNotifications(){
   loadSchedules();
 }
 /* ---------- schedules (Phase 2+4) ---------- */
-function schKindFields(){$("sch-topn-wrap").style.display=$("sch-kind").value==="digest"?"":"none";}
+function schKindFields(){const k=$("sch-kind").value;$("sch-topn-wrap").style.display=k==="digest"?"":"none";$("sch-recip-wrap").style.display=k==="board_pack"?"":"none";}
 const CADENCE_LABEL={daily:"Daily",weekly:"Weekly",monthly:"Monthly"};
 async function loadSchedules(){
   let jobs;try{jobs=await api("/schedules");}catch{return;}   // admin-only; ignore if forbidden
-  const kindLabel={digest:"Scheduled digest",anomaly_scan:"Anomaly scan"};
+  const kindLabel={digest:"Scheduled digest",anomaly_scan:"Anomaly scan",board_pack:"Board pack email"};
   $("sch-list").innerHTML=jobs.length?jobs.map(j=>`
     <div class="card" style="margin-top:12px;flex-direction:row;align-items:center;gap:14px">
       <span class="nt-ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${j.kind==="digest"?'<path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/>':'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>'}</svg></span>
@@ -2070,6 +2080,10 @@ async function schCreate(){
   const kind=$("sch-kind").value,cadence=$("sch-cadence").value;
   const body={kind,cadence};
   if(kind==="digest")body.top_n=Math.max(1,Math.min(20,parseInt($("sch-topn").value)||5));
+  if(kind==="board_pack"){
+    body.recipients=($("sch-recip").value||"").split(",").map(s=>s.trim()).filter(Boolean);
+    if(!body.recipients.length){toast("Add at least one recipient email");return;}
+  }
   try{await api("/schedules",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
     toast("Schedule added");loadSchedules();
     let seen=false;try{seen=localStorage.getItem("cb-sched-hint")==="1";}catch{}

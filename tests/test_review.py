@@ -88,6 +88,11 @@ def test_review_queue_lists_pending_for_me_and_clears_on_review(client):
     q = client.get("/reports/review-queue").json()
     assert len(q) == 1 and q[0]["report_id"] == rid and q[0]["metric"] == "Rev"
     assert q[0]["review_status"] == "pending" and q[0]["preview"]
+    assert q[0]["dataset_id"] is not None and q[0]["dataset_name"]
+    # The workspace-wide view returns it too (carries its dataset).
+    assert any(it["report_id"] == rid for it in
+               client.get("/reports/review-queue?all_datasets=true").json())
     # Approving (or requesting changes) removes it from the pending queue.
     client.post(f"/reports/{rid}/review", json={"status": "approved"})
     assert client.get("/reports/review-queue").json() == []
+    assert client.get("/reports/review-queue?all_datasets=true").json() == []
