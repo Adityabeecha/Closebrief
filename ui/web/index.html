@@ -577,6 +577,18 @@
   .ver-head .when{font-weight:500;color:var(--mut2)}
   .ver-diff{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;line-height:1.5;white-space:pre-wrap;margin-top:6px;background:var(--bg2);border-radius:8px;padding:9px 11px;overflow-x:auto}
   .ver-diff .add{color:var(--green2)} .ver-diff .del{color:var(--red)}
+  .rev-assigned{font-size:12px;color:var(--mut);font-weight:600}
+  .assign-row{display:flex;gap:8px;align-items:center;margin:2px 0 8px}
+  .assign-row .modal-field{max-width:280px}
+  /* Review queue */
+  .rq-item{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--b08);border-radius:12px;background:var(--card);margin-bottom:10px;cursor:pointer;transition:border-color .12s}
+  .rq-item:hover{border-color:var(--accent)}
+  .rq-main{min-width:0;flex:1}
+  .rq-metric{font-size:14.5px;font-weight:800;color:var(--ink)}
+  .rq-preview{font-size:12.5px;color:var(--mut);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .rq-period{font-size:11.5px;font-weight:700;color:var(--mut2);flex:none}
+  .rq-open{flex:none;color:var(--accent)}
+  .nav-badge{margin-left:auto;background:var(--accent);color:var(--on-accent);font-size:10.5px;font-weight:800;min-width:18px;height:18px;border-radius:9px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px}
 </style>
 </head>
 <body>
@@ -659,6 +671,8 @@
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Context Library</button>
       <button class="nav-item" data-view="analytics" onclick="nav('analytics')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>Advanced Analytics</button>
+      <button class="nav-item write-hide" data-view="review" onclick="nav('review')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Review Queue<span class="nav-badge" id="review-badge" style="display:none">0</span></button>
       <button class="nav-item exec-hide" data-view="import" onclick="nav('import')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>Import &amp; Mapping</button>
       <button class="nav-item admin-only" data-view="costs" onclick="nav('costs')">
@@ -770,9 +784,16 @@
           <h3>Narrative</h3><div class="psub" id="d-narr-meta"></div>
           <div class="rev-strip" id="d-rev-strip" style="display:none">
             <span class="rev-badge none" id="d-rev-badge">Not reviewed</span>
+            <span id="d-assigned" class="rev-assigned"></span>
             <button class="btn sm write-hide" onclick="reviewReport('approved')">Approve</button>
             <button class="btn sm write-hide" onclick="reviewReport('changes_requested')">Request changes</button>
+            <button class="btn sm write-hide" id="d-assign-btn" onclick="toggleAssign()">Assign reviewer</button>
             <button class="btn sm" id="d-ver-btn" onclick="toggleVersions()">History</button>
+          </div>
+          <div class="assign-row" id="d-assign-row" style="display:none">
+            <input id="d-assign-email" class="modal-field" list="ws-members" placeholder="reviewer@company.com" aria-label="Reviewer email">
+            <datalist id="ws-members"></datalist>
+            <button class="btn sm primary" onclick="assignReviewer()">Send</button>
           </div>
           <div id="d-versions" style="display:none;margin:4px 0 10px"></div>
           <div class="narr" id="d-narr"></div>
@@ -862,6 +883,18 @@
         </div>
 
       </div>
+    </section>
+
+    <!-- ---------- REVIEW QUEUE ---------- -->
+    <section id="v-review" class="wrap" style="display:none">
+      <div class="head">
+        <div>
+          <h1>Review Queue</h1>
+          <div class="sub">Narratives assigned to you and awaiting your approval in this dataset</div>
+        </div>
+        <button class="btn" onclick="loadReview()">Refresh</button>
+      </div>
+      <div id="rq-list"><div class="an-empty">Loading…</div></div>
     </section>
 
     <!-- ---------- DIGEST ---------- -->
@@ -1525,12 +1558,13 @@ function toggleCollapse(){
 try{if(localStorage.getItem("cb-side-collapsed")==="1")document.body.classList.add("side-collapsed");}catch{}
 function nav(v){
   closeSidebar();   // dismiss the mobile drawer on navigation
-  for(const s of["dashboard","detail","digest","context","analytics","import","costs","notifications","admin"])$("v-"+s).style.display=s===v?"":"none";
-  for(const s of["dashboard","digest","context","analytics","import","costs","notifications","admin"])
+  for(const s of["dashboard","detail","digest","context","analytics","review","import","costs","notifications","admin"])$("v-"+s).style.display=s===v?"":"none";
+  for(const s of["dashboard","digest","context","analytics","review","import","costs","notifications","admin"])
     document.querySelector(`[data-view=${s}]`)?.classList.toggle("active",s===v||(v==="detail"&&s==="dashboard"));
   if(v!=="detail"&&location.hash!=="#"+v)history.replaceState(null,"","#"+v);
   if(v==="context")loadContext();
   if(v==="analytics")loadAnalytics();
+  if(v==="review")loadReview();
   if(v==="digest")loadDigest(false);
   if(v==="costs")loadCosts();
   if(v==="notifications")loadNotifications();
@@ -1805,11 +1839,13 @@ async function loadCrossDomain(){
 /* ---- Collaborative review (detail view) ---- */
 function renderReviewStrip(f){
   const strip=$("d-rev-strip");if(!strip)return;
-  if(!f||!f.report_id){strip.style.display="none";$("d-versions").style.display="none";return;}
+  if(!f||!f.report_id){strip.style.display="none";$("d-versions").style.display="none";$("d-assign-row").style.display="none";return;}
   strip.style.display="";
   const st=f.review_status||"none",badge=$("d-rev-badge");
   badge.className="rev-badge "+st;
   badge.textContent=({pending:"Pending review",approved:"Approved",changes_requested:"Changes requested"})[st]||"Not reviewed";
+  $("d-assigned").textContent=f.assigned_email?("· "+f.assigned_email):"";
+  $("d-assign-row").style.display="none";
   const vb=$("d-versions");vb.style.display="none";vb.innerHTML="";$("d-ver-btn").textContent="History";
 }
 async function reviewReport(status){
@@ -1819,7 +1855,67 @@ async function reviewReport(status){
     detailFact.review_status=status;renderReviewStrip(detailFact);
     const cf=(currentFacts||[]).find(x=>x.report_id===detailFact.report_id);if(cf)cf.review_status=status;
     toast(status==="approved"?"Narrative approved":"Changes requested");
+    refreshReviewBadge();
   }catch(e){toast("Failed: "+e.message);}
+}
+/* ---- Reviewer assignment + review queue (v5.2) ---- */
+async function loadWsMembers(){
+  const dl=$("ws-members");if(!dl)return;
+  if(activeWorkspaceId==null){dl.innerHTML="";return;}
+  try{
+    const ms=await api(`/workspaces/${activeWorkspaceId}/members`);
+    dl.innerHTML=(ms||[]).filter(m=>m.email).map(m=>`<option value="${esc(m.email)}">${esc(m.role||"")}</option>`).join("");
+  }catch{dl.innerHTML="";}
+}
+function toggleAssign(){
+  const row=$("d-assign-row"),show=row.style.display==="none";
+  row.style.display=show?"flex":"none";
+  if(show){loadWsMembers();$("d-assign-email").focus();}
+}
+async function assignReviewer(){
+  if(!detailFact||!detailFact.report_id)return;
+  const email=$("d-assign-email").value.trim();
+  if(!email){toast("Enter a reviewer email");return;}
+  try{
+    await api(`/reports/${detailFact.report_id}/assign`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email})});
+    detailFact.review_status="pending";detailFact.assigned_email=email;
+    const cf=(currentFacts||[]).find(x=>x.report_id===detailFact.report_id);if(cf){cf.review_status="pending";cf.assigned_email=email;}
+    renderReviewStrip(detailFact);$("d-assign-email").value="";
+    toast("Assigned to "+email+" — they’ve been emailed");
+    refreshReviewBadge();
+  }catch(e){toast("Assign failed: "+e.message);}
+}
+let _reviewItems=[];
+async function loadReview(){
+  const box=$("rq-list");if(box)box.innerHTML='<div class="an-empty">Loading…</div>';
+  let items=[];
+  try{items=await api("/reports/review-queue");}
+  catch(e){if(box)box.innerHTML=`<div class="an-empty">${esc(e.message)}</div>`;return;}
+  _reviewItems=items;updateReviewBadge(items.length);
+  if(!box)return;
+  if(!items.length){box.innerHTML='<div class="an-empty">Nothing awaiting your review in this dataset. Narratives assigned to you show up here.</div>';return;}
+  box.innerHTML=items.map((it,i)=>`<div class="rq-item" onclick="openReviewItem(${i})">
+    <div class="rq-main"><div class="rq-metric">${esc(it.metric)}</div>
+    <div class="rq-preview">${esc(it.preview||"No preview")}</div></div>
+    <span class="rq-period">${esc(it.period)}</span>
+    <svg class="rq-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>`).join("");
+}
+async function openReviewItem(i){
+  const it=_reviewItems[i];if(!it)return;
+  const sel=$("period-select");
+  if(sel&&it.period&&sel.value!==it.period&&[...sel.options].some(o=>o.value===it.period)){sel.value=it.period;await loadFacts();}
+  nav("dashboard");
+  const f=(currentFacts||[]).find(x=>x.metric===it.metric&&x.has_data);
+  if(!f){toast("Couldn’t open this metric on the current board");return;}
+  const idx=shownFacts.indexOf(f);
+  if(idx>=0)openDetail(idx);else{searchQuery="";renderCards();openDetail(shownFacts.indexOf(f));}
+}
+function updateReviewBadge(n){
+  const b=$("review-badge");if(!b)return;
+  if(n>0){b.textContent=n;b.style.display="";}else b.style.display="none";
+}
+async function refreshReviewBadge(){
+  try{updateReviewBadge((await api("/reports/review-queue")).length);}catch{}
 }
 async function toggleVersions(){
   const box=$("d-versions");
@@ -2145,7 +2241,7 @@ async function loadFacts(){
       <div style="margin:12px 0 4px;font-weight:700;color:var(--ink2)">Couldn't load KPIs</div>
       <div style="font-size:12.5px;margin-bottom:16px">${esc(e.message||"Something went wrong.")}</div>
       <button class="btn primary" onclick="loadFacts()">Retry</button></div>`;
-  }finally{$("dash-loading").style.display="none";}
+  }finally{$("dash-loading").style.display="none";refreshReviewBadge();}
 }
 function setFreshness(){
   const el=$("dash-fresh");if(!el)return;
