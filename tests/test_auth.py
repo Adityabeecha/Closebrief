@@ -80,6 +80,19 @@ def test_unauthenticated_request_rejected(make_client):
     assert c.get("/facts?period=2025-01").status_code == 401
 
 
+def test_app_shell_and_its_script_are_public(make_client):
+    """The SPA shell AND its script must load before login. A browser cannot put
+    a bearer token on <script src>, so gating /app.js 401s the whole frontend
+    (regression: /app.js was split out of index.html without being allowlisted)."""
+    c = make_client(auth_on=True)
+    assert c.get("/").status_code == 200
+    r = c.get("/app.js")
+    assert r.status_code == 200, "/app.js must be reachable pre-login"
+    assert "javascript" in r.headers["content-type"]
+    # ...while real data endpoints stay gated.
+    assert c.get("/facts?period=2025-01").status_code == 401
+
+
 def test_per_workspace_admin_enforced(make_client):
     """v4.0 follow-up: workspace-scoped admin actions are gated by the caller's
     MEMBERSHIP role in the active workspace, not their global role."""

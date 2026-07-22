@@ -166,7 +166,9 @@ from app.services import log_llm_call as _log_llm_call  # noqa: E402
 
 # Paths reachable without a token: the app shell, health, the public auth config
 # the frontend needs to boot the login form, and the API docs.
-_OPEN_PATHS = {"/", "/health", "/auth/config", "/openapi.json", "/docs", "/redoc"}
+# /app.js is the shell's own script (split out of index.html): a browser cannot
+# attach a bearer token to <script src>, so gating it 401s the entire frontend.
+_OPEN_PATHS = {"/", "/app.js", "/health", "/auth/config", "/openapi.json", "/docs", "/redoc"}
 
 
 
