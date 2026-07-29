@@ -41,6 +41,11 @@ ANONYMOUS_ADMIN = CurrentUser(id="00000000-0000-0000-0000-000000000000",
 # every write is rejected by the normal role guards (403), not the auth gate.
 DEMO_USER = CurrentUser(id="00000000-0000-0000-0000-0000000000de",
                         email="demo@closebrief.app", role="viewer")
+# Optional login (ALLOW_GUEST): an unauthenticated visitor gets the lowest role.
+# The id is a NULL-ish sentinel so nothing that writes an author id silently
+# attributes it to a real user; writes are rejected by the role guards anyway.
+GUEST_USER = CurrentUser(id="00000000-0000-0000-0000-00000000949e",
+                         email="", role="viewer")
 
 # ---- JWKS cache (asymmetric keys), refreshed hourly ----
 _jwks_client: Optional["jwt.PyJWKClient"] = None
@@ -62,13 +67,40 @@ def _jwks() -> "jwt.PyJWKClient":
     return _jwks_client
 
 
+def _try_decode_session(token: str) -> dict | None:
+    """Decode a Closebrief-issued session token (Google sign-in), or None if this
+    isn't one. Verified with our own secret — a Supabase token simply won't
+    validate here and falls through to the Supabase paths below."""
+    from app.config import session_secret
+
+    secret = session_secret()
+    if not secret:
+        return None
+    try:
+        claims = jwt.decode(token, secret, algorithms=["HS256"], audience="authenticated",
+                            options={"verify_aud": True, "verify_exp": True})
+    except jwt.ExpiredSignatureError:
+        raise                      # a genuinely expired session -> 401 "Token expired"
+    except Exception:  # noqa: BLE001 - not ours (e.g. a Supabase HS256 token)
+        return None
+    # Only tokens we minted carry this issuer; anything else is Supabase's.
+    return claims if claims.get("iss") == "closebrief" else None
+
+
 def _decode_token(token: str) -> dict:
     """Validate signature + expiry, return the claims. Raises on any failure.
 
     The algorithm is chosen from the token's own header: Supabase projects sign
     with HS256 (legacy shared secret) OR ES256/RS256 (asymmetric, validated via
-    JWKS). We support both so it works regardless of the project's key setting."""
+    JWKS). We support both so it works regardless of the project's key setting.
+    Closebrief's own session tokens (issued to Google users) are also HS256 and
+    are tried first, distinguished by their `iss`."""
     alg = jwt.get_unverified_header(token).get("alg", "")
+
+    if alg == "HS256":
+        claims = _try_decode_session(token)
+        if claims is not None:
+            return claims
 
     if alg == "HS256" and settings.supabase_jwt_secret:
         return jwt.decode(
@@ -139,6 +171,11 @@ def authenticate(request: Request) -> CurrentUser:
         # read-only viewer identity (scoped to the demo dataset by the caller).
         if settings.demo_mode and request.headers.get("x-closebrief-demo") == "1":
             return DEMO_USER
+        # Optional login: no token at all -> read-only guest. Note this is only
+        # for a MISSING token; an invalid one still 401s below (a bad token is an
+        # error, not an anonymous visit).
+        if settings.allow_guest:
+            return GUEST_USER
         raise HTTPException(status_code=401, detail="Missing bearer token")
     token = header[7:].strip()
 
