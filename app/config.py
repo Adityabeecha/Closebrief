@@ -70,6 +70,25 @@ class Settings(BaseSettings):
     supabase_jwt_secret: str = ""     # HS256 shared secret (Settings -> API -> JWT)
     auth_enabled: bool = True         # False -> bypass auth even if supabase_url set
 
+    # --- Google Sign-In (v5.6, optional) ---
+    # OAuth client id. Empty = Google sign-in disabled entirely (the frontend
+    # never even loads Google's script). Safe to expose — it's built for the page.
+    google_client_id: str = ""
+    # Role a brand-new Google user gets. COST WARNING: anyone with a Google
+    # account can sign in, and LLM endpoints spend money — default to the lowest
+    # role ("viewer") so a new self-service user can read but not spend.
+    google_default_role: str = "viewer"
+    # Comma-separated allowlist of emails that are (re)granted admin on Google
+    # sign-in. Compared case-insensitively.
+    google_admin_emails: str = ""
+    # Secret used to sign Closebrief's own session tokens (issued to Google
+    # users, who have no Supabase session). Falls back to the Supabase HS256
+    # secret so a Supabase deploy needs no new secret; empty = Google login off.
+    session_jwt_secret: str = ""
+    # Let unauthenticated visitors use the app read-only (lowest role). Keeps the
+    # app usable without signing in. Independent of demo_mode's sample data.
+    allow_guest: bool = False
+
     # --- Demo mode (v2.9) ---
     # True -> seed a sample FP&A dataset at startup and let unauthenticated
     # visitors browse read-only (role "executive"). For portfolio/demo deploys.
@@ -104,10 +123,27 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
+def session_secret() -> str:
+    """Key for signing Closebrief's own session tokens (issued to Google users).
+    Falls back to the Supabase HS256 secret so an existing deploy needs no new
+    config. Empty -> we cannot mint or verify sessions, so Google login is off."""
+    return settings.session_jwt_secret or settings.supabase_jwt_secret
+
+
+def google_enabled() -> bool:
+    """Google sign-in requires a client id (to verify `aud`) AND a session
+    secret (to issue our own token). Missing either -> the feature is off and the
+    frontend never contacts Google at all."""
+    return bool(settings.google_client_id) and bool(session_secret())
+
+
 def auth_active() -> bool:
-    """Auth is enforced only when it's enabled AND a Supabase project is
-    configured. Absent SUPABASE_URL (tests, local dev), it stays bypassed."""
-    return settings.auth_enabled and bool(settings.supabase_url)
+    """Auth is enforced when it's enabled AND at least one identity provider is
+    configured. Absent both (tests, local dev), it stays bypassed.
+
+    Google counts as a provider: a Google-only deploy must still enforce auth,
+    otherwise every request would fall through to the anonymous-admin bypass."""
+    return settings.auth_enabled and (bool(settings.supabase_url) or google_enabled())
 
 
 def resolved_vector_backend() -> str:

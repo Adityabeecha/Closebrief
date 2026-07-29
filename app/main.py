@@ -34,7 +34,7 @@ from app.compute.formula import FormulaError
 from app.compute.funnel import compute_funnel
 from app.compute.kpis import compute_and_store
 from app.compute.pvm import bridge_for_metric_row
-from app.config import auth_active, resolved_vector_backend, settings
+from app.config import auth_active, google_enabled, resolved_vector_backend, settings
 from app.context.conflicts import find_conflicts
 from app.context.store import ContextStore
 from app.datasets import (
@@ -62,6 +62,7 @@ from app.generation.prompts import (
     build_funnel_prompt,
 )
 from app.generation.qa import answer_question
+from app.google_auth import GoogleAuthError, sign_in_with_google
 from app.grounding import attribute
 from app.ingestion.ingest import IngestValidationError, ingest_dataframe, parse_csv
 from app.ingestion.mapping import MappingError, MappingSpec, normalize, store_normalized
@@ -168,7 +169,7 @@ from app.services import log_llm_call as _log_llm_call  # noqa: E402
 # the frontend needs to boot the login form, and the API docs.
 # /app.js is the shell's own script (split out of index.html): a browser cannot
 # attach a bearer token to <script src>, so gating it 401s the entire frontend.
-_OPEN_PATHS = {"/", "/app.js", "/health", "/auth/config", "/openapi.json", "/docs", "/redoc"}
+_OPEN_PATHS = {"/", "/app.js", "/health", "/auth/config", "/auth/google", "/openapi.json", "/docs", "/redoc"}
 
 
 
@@ -281,7 +282,40 @@ def auth_config() -> dict:
         "sentry_dsn": settings.sentry_dsn,
         "environment": settings.environment,
         "demo_enabled": settings.demo_mode,
+        # Google sign-in (optional). The client id is designed to be embedded in
+        # a web page, so exposing it is safe. Empty + google_enabled false means
+        # the frontend never loads Google's script at all.
+        "google_client_id": settings.google_client_id if google_enabled() else "",
+        "google_enabled": google_enabled(),
+        "allow_guest": settings.allow_guest,
+        "auth_required": auth_active() and not settings.allow_guest,
     }
+
+
+@app.post("/auth/google")
+def auth_google(payload: dict, request: Request) -> dict:
+    """Exchange a Google ID token for a Closebrief session token.
+
+    Open (the caller has no token yet) and rate-limited by the telemetry
+    middleware. The credential is attacker-supplied: every failure path returns
+    401 with a readable reason, never a stack trace."""
+    if not google_enabled():
+        raise HTTPException(status_code=401,
+                            detail="Google sign-in is not configured on this server")
+    credential = (payload or {}).get("credential")
+    try:
+        result = sign_in_with_google(credential)
+    except GoogleAuthError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    conn = get_connection()
+    try:
+        audit.record(conn, "login", "user", result["email"], actor_email=result["email"],
+                     summary={"provider": "google", "role": result["role"]})
+    except Exception:  # noqa: BLE001 - audit must never block a successful login
+        pass
+    finally:
+        conn.close()
+    return result
 
 
 def _percentile(values: list[float], pct: float) -> float:

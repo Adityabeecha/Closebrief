@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS app_roles (
     user_id UUID PRIMARY KEY,
     email TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'analyst'
-        CHECK (role IN ('analyst', 'executive', 'admin')),
+        CHECK (role IN ('viewer', 'analyst', 'executive', 'admin')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

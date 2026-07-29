@@ -416,6 +416,12 @@
   .lg-toggle{margin-top:18px;text-align:center;font-size:13px;color:var(--mut)}
   .lg-toggle a{color:var(--accent);font-weight:700;cursor:pointer}
   .lg-err{background:var(--red-bg);color:var(--red);border:1px solid #e0b4ae;border-radius:9px;padding:10px 12px;font-size:12.5px;font-weight:600;margin-bottom:16px;display:none}
+  /* Google sign-in: "or" rule, and a slot that reserves the iframe's height so
+     the form doesn't jump when Google paints its button. */
+  .lg-or{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--mut2);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+  .lg-or::before,.lg-or::after{content:"";flex:1;height:1px;background:var(--b12)}
+  .g-btn-slot{min-height:44px;display:flex;justify-content:center}
+  .lg-note{font-size:12px;color:var(--mut);margin-top:10px;line-height:1.5}
 
   /* role badge + admin */
   .role-badge{font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:5px;background:var(--accent-bg);color:var(--accent)}
@@ -626,7 +632,18 @@
     <div class="lg-field"><label>Work email</label><input id="lg-email" type="email" placeholder="you@company.com" onkeydown="if(event.key==='Enter')submitAuth()"></div>
     <div class="lg-field"><label>Password</label><input id="lg-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')submitAuth()"></div>
     <button class="lg-btn" id="lg-btn" onclick="submitAuth()">Sign in</button>
+    <!-- Google Sign-In (optional). Hidden unless /auth/config says it's enabled;
+         Google renders its own button inside #g-btn (their branding rules), and
+         the wrapper reserves its height so the form doesn't jump as it paints. -->
+    <div id="g-wrap" style="display:none">
+      <div class="lg-or"><span>or</span></div>
+      <div id="g-btn" class="g-btn-slot"></div>
+      <div class="lg-note" id="g-note" style="display:none">
+        Google sign-in couldn’t load (an ad blocker may be blocking it). Use your email and password above.
+      </div>
+    </div>
     <div class="lg-toggle" id="lg-toggle">Need an account? <a onclick="toggleAuthMode()">Sign up</a></div>
+    <button id="lg-guest" style="display:none;margin-top:12px;width:100%;padding:11px;border-radius:10px;border:1px solid var(--b12);background:none;color:var(--ink3);font-weight:700;font-size:13px" onclick="continueAsGuest()">Continue without signing in</button>
     <button id="lg-demo" style="display:none;margin-top:14px;width:100%;padding:11px;border-radius:10px;border:1.5px dashed var(--accent);background:var(--accent-bg);color:var(--accent);font-weight:700;font-size:13.5px" onclick="enterDemo()">Explore the live demo — no account needed</button>
   </div>
 </div>

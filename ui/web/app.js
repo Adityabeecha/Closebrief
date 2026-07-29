@@ -363,6 +363,9 @@ async function api(path,opts,_retried){
         }
       }catch{}
     }
+    // A Closebrief (Google) session has no refresh flow — drop the stale token so
+    // the next boot shows the login screen instead of retrying it forever.
+    storeSessionToken(null);
     showLogin();throw new Error("Session expired — please sign in");
   }
   if(!r.ok&&r.status!==503){let d=r.statusText;try{d=(await r.json()).detail||d;}catch{}throw new Error(d);}
@@ -475,11 +478,20 @@ async function boot(){
   appCfg=cfg;
   initSentry(cfg);
   if(cfg.demo_enabled){const b=$("lg-demo");if(b)b.style.display="";}
+  if(cfg.allow_guest){const g=$("lg-guest");if(g)g.style.display="";}
   if(!cfg.auth_enabled){startApp();return;}                    // local-dev bypass
+  // A Closebrief session (Google sign-in) survives reloads and needs no Supabase.
+  const saved=savedSessionToken();
+  if(saved){authToken=saved;hideLogin();appStarted=true;await startApp();return;}
+  if(cfg.google_enabled)initGoogleSignIn(cfg.google_client_id);
   if(!window.supabase||!window.supabase.createClient){
     showLogin();
-    const err=$("lg-err");
-    if(err){err.textContent="Auth library failed to load (/vendor/supabase.js). Refresh the page.";err.style.display="block";}
+    // Without Supabase, email/password is unavailable — but Google (if enabled)
+    // still works, so only hard-fail when there's no other way in.
+    if(!cfg.google_enabled){
+      const err=$("lg-err");
+      if(err){err.textContent="Auth library failed to load (/vendor/supabase.js). Refresh the page.";err.style.display="block";}
+    }
     return;
   }
   sb=window.supabase.createClient(cfg.supabase_url,cfg.supabase_anon_key);
@@ -496,6 +508,113 @@ async function boot(){
   }
   if(session&&session.access_token)onSession(session); else showLogin();
 }
+/* ================= Google Sign-In (v5.6, optional) =================
+   Loaded ON DEMAND: a deployment without a client id never contacts Google. */
+const GIS_SRC="https://accounts.google.com/gsi/client";
+const SESSION_KEY="cb-session-token";
+let _gisPromise=null;           // dedupes the script load across callers
+// The credential callback lives in a holder (a "ref"), not captured directly by
+// Google's init: a stale closure means the credential arrives and nothing happens.
+const _gCallback={fn:null};
+
+function savedSessionToken(){
+  try{return localStorage.getItem(SESSION_KEY)||null;}catch{return null;}
+}
+function storeSessionToken(t){
+  try{t?localStorage.setItem(SESSION_KEY,t):localStorage.removeItem(SESSION_KEY);}catch{}
+}
+
+function loadGisScript(){
+  if(_gisPromise)return _gisPromise;                 // one fetch, however many callers
+  _gisPromise=new Promise((resolve,reject)=>{
+    if(window.google&&window.google.accounts&&window.google.accounts.id)return resolve();
+    const s=document.createElement("script");
+    s.src=GIS_SRC;s.async=true;s.defer=true;
+    s.onload=()=>resolve();
+    // Ad blockers and privacy extensions block this host. That must degrade to
+    // "no button, use email/password" — never a broken screen.
+    s.onerror=()=>reject(new Error("blocked"));
+    document.head.appendChild(s);
+  });
+  return _gisPromise;
+}
+
+async function initGoogleSignIn(clientId){
+  if(!clientId)return;                                // no client id -> never call Google
+  const wrap=$("g-wrap");if(wrap)wrap.style.display="";
+  _gCallback.fn=onGoogleCredential;
+  try{await loadGisScript();}
+  catch{ showGoogleFallback(); return; }
+  try{
+    google.accounts.id.initialize({
+      client_id:clientId,
+      // Indirect through the holder so the callback is never stale.
+      callback:(resp)=>{ if(_gCallback.fn)_gCallback.fn(resp); },
+      cancel_on_tap_outside:true,
+    });
+    renderGoogleButton();
+    // Google renders into a fixed-width iframe, so CSS can't stretch it: remeasure
+    // and redraw on resize. _gRedrawing guards the observer-feedback loop where our
+    // own redraw resizes the slot and re-triggers the observer.
+    if(window.ResizeObserver&&!window._gRO){
+      window._gRO=new ResizeObserver(()=>{
+        if(window._gRedrawing)return;
+        clearTimeout(window._gRedrawT);
+        window._gRedrawT=setTimeout(renderGoogleButton,150);
+      });
+      const slot=$("g-btn");if(slot)window._gRO.observe(slot);
+    }
+  }catch{ showGoogleFallback(); }
+}
+
+function renderGoogleButton(){
+  const slot=$("g-btn");
+  if(!slot||!window.google||!google.accounts||!google.accounts.id)return;
+  window._gRedrawing=true;
+  try{
+    // Google clamps the width to 200–400px; pass an explicit pixel value measured
+    // from the container (CSS cannot resize their iframe).
+    const w=Math.max(200,Math.min(400,Math.round(slot.getBoundingClientRect().width||320)));
+    slot.innerHTML="";
+    google.accounts.id.renderButton(slot,{
+      type:"standard",theme:document.documentElement.getAttribute("data-theme")==="dark"?"filled_black":"outline",
+      size:"large",text:"signin_with",shape:"rectangular",logo_alignment:"left",width:w,
+    });
+  }catch{ showGoogleFallback(); }
+  finally{ setTimeout(()=>{window._gRedrawing=false;},0); }
+}
+
+function showGoogleFallback(){
+  const slot=$("g-btn"),note=$("g-note");
+  if(slot)slot.style.display="none";
+  if(note)note.style.display="";
+}
+
+async function onGoogleCredential(resp){
+  const err=$("lg-err");
+  if(!resp||!resp.credential){if(err){err.textContent="Google sign-in returned no credential.";err.style.display="block";}return;}
+  if(err)err.style.display="none";
+  try{
+    const r=await fetch("/auth/google",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({credential:resp.credential})});
+    const body=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(body.detail||"Google sign-in failed");
+    // We store OUR token, never Google's credential.
+    authToken=body.token;storeSessionToken(body.token);
+    hideLogin();
+    if(!appStarted){appStarted=true;await startApp();}
+  }catch(e){
+    if(err){err.textContent=e.message||"Google sign-in failed.";err.style.display="block";}
+  }
+}
+
+function continueAsGuest(){
+  // Guest = simply no token; the server grants the lowest role when ALLOW_GUEST is on.
+  authToken=null;storeSessionToken(null);
+  hideLogin();
+  if(!appStarted){appStarted=true;startApp();}
+}
+
 function showLogin(){$("login-gate").classList.add("show");$("app-root").style.display="none";}
 function hideLogin(){$("login-gate").classList.remove("show");$("app-root").style.display="flex";}
 function toggleAuthMode(){
@@ -527,7 +646,14 @@ async function onSession(session){
   appStarted=true;
   await startApp();
 }
-async function signOut(){ appStarted=false; if(sb)await sb.auth.signOut(); authToken=null; location.reload(); }
+async function signOut(){
+  appStarted=false;
+  storeSessionToken(null);          // clear a Closebrief (Google) session too
+  if(window.google&&google.accounts&&google.accounts.id){try{google.accounts.id.disableAutoSelect();}catch{}}
+  if(sb)await sb.auth.signOut();
+  authToken=null;
+  location.reload();
+}
 async function startApp(){
   if(authToken){
     try{currentUser=await api("/me");}catch{currentUser={email:"user",role:"analyst"};}
