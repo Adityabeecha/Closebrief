@@ -393,7 +393,7 @@
 
   /* ---------------- LOGIN GATE ---------------- */
   /* Login gate is always its own dark-left/light-right design, independent of app theme. */
-  #login-gate{position:fixed;inset:0;z-index:100;display:none;background:#101613;color:#fff;--ink:#16211b;--ink2:#33413a;--ink3:#48564e;--mut:#5c6a62;--mut2:#75837a;--b12:rgba(22,33,27,.14);--accent:#1e6e50;--accent-bg:#e9f3ee;--card:#fff}
+  #login-gate{position:fixed;inset:0;z-index:100;display:none;background:#101613;color:#fff;--ink:#e9eee9;--ink2:#d4dcd5;--ink3:#b4bfb6;--mut:#93a096;--mut2:#7d8a80;--b12:rgba(233,238,233,.14);--accent:#4fae83;--accent-hi:#6cc49b;--accent-bg:rgba(79,174,131,.15);--card:#171f1a;--red:#e57373;--red-bg:rgba(229,115,115,.13)}
   #login-gate.show{display:flex}
   .lg-left{flex:1;padding:56px 60px;display:flex;flex-direction:column;justify-content:center;background:linear-gradient(160deg,#101613,#1a251e)}
   .lg-left .brand{margin-bottom:auto}
@@ -404,18 +404,19 @@
   .lg-left li{display:flex;align-items:center;gap:10px;font-size:14px;color:#c8d2c8}
   .lg-left li svg{width:18px;height:18px;stroke:#4fae83;flex:none}
   .lg-foot{margin-top:auto;color:#74816f;font-size:12px;padding-top:30px}
-  .lg-right{width:460px;background:#fff;color:var(--ink);display:flex;flex-direction:column;justify-content:center;padding:0 56px}
+  .lg-right{width:460px;background:#151d18;color:var(--ink);display:flex;flex-direction:column;justify-content:center;padding:0 56px;border-left:1px solid rgba(233,238,233,.08)}
   .lg-right h3{font-size:22px;font-weight:800;letter-spacing:-.01em}
   .lg-right .psub{color:var(--mut);font-size:13.5px;margin:4px 0 26px}
   .lg-field{margin-bottom:16px}
   .lg-field label{font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:6px}
-  .lg-field input{width:100%;padding:11px 13px;border:1px solid var(--b12);border-radius:9px;font-size:14px}
+  .lg-field input{width:100%;padding:11px 13px;border:1px solid var(--b12);border-radius:9px;font-size:14px;background:#101613;color:var(--ink)}
+  .lg-field input::placeholder{color:var(--mut2)}
   .lg-field input:focus{outline:none;border-color:var(--accent)}
   .lg-btn{width:100%;padding:12px;border-radius:9px;background:var(--accent);color:#fff;border:none;font-weight:700;font-size:14px;box-shadow:0 2px 6px rgba(30,110,80,.3)}
   .lg-btn:hover{background:var(--accent-hi)}
   .lg-toggle{margin-top:18px;text-align:center;font-size:13px;color:var(--mut)}
   .lg-toggle a{color:var(--accent);font-weight:700;cursor:pointer}
-  .lg-err{background:var(--red-bg);color:var(--red);border:1px solid #e0b4ae;border-radius:9px;padding:10px 12px;font-size:12.5px;font-weight:600;margin-bottom:16px;display:none}
+  .lg-err{background:var(--red-bg);color:var(--red);border:1px solid rgba(229,115,115,.4);border-radius:9px;padding:10px 12px;font-size:12.5px;font-weight:600;margin-bottom:16px;display:none}
   /* Google sign-in: "or" rule, and a slot that reserves the iframe's height so
      the form doesn't jump when Google paints its button. */
   .lg-or{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--mut2);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
@@ -644,7 +645,8 @@
     </div>
     <div class="lg-toggle" id="lg-toggle">Need an account? <a onclick="toggleAuthMode()">Sign up</a></div>
     <button id="lg-guest" style="display:none;margin-top:12px;width:100%;padding:11px;border-radius:10px;border:1px solid var(--b12);background:none;color:var(--ink3);font-weight:700;font-size:13px" onclick="continueAsGuest()">Continue without signing in</button>
-    <button id="lg-demo" style="display:none;margin-top:14px;width:100%;padding:11px;border-radius:10px;border:1.5px dashed var(--accent);background:var(--accent-bg);color:var(--accent);font-weight:700;font-size:13.5px" onclick="enterDemo()">Explore the live demo — no account needed</button>
+    <button id="lg-demo" style="display:none;margin-top:14px;width:100%;padding:11px;border-radius:10px;border:1.5px dashed var(--accent);background:var(--accent-bg);color:var(--accent);font-weight:700;font-size:13.5px" onclick="enterDemo()">Demo</button>
+    <div id="lg-demo-note" style="display:none;margin-top:8px;text-align:center;font-size:12px;color:var(--mut);line-height:1.5">Explore sample data — no account needed. Sign up to add your own.</div>
   </div>
 </div>
 
