@@ -478,7 +478,6 @@ async function boot(){
   appCfg=cfg;
   initSentry(cfg);
   if(cfg.demo_enabled){const b=$("lg-demo");if(b)b.style.display="";const n=$("lg-demo-note");if(n)n.style.display="";}
-  if(cfg.allow_guest){const g=$("lg-guest");if(g)g.style.display="";}
   if(!cfg.auth_enabled){startApp();return;}                    // local-dev bypass
   // A Closebrief session (Google sign-in) survives reloads and needs no Supabase.
   const saved=savedSessionToken();
@@ -553,35 +552,27 @@ async function initGoogleSignIn(clientId){
       cancel_on_tap_outside:true,
     });
     renderGoogleButton();
-    // Google renders into a fixed-width iframe, so CSS can't stretch it: remeasure
-    // and redraw on resize. _gRedrawing guards the observer-feedback loop where our
-    // own redraw resizes the slot and re-triggers the observer.
-    if(window.ResizeObserver&&!window._gRO){
-      window._gRO=new ResizeObserver(()=>{
-        if(window._gRedrawing)return;
-        clearTimeout(window._gRedrawT);
-        window._gRedrawT=setTimeout(renderGoogleButton,150);
-      });
-      const slot=$("g-btn");if(slot)window._gRO.observe(slot);
-    }
+    window.addEventListener("resize",()=>{
+      clearTimeout(window._gRedrawT);
+      window._gRedrawT=setTimeout(renderGoogleButton,250);
+    });
   }catch{ showGoogleFallback(); }
 }
 
+let _gLastWidth=0;
 function renderGoogleButton(){
   const slot=$("g-btn");
   if(!slot||!window.google||!google.accounts||!google.accounts.id)return;
-  window._gRedrawing=true;
+  const w=Math.max(200,Math.min(400,Math.round(slot.getBoundingClientRect().width||320)));
+  if(w===_gLastWidth&&slot.childElementCount)return;
+  _gLastWidth=w;
   try{
-    // Google clamps the width to 200–400px; pass an explicit pixel value measured
-    // from the container (CSS cannot resize their iframe).
-    const w=Math.max(200,Math.min(400,Math.round(slot.getBoundingClientRect().width||320)));
     slot.innerHTML="";
     google.accounts.id.renderButton(slot,{
       type:"standard",theme:"filled_black",
       size:"large",text:"signin_with",shape:"rectangular",logo_alignment:"left",width:w,
     });
   }catch{ showGoogleFallback(); }
-  finally{ setTimeout(()=>{window._gRedrawing=false;},0); }
 }
 
 function showGoogleFallback(){
@@ -608,12 +599,6 @@ async function onGoogleCredential(resp){
   }
 }
 
-function continueAsGuest(){
-  // Guest = simply no token; the server grants the lowest role when ALLOW_GUEST is on.
-  authToken=null;storeSessionToken(null);
-  hideLogin();
-  if(!appStarted){appStarted=true;startApp();}
-}
 
 function showLogin(){$("login-gate").classList.add("show");$("app-root").style.display="none";}
 function hideLogin(){$("login-gate").classList.remove("show");$("app-root").style.display="flex";}
