@@ -1,5 +1,6 @@
 import os
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Environment profile: dev (default) | staging | prod.
@@ -13,6 +14,16 @@ class Settings(BaseSettings):
     )
 
     environment: str = APP_ENV
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def _strip_wrapping_quotes(cls, v):
+        if isinstance(v, str):
+            s = v.strip()
+            if len(s) >= 2 and s[0] == s[-1] and s[0] in ("\"", "'"):
+                return s[1:-1]
+            return s
+        return v
 
     # Which provider the LLMClient / embedding layer use. "openai" or "anthropic".
     llm_provider: str = "openai"

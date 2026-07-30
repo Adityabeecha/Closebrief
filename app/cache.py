@@ -16,6 +16,7 @@ tests). Both behind the Cache protocol.
 
 import hashlib
 import json
+import logging
 import time
 from typing import Any, Optional, Protocol
 
@@ -202,5 +203,9 @@ def get_cache() -> Cache:
     if not settings.cache_enabled:
         return DisabledCache()
     if settings.redis_url:
-        return RedisCache(settings.redis_url)
+        try:
+            return RedisCache(settings.redis_url)
+        except Exception:  # noqa: BLE001
+            logging.getLogger("closebrief").warning(
+                "REDIS_URL is unusable — falling back to the in-process cache", exc_info=True)
     return InMemoryCache()
