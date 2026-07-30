@@ -21,3 +21,5 @@ def _auth_off_by_default(monkeypatch):
     # Same hermeticity for demo mode: a DEMO_MODE=true in .env would grant
     # anonymous reads and seed sample data, breaking auth/dataset tests.
     monkeypatch.setattr(settings, "demo_mode", False, raising=False)
+    monkeypatch.setattr(settings, "allow_guest", False, raising=False)
+    monkeypatch.setattr(settings, "google_client_id", "", raising=False)
