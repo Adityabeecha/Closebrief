@@ -477,7 +477,7 @@ async function boot(){
   try{cfg=await fetch("/auth/config").then(r=>r.json());}catch{cfg={auth_enabled:false};}
   appCfg=cfg;
   initSentry(cfg);
-  if(cfg.demo_enabled){const b=$("lg-demo");if(b)b.style.display="";}
+  if(cfg.demo_enabled){const b=$("lg-demo");if(b)b.style.display="";const n=$("lg-demo-note");if(n)n.style.display="";}
   if(cfg.allow_guest){const g=$("lg-guest");if(g)g.style.display="";}
   if(!cfg.auth_enabled){startApp();return;}                    // local-dev bypass
   // A Closebrief session (Google sign-in) survives reloads and needs no Supabase.
@@ -577,7 +577,7 @@ function renderGoogleButton(){
     const w=Math.max(200,Math.min(400,Math.round(slot.getBoundingClientRect().width||320)));
     slot.innerHTML="";
     google.accounts.id.renderButton(slot,{
-      type:"standard",theme:document.documentElement.getAttribute("data-theme")==="dark"?"filled_black":"outline",
+      type:"standard",theme:"filled_black",
       size:"large",text:"signin_with",shape:"rectangular",logo_alignment:"left",width:w,
     });
   }catch{ showGoogleFallback(); }
