@@ -110,7 +110,11 @@ async def lifespan(_app: "FastAPI"):
     """Startup: create/migrate schema, add the hot /facts index, and (in demo
     mode) seed the sample dataset off-thread. Failures in the optional steps are
     logged, never fatal — boot and the health check must not be blocked."""
-    init_db()
+    try:
+        init_db()
+    except Exception:  # noqa: BLE001
+        logger.exception("init_db failed at startup — continuing in degraded mode")
+        app.state.init_db_error = True
     # Index the hot lookup in /facts (feedback by report). IF NOT EXISTS is
     # portable across SQLite and Postgres and idempotent on every boot.
     try:
@@ -293,7 +297,7 @@ def auth_config() -> dict:
 
 
 @app.post("/auth/google")
-def auth_google(payload: dict, request: Request) -> dict:
+def auth_google(payload: dict) -> dict:
     """Exchange a Google ID token for a Closebrief session token.
 
     Open (the caller has no token yet) and rate-limited by the telemetry
