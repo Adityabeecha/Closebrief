@@ -65,8 +65,8 @@ from app.generation.qa import answer_question
 from app.google_auth import GoogleAuthError, sign_in_with_google
 from app.grounding import attribute
 from app.ingestion.ingest import IngestValidationError, ingest_dataframe, parse_csv
-from app.ingestion.mapping import MappingError, MappingSpec, normalize, store_normalized
-from app.ingestion.profiler import profile_columns
+from app.ingestion.mapping import MappingError, MappingSpec, match_budget_to_dataset, normalize, store_normalized
+from app.ingestion.profiler import profile_columns, suggest_mapping
 from app.ingestion.templates import get_template as load_template
 from app.ingestion.templates import save_template as save_mapping_template
 from app.ingestion.upload import MAX_UPLOAD_BYTES, UploadError, create_upload, load_upload_frame
@@ -1057,7 +1057,13 @@ def ingest_schema(upload_id: str, sheet: str | None = None, _: CurrentUser = Dep
             (json.dumps(profile), upload_id),
         )
         conn.commit()
-        return profile
+        # A best-effort MappingSpec the mapping screen can pre-fill and the
+        # user corrects, rather than building one from an empty form (or a
+        # low-confidence guess dead-ending in a hard validation error before
+        # they see anything).
+        suggestion = suggest_mapping(profile)
+        return {**profile, "suggested_mapping": suggestion["mapping"],
+                "mapping_warnings": suggestion["warnings"], "mapping_confidence": suggestion["confidence"]}
     except UploadError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     finally:
@@ -1100,6 +1106,58 @@ def ingest_mapping(upload_id: str, mapping: MappingSpec, save_template: bool = F
         shared_cache().bump_namespace()
         return {**summary, "dataset_id": dataset_id,
                 "facts_computed": int(len(facts)), "template_id": template_id}
+    except UploadError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    finally:
+        conn.close()
+
+
+@app.post("/ingest/{upload_id}/join-budget")
+def ingest_join_budget(upload_id: str, payload: dict,
+                       user: CurrentUser = Depends(require_write)) -> dict:
+    """Attach a budget-only upload to an EXISTING dataset's metrics, instead of
+    creating a new dataset. A budget file is a correction/addition to data
+    that already exists — its numbers fill in metric_values.budget on rows
+    that already have an actual, they never create a new metric.
+
+    Body: {"target_dataset_id": int, "mapping": <MappingSpec>,
+           "metric_suffix": str | null}. metric_suffix handles the funnel
+    shape where actuals are "<label> <measure>" (e.g. "Paid Search spend_usd")
+    but the budget file's metric column is just the label ("Paid Search") —
+    it's appended before matching. Returns a report (matched / near-miss /
+    unmatched) rather than a bare success, since a silent partial join would
+    be worse than the hard error this replaces."""
+    target_dataset_id = payload.get("target_dataset_id")
+    if not target_dataset_id:
+        raise HTTPException(status_code=422, detail="target_dataset_id is required")
+    mapping_payload = payload.get("mapping") or {}
+    try:
+        mapping = MappingSpec(**mapping_payload)
+    except Exception as exc:  # noqa: BLE001 - surface a 422 with the pydantic detail, not a 500
+        raise HTTPException(status_code=422, detail=f"Invalid mapping: {exc}") from exc
+
+    conn = get_connection()
+    try:
+        target = conn.execute(
+            f"SELECT id FROM datasets WHERE id = ? AND {_scope_pred()}", (target_dataset_id,)
+        ).fetchone()
+        if target is None:
+            raise HTTPException(status_code=404, detail=f"Dataset {target_dataset_id} not found")
+
+        df = load_upload_frame(conn, upload_id)
+        try:
+            canonical = normalize(df, mapping)
+        except MappingError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+        suffix = (payload.get("metric_suffix") or "").strip()
+        if suffix:
+            canonical["metric"] = canonical["metric"].astype(str).str.strip() + " " + suffix
+
+        report = match_budget_to_dataset(conn, canonical, target_dataset_id)
+        compute_and_store(conn, target_dataset_id)
+        shared_cache().bump_namespace()
+        return {**report, "dataset_id": target_dataset_id}
     except UploadError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     finally:

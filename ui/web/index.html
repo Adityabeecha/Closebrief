@@ -972,6 +972,16 @@
         <span class="step" id="st-3">3 · Pick KPIs</span>
       </div>
       <div id="imp-upload">
+        <div class="ctx-form" style="grid-template-columns:1fr 1fr;margin-bottom:16px" id="imp-mode-row">
+          <div><label class="lbl">Import as</label>
+            <select id="imp-mode" class="pill-btn" onchange="onImportModeChange()">
+              <option value="new">New dataset</option>
+              <option value="join">Add budget to an existing dataset</option>
+            </select></div>
+          <div id="imp-target-wrap" style="display:none">
+            <label class="lbl">Target dataset</label>
+            <select id="imp-target" class="pill-btn"></select></div>
+        </div>
         <div class="drop" id="drop" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="dropFile(event)">
           <b>Drag your CSV or Excel here, or browse</b>
           <small>.csv or .xlsx · NetSuite, QuickBooks &amp; Excel exports · wide or long layout</small><br><br>
@@ -980,17 +990,22 @@
         </div>
       </div>
       <div id="imp-map" style="display:none">
+        <button class="back" onclick="resetImport()" style="margin-bottom:12px">Choose a different file</button>
         <div class="banner info" id="tpl-banner" style="display:none"></div>
+        <div class="banner info" id="map-warnings" style="display:none"></div>
         <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap">
           <div id="sheet-pick" style="display:none"><label class="lbl">Sheet</label><select class="pill-btn" id="sheet-sel" onchange="loadSchema()"></select></div>
           <div><label class="lbl">Layout</label><select class="pill-btn" id="layout-sel" onchange="renderMap()">
             <option value="long">Long (one row per period)</option><option value="wide">Wide (months as columns)</option></select></div>
+          <div id="imp-suffix-wrap" style="display:none"><label class="lbl" title="If the target dataset's metrics are named '<name> spend_usd' rather than just '<name>', enter the suffix here so budgets attach to the right one.">Metric name suffix (optional)</label>
+            <input class="pill-btn" id="imp-suffix" placeholder="e.g. spend_usd" style="width:160px"></div>
           <div style="flex:1"></div>
-          <button class="btn primary" onclick="confirmMapping()">Confirm &amp; normalize</button>
+          <button class="btn primary" id="imp-confirm-btn" onclick="confirmMapping()">Confirm &amp; normalize</button>
         </div>
         <div id="map-holder"></div>
         <div id="map-hint" class="banner info" style="display:none;margin-top:12px"></div>
       </div>
+      <div id="imp-join-result" style="display:none"></div>
       <div id="imp-kpis" style="display:none">
         <div class="banner ok" id="norm-summary"></div>
         <div class="ctx-form" style="grid-template-columns:1.4fr 1fr;margin-bottom:16px">

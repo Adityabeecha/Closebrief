@@ -15,7 +15,7 @@ CREATE TABLE datasets (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, source_u
     is_demo INTEGER DEFAULT 0, workspace_id INTEGER, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE metrics (id INTEGER PRIMARY KEY AUTOINCREMENT, dataset_id INTEGER, name TEXT,
     category TEXT DEFAULT 'Uncategorized', unit TEXT DEFAULT 'USD', direction_good TEXT DEFAULT 'up',
-    UNIQUE(dataset_id, name));
+    external_id TEXT, UNIQUE(dataset_id, name));
 CREATE TABLE metric_values (id INTEGER PRIMARY KEY AUTOINCREMENT, metric_id INTEGER, period TEXT,
     value REAL, budget REAL, quantity REAL, price REAL, budget_quantity REAL, budget_price REAL,
     dimensions TEXT, UNIQUE(metric_id, period));

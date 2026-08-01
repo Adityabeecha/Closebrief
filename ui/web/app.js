@@ -1946,10 +1946,35 @@ async function delContext(id){
 }
 
 /* ---------- import ---------- */
-let upload=null,profile=null,lastImport=null;
+let upload=null,profile=null,lastImport=null,importMode="new";
 function setStep(n){for(let i=1;i<=3;i++)$("st-"+i).className="step"+(i<n?" done":i===n?" active":"");
-  $("imp-upload").style.display=n===1?"":"none";$("imp-map").style.display=n===2?"":"none";$("imp-kpis").style.display=n===3?"":"none";}
+  $("imp-upload").style.display=n===1?"":"none";$("imp-map").style.display=n===2?"":"none";$("imp-kpis").style.display=n===3?"":"none";
+  if(n!==2)$("imp-join-result").style.display="none";}
 function dropFile(e){e.preventDefault();$("drop").classList.remove("drag");const f=e.dataTransfer.files[0];if(f)uploadFile(f);}
+function resetImport(){
+  // Lets the user land back on step 1 and pick a DIFFERENT file. A bare file
+  // input never re-fires 'change' for the same filename, and stale upload/
+  // profile state would otherwise carry into the next attempt.
+  upload=null;profile=null;
+  const input=$("file-in");if(input)input.value="";
+  $("imp-result").innerHTML="";$("map-warnings").style.display="none";$("map-hint").style.display="none";
+  $("sheet-pick").style.display="none";$("tpl-banner").style.display="none";
+  $("imp-join-result").style.display="none";
+  setStep(1);
+}
+async function onImportModeChange(){
+  importMode=$("imp-mode").value;
+  $("imp-target-wrap").style.display=importMode==="join"?"":"none";
+  $("imp-suffix-wrap").style.display=importMode==="join"?"":"none";
+  $("imp-confirm-btn").textContent=importMode==="join"?"Match & attach budget":"Confirm & normalize";
+  if(importMode==="join"){
+    try{
+      const d=await api("/datasets");
+      $("imp-target").innerHTML=(d.datasets||[]).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join("")
+        ||'<option value="">No datasets yet — import actuals first</option>';
+    }catch{}
+  }
+}
 async function uploadFile(file){
   const fd=new FormData();fd.append("file",file);
   $("imp-result").innerHTML='<div class="loading"><span class="spin"></span> Uploading &amp; profiling…</div>';
@@ -1966,7 +1991,13 @@ async function uploadFile(file){
 async function loadSchema(){
   const sheet=$("sheet-pick").style.display!=="none"?$("sheet-sel").value:null;
   profile=await api(`/ingest/${upload.upload_id}/schema${sheet?`?sheet=${encodeURIComponent(sheet)}`:""}`);
-  $("layout-sel").value=profile.layout_guess;renderMap();
+  $("layout-sel").value=profile.layout_guess;
+  const wb=$("map-warnings");
+  if(profile.mapping_warnings&&profile.mapping_warnings.length){
+    wb.style.display="";
+    wb.innerHTML=`<b>Worth checking before you confirm:</b><ul style="margin:6px 0 0 18px">${profile.mapping_warnings.map(w=>`<li>${esc(w)}</li>`).join("")}</ul>`;
+  }else{wb.style.display="none";}
+  renderMap();
 }
 const ROLES=["period","metric_label","measure","budget","id","quantity","price","dimension","ignore"];
 function renderMap(){
@@ -2005,6 +2036,7 @@ function buildMapping(){
   return{...base,value_col:measures[0]||null,quantity_col:by("quantity")[0]||null,price_col:by("price")[0]||null};
 }
 async function confirmMapping(m){
+  if(importMode==="join")return confirmJoinBudget();
   const mapping=m||buildMapping();
   $("imp-result").innerHTML='<div class="loading"><span class="spin"></span> Normalizing &amp; computing…</div>';
   try{
@@ -2016,6 +2048,27 @@ async function confirmMapping(m){
     const fn=(upload&&upload.filename)||"";
     $("imp-name").value=fn.replace(/\.[^.]+$/,"")||"Imported dataset";
     setStep(3);await loadKpiPicker();
+  }catch(e){$("imp-result").innerHTML=`<div class="banner err">${warnIcon()}${esc(e.message)}</div>`;}
+}
+async function confirmJoinBudget(){
+  const targetId=$("imp-target").value;
+  if(!targetId){$("imp-result").innerHTML=`<div class="banner err">${warnIcon()}Pick a target dataset first.</div>`;return;}
+  const mapping=buildMapping();
+  $("imp-result").innerHTML='<div class="loading"><span class="spin"></span> Matching &amp; attaching budget…</div>';
+  try{
+    const res=await api(`/ingest/${upload.upload_id}/join-budget`,{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({target_dataset_id:Number(targetId),mapping,metric_suffix:$("imp-suffix").value.trim()})});
+    $("imp-result").innerHTML="";
+    const nm=res.near_misses||[],um=res.unmatched_metrics||[],up_=res.unmatched_periods||[];
+    let html=`<div class="banner ${nm.length||um.length||up_.length?"warn":"ok"}">
+      <b>${plural(res.matched,"budget value")} attached.</b></div>`;
+    if(nm.length)html+=`<div class="banner info" style="margin-top:10px"><b>Matched by spelling, not an exact name</b> — confirm these are right:
+      <ul style="margin:6px 0 0 18px">${nm.map(x=>`<li>"${esc(x.upload_label)}" → <b>${esc(x.matched_metric)}</b></li>`).join("")}</ul></div>`;
+    if(um.length)html+=`<div class="banner warn" style="margin-top:10px"><b>No matching metric found</b> for: ${um.map(esc).join(", ")}</div>`;
+    if(up_.length)html+=`<div class="banner warn" style="margin-top:10px"><b>${plural(up_.length,"period")} had no actuals to attach a budget to</b> — the metric exists, but not for that month yet.</div>`;
+    $("imp-join-result").style.display="";$("imp-join-result").innerHTML=html
+      +`<div style="margin-top:16px"><button class="btn primary" onclick="resetImport();nav('dashboard')">Done — view dashboard</button>
+         <button class="btn" style="margin-left:8px" onclick="resetImport()">Import another file</button></div>`;
   }catch(e){$("imp-result").innerHTML=`<div class="banner err">${warnIcon()}${esc(e.message)}</div>`;}
 }
 async function applyTpl(id){const t=await api(`/templates/${id}`);await confirmMapping(t.mapping);toast("Saved mapping applied");}
@@ -2038,7 +2091,7 @@ async function confirmKpis(){
   if(activeDatasetId!=null&&(name||domain)){
     try{await api(`/datasets/${activeDatasetId}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name||undefined,domain})});}catch{}
   }
-  setStep(1);await loadPeriods();nav("dashboard");
+  resetImport();await loadPeriods();nav("dashboard");
   // Show a success banner on the dashboard with a one-click Generate action.
   const li=lastImport||{};
   const el=$("import-banner");
