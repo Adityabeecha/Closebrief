@@ -32,6 +32,7 @@ class TokenUsage(BaseModel):
 _PRICES: dict[str, tuple[float, float]] = {
     "gpt-4o": (2.50, 10.00),
     "gpt-4o-mini": (0.15, 0.60),
+    "gpt-5.6-luna": (0.20, 1.20),
     "claude-opus-4-8": (15.00, 75.00),
     "claude-3-5-sonnet-latest": (3.00, 15.00),
 }
@@ -77,7 +78,7 @@ class OpenAILLMClient:
         try:
             completion = self._client.chat.completions.parse(
                 model=self._model,
-                max_tokens=600,
+                max_completion_tokens=600,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
