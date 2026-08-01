@@ -83,14 +83,27 @@ def materialize(conn: sqlite3.Connection, dataset_id: int) -> int:
     for f in facts:
         by_metric.setdefault(f["metric"], {})[f["period"]] = f["value"]
 
+    all_periods = {p for series in by_metric.values() for p in series}
+
     written = 0
     for d in derived:
         metric_id = get_or_create_metric(conn, dataset_id, d["name"])
         refs = referenced_metrics(d["formula"])
-        # Periods where every referenced metric has a value.
-        periods = set.intersection(*[set(by_metric.get(r, {})) for r in refs]) if refs else set()
-        for period in sorted(periods):
-            vals = {r: by_metric[r][period] for r in refs}
+        if not refs:
+            continue
+        # A reference that has values somewhere in the dataset but not in this
+        # period is a real zero, not an unknown: an account that was closed
+        # mid-year (or opened mid-year) contributes nothing to a sum for the
+        # months it does not span. Requiring every reference to be present in
+        # every period instead produced an empty series for exactly the
+        # reclassification case a "combined" KPI exists to express.
+        known = [r for r in refs if by_metric.get(r)]
+        if len(known) != len(refs):
+            continue
+        for period in sorted(all_periods):
+            if not any(period in by_metric[r] for r in refs):
+                continue
+            vals = {r: by_metric[r].get(period, 0.0) for r in refs}
             v = evaluate(d["formula"], vals)
             if v is None:
                 continue
