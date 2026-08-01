@@ -1,0 +1,325 @@
+customer_id,customer_name,entity,segment,industry,contract_start,acquisition_source,status,churn_period,current_arr_usd
+CUST-1001,Mirefield Textiles,MER-EU,Enterprise,Business Services,2023-11-01,Pre-2025 base,Active,,442000.0
+CUST-1002,Vernon Hill Grocers,MER-US,Enterprise,Financial Services,2023-02-01,Pre-2025 base,Active,,1103300.0
+CUST-1003,Orbit Foods,MER-EU,Enterprise,Public Sector,2021-04-01,Pre-2025 base,Active,,482500.0
+CUST-1004,Hollins Metals,MER-US,Enterprise,Financial Services,2022-10-01,Pre-2025 base,Active,,640600.0
+CUST-1005,Silverline Beverages,MER-US,Enterprise,Manufacturing,2024-06-01,Pre-2025 base,Active,,589700.0
+CUST-1006,Oakhurst Distribution,MER-US,Enterprise,Energy & Utilities,2023-08-01,Pre-2025 base,Active,,572600.0
+CUST-1007,Everly Grocers,MER-US,Enterprise,Retail & CPG,2022-10-01,Pre-2025 base,Active,,641700.0
+CUST-1008,Junction Partners,MER-US,Enterprise,Public Sector,2023-09-01,Pre-2025 base,Active,,882700.0
+CUST-1009,Oswald Retail Group,MER-US,Enterprise,Manufacturing,2022-03-01,Pre-2025 base,Active,,908800.0
+CUST-1010,Sunstone Insurance,MER-EU,Enterprise,Retail & CPG,2023-07-01,Pre-2025 base,Active,,760100.0
+CUST-1011,Redline Mobility,MER-US,Enterprise,Healthcare,2023-05-01,Pre-2025 base,Active,,423500.0
+CUST-1012,Foxglove Pharma,MER-US,Enterprise,Business Services,2023-09-01,Pre-2025 base,Active,,869600.0
+CUST-1013,Northwind Mobility,MER-US,Mid-Market,Logistics & Transport,2021-02-01,Pre-2025 base,Active,,243300.0
+CUST-1014,Mirefield Grocers,MER-US,Mid-Market,Public Sector,2023-11-01,Pre-2025 base,Active,,258300.0
+CUST-1015,Rothwell Beverages,MER-US,Mid-Market,Retail & CPG,2022-02-01,Pre-2025 base,Active,,135600.0
+CUST-1016,Lakeshore Telecom,MER-US,Mid-Market,Energy & Utilities,2024-09-01,Pre-2025 base,Active,,215300.0
+CUST-1017,Granite Beverages,MER-US,Mid-Market,Retail & CPG,2024-10-01,Pre-2025 base,Active,,192900.0
+CUST-1018,Vellum Components,MER-US,Mid-Market,Healthcare,2024-03-01,Pre-2025 base,Active,,165500.0
+CUST-1019,Fairmont Industries,MER-EU,Mid-Market,Manufacturing,2022-02-01,Pre-2025 base,Active,,172700.0
+CUST-1020,Everly Analytics,MER-US,Mid-Market,Manufacturing,2022-10-01,Pre-2025 base,Active,,129600.0
+CUST-1021,Lakeshore Apparel,MER-US,Mid-Market,Retail & CPG,2023-12-01,Pre-2025 base,Churned,2026-03,0.0
+CUST-1022,Rothwell Telecom,MER-US,Mid-Market,Healthcare,2024-04-01,Pre-2025 base,Active,,89700.0
+CUST-1023,Kilbourne Publishing,MER-US,Mid-Market,Retail & CPG,2023-02-01,Pre-2025 base,Churned,2025-10,0.0
+CUST-1024,Trellis Hospitality,MER-US,Mid-Market,Manufacturing,2022-07-01,Pre-2025 base,Active,,263500.0
+CUST-1025,Rothwell Industries,MER-US,Mid-Market,Retail & CPG,2024-11-01,Pre-2025 base,Active,,93700.0
+CUST-1026,Glenmoor Industries,MER-US,Mid-Market,Energy & Utilities,2021-12-01,Pre-2025 base,Churned,2026-04,0.0
+CUST-1027,Ravensworth Marine,MER-US,Mid-Market,Energy & Utilities,2023-04-01,Pre-2025 base,Active,,121600.0
+CUST-1028,Cinder Packaging,MER-EU,Mid-Market,Technology,2024-03-01,Pre-2025 base,Active,,192800.0
+CUST-1029,Cinder Retail Group,MER-US,Mid-Market,Business Services,2023-02-01,Pre-2025 base,Churned,2025-02,0.0
+CUST-1030,Northwind Agriculture,MER-US,Mid-Market,Financial Services,2023-10-01,Pre-2025 base,Active,,209600.0
+CUST-1031,Sable Components,MER-US,Mid-Market,Manufacturing,2024-05-01,Pre-2025 base,Active,,107200.0
+CUST-1032,Pelham Labs,MER-EU,Mid-Market,Retail & CPG,2022-12-01,Pre-2025 base,Churned,2025-01,0.0
+CUST-1033,Ashford Systems,MER-US,Mid-Market,Manufacturing,2023-11-01,Pre-2025 base,Active,,189600.0
+CUST-1034,Copperfield Housing,MER-US,Mid-Market,Manufacturing,2022-10-01,Pre-2025 base,Churned,2025-10,0.0
+CUST-1035,Vellum Grocers,MER-US,Mid-Market,Financial Services,2021-12-01,Pre-2025 base,Active,,234500.0
+CUST-1036,Orbit Partners,MER-US,Mid-Market,Healthcare,2023-05-01,Pre-2025 base,Active,,132300.0
+CUST-1037,Oswald Packaging,MER-EU,Mid-Market,Technology,2022-07-01,Pre-2025 base,Active,,138600.0
+CUST-1038,Larkspur Aviation,MER-EU,Mid-Market,Retail & CPG,2021-05-01,Pre-2025 base,Active,,339700.0
+CUST-1039,Wexley Health,MER-US,Mid-Market,Healthcare,2024-09-01,Pre-2025 base,Active,,164500.0
+CUST-1040,Beacon Energy,MER-US,Mid-Market,Energy & Utilities,2023-10-01,Pre-2025 base,Churned,2026-04,0.0
+CUST-1041,Vernon Hill Retail Group,MER-US,Mid-Market,Technology,2022-04-01,Pre-2025 base,Active,,290400.0
+CUST-1042,Brightpath Diagnostics,MER-EU,Mid-Market,Business Services,2024-08-01,Pre-2025 base,Active,,112400.0
+CUST-1043,Junction Freight,MER-US,Mid-Market,Logistics & Transport,2022-05-01,Pre-2025 base,Active,,150700.0
+CUST-1044,Cinder Freight,MER-US,Mid-Market,Logistics & Transport,2022-12-01,Pre-2025 base,Active,,188000.0
+CUST-1045,Windrow Diagnostics,MER-US,Mid-Market,Logistics & Transport,2022-11-01,Pre-2025 base,Active,,162900.0
+CUST-1046,Braxton Manufacturing,MER-US,Mid-Market,Logistics & Transport,2023-12-01,Pre-2025 base,Active,,238300.0
+CUST-1047,Emberly Industries,MER-EU,Mid-Market,Financial Services,2024-03-01,Pre-2025 base,Active,,230400.0
+CUST-1048,Ravensworth Publishing,MER-US,Mid-Market,Retail & CPG,2022-01-01,Pre-2025 base,Churned,2026-01,0.0
+CUST-1049,Hollins Chemicals,MER-US,Mid-Market,Healthcare,2021-03-01,Pre-2025 base,Active,,216000.0
+CUST-1050,Copperfield Industries,MER-EU,Mid-Market,Business Services,2024-01-01,Pre-2025 base,Active,,230100.0
+CUST-1051,Nimbus Analytics,MER-US,Mid-Market,Technology,2023-10-01,Pre-2025 base,Churned,2025-10,0.0
+CUST-1052,Kilbourne Agriculture,MER-US,Mid-Market,Energy & Utilities,2022-03-01,Pre-2025 base,Churned,2025-10,0.0
+CUST-1053,Kelvedon Freight,MER-US,Mid-Market,Financial Services,2024-11-01,Pre-2025 base,Active,,147400.0
+CUST-1054,Mossbank Telecom,MER-US,Mid-Market,Public Sector,2024-10-01,Pre-2025 base,Churned,2026-01,0.0
+CUST-1055,Kestrel Mobility,MER-EU,Mid-Market,Public Sector,2024-12-01,Pre-2025 base,Active,,179900.0
+CUST-1056,Everly Materials,MER-US,Mid-Market,Healthcare,2024-02-01,Pre-2025 base,Churned,2025-12,0.0
+CUST-1057,Ilfracombe Metals,MER-US,SMB,Logistics & Transport,2024-06-01,Pre-2025 base,Active,,28400.0
+CUST-1058,Fenwick Freight,MER-US,SMB,Manufacturing,2023-07-01,Pre-2025 base,Active,,31600.0
+CUST-1059,Kestrel Diagnostics,MER-US,SMB,Energy & Utilities,2023-03-01,Pre-2025 base,Churned,2025-08,0.0
+CUST-1060,Alderway Insurance,MER-US,SMB,Technology,2023-12-01,Pre-2025 base,Active,,38700.0
+CUST-1061,Larkspur Financial,MER-EU,SMB,Manufacturing,2022-11-01,Pre-2025 base,Churned,2026-05,0.0
+CUST-1062,Pelham Health,MER-US,SMB,Healthcare,2023-04-01,Pre-2025 base,Active,,70700.0
+CUST-1063,Pinehaven Partners,MER-US,SMB,Business Services,2023-02-01,Pre-2025 base,Active,,27800.0
+CUST-1064,Garrowby Beverages,MER-US,SMB,Healthcare,2023-03-01,Pre-2025 base,Active,,55200.0
+CUST-1065,Kelvedon Aviation,MER-US,SMB,Energy & Utilities,2021-12-01,Pre-2025 base,Active,,19500.0
+CUST-1066,Dovetail Health,MER-US,SMB,Logistics & Transport,2024-08-01,Pre-2025 base,Churned,2025-05,0.0
+CUST-1067,Anchorpoint Packaging,MER-EU,SMB,Logistics & Transport,2024-03-01,Pre-2025 base,Churned,2025-05,0.0
+CUST-1068,Ilfracombe Components,MER-US,SMB,Business Services,2023-04-01,Pre-2025 base,Active,,58800.0
+CUST-1069,Lakeshore Diagnostics,MER-US,SMB,Technology,2023-08-01,Pre-2025 base,Active,,26600.0
+CUST-1070,Nimbus Manufacturing,MER-US,SMB,Technology,2024-06-01,Pre-2025 base,Active,,45800.0
+CUST-1071,Braxton Publishing,MER-US,SMB,Logistics & Transport,2024-06-01,Pre-2025 base,Active,,37300.0
+CUST-1072,Northwind Textiles,MER-EU,SMB,Public Sector,2023-02-01,Pre-2025 base,Active,,16200.0
+CUST-1073,Brightpath Systems,MER-EU,SMB,Healthcare,2024-12-01,Pre-2025 base,Active,,43400.0
+CUST-1074,Lakeshore Chemicals,MER-US,SMB,Business Services,2022-12-01,Pre-2025 base,Active,,31900.0
+CUST-1075,Palisade Agriculture,MER-EU,SMB,Healthcare,2021-08-01,Pre-2025 base,Active,,46500.0
+CUST-1076,Sunstone Materials,MER-EU,SMB,Retail & CPG,2022-07-01,Pre-2025 base,Active,,58100.0
+CUST-1077,Bellamy Packaging,MER-US,SMB,Retail & CPG,2023-10-01,Pre-2025 base,Active,,52300.0
+CUST-1078,Lakeshore Components,MER-US,SMB,Manufacturing,2024-10-01,Pre-2025 base,Active,,67600.0
+CUST-1079,Ashford Labs,MER-US,SMB,Logistics & Transport,2024-07-01,Pre-2025 base,Active,,17200.0
+CUST-1080,Everly Manufacturing,MER-EU,SMB,Manufacturing,2023-07-01,Pre-2025 base,Churned,2026-03,0.0
+CUST-1081,Trellis Robotics,MER-US,SMB,Retail & CPG,2024-05-01,Pre-2025 base,Churned,2025-08,0.0
+CUST-1082,Palisade Telecom,MER-US,SMB,Financial Services,2022-06-01,Pre-2025 base,Active,,40700.0
+CUST-1083,Larkspur Materials,MER-US,SMB,Technology,2022-01-01,Pre-2025 base,Active,,43300.0
+CUST-1084,Stanmore Partners,MER-US,SMB,Retail & CPG,2024-03-01,Pre-2025 base,Active,,71000.0
+CUST-1085,Thornbury Metals,MER-US,SMB,Public Sector,2023-04-01,Pre-2025 base,Active,,38900.0
+CUST-1086,Anchorpoint Textiles,MER-US,SMB,Manufacturing,2023-01-01,Pre-2025 base,Active,,61900.0
+CUST-1087,Norwich Retail Group,MER-US,SMB,Logistics & Transport,2024-01-01,Pre-2025 base,Active,,14900.0
+CUST-1088,Mirefield Energy,MER-US,SMB,Financial Services,2023-05-01,Pre-2025 base,Churned,2025-02,0.0
+CUST-1089,Westmere Analytics,MER-EU,SMB,Public Sector,2023-11-01,Pre-2025 base,Churned,2025-01,0.0
+CUST-1090,Bellamy Housing,MER-US,SMB,Financial Services,2023-08-01,Pre-2025 base,Active,,49700.0
+CUST-1091,Windrow Materials,MER-US,SMB,Manufacturing,2021-03-01,Pre-2025 base,Active,,27600.0
+CUST-1092,Windrow Apparel,MER-EU,SMB,Manufacturing,2024-12-01,Pre-2025 base,Active,,40200.0
+CUST-1093,Crestwell Robotics,MER-US,SMB,Energy & Utilities,2022-09-01,Pre-2025 base,Active,,51800.0
+CUST-1094,Quimby Packaging,MER-US,SMB,Financial Services,2023-01-01,Pre-2025 base,Active,,51200.0
+CUST-1095,Emberly Diagnostics,MER-EU,SMB,Business Services,2024-06-01,Pre-2025 base,Churned,2026-01,0.0
+CUST-1096,Ilfracombe Materials,MER-US,SMB,Manufacturing,2023-10-01,Pre-2025 base,Churned,2025-11,0.0
+CUST-1097,Corvid Financial,MER-US,SMB,Healthcare,2024-09-01,Pre-2025 base,Active,,31800.0
+CUST-1098,Quarry Pharma,MER-US,SMB,Financial Services,2022-01-01,Pre-2025 base,Active,,70700.0
+CUST-1099,Langford Retail Group,MER-EU,SMB,Business Services,2022-11-01,Pre-2025 base,Active,,51800.0
+CUST-1100,Oswald Beverages,MER-US,SMB,Logistics & Transport,2024-04-01,Pre-2025 base,Active,,21800.0
+CUST-1101,Halcyon Manufacturing,MER-EU,SMB,Energy & Utilities,2024-06-01,Pre-2025 base,Active,,38600.0
+CUST-1102,Wexley Retail Group,MER-US,SMB,Logistics & Transport,2022-02-01,Pre-2025 base,Active,,42800.0
+CUST-1103,Pelham Energy,MER-US,SMB,Financial Services,2024-08-01,Pre-2025 base,Churned,2025-10,0.0
+CUST-1104,Ulverton Retail Group,MER-US,SMB,Retail & CPG,2021-03-01,Pre-2025 base,Active,,29800.0
+CUST-1105,Tavistock Mobility,MER-US,SMB,Manufacturing,2022-01-01,Pre-2025 base,Churned,2025-05,0.0
+CUST-1106,Crestwell Industries,MER-EU,SMB,Healthcare,2023-11-01,Pre-2025 base,Churned,2025-10,0.0
+CUST-1107,Quarry Materials,MER-EU,SMB,Logistics & Transport,2021-10-01,Pre-2025 base,Active,,41300.0
+CUST-1108,Wexley Publishing,MER-EU,SMB,Public Sector,2023-10-01,Pre-2025 base,Active,,49500.0
+CUST-1109,Halcyon Agriculture,MER-EU,SMB,Manufacturing,2023-06-01,Pre-2025 base,Active,,13500.0
+CUST-1110,Meridian Bay Chemicals,MER-US,SMB,Public Sector,2024-01-01,Pre-2025 base,Active,,20500.0
+CUST-1111,Yarrow Chemicals,MER-EU,SMB,Public Sector,2023-06-01,Pre-2025 base,Active,,24400.0
+CUST-1112,Northwind Grocers,MER-US,Enterprise,Retail & CPG,2021-06-01,Pre-2025 base,Churned,2026-02,221500.0
+CUST-1113,Halcyon Freight,MER-US,Enterprise,Logistics & Transport,2022-03-01,Pre-2025 base,Active,,855000.0
+CUST-1114,Kestrel Diagnostics,MER-EU,Enterprise,Healthcare,2023-02-01,Pre-2025 base,Active,,1193000.0
+CUST-1115,Ellsworth Chemicals,MER-EU,SMB,Energy & Utilities,2025-01-01,Marketing,Active,,37700.0
+CUST-1116,Fenwick Insurance,MER-US,SMB,Financial Services,2025-01-01,Marketing,Active,,19000.0
+CUST-1117,Dovetail Packaging,MER-US,Mid-Market,Healthcare,2025-01-01,Marketing,Active,,128500.0
+CUST-1118,Norwich Financial,MER-US,Mid-Market,Retail & CPG,2025-01-01,Sales,Active,,131100.0
+CUST-1119,Crestwell Retail Group,MER-US,SMB,Healthcare,2025-02-01,Marketing,Active,,9800.0
+CUST-1120,Orbit Retail Group,MER-US,SMB,Manufacturing,2025-02-01,Marketing,Churned,2025-07,0.0
+CUST-1121,Fairmont Diagnostics,MER-US,SMB,Healthcare,2025-02-01,Marketing,Active,,24200.0
+CUST-1122,Harrow Metals,MER-EU,SMB,Public Sector,2025-02-01,Marketing,Active,,19700.0
+CUST-1123,Flint Hill Packaging,MER-EU,SMB,Retail & CPG,2025-02-01,Marketing,Active,,11300.0
+CUST-1124,Harrow Labs,MER-US,SMB,Public Sector,2025-02-01,Marketing,Active,,54600.0
+CUST-1125,Ilfracombe Grocers,MER-US,SMB,Business Services,2025-02-01,Marketing,Active,,43500.0
+CUST-1126,Cedar Ridge Mobility,MER-EU,Mid-Market,Business Services,2025-02-01,Marketing,Churned,2025-06,0.0
+CUST-1127,Mossbank Partners,MER-US,SMB,Retail & CPG,2025-02-01,Marketing,Active,,13800.0
+CUST-1128,Harrow Manufacturing,MER-US,SMB,Energy & Utilities,2025-02-01,Sales,Active,,29900.0
+CUST-1129,Jarrow Insurance,MER-US,Mid-Market,Business Services,2025-02-01,Sales,Active,,115100.0
+CUST-1130,Tidewater Insurance,MER-US,SMB,Financial Services,2025-02-01,Sales,Active,,43400.0
+CUST-1131,Halcyon Apparel,MER-US,Mid-Market,Public Sector,2025-03-01,Marketing,Active,,208500.0
+CUST-1132,Vernon Hill Analytics,MER-US,Enterprise,Financial Services,2025-03-01,Marketing,Active,,194200.0
+CUST-1133,Ironwood Logistics,MER-US,SMB,Healthcare,2025-03-01,Marketing,Churned,2025-11,0.0
+CUST-1134,Dunmore Materials,MER-US,SMB,Business Services,2025-03-01,Marketing,Active,,14900.0
+CUST-1135,Ellsworth Robotics,MER-US,Mid-Market,Manufacturing,2025-03-01,Marketing,Active,,64400.0
+CUST-1136,Corvid Energy,MER-US,SMB,Manufacturing,2025-03-01,Marketing,Active,,53900.0
+CUST-1137,Lakeshore Mobility,MER-US,SMB,Financial Services,2025-03-01,Marketing,Active,,41400.0
+CUST-1138,Stanmore Packaging,MER-EU,Mid-Market,Energy & Utilities,2025-03-01,Marketing,Active,,86300.0
+CUST-1139,Netherby Insurance,MER-EU,Mid-Market,Energy & Utilities,2025-03-01,Marketing,Active,,55400.0
+CUST-1140,Lakeshore Foods,MER-US,Mid-Market,Public Sector,2025-03-01,Sales,Active,,66500.0
+CUST-1141,Ironwood Beverages,MER-US,Mid-Market,Energy & Utilities,2025-03-01,Sales,Active,,150600.0
+CUST-1142,Yarrow Agriculture,MER-EU,SMB,Healthcare,2025-03-01,Sales,Churned,2026-01,0.0
+CUST-1143,Alderway Pharma,MER-US,Mid-Market,Manufacturing,2025-03-01,Sales,Active,,116600.0
+CUST-1144,Lakeshore Housing,MER-US,SMB,Public Sector,2025-04-01,Marketing,Active,,50700.0
+CUST-1145,Dunmore Pharma,MER-US,Mid-Market,Business Services,2025-04-01,Marketing,Active,,99500.0
+CUST-1146,Zephyr Systems,MER-US,Mid-Market,Business Services,2025-04-01,Marketing,Active,,139200.0
+CUST-1147,Cedar Ridge Components,MER-US,SMB,Technology,2025-04-01,Marketing,Active,,43700.0
+CUST-1148,Zephyr Beverages,MER-US,SMB,Business Services,2025-04-01,Marketing,Active,,40100.0
+CUST-1149,Pinehaven Mobility,MER-US,SMB,Healthcare,2025-04-01,Marketing,Active,,37000.0
+CUST-1150,Everly Metals,MER-US,Mid-Market,Public Sector,2025-04-01,Marketing,Active,,156700.0
+CUST-1151,Jessup Mobility,MER-US,Enterprise,Business Services,2025-04-01,Sales,Active,,327000.0
+CUST-1152,Ormsby Pharma,MER-US,SMB,Retail & CPG,2025-04-01,Sales,Active,,30200.0
+CUST-1153,Ulverton Energy,MER-EU,Enterprise,Financial Services,2025-04-01,Sales,Active,,187800.0
+CUST-1154,Redline Pharma,MER-US,SMB,Healthcare,2025-05-01,Marketing,Active,,39800.0
+CUST-1155,Fenwick Components,MER-US,SMB,Energy & Utilities,2025-05-01,Marketing,Churned,2026-06,0.0
+CUST-1156,Ashford Freight,MER-US,Mid-Market,Financial Services,2025-05-01,Marketing,Active,,113500.0
+CUST-1157,Ellsworth Analytics,MER-EU,SMB,Logistics & Transport,2025-05-01,Marketing,Churned,2025-10,0.0
+CUST-1158,Anchorpoint Aviation,MER-US,SMB,Public Sector,2025-05-01,Marketing,Active,,50400.0
+CUST-1159,Ulverton Chemicals,MER-US,SMB,Business Services,2025-05-01,Marketing,Active,,41000.0
+CUST-1160,Wexley Beverages,MER-US,SMB,Business Services,2025-05-01,Marketing,Active,,29900.0
+CUST-1161,Granite Manufacturing,MER-US,SMB,Technology,2025-05-01,Marketing,Churned,2026-01,0.0
+CUST-1162,Windrow Grocers,MER-US,SMB,Manufacturing,2025-05-01,Marketing,Churned,2025-08,0.0
+CUST-1163,Rothwell Materials,MER-EU,Mid-Market,Energy & Utilities,2025-05-01,Marketing,Active,,107800.0
+CUST-1164,Oswald Components,MER-US,SMB,Logistics & Transport,2025-05-01,Sales,Active,,33700.0
+CUST-1165,Brightpath Packaging,MER-US,SMB,Financial Services,2025-05-01,Sales,Active,,39200.0
+CUST-1166,Harrow Housing,MER-US,SMB,Business Services,2025-05-01,Sales,Churned,2026-06,0.0
+CUST-1167,Alderway Materials,MER-US,SMB,Public Sector,2025-05-01,Sales,Active,,30600.0
+CUST-1168,Halcyon Freight,MER-EU,Enterprise,Manufacturing,2025-06-01,Marketing,Active,,242800.0
+CUST-1169,Granite Systems,MER-US,SMB,Logistics & Transport,2025-06-01,Marketing,Active,,35800.0
+CUST-1170,Westmere Manufacturing,MER-US,SMB,Retail & CPG,2025-06-01,Marketing,Active,,42000.0
+CUST-1171,Kestrel Marine,MER-US,Mid-Market,Manufacturing,2025-06-01,Marketing,Active,,83700.0
+CUST-1172,Norwich Packaging,MER-EU,SMB,Logistics & Transport,2025-06-01,Marketing,Active,,47300.0
+CUST-1173,Kilbourne Materials,MER-US,SMB,Financial Services,2025-06-01,Marketing,Active,,15600.0
+CUST-1174,Dunmore Logistics,MER-EU,SMB,Public Sector,2025-06-01,Marketing,Churned,2026-02,0.0
+CUST-1175,Penrose Housing,MER-US,SMB,Technology,2025-06-01,Sales,Active,,36000.0
+CUST-1176,Fairmont Packaging,MER-US,Enterprise,Healthcare,2025-06-01,Sales,Active,,226500.0
+CUST-1177,Dovetail Apparel,MER-US,SMB,Logistics & Transport,2025-07-01,Marketing,Active,,31500.0
+CUST-1178,Flint Hill Textiles,MER-US,SMB,Technology,2025-07-01,Marketing,Active,,42300.0
+CUST-1179,Silverline Publishing,MER-US,Mid-Market,Energy & Utilities,2025-07-01,Marketing,Active,,66000.0
+CUST-1180,Jessup Analytics,MER-EU,SMB,Public Sector,2025-07-01,Marketing,Active,,31700.0
+CUST-1181,Zephyr Telecom,MER-US,SMB,Logistics & Transport,2025-07-01,Marketing,Churned,2025-12,0.0
+CUST-1182,Westmere Industries,MER-US,Mid-Market,Public Sector,2025-07-01,Marketing,Churned,2025-11,0.0
+CUST-1183,Ironwood Systems,MER-US,SMB,Financial Services,2025-07-01,Sales,Active,,19000.0
+CUST-1184,Bluecrest Agriculture,MER-US,SMB,Logistics & Transport,2025-07-01,Sales,Churned,2026-05,0.0
+CUST-1185,Ilfracombe Diagnostics,MER-US,SMB,Logistics & Transport,2025-08-01,Marketing,Active,,43100.0
+CUST-1186,Silverline Distribution,MER-US,Mid-Market,Public Sector,2025-08-01,Marketing,Active,,83900.0
+CUST-1187,Kestrel Utilities,MER-US,SMB,Technology,2025-08-01,Marketing,Active,,42900.0
+CUST-1188,Vantage Manufacturing,MER-US,Enterprise,Financial Services,2025-08-01,Marketing,Active,,230300.0
+CUST-1189,Vernon Hill Mobility,MER-US,SMB,Technology,2025-08-01,Marketing,Churned,2025-09,0.0
+CUST-1190,Crestwell Apparel,MER-EU,SMB,Business Services,2025-08-01,Marketing,Churned,2026-01,0.0
+CUST-1191,Cedar Ridge Housing,MER-US,Mid-Market,Technology,2025-08-01,Marketing,Churned,2025-12,0.0
+CUST-1192,Westmere Diagnostics,MER-US,SMB,Technology,2025-08-01,Marketing,Active,,42800.0
+CUST-1193,Ferrous Hospitality,MER-US,Mid-Market,Retail & CPG,2025-08-01,Sales,Active,,62000.0
+CUST-1194,Flint Hill Systems,MER-US,SMB,Retail & CPG,2025-08-01,Sales,Active,,26200.0
+CUST-1195,Pinehaven Telecom,MER-EU,SMB,Technology,2025-09-01,Marketing,Active,,12400.0
+CUST-1196,Oakhurst Mobility,MER-EU,SMB,Healthcare,2025-09-01,Marketing,Active,,45700.0
+CUST-1197,Silverline Labs,MER-US,SMB,Manufacturing,2025-09-01,Marketing,Active,,33900.0
+CUST-1198,Garrowby Marine,MER-US,Mid-Market,Retail & CPG,2025-09-01,Marketing,Churned,2026-02,0.0
+CUST-1199,Palisade Foods,MER-US,SMB,Technology,2025-09-01,Marketing,Active,,40100.0
+CUST-1200,Ulverton Mobility,MER-US,Mid-Market,Energy & Utilities,2025-09-01,Marketing,Active,,80700.0
+CUST-1201,Alderway Textiles,MER-US,Mid-Market,Energy & Utilities,2025-09-01,Marketing,Churned,2025-11,0.0
+CUST-1202,Flint Hill Pharma,MER-US,Mid-Market,Financial Services,2025-09-01,Marketing,Active,,145200.0
+CUST-1203,Brightpath Housing,MER-US,Mid-Market,Manufacturing,2025-09-01,Marketing,Active,,103900.0
+CUST-1204,Lomond Analytics,MER-US,Mid-Market,Energy & Utilities,2025-09-01,Marketing,Active,,114100.0
+CUST-1205,Halcyon Packaging,MER-EU,SMB,Financial Services,2025-09-01,Marketing,Active,,30100.0
+CUST-1206,Granite Financial,MER-US,Mid-Market,Technology,2025-09-01,Sales,Churned,2026-05,0.0
+CUST-1207,Sunstone Textiles,MER-US,SMB,Logistics & Transport,2025-09-01,Sales,Active,,32900.0
+CUST-1208,Harrow Health,MER-US,Mid-Market,Energy & Utilities,2025-09-01,Sales,Active,,84500.0
+CUST-1209,Everly Mobility,MER-EU,SMB,Healthcare,2025-09-01,Sales,Active,,35900.0
+CUST-1210,Kestrel Industries,MER-US,SMB,Energy & Utilities,2025-10-01,Marketing,Active,,36600.0
+CUST-1211,Foxglove Logistics,MER-EU,SMB,Financial Services,2025-10-01,Marketing,Churned,2025-11,0.0
+CUST-1212,Alcove Apparel,MER-US,Mid-Market,Energy & Utilities,2025-10-01,Marketing,Active,,93000.0
+CUST-1213,Garrowby Freight,MER-EU,SMB,Healthcare,2025-10-01,Marketing,Active,,25600.0
+CUST-1214,Ravensworth Mobility,MER-US,SMB,Energy & Utilities,2025-10-01,Marketing,Active,,38700.0
+CUST-1215,Netherby Health,MER-US,Mid-Market,Business Services,2025-10-01,Marketing,Active,,145200.0
+CUST-1216,Brightpath Analytics,MER-US,Enterprise,Business Services,2025-10-01,Marketing,Active,,190500.0
+CUST-1217,Sable Freight,MER-EU,SMB,Financial Services,2025-10-01,Marketing,Active,,38000.0
+CUST-1218,Beacon Financial,MER-EU,SMB,Business Services,2025-10-01,Sales,Active,,42000.0
+CUST-1219,Hartley Robotics,MER-US,SMB,Public Sector,2025-10-01,Sales,Active,,41300.0
+CUST-1220,Jarrow Health,MER-US,Mid-Market,Healthcare,2025-10-01,Sales,Active,,109400.0
+CUST-1221,Tavistock Logistics,MER-US,Mid-Market,Manufacturing,2025-11-01,Marketing,Active,,109500.0
+CUST-1222,Ilfracombe Health,MER-US,Mid-Market,Manufacturing,2025-11-01,Marketing,Active,,101600.0
+CUST-1223,Oakhurst Pharma,MER-EU,SMB,Manufacturing,2025-11-01,Marketing,Active,,41900.0
+CUST-1224,Sunstone Telecom,MER-US,SMB,Technology,2025-11-01,Marketing,Churned,2026-02,0.0
+CUST-1225,Ashford Publishing,MER-EU,Mid-Market,Logistics & Transport,2025-11-01,Marketing,Active,,147500.0
+CUST-1226,Langford Analytics,MER-EU,SMB,Business Services,2025-11-01,Marketing,Active,,14800.0
+CUST-1227,Crestwell Metals,MER-EU,Enterprise,Logistics & Transport,2025-11-01,Marketing,Active,,214700.0
+CUST-1228,Emberly Financial,MER-US,SMB,Financial Services,2025-11-01,Marketing,Active,,24000.0
+CUST-1229,Granite Insurance,MER-US,SMB,Healthcare,2025-11-01,Marketing,Active,,30300.0
+CUST-1230,Crestwell Beverages,MER-US,SMB,Energy & Utilities,2025-11-01,Marketing,Active,,15000.0
+CUST-1231,Fenwick Chemicals,MER-US,SMB,Energy & Utilities,2025-11-01,Sales,Active,,23500.0
+CUST-1232,Cedar Ridge Partners,MER-US,SMB,Public Sector,2025-11-01,Sales,Active,,31000.0
+CUST-1233,Fairmont Energy,MER-EU,SMB,Financial Services,2025-11-01,Sales,Active,,34400.0
+CUST-1234,Thornbury Mobility,MER-US,SMB,Healthcare,2025-11-01,Sales,Active,,26600.0
+CUST-1235,Westmere Robotics,MER-US,SMB,Energy & Utilities,2025-12-01,Marketing,Active,,11300.0
+CUST-1236,Harrow Utilities,MER-US,SMB,Public Sector,2025-12-01,Marketing,Active,,42100.0
+CUST-1237,Copperfield Marine,MER-EU,SMB,Healthcare,2025-12-01,Marketing,Active,,34100.0
+CUST-1238,Vernon Hill Utilities,MER-US,Mid-Market,Public Sector,2025-12-01,Marketing,Active,,78400.0
+CUST-1239,Harrow Diagnostics,MER-US,Mid-Market,Retail & CPG,2025-12-01,Marketing,Active,,111600.0
+CUST-1240,Nimbus Publishing,MER-US,Mid-Market,Manufacturing,2025-12-01,Sales,Active,,109300.0
+CUST-1241,Meridian Bay Distribution,MER-US,SMB,Business Services,2025-12-01,Sales,Active,,34600.0
+CUST-1242,Kestrel Health,MER-US,SMB,Public Sector,2026-01-01,Marketing,Active,,27000.0
+CUST-1243,Pinehaven Utilities,MER-US,Mid-Market,Business Services,2026-01-01,Marketing,Active,,95900.0
+CUST-1244,Nimbus Components,MER-US,SMB,Healthcare,2026-01-01,Marketing,Churned,2026-06,0.0
+CUST-1245,Marlow Hospitality,MER-US,Mid-Market,Healthcare,2026-01-01,Marketing,Active,,73300.0
+CUST-1246,Hartley Energy,MER-US,Enterprise,Logistics & Transport,2026-01-01,Marketing,Active,,241700.0
+CUST-1247,Cedar Ridge Manufacturing,MER-EU,SMB,Public Sector,2026-01-01,Marketing,Active,,36400.0
+CUST-1248,Yarrow Foods,MER-EU,SMB,Business Services,2026-01-01,Marketing,Active,,39300.0
+CUST-1249,Jessup Insurance,MER-US,SMB,Energy & Utilities,2026-01-01,Sales,Active,,17400.0
+CUST-1250,Jessup Logistics,MER-US,Mid-Market,Manufacturing,2026-01-01,Sales,Active,,89400.0
+CUST-1251,Zephyr Components,MER-US,SMB,Retail & CPG,2026-02-01,Marketing,Active,,19100.0
+CUST-1252,Oswald Financial,MER-US,SMB,Logistics & Transport,2026-02-01,Marketing,Active,,42000.0
+CUST-1253,Windrow Industries,MER-US,SMB,Retail & CPG,2026-02-01,Marketing,Active,,21000.0
+CUST-1254,Fenwick Logistics,MER-US,Mid-Market,Retail & CPG,2026-02-01,Marketing,Active,,77200.0
+CUST-1255,Quarry Marine,MER-EU,Mid-Market,Technology,2026-02-01,Marketing,Active,,149900.0
+CUST-1256,Glenmoor Utilities,MER-US,SMB,Manufacturing,2026-02-01,Marketing,Active,,43900.0
+CUST-1257,Brightpath Foods,MER-US,SMB,Public Sector,2026-02-01,Marketing,Active,,22500.0
+CUST-1258,Corvid Telecom,MER-US,SMB,Public Sector,2026-02-01,Marketing,Active,,40600.0
+CUST-1259,Lakeshore Marine,MER-US,SMB,Logistics & Transport,2026-02-01,Marketing,Active,,20400.0
+CUST-1260,Copperfield Analytics,MER-EU,SMB,Business Services,2026-02-01,Marketing,Active,,30300.0
+CUST-1261,Kilbourne Chemicals,MER-US,Mid-Market,Energy & Utilities,2026-02-01,Marketing,Active,,86100.0
+CUST-1262,Corvid Packaging,MER-US,SMB,Public Sector,2026-02-01,Sales,Active,,14500.0
+CUST-1263,Sable Retail Group,MER-EU,Mid-Market,Healthcare,2026-02-01,Sales,Active,,106400.0
+CUST-1264,Kingsford Utilities,MER-EU,SMB,Healthcare,2026-02-01,Sales,Active,,33000.0
+CUST-1265,Kilbourne Beverages,MER-EU,SMB,Healthcare,2026-02-01,Sales,Active,,41100.0
+CUST-1266,Crestwell Distribution,MER-EU,Enterprise,Energy & Utilities,2026-03-01,Marketing,Active,,288700.0
+CUST-1267,Granite Industries,MER-EU,Mid-Market,Healthcare,2026-03-01,Marketing,Active,,118400.0
+CUST-1268,Meridian Bay Publishing,MER-US,SMB,Logistics & Transport,2026-03-01,Marketing,Active,,14000.0
+CUST-1269,Langford Partners,MER-US,SMB,Healthcare,2026-03-01,Marketing,Active,,19300.0
+CUST-1270,Mirefield Insurance,MER-US,Mid-Market,Retail & CPG,2026-03-01,Marketing,Active,,108100.0
+CUST-1271,Mirefield Agriculture,MER-US,Enterprise,Technology,2026-03-01,Marketing,Active,,226700.0
+CUST-1272,Flint Hill Components,MER-US,Mid-Market,Energy & Utilities,2026-03-01,Marketing,Active,,72900.0
+CUST-1273,Quarry Textiles,MER-EU,Enterprise,Manufacturing,2026-03-01,Marketing,Active,,261600.0
+CUST-1274,Pelham Industries,MER-EU,SMB,Technology,2026-03-01,Marketing,Active,,30400.0
+CUST-1275,Sable Diagnostics,MER-EU,SMB,Public Sector,2026-03-01,Marketing,Active,,35100.0
+CUST-1276,Tavistock Hospitality,MER-US,SMB,Energy & Utilities,2026-03-01,Marketing,Active,,25200.0
+CUST-1277,Netherby Pharma,MER-US,SMB,Public Sector,2026-03-01,Sales,Active,,18700.0
+CUST-1278,Marlow Chemicals,MER-US,Enterprise,Financial Services,2026-03-01,Sales,Active,,233600.0
+CUST-1279,Vantage Labs,MER-EU,Mid-Market,Business Services,2026-03-01,Sales,Active,,74400.0
+CUST-1280,Pelham Insurance,MER-US,SMB,Energy & Utilities,2026-03-01,Sales,Active,,21100.0
+CUST-1281,Langford Insurance,MER-US,Mid-Market,Manufacturing,2026-04-01,Marketing,Active,,109600.0
+CUST-1282,Ravensworth Analytics,MER-EU,Mid-Market,Retail & CPG,2026-04-01,Marketing,Active,,113600.0
+CUST-1283,Zephyr Robotics,MER-EU,Mid-Market,Energy & Utilities,2026-04-01,Marketing,Active,,108900.0
+CUST-1284,Glenmoor Textiles,MER-US,SMB,Public Sector,2026-04-01,Marketing,Active,,13500.0
+CUST-1285,Everly Health,MER-US,SMB,Technology,2026-04-01,Marketing,Active,,41400.0
+CUST-1286,Ravensworth Apparel,MER-EU,SMB,Healthcare,2026-04-01,Marketing,Churned,2026-06,0.0
+CUST-1287,Vantage Agriculture,MER-US,Mid-Market,Logistics & Transport,2026-04-01,Marketing,Active,,77500.0
+CUST-1288,Sable Metals,MER-US,SMB,Manufacturing,2026-04-01,Marketing,Active,,25800.0
+CUST-1289,Vellum Retail Group,MER-US,SMB,Healthcare,2026-04-01,Marketing,Active,,15900.0
+CUST-1290,Quimby Robotics,MER-US,SMB,Public Sector,2026-04-01,Marketing,Active,,33800.0
+CUST-1291,Palisade Metals,MER-US,Mid-Market,Financial Services,2026-04-01,Marketing,Active,,136800.0
+CUST-1292,Ormsby Foods,MER-US,Mid-Market,Manufacturing,2026-04-01,Sales,Active,,119900.0
+CUST-1293,Lakeshore Beverages,MER-EU,Mid-Market,Retail & CPG,2026-04-01,Sales,Active,,77800.0
+CUST-1294,Fairmont Logistics,MER-EU,SMB,Logistics & Transport,2026-04-01,Sales,Active,,18000.0
+CUST-1295,Jessup Robotics,MER-US,Mid-Market,Manufacturing,2026-04-01,Sales,Active,,94100.0
+CUST-1296,Beacon Chemicals,MER-US,Mid-Market,Public Sector,2026-04-01,Sales,Active,,102900.0
+CUST-1297,Orbit Marine,MER-EU,Mid-Market,Financial Services,2026-05-01,Marketing,Active,,63100.0
+CUST-1298,Kingsford Agriculture,MER-US,Mid-Market,Public Sector,2026-05-01,Marketing,Active,,150200.0
+CUST-1299,Granite Textiles,MER-US,SMB,Business Services,2026-05-01,Marketing,Active,,20100.0
+CUST-1300,Jessup Manufacturing,MER-US,SMB,Financial Services,2026-05-01,Marketing,Active,,36800.0
+CUST-1301,Emberly Textiles,MER-US,SMB,Financial Services,2026-05-01,Marketing,Active,,15900.0
+CUST-1302,Braxton Labs,MER-US,SMB,Public Sector,2026-05-01,Marketing,Active,,15900.0
+CUST-1303,Braxton Robotics,MER-US,Mid-Market,Logistics & Transport,2026-05-01,Marketing,Active,,63500.0
+CUST-1304,Ellsworth Aviation,MER-US,Mid-Market,Retail & CPG,2026-05-01,Marketing,Active,,58300.0
+CUST-1305,Alderway Foods,MER-EU,Mid-Market,Energy & Utilities,2026-05-01,Marketing,Active,,87300.0
+CUST-1306,Sunstone Industries,MER-EU,SMB,Energy & Utilities,2026-05-01,Marketing,Active,,39700.0
+CUST-1307,Beacon Robotics,MER-US,SMB,Technology,2026-05-01,Marketing,Active,,25600.0
+CUST-1308,Alcove Utilities,MER-US,SMB,Technology,2026-05-01,Sales,Active,,27700.0
+CUST-1309,Kingsford Partners,MER-US,Mid-Market,Manufacturing,2026-05-01,Sales,Active,,102900.0
+CUST-1310,Westmere Distribution,MER-US,SMB,Retail & CPG,2026-05-01,Sales,Active,,16600.0
+CUST-1311,Kilbourne Industries,MER-EU,SMB,Logistics & Transport,2026-05-01,Sales,Active,,14000.0
+CUST-1312,Harrow Publishing,MER-US,Mid-Market,Public Sector,2026-06-01,Marketing,Active,,81100.0
+CUST-1313,Fenwick Materials,MER-US,Mid-Market,Healthcare,2026-06-01,Marketing,Active,,151200.0
+CUST-1314,Sable Labs,MER-EU,SMB,Manufacturing,2026-06-01,Marketing,Active,,18500.0
+CUST-1315,Pinehaven Textiles,MER-US,SMB,Logistics & Transport,2026-06-01,Marketing,Active,,23500.0
+CUST-1316,Ironwood Apparel,MER-EU,Mid-Market,Business Services,2026-06-01,Marketing,Active,,106300.0
+CUST-1317,Dunmore Telecom,MER-US,Enterprise,Retail & CPG,2026-06-01,Marketing,Active,,302100.0
+CUST-1318,Cedar Ridge Packaging,MER-US,SMB,Business Services,2026-06-01,Marketing,Active,,13100.0
+CUST-1319,Wexley Diagnostics,MER-US,Enterprise,Energy & Utilities,2026-06-01,Marketing,Active,,192800.0
+CUST-1320,Brightpath Hospitality,MER-EU,Mid-Market,Public Sector,2026-06-01,Marketing,Active,,84900.0
+CUST-1321,Jessup Energy,MER-US,Mid-Market,Logistics & Transport,2026-06-01,Marketing,Active,,81100.0
+CUST-1322,Vernon Hill Aviation,MER-US,SMB,Business Services,2026-06-01,Sales,Active,,45400.0
+CUST-1323,Sunstone Foods,MER-EU,Mid-Market,Financial Services,2026-06-01,Sales,Active,,125400.0
+CUST-1324,Thornbury Utilities,MER-EU,SMB,Retail & CPG,2026-06-01,Sales,Active,,39400.0

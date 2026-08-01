@@ -1,0 +1,358 @@
+effective_date,period,month_label,entity,customer_id,customer_name,segment,industry,movement_type,arr_delta_usd,source
+2025-01-31,2025-01,Jan-25,MER-EU,CUST-1032,Pelham Labs,Mid-Market,Retail & CPG,Churn,-237700.0,
+2025-01-31,2025-01,Jan-25,MER-US,CUST-1087,Norwich Retail Group,SMB,Logistics & Transport,Expansion,1700.0,
+2025-01-31,2025-01,Jan-25,MER-EU,CUST-1089,Westmere Analytics,SMB,Public Sector,Churn,-22200.0,
+2025-01-31,2025-01,Jan-25,MER-US,CUST-1094,Quimby Packaging,SMB,Financial Services,Expansion,12100.0,
+2025-01-31,2025-01,Jan-25,MER-US,CUST-1105,Tavistock Mobility,SMB,Manufacturing,Expansion,6400.0,
+2025-01-31,2025-01,Jan-25,MER-EU,CUST-1115,Ellsworth Chemicals,SMB,Energy & Utilities,New Logo,30700.0,Marketing
+2025-01-31,2025-01,Jan-25,MER-US,CUST-1116,Fenwick Insurance,SMB,Financial Services,New Logo,17000.0,Marketing
+2025-01-31,2025-01,Jan-25,MER-US,CUST-1117,Dovetail Packaging,Mid-Market,Healthcare,New Logo,128500.0,Marketing
+2025-01-31,2025-01,Jan-25,MER-US,CUST-1118,Norwich Financial,Mid-Market,Retail & CPG,New Logo,106100.0,Sales
+2025-02-28,2025-02,Feb-25,MER-US,CUST-1002,Vernon Hill Grocers,Enterprise,Financial Services,Expansion,270700.0,
+2025-02-28,2025-02,Feb-25,MER-US,CUST-1029,Cinder Retail Group,Mid-Market,Business Services,Expansion,29400.0,
+2025-02-28,2025-02,Feb-25,MER-US,CUST-1029,Cinder Retail Group,Mid-Market,Business Services,Churn,-179000.0,
+2025-02-28,2025-02,Feb-25,MER-US,CUST-1063,Pinehaven Partners,SMB,Business Services,Expansion,4700.0,
+2025-02-28,2025-02,Feb-25,MER-EU,CUST-1072,Northwind Textiles,SMB,Public Sector,Contraction,-4600.0,
+2025-02-28,2025-02,Feb-25,MER-US,CUST-1088,Mirefield Energy,SMB,Financial Services,Churn,-55400.0,
+2025-02-28,2025-02,Feb-25,MER-EU,CUST-1114,Kestrel Diagnostics,Enterprise,Healthcare,Expansion,193000.0,
+2025-02-28,2025-02,Feb-25,MER-US,CUST-1119,Crestwell Retail Group,SMB,Healthcare,New Logo,11800.0,Marketing
+2025-02-28,2025-02,Feb-25,MER-US,CUST-1120,Orbit Retail Group,SMB,Manufacturing,New Logo,31900.0,Marketing
+2025-02-28,2025-02,Feb-25,MER-US,CUST-1121,Fairmont Diagnostics,SMB,Healthcare,New Logo,18700.0,Marketing
+2025-02-28,2025-02,Feb-25,MER-EU,CUST-1122,Harrow Metals,SMB,Public Sector,New Logo,15500.0,Marketing
+2025-02-28,2025-02,Feb-25,MER-EU,CUST-1123,Flint Hill Packaging,SMB,Retail & CPG,New Logo,11300.0,Marketing
+2025-02-28,2025-02,Feb-25,MER-US,CUST-1124,Harrow Labs,SMB,Public Sector,New Logo,43300.0,Marketing
+2025-02-28,2025-02,Feb-25,MER-US,CUST-1125,Ilfracombe Grocers,SMB,Business Services,New Logo,43500.0,Marketing
+2025-02-28,2025-02,Feb-25,MER-EU,CUST-1126,Cedar Ridge Mobility,Mid-Market,Business Services,New Logo,114200.0,Marketing
+2025-02-28,2025-02,Feb-25,MER-US,CUST-1127,Mossbank Partners,SMB,Retail & CPG,New Logo,13800.0,Marketing
+2025-02-28,2025-02,Feb-25,MER-US,CUST-1128,Harrow Manufacturing,SMB,Energy & Utilities,New Logo,29900.0,Sales
+2025-02-28,2025-02,Feb-25,MER-US,CUST-1129,Jarrow Insurance,Mid-Market,Business Services,New Logo,115100.0,Sales
+2025-02-28,2025-02,Feb-25,MER-US,CUST-1130,Tidewater Insurance,SMB,Financial Services,New Logo,43400.0,Sales
+2025-03-31,2025-03,Mar-25,MER-US,CUST-1018,Vellum Components,Mid-Market,Healthcare,Contraction,-46300.0,
+2025-03-31,2025-03,Mar-25,MER-EU,CUST-1028,Cinder Packaging,Mid-Market,Technology,Expansion,25000.0,
+2025-03-31,2025-03,Mar-25,MER-US,CUST-1059,Kestrel Diagnostics,SMB,Energy & Utilities,Expansion,6500.0,
+2025-03-31,2025-03,Mar-25,MER-US,CUST-1064,Garrowby Beverages,SMB,Healthcare,Expansion,9800.0,
+2025-03-31,2025-03,Mar-25,MER-EU,CUST-1067,Anchorpoint Packaging,SMB,Logistics & Transport,Expansion,9200.0,
+2025-03-31,2025-03,Mar-25,MER-US,CUST-1084,Stanmore Partners,SMB,Retail & CPG,Expansion,5900.0,
+2025-03-31,2025-03,Mar-25,MER-US,CUST-1104,Ulverton Retail Group,SMB,Retail & CPG,Expansion,6900.0,
+2025-03-31,2025-03,Mar-25,MER-US,CUST-1131,Halcyon Apparel,Mid-Market,Public Sector,New Logo,157800.0,Marketing
+2025-03-31,2025-03,Mar-25,MER-US,CUST-1132,Vernon Hill Analytics,Enterprise,Financial Services,New Logo,194200.0,Marketing
+2025-03-31,2025-03,Mar-25,MER-US,CUST-1133,Ironwood Logistics,SMB,Healthcare,New Logo,26300.0,Marketing
+2025-03-31,2025-03,Mar-25,MER-US,CUST-1134,Dunmore Materials,SMB,Business Services,New Logo,11400.0,Marketing
+2025-03-31,2025-03,Mar-25,MER-US,CUST-1135,Ellsworth Robotics,Mid-Market,Manufacturing,New Logo,64400.0,Marketing
+2025-03-31,2025-03,Mar-25,MER-US,CUST-1136,Corvid Energy,SMB,Manufacturing,New Logo,41700.0,Marketing
+2025-03-31,2025-03,Mar-25,MER-US,CUST-1137,Lakeshore Mobility,SMB,Financial Services,New Logo,41400.0,Marketing
+2025-03-31,2025-03,Mar-25,MER-EU,CUST-1138,Stanmore Packaging,Mid-Market,Energy & Utilities,New Logo,111100.0,Marketing
+2025-03-31,2025-03,Mar-25,MER-EU,CUST-1139,Netherby Insurance,Mid-Market,Energy & Utilities,New Logo,76800.0,Marketing
+2025-03-31,2025-03,Mar-25,MER-US,CUST-1140,Lakeshore Foods,Mid-Market,Public Sector,New Logo,66500.0,Sales
+2025-03-31,2025-03,Mar-25,MER-US,CUST-1141,Ironwood Beverages,Mid-Market,Energy & Utilities,New Logo,150600.0,Sales
+2025-03-31,2025-03,Mar-25,MER-EU,CUST-1142,Yarrow Agriculture,SMB,Healthcare,New Logo,35500.0,Sales
+2025-03-31,2025-03,Mar-25,MER-US,CUST-1143,Alderway Pharma,Mid-Market,Manufacturing,New Logo,100500.0,Sales
+2025-04-30,2025-04,Apr-25,MER-EU,CUST-1003,Orbit Foods,Enterprise,Public Sector,Contraction,-113500.0,
+2025-04-30,2025-04,Apr-25,MER-US,CUST-1027,Ravensworth Marine,Mid-Market,Energy & Utilities,Expansion,20300.0,
+2025-04-30,2025-04,Apr-25,MER-US,CUST-1068,Ilfracombe Components,SMB,Business Services,Expansion,10800.0,
+2025-04-30,2025-04,Apr-25,MER-US,CUST-1144,Lakeshore Housing,SMB,Public Sector,New Logo,46000.0,Marketing
+2025-04-30,2025-04,Apr-25,MER-US,CUST-1145,Dunmore Pharma,Mid-Market,Business Services,New Logo,99500.0,Marketing
+2025-04-30,2025-04,Apr-25,MER-US,CUST-1146,Zephyr Systems,Mid-Market,Business Services,New Logo,139200.0,Marketing
+2025-04-30,2025-04,Apr-25,MER-US,CUST-1147,Cedar Ridge Components,SMB,Technology,New Logo,35000.0,Marketing
+2025-04-30,2025-04,Apr-25,MER-US,CUST-1148,Zephyr Beverages,SMB,Business Services,New Logo,33100.0,Marketing
+2025-04-30,2025-04,Apr-25,MER-US,CUST-1149,Pinehaven Mobility,SMB,Healthcare,New Logo,37000.0,Marketing
+2025-04-30,2025-04,Apr-25,MER-US,CUST-1150,Everly Metals,Mid-Market,Public Sector,New Logo,137600.0,Marketing
+2025-04-30,2025-04,Apr-25,MER-US,CUST-1151,Jessup Mobility,Enterprise,Business Services,New Logo,249700.0,Sales
+2025-04-30,2025-04,Apr-25,MER-US,CUST-1152,Ormsby Pharma,SMB,Retail & CPG,New Logo,30200.0,Sales
+2025-04-30,2025-04,Apr-25,MER-EU,CUST-1153,Ulverton Energy,Enterprise,Financial Services,New Logo,187800.0,Sales
+2025-05-31,2025-05,May-25,MER-US,CUST-1011,Redline Mobility,Enterprise,Healthcare,Contraction,-85300.0,
+2025-05-31,2025-05,May-25,MER-US,CUST-1036,Orbit Partners,Mid-Market,Healthcare,Contraction,-34600.0,
+2025-05-31,2025-05,May-25,MER-US,CUST-1066,Dovetail Health,SMB,Logistics & Transport,Churn,-35200.0,
+2025-05-31,2025-05,May-25,MER-EU,CUST-1067,Anchorpoint Packaging,SMB,Logistics & Transport,Churn,-39900.0,
+2025-05-31,2025-05,May-25,MER-US,CUST-1105,Tavistock Mobility,SMB,Manufacturing,Churn,-28600.0,
+2025-05-31,2025-05,May-25,MER-US,CUST-1154,Redline Pharma,SMB,Healthcare,New Logo,39800.0,Marketing
+2025-05-31,2025-05,May-25,MER-US,CUST-1155,Fenwick Components,SMB,Energy & Utilities,New Logo,16000.0,Marketing
+2025-05-31,2025-05,May-25,MER-US,CUST-1156,Ashford Freight,Mid-Market,Financial Services,New Logo,113500.0,Marketing
+2025-05-31,2025-05,May-25,MER-EU,CUST-1157,Ellsworth Analytics,SMB,Logistics & Transport,New Logo,16000.0,Marketing
+2025-05-31,2025-05,May-25,MER-US,CUST-1158,Anchorpoint Aviation,SMB,Public Sector,New Logo,45200.0,Marketing
+2025-05-31,2025-05,May-25,MER-US,CUST-1159,Ulverton Chemicals,SMB,Business Services,New Logo,41000.0,Marketing
+2025-05-31,2025-05,May-25,MER-US,CUST-1160,Wexley Beverages,SMB,Business Services,New Logo,25100.0,Marketing
+2025-05-31,2025-05,May-25,MER-US,CUST-1161,Granite Manufacturing,SMB,Technology,New Logo,27500.0,Marketing
+2025-05-31,2025-05,May-25,MER-US,CUST-1162,Windrow Grocers,SMB,Manufacturing,New Logo,25200.0,Marketing
+2025-05-31,2025-05,May-25,MER-EU,CUST-1163,Rothwell Materials,Mid-Market,Energy & Utilities,New Logo,107800.0,Marketing
+2025-05-31,2025-05,May-25,MER-US,CUST-1164,Oswald Components,SMB,Logistics & Transport,New Logo,33700.0,Sales
+2025-05-31,2025-05,May-25,MER-US,CUST-1165,Brightpath Packaging,SMB,Financial Services,New Logo,39200.0,Sales
+2025-05-31,2025-05,May-25,MER-US,CUST-1166,Harrow Housing,SMB,Business Services,New Logo,45200.0,Sales
+2025-05-31,2025-05,May-25,MER-US,CUST-1167,Alderway Materials,SMB,Public Sector,New Logo,30600.0,Sales
+2025-06-30,2025-06,Jun-25,MER-US,CUST-1057,Ilfracombe Metals,SMB,Logistics & Transport,Expansion,4500.0,
+2025-06-30,2025-06,Jun-25,MER-EU,CUST-1095,Emberly Diagnostics,SMB,Business Services,Expansion,8000.0,
+2025-06-30,2025-06,Jun-25,MER-EU,CUST-1111,Yarrow Chemicals,SMB,Public Sector,Expansion,5100.0,
+2025-06-30,2025-06,Jun-25,MER-US,CUST-1112,Northwind Grocers,Enterprise,Retail & CPG,Expansion,221500.0,
+2025-06-30,2025-06,Jun-25,MER-US,CUST-1112,Northwind Grocers,Enterprise,Retail & CPG,Expansion,240000.0,
+2025-06-30,2025-06,Jun-25,MER-EU,CUST-1126,Cedar Ridge Mobility,Mid-Market,Business Services,Churn,-114200.0,
+2025-06-30,2025-06,Jun-25,MER-EU,CUST-1168,Halcyon Freight,Enterprise,Manufacturing,New Logo,217000.0,Marketing
+2025-06-30,2025-06,Jun-25,MER-US,CUST-1169,Granite Systems,SMB,Logistics & Transport,New Logo,41200.0,Marketing
+2025-06-30,2025-06,Jun-25,MER-US,CUST-1170,Westmere Manufacturing,SMB,Retail & CPG,New Logo,36300.0,Marketing
+2025-06-30,2025-06,Jun-25,MER-US,CUST-1171,Kestrel Marine,Mid-Market,Manufacturing,New Logo,66100.0,Marketing
+2025-06-30,2025-06,Jun-25,MER-EU,CUST-1172,Norwich Packaging,SMB,Logistics & Transport,New Logo,35300.0,Marketing
+2025-06-30,2025-06,Jun-25,MER-US,CUST-1173,Kilbourne Materials,SMB,Financial Services,New Logo,15600.0,Marketing
+2025-06-30,2025-06,Jun-25,MER-EU,CUST-1174,Dunmore Logistics,SMB,Public Sector,New Logo,11000.0,Marketing
+2025-06-30,2025-06,Jun-25,MER-US,CUST-1175,Penrose Housing,SMB,Technology,New Logo,41700.0,Sales
+2025-06-30,2025-06,Jun-25,MER-US,CUST-1176,Fairmont Packaging,Enterprise,Healthcare,New Logo,226500.0,Sales
+2025-07-31,2025-07,Jul-25,MER-US,CUST-1024,Trellis Hospitality,Mid-Market,Manufacturing,Expansion,22500.0,
+2025-07-31,2025-07,Jul-25,MER-US,CUST-1079,Ashford Labs,SMB,Logistics & Transport,Contraction,-2400.0,
+2025-07-31,2025-07,Jul-25,MER-US,CUST-1120,Orbit Retail Group,SMB,Manufacturing,Churn,-31900.0,
+2025-07-31,2025-07,Jul-25,MER-US,CUST-1177,Dovetail Apparel,SMB,Logistics & Transport,New Logo,31500.0,Marketing
+2025-07-31,2025-07,Jul-25,MER-US,CUST-1178,Flint Hill Textiles,SMB,Technology,New Logo,42300.0,Marketing
+2025-07-31,2025-07,Jul-25,MER-US,CUST-1179,Silverline Publishing,Mid-Market,Energy & Utilities,New Logo,66000.0,Marketing
+2025-07-31,2025-07,Jul-25,MER-EU,CUST-1180,Jessup Analytics,SMB,Public Sector,New Logo,31700.0,Marketing
+2025-07-31,2025-07,Jul-25,MER-US,CUST-1181,Zephyr Telecom,SMB,Logistics & Transport,New Logo,14400.0,Marketing
+2025-07-31,2025-07,Jul-25,MER-US,CUST-1182,Westmere Industries,Mid-Market,Public Sector,New Logo,122300.0,Marketing
+2025-07-31,2025-07,Jul-25,MER-US,CUST-1183,Ironwood Systems,SMB,Financial Services,New Logo,19000.0,Sales
+2025-07-31,2025-07,Jul-25,MER-US,CUST-1184,Bluecrest Agriculture,SMB,Logistics & Transport,New Logo,27700.0,Sales
+2025-08-31,2025-08,Aug-25,MER-US,CUST-1059,Kestrel Diagnostics,SMB,Energy & Utilities,Churn,-67700.0,
+2025-08-31,2025-08,Aug-25,MER-US,CUST-1081,Trellis Robotics,SMB,Retail & CPG,Churn,-18300.0,
+2025-08-31,2025-08,Aug-25,MER-US,CUST-1103,Pelham Energy,SMB,Financial Services,Expansion,6400.0,
+2025-08-31,2025-08,Aug-25,MER-US,CUST-1162,Windrow Grocers,SMB,Manufacturing,Churn,-25200.0,
+2025-08-31,2025-08,Aug-25,MER-US,CUST-1185,Ilfracombe Diagnostics,SMB,Logistics & Transport,New Logo,43100.0,Marketing
+2025-08-31,2025-08,Aug-25,MER-US,CUST-1186,Silverline Distribution,Mid-Market,Public Sector,New Logo,83900.0,Marketing
+2025-08-31,2025-08,Aug-25,MER-US,CUST-1187,Kestrel Utilities,SMB,Technology,New Logo,42900.0,Marketing
+2025-08-31,2025-08,Aug-25,MER-US,CUST-1188,Vantage Manufacturing,Enterprise,Financial Services,New Logo,230300.0,Marketing
+2025-08-31,2025-08,Aug-25,MER-US,CUST-1189,Vernon Hill Mobility,SMB,Technology,New Logo,17200.0,Marketing
+2025-08-31,2025-08,Aug-25,MER-EU,CUST-1190,Crestwell Apparel,SMB,Business Services,New Logo,31100.0,Marketing
+2025-08-31,2025-08,Aug-25,MER-US,CUST-1191,Cedar Ridge Housing,Mid-Market,Technology,New Logo,142300.0,Marketing
+2025-08-31,2025-08,Aug-25,MER-US,CUST-1192,Westmere Diagnostics,SMB,Technology,New Logo,42800.0,Marketing
+2025-08-31,2025-08,Aug-25,MER-US,CUST-1193,Ferrous Hospitality,Mid-Market,Retail & CPG,New Logo,62000.0,Sales
+2025-08-31,2025-08,Aug-25,MER-US,CUST-1194,Flint Hill Systems,SMB,Retail & CPG,New Logo,26200.0,Sales
+2025-09-30,2025-09,Sep-25,MER-US,CUST-1016,Lakeshore Telecom,Mid-Market,Energy & Utilities,Expansion,52000.0,
+2025-09-30,2025-09,Sep-25,MER-US,CUST-1093,Crestwell Robotics,SMB,Energy & Utilities,Expansion,8200.0,
+2025-09-30,2025-09,Sep-25,MER-US,CUST-1097,Corvid Financial,SMB,Healthcare,Contraction,-11700.0,
+2025-09-30,2025-09,Sep-25,MER-EU,CUST-1114,Kestrel Diagnostics,Enterprise,Healthcare,Expansion,190000.0,
+2025-09-30,2025-09,Sep-25,MER-US,CUST-1189,Vernon Hill Mobility,SMB,Technology,Churn,-17200.0,
+2025-09-30,2025-09,Sep-25,MER-EU,CUST-1195,Pinehaven Telecom,SMB,Technology,New Logo,12400.0,Marketing
+2025-09-30,2025-09,Sep-25,MER-EU,CUST-1196,Oakhurst Mobility,SMB,Healthcare,New Logo,45700.0,Marketing
+2025-09-30,2025-09,Sep-25,MER-US,CUST-1197,Silverline Labs,SMB,Manufacturing,New Logo,33900.0,Marketing
+2025-09-30,2025-09,Sep-25,MER-US,CUST-1198,Garrowby Marine,Mid-Market,Retail & CPG,New Logo,150000.0,Marketing
+2025-09-30,2025-09,Sep-25,MER-US,CUST-1199,Palisade Foods,SMB,Technology,New Logo,40100.0,Marketing
+2025-09-30,2025-09,Sep-25,MER-US,CUST-1200,Ulverton Mobility,Mid-Market,Energy & Utilities,New Logo,80700.0,Marketing
+2025-09-30,2025-09,Sep-25,MER-US,CUST-1201,Alderway Textiles,Mid-Market,Energy & Utilities,New Logo,113400.0,Marketing
+2025-09-30,2025-09,Sep-25,MER-US,CUST-1202,Flint Hill Pharma,Mid-Market,Financial Services,New Logo,145200.0,Marketing
+2025-09-30,2025-09,Sep-25,MER-US,CUST-1203,Brightpath Housing,Mid-Market,Manufacturing,New Logo,103900.0,Marketing
+2025-09-30,2025-09,Sep-25,MER-US,CUST-1204,Lomond Analytics,Mid-Market,Energy & Utilities,New Logo,114100.0,Marketing
+2025-09-30,2025-09,Sep-25,MER-EU,CUST-1205,Halcyon Packaging,SMB,Financial Services,New Logo,30100.0,Marketing
+2025-09-30,2025-09,Sep-25,MER-US,CUST-1206,Granite Financial,Mid-Market,Technology,New Logo,113900.0,Sales
+2025-09-30,2025-09,Sep-25,MER-US,CUST-1207,Sunstone Textiles,SMB,Logistics & Transport,New Logo,32900.0,Sales
+2025-09-30,2025-09,Sep-25,MER-US,CUST-1208,Harrow Health,Mid-Market,Energy & Utilities,New Logo,84500.0,Sales
+2025-09-30,2025-09,Sep-25,MER-EU,CUST-1209,Everly Mobility,SMB,Healthcare,New Logo,35900.0,Sales
+2025-10-31,2025-10,Oct-25,MER-US,CUST-1023,Kilbourne Publishing,Mid-Market,Retail & CPG,Churn,-90400.0,
+2025-10-31,2025-10,Oct-25,MER-US,CUST-1030,Northwind Agriculture,Mid-Market,Financial Services,Expansion,49300.0,
+2025-10-31,2025-10,Oct-25,MER-US,CUST-1034,Copperfield Housing,Mid-Market,Manufacturing,Expansion,42900.0,
+2025-10-31,2025-10,Oct-25,MER-US,CUST-1034,Copperfield Housing,Mid-Market,Manufacturing,Churn,-263300.0,
+2025-10-31,2025-10,Oct-25,MER-US,CUST-1040,Beacon Energy,Mid-Market,Energy & Utilities,Expansion,36400.0,
+2025-10-31,2025-10,Oct-25,MER-US,CUST-1051,Nimbus Analytics,Mid-Market,Technology,Expansion,7800.0,
+2025-10-31,2025-10,Oct-25,MER-US,CUST-1051,Nimbus Analytics,Mid-Market,Technology,Churn,-85600.0,
+2025-10-31,2025-10,Oct-25,MER-US,CUST-1052,Kilbourne Agriculture,Mid-Market,Energy & Utilities,Churn,-199000.0,
+2025-10-31,2025-10,Oct-25,MER-US,CUST-1054,Mossbank Telecom,Mid-Market,Public Sector,Expansion,31500.0,
+2025-10-31,2025-10,Oct-25,MER-US,CUST-1077,Bellamy Packaging,SMB,Retail & CPG,Expansion,8200.0,
+2025-10-31,2025-10,Oct-25,MER-US,CUST-1078,Lakeshore Components,SMB,Manufacturing,Expansion,12600.0,
+2025-10-31,2025-10,Oct-25,MER-US,CUST-1096,Ilfracombe Materials,SMB,Manufacturing,Expansion,14000.0,
+2025-10-31,2025-10,Oct-25,MER-US,CUST-1103,Pelham Energy,SMB,Financial Services,Churn,-47400.0,
+2025-10-31,2025-10,Oct-25,MER-EU,CUST-1106,Crestwell Industries,SMB,Healthcare,Churn,-18400.0,
+2025-10-31,2025-10,Oct-25,MER-EU,CUST-1157,Ellsworth Analytics,SMB,Logistics & Transport,Churn,-16000.0,
+2025-10-31,2025-10,Oct-25,MER-US,CUST-1210,Kestrel Industries,SMB,Energy & Utilities,New Logo,36600.0,Marketing
+2025-10-31,2025-10,Oct-25,MER-EU,CUST-1211,Foxglove Logistics,SMB,Financial Services,New Logo,13900.0,Marketing
+2025-10-31,2025-10,Oct-25,MER-US,CUST-1212,Alcove Apparel,Mid-Market,Energy & Utilities,New Logo,93000.0,Marketing
+2025-10-31,2025-10,Oct-25,MER-EU,CUST-1213,Garrowby Freight,SMB,Healthcare,New Logo,25600.0,Marketing
+2025-10-31,2025-10,Oct-25,MER-US,CUST-1214,Ravensworth Mobility,SMB,Energy & Utilities,New Logo,38700.0,Marketing
+2025-10-31,2025-10,Oct-25,MER-US,CUST-1215,Netherby Health,Mid-Market,Business Services,New Logo,145200.0,Marketing
+2025-10-31,2025-10,Oct-25,MER-US,CUST-1216,Brightpath Analytics,Enterprise,Business Services,New Logo,190500.0,Marketing
+2025-10-31,2025-10,Oct-25,MER-EU,CUST-1217,Sable Freight,SMB,Financial Services,New Logo,38000.0,Marketing
+2025-10-31,2025-10,Oct-25,MER-EU,CUST-1218,Beacon Financial,SMB,Business Services,New Logo,42000.0,Sales
+2025-10-31,2025-10,Oct-25,MER-US,CUST-1219,Hartley Robotics,SMB,Public Sector,New Logo,41300.0,Sales
+2025-10-31,2025-10,Oct-25,MER-US,CUST-1220,Jarrow Health,Mid-Market,Healthcare,New Logo,109400.0,Sales
+2025-11-30,2025-11,Nov-25,MER-EU,CUST-1061,Larkspur Financial,SMB,Manufacturing,Expansion,13800.0,
+2025-11-30,2025-11,Nov-25,MER-US,CUST-1096,Ilfracombe Materials,SMB,Manufacturing,Churn,-55800.0,
+2025-11-30,2025-11,Nov-25,MER-EU,CUST-1099,Langford Retail Group,SMB,Business Services,Expansion,4300.0,
+2025-11-30,2025-11,Nov-25,MER-US,CUST-1112,Northwind Grocers,Enterprise,Retail & CPG,Contraction,-310000.0,
+2025-11-30,2025-11,Nov-25,MER-US,CUST-1133,Ironwood Logistics,SMB,Healthcare,Churn,-26300.0,
+2025-11-30,2025-11,Nov-25,MER-US,CUST-1182,Westmere Industries,Mid-Market,Public Sector,Churn,-122300.0,
+2025-11-30,2025-11,Nov-25,MER-US,CUST-1201,Alderway Textiles,Mid-Market,Energy & Utilities,Churn,-113400.0,
+2025-11-30,2025-11,Nov-25,MER-EU,CUST-1211,Foxglove Logistics,SMB,Financial Services,Churn,-13900.0,
+2025-11-30,2025-11,Nov-25,MER-US,CUST-1221,Tavistock Logistics,Mid-Market,Manufacturing,New Logo,109500.0,Marketing
+2025-11-30,2025-11,Nov-25,MER-US,CUST-1222,Ilfracombe Health,Mid-Market,Manufacturing,New Logo,101600.0,Marketing
+2025-11-30,2025-11,Nov-25,MER-EU,CUST-1223,Oakhurst Pharma,SMB,Manufacturing,New Logo,41900.0,Marketing
+2025-11-30,2025-11,Nov-25,MER-US,CUST-1224,Sunstone Telecom,SMB,Technology,New Logo,41100.0,Marketing
+2025-11-30,2025-11,Nov-25,MER-EU,CUST-1225,Ashford Publishing,Mid-Market,Logistics & Transport,New Logo,147500.0,Marketing
+2025-11-30,2025-11,Nov-25,MER-EU,CUST-1226,Langford Analytics,SMB,Business Services,New Logo,14800.0,Marketing
+2025-11-30,2025-11,Nov-25,MER-EU,CUST-1227,Crestwell Metals,Enterprise,Logistics & Transport,New Logo,214700.0,Marketing
+2025-11-30,2025-11,Nov-25,MER-US,CUST-1228,Emberly Financial,SMB,Financial Services,New Logo,24000.0,Marketing
+2025-11-30,2025-11,Nov-25,MER-US,CUST-1229,Granite Insurance,SMB,Healthcare,New Logo,30300.0,Marketing
+2025-11-30,2025-11,Nov-25,MER-US,CUST-1230,Crestwell Beverages,SMB,Energy & Utilities,New Logo,15000.0,Marketing
+2025-11-30,2025-11,Nov-25,MER-US,CUST-1231,Fenwick Chemicals,SMB,Energy & Utilities,New Logo,23500.0,Sales
+2025-11-30,2025-11,Nov-25,MER-US,CUST-1232,Cedar Ridge Partners,SMB,Public Sector,New Logo,31000.0,Sales
+2025-11-30,2025-11,Nov-25,MER-EU,CUST-1233,Fairmont Energy,SMB,Financial Services,New Logo,34400.0,Sales
+2025-11-30,2025-11,Nov-25,MER-US,CUST-1234,Thornbury Mobility,SMB,Healthcare,New Logo,26600.0,Sales
+2025-12-31,2025-12,Dec-25,MER-US,CUST-1035,Vellum Grocers,Mid-Market,Financial Services,Expansion,45200.0,
+2025-12-31,2025-12,Dec-25,MER-US,CUST-1046,Braxton Manufacturing,Mid-Market,Logistics & Transport,Expansion,45500.0,
+2025-12-31,2025-12,Dec-25,MER-US,CUST-1056,Everly Materials,Mid-Market,Healthcare,Churn,-91300.0,
+2025-12-31,2025-12,Dec-25,MER-US,CUST-1065,Kelvedon Aviation,SMB,Energy & Utilities,Expansion,4800.0,
+2025-12-31,2025-12,Dec-25,MER-EU,CUST-1073,Brightpath Systems,SMB,Healthcare,Contraction,-5700.0,
+2025-12-31,2025-12,Dec-25,MER-US,CUST-1074,Lakeshore Chemicals,SMB,Business Services,Expansion,6400.0,
+2025-12-31,2025-12,Dec-25,MER-EU,CUST-1092,Windrow Apparel,SMB,Manufacturing,Expansion,7700.0,
+2025-12-31,2025-12,Dec-25,MER-US,CUST-1181,Zephyr Telecom,SMB,Logistics & Transport,Churn,-14400.0,
+2025-12-31,2025-12,Dec-25,MER-US,CUST-1191,Cedar Ridge Housing,Mid-Market,Technology,Churn,-142300.0,
+2025-12-31,2025-12,Dec-25,MER-US,CUST-1235,Westmere Robotics,SMB,Energy & Utilities,New Logo,11300.0,Marketing
+2025-12-31,2025-12,Dec-25,MER-US,CUST-1236,Harrow Utilities,SMB,Public Sector,New Logo,42100.0,Marketing
+2025-12-31,2025-12,Dec-25,MER-EU,CUST-1237,Copperfield Marine,SMB,Healthcare,New Logo,34100.0,Marketing
+2025-12-31,2025-12,Dec-25,MER-US,CUST-1238,Vernon Hill Utilities,Mid-Market,Public Sector,New Logo,78400.0,Marketing
+2025-12-31,2025-12,Dec-25,MER-US,CUST-1239,Harrow Diagnostics,Mid-Market,Retail & CPG,New Logo,111600.0,Marketing
+2025-12-31,2025-12,Dec-25,MER-US,CUST-1240,Nimbus Publishing,Mid-Market,Manufacturing,New Logo,109300.0,Sales
+2025-12-31,2025-12,Dec-25,MER-US,CUST-1241,Meridian Bay Distribution,SMB,Business Services,New Logo,34600.0,Sales
+2026-01-31,2026-01,Jan-26,MER-US,CUST-1048,Ravensworth Publishing,Mid-Market,Retail & CPG,Churn,-89500.0,
+2026-01-31,2026-01,Jan-26,MER-US,CUST-1054,Mossbank Telecom,Mid-Market,Public Sector,Churn,-166800.0,
+2026-01-31,2026-01,Jan-26,MER-US,CUST-1087,Norwich Retail Group,SMB,Logistics & Transport,Contraction,-2800.0,
+2026-01-31,2026-01,Jan-26,MER-EU,CUST-1095,Emberly Diagnostics,SMB,Business Services,Churn,-44100.0,
+2026-01-31,2026-01,Jan-26,MER-US,CUST-1098,Quarry Pharma,SMB,Financial Services,Expansion,16900.0,
+2026-01-31,2026-01,Jan-26,MER-US,CUST-1113,Halcyon Freight,Enterprise,Logistics & Transport,Contraction,-285000.0,
+2026-01-31,2026-01,Jan-26,MER-EU,CUST-1115,Ellsworth Chemicals,SMB,Energy & Utilities,Expansion,7000.0,
+2026-01-31,2026-01,Jan-26,MER-US,CUST-1116,Fenwick Insurance,SMB,Financial Services,Expansion,2000.0,
+2026-01-31,2026-01,Jan-26,MER-US,CUST-1118,Norwich Financial,Mid-Market,Retail & CPG,Expansion,25000.0,
+2026-01-31,2026-01,Jan-26,MER-EU,CUST-1142,Yarrow Agriculture,SMB,Healthcare,Churn,-35500.0,
+2026-01-31,2026-01,Jan-26,MER-US,CUST-1161,Granite Manufacturing,SMB,Technology,Churn,-27500.0,
+2026-01-31,2026-01,Jan-26,MER-EU,CUST-1190,Crestwell Apparel,SMB,Business Services,Churn,-31100.0,
+2026-01-31,2026-01,Jan-26,MER-US,CUST-1242,Kestrel Health,SMB,Public Sector,New Logo,27000.0,Marketing
+2026-01-31,2026-01,Jan-26,MER-US,CUST-1243,Pinehaven Utilities,Mid-Market,Business Services,New Logo,95900.0,Marketing
+2026-01-31,2026-01,Jan-26,MER-US,CUST-1244,Nimbus Components,SMB,Healthcare,New Logo,18000.0,Marketing
+2026-01-31,2026-01,Jan-26,MER-US,CUST-1245,Marlow Hospitality,Mid-Market,Healthcare,New Logo,73300.0,Marketing
+2026-01-31,2026-01,Jan-26,MER-US,CUST-1246,Hartley Energy,Enterprise,Logistics & Transport,New Logo,241700.0,Marketing
+2026-01-31,2026-01,Jan-26,MER-EU,CUST-1247,Cedar Ridge Manufacturing,SMB,Public Sector,New Logo,36400.0,Marketing
+2026-01-31,2026-01,Jan-26,MER-EU,CUST-1248,Yarrow Foods,SMB,Business Services,New Logo,39300.0,Marketing
+2026-01-31,2026-01,Jan-26,MER-US,CUST-1249,Jessup Insurance,SMB,Energy & Utilities,New Logo,17400.0,Sales
+2026-01-31,2026-01,Jan-26,MER-US,CUST-1250,Jessup Logistics,Mid-Market,Manufacturing,New Logo,89400.0,Sales
+2026-02-28,2026-02,Feb-26,MER-US,CUST-1063,Pinehaven Partners,SMB,Business Services,Expansion,3400.0,
+2026-02-28,2026-02,Feb-26,MER-EU,CUST-1072,Northwind Textiles,SMB,Public Sector,Contraction,-5800.0,
+2026-02-28,2026-02,Feb-26,MER-US,CUST-1102,Wexley Retail Group,SMB,Logistics & Transport,Expansion,9500.0,
+2026-02-28,2026-02,Feb-26,MER-US,CUST-1112,Northwind Grocers,Enterprise,Retail & CPG,Churn,-1810000.0,
+2026-02-28,2026-02,Feb-26,MER-US,CUST-1119,Crestwell Retail Group,SMB,Healthcare,Contraction,-2000.0,
+2026-02-28,2026-02,Feb-26,MER-US,CUST-1121,Fairmont Diagnostics,SMB,Healthcare,Expansion,5500.0,
+2026-02-28,2026-02,Feb-26,MER-EU,CUST-1122,Harrow Metals,SMB,Public Sector,Expansion,4200.0,
+2026-02-28,2026-02,Feb-26,MER-US,CUST-1124,Harrow Labs,SMB,Public Sector,Expansion,11300.0,
+2026-02-28,2026-02,Feb-26,MER-EU,CUST-1174,Dunmore Logistics,SMB,Public Sector,Churn,-11000.0,
+2026-02-28,2026-02,Feb-26,MER-US,CUST-1198,Garrowby Marine,Mid-Market,Retail & CPG,Churn,-150000.0,
+2026-02-28,2026-02,Feb-26,MER-US,CUST-1224,Sunstone Telecom,SMB,Technology,Churn,-41100.0,
+2026-02-28,2026-02,Feb-26,MER-US,CUST-1251,Zephyr Components,SMB,Retail & CPG,New Logo,19100.0,Marketing
+2026-02-28,2026-02,Feb-26,MER-US,CUST-1252,Oswald Financial,SMB,Logistics & Transport,New Logo,42000.0,Marketing
+2026-02-28,2026-02,Feb-26,MER-US,CUST-1253,Windrow Industries,SMB,Retail & CPG,New Logo,21000.0,Marketing
+2026-02-28,2026-02,Feb-26,MER-US,CUST-1254,Fenwick Logistics,Mid-Market,Retail & CPG,New Logo,77200.0,Marketing
+2026-02-28,2026-02,Feb-26,MER-EU,CUST-1255,Quarry Marine,Mid-Market,Technology,New Logo,149900.0,Marketing
+2026-02-28,2026-02,Feb-26,MER-US,CUST-1256,Glenmoor Utilities,SMB,Manufacturing,New Logo,43900.0,Marketing
+2026-02-28,2026-02,Feb-26,MER-US,CUST-1257,Brightpath Foods,SMB,Public Sector,New Logo,22500.0,Marketing
+2026-02-28,2026-02,Feb-26,MER-US,CUST-1258,Corvid Telecom,SMB,Public Sector,New Logo,40600.0,Marketing
+2026-02-28,2026-02,Feb-26,MER-US,CUST-1259,Lakeshore Marine,SMB,Logistics & Transport,New Logo,20400.0,Marketing
+2026-02-28,2026-02,Feb-26,MER-EU,CUST-1260,Copperfield Analytics,SMB,Business Services,New Logo,30300.0,Marketing
+2026-02-28,2026-02,Feb-26,MER-US,CUST-1261,Kilbourne Chemicals,Mid-Market,Energy & Utilities,New Logo,86100.0,Marketing
+2026-02-28,2026-02,Feb-26,MER-US,CUST-1262,Corvid Packaging,SMB,Public Sector,New Logo,14500.0,Sales
+2026-02-28,2026-02,Feb-26,MER-EU,CUST-1263,Sable Retail Group,Mid-Market,Healthcare,New Logo,106400.0,Sales
+2026-02-28,2026-02,Feb-26,MER-EU,CUST-1264,Kingsford Utilities,SMB,Healthcare,New Logo,33000.0,Sales
+2026-02-28,2026-02,Feb-26,MER-EU,CUST-1265,Kilbourne Beverages,SMB,Healthcare,New Logo,41100.0,Sales
+2026-03-31,2026-03,Mar-26,MER-US,CUST-1009,Oswald Retail Group,Enterprise,Manufacturing,Expansion,131800.0,
+2026-03-31,2026-03,Mar-26,MER-US,CUST-1021,Lakeshore Apparel,Mid-Market,Retail & CPG,Churn,-84300.0,
+2026-03-31,2026-03,Mar-26,MER-EU,CUST-1047,Emberly Industries,Mid-Market,Financial Services,Expansion,19300.0,
+2026-03-31,2026-03,Mar-26,MER-US,CUST-1049,Hollins Chemicals,Mid-Market,Healthcare,Expansion,41800.0,
+2026-03-31,2026-03,Mar-26,MER-EU,CUST-1080,Everly Manufacturing,SMB,Manufacturing,Churn,-24200.0,
+2026-03-31,2026-03,Mar-26,MER-US,CUST-1084,Stanmore Partners,SMB,Retail & CPG,Expansion,14500.0,
+2026-03-31,2026-03,Mar-26,MER-US,CUST-1091,Windrow Materials,SMB,Manufacturing,Expansion,2800.0,
+2026-03-31,2026-03,Mar-26,MER-US,CUST-1131,Halcyon Apparel,Mid-Market,Public Sector,Expansion,50700.0,
+2026-03-31,2026-03,Mar-26,MER-US,CUST-1134,Dunmore Materials,SMB,Business Services,Expansion,3500.0,
+2026-03-31,2026-03,Mar-26,MER-US,CUST-1136,Corvid Energy,SMB,Manufacturing,Expansion,12200.0,
+2026-03-31,2026-03,Mar-26,MER-EU,CUST-1138,Stanmore Packaging,Mid-Market,Energy & Utilities,Contraction,-24800.0,
+2026-03-31,2026-03,Mar-26,MER-EU,CUST-1139,Netherby Insurance,Mid-Market,Energy & Utilities,Contraction,-21400.0,
+2026-03-31,2026-03,Mar-26,MER-US,CUST-1143,Alderway Pharma,Mid-Market,Manufacturing,Expansion,16100.0,
+2026-03-31,2026-03,Mar-26,MER-EU,CUST-1266,Crestwell Distribution,Enterprise,Energy & Utilities,New Logo,288700.0,Marketing
+2026-03-31,2026-03,Mar-26,MER-EU,CUST-1267,Granite Industries,Mid-Market,Healthcare,New Logo,118400.0,Marketing
+2026-03-31,2026-03,Mar-26,MER-US,CUST-1268,Meridian Bay Publishing,SMB,Logistics & Transport,New Logo,14000.0,Marketing
+2026-03-31,2026-03,Mar-26,MER-US,CUST-1269,Langford Partners,SMB,Healthcare,New Logo,19300.0,Marketing
+2026-03-31,2026-03,Mar-26,MER-US,CUST-1270,Mirefield Insurance,Mid-Market,Retail & CPG,New Logo,108100.0,Marketing
+2026-03-31,2026-03,Mar-26,MER-US,CUST-1271,Mirefield Agriculture,Enterprise,Technology,New Logo,226700.0,Marketing
+2026-03-31,2026-03,Mar-26,MER-US,CUST-1272,Flint Hill Components,Mid-Market,Energy & Utilities,New Logo,72900.0,Marketing
+2026-03-31,2026-03,Mar-26,MER-EU,CUST-1273,Quarry Textiles,Enterprise,Manufacturing,New Logo,261600.0,Marketing
+2026-03-31,2026-03,Mar-26,MER-EU,CUST-1274,Pelham Industries,SMB,Technology,New Logo,30400.0,Marketing
+2026-03-31,2026-03,Mar-26,MER-EU,CUST-1275,Sable Diagnostics,SMB,Public Sector,New Logo,35100.0,Marketing
+2026-03-31,2026-03,Mar-26,MER-US,CUST-1276,Tavistock Hospitality,SMB,Energy & Utilities,New Logo,25200.0,Marketing
+2026-03-31,2026-03,Mar-26,MER-US,CUST-1277,Netherby Pharma,SMB,Public Sector,New Logo,18700.0,Sales
+2026-03-31,2026-03,Mar-26,MER-US,CUST-1278,Marlow Chemicals,Enterprise,Financial Services,New Logo,233600.0,Sales
+2026-03-31,2026-03,Mar-26,MER-EU,CUST-1279,Vantage Labs,Mid-Market,Business Services,New Logo,74400.0,Sales
+2026-03-31,2026-03,Mar-26,MER-US,CUST-1280,Pelham Insurance,SMB,Energy & Utilities,New Logo,21100.0,Sales
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1026,Glenmoor Industries,Mid-Market,Energy & Utilities,Churn,-243300.0,
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1040,Beacon Energy,Mid-Market,Energy & Utilities,Churn,-198700.0,
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1041,Vernon Hill Retail Group,Mid-Market,Technology,Expansion,37800.0,
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1062,Pelham Health,SMB,Healthcare,Expansion,14200.0,
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1068,Ilfracombe Components,SMB,Business Services,Expansion,8800.0,
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1085,Thornbury Metals,SMB,Public Sector,Contraction,-3700.0,
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1144,Lakeshore Housing,SMB,Public Sector,Expansion,4700.0,
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1147,Cedar Ridge Components,SMB,Technology,Expansion,8700.0,
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1148,Zephyr Beverages,SMB,Business Services,Expansion,7000.0,
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1150,Everly Metals,Mid-Market,Public Sector,Expansion,19100.0,
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1151,Jessup Mobility,Enterprise,Business Services,Expansion,77300.0,
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1281,Langford Insurance,Mid-Market,Manufacturing,New Logo,109600.0,Marketing
+2026-04-30,2026-04,Apr-26,MER-EU,CUST-1282,Ravensworth Analytics,Mid-Market,Retail & CPG,New Logo,113600.0,Marketing
+2026-04-30,2026-04,Apr-26,MER-EU,CUST-1283,Zephyr Robotics,Mid-Market,Energy & Utilities,New Logo,108900.0,Marketing
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1284,Glenmoor Textiles,SMB,Public Sector,New Logo,13500.0,Marketing
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1285,Everly Health,SMB,Technology,New Logo,41400.0,Marketing
+2026-04-30,2026-04,Apr-26,MER-EU,CUST-1286,Ravensworth Apparel,SMB,Healthcare,New Logo,38200.0,Marketing
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1287,Vantage Agriculture,Mid-Market,Logistics & Transport,New Logo,77500.0,Marketing
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1288,Sable Metals,SMB,Manufacturing,New Logo,25800.0,Marketing
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1289,Vellum Retail Group,SMB,Healthcare,New Logo,15900.0,Marketing
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1290,Quimby Robotics,SMB,Public Sector,New Logo,33800.0,Marketing
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1291,Palisade Metals,Mid-Market,Financial Services,New Logo,136800.0,Marketing
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1292,Ormsby Foods,Mid-Market,Manufacturing,New Logo,119900.0,Sales
+2026-04-30,2026-04,Apr-26,MER-EU,CUST-1293,Lakeshore Beverages,Mid-Market,Retail & CPG,New Logo,77800.0,Sales
+2026-04-30,2026-04,Apr-26,MER-EU,CUST-1294,Fairmont Logistics,SMB,Logistics & Transport,New Logo,18000.0,Sales
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1295,Jessup Robotics,Mid-Market,Manufacturing,New Logo,94100.0,Sales
+2026-04-30,2026-04,Apr-26,MER-US,CUST-1296,Beacon Chemicals,Mid-Market,Public Sector,New Logo,102900.0,Sales
+2026-05-31,2026-05,May-26,MER-EU,CUST-1038,Larkspur Aviation,Mid-Market,Retail & CPG,Expansion,83600.0,
+2026-05-31,2026-05,May-26,MER-US,CUST-1043,Junction Freight,Mid-Market,Logistics & Transport,Expansion,18900.0,
+2026-05-31,2026-05,May-26,MER-EU,CUST-1061,Larkspur Financial,SMB,Manufacturing,Churn,-56500.0,
+2026-05-31,2026-05,May-26,MER-US,CUST-1158,Anchorpoint Aviation,SMB,Public Sector,Expansion,5200.0,
+2026-05-31,2026-05,May-26,MER-US,CUST-1160,Wexley Beverages,SMB,Business Services,Expansion,4800.0,
+2026-05-31,2026-05,May-26,MER-US,CUST-1184,Bluecrest Agriculture,SMB,Logistics & Transport,Churn,-27700.0,
+2026-05-31,2026-05,May-26,MER-US,CUST-1206,Granite Financial,Mid-Market,Technology,Churn,-113900.0,
+2026-05-31,2026-05,May-26,MER-EU,CUST-1297,Orbit Marine,Mid-Market,Financial Services,New Logo,63100.0,Marketing
+2026-05-31,2026-05,May-26,MER-US,CUST-1298,Kingsford Agriculture,Mid-Market,Public Sector,New Logo,150200.0,Marketing
+2026-05-31,2026-05,May-26,MER-US,CUST-1299,Granite Textiles,SMB,Business Services,New Logo,20100.0,Marketing
+2026-05-31,2026-05,May-26,MER-US,CUST-1300,Jessup Manufacturing,SMB,Financial Services,New Logo,36800.0,Marketing
+2026-05-31,2026-05,May-26,MER-US,CUST-1301,Emberly Textiles,SMB,Financial Services,New Logo,15900.0,Marketing
+2026-05-31,2026-05,May-26,MER-US,CUST-1302,Braxton Labs,SMB,Public Sector,New Logo,15900.0,Marketing
+2026-05-31,2026-05,May-26,MER-US,CUST-1303,Braxton Robotics,Mid-Market,Logistics & Transport,New Logo,63500.0,Marketing
+2026-05-31,2026-05,May-26,MER-US,CUST-1304,Ellsworth Aviation,Mid-Market,Retail & CPG,New Logo,58300.0,Marketing
+2026-05-31,2026-05,May-26,MER-EU,CUST-1305,Alderway Foods,Mid-Market,Energy & Utilities,New Logo,87300.0,Marketing
+2026-05-31,2026-05,May-26,MER-EU,CUST-1306,Sunstone Industries,SMB,Energy & Utilities,New Logo,39700.0,Marketing
+2026-05-31,2026-05,May-26,MER-US,CUST-1307,Beacon Robotics,SMB,Technology,New Logo,25600.0,Marketing
+2026-05-31,2026-05,May-26,MER-US,CUST-1308,Alcove Utilities,SMB,Technology,New Logo,27700.0,Sales
+2026-05-31,2026-05,May-26,MER-US,CUST-1309,Kingsford Partners,Mid-Market,Manufacturing,New Logo,102900.0,Sales
+2026-05-31,2026-05,May-26,MER-US,CUST-1310,Westmere Distribution,SMB,Retail & CPG,New Logo,16600.0,Sales
+2026-05-31,2026-05,May-26,MER-EU,CUST-1311,Kilbourne Industries,SMB,Logistics & Transport,New Logo,14000.0,Sales
+2026-06-30,2026-06,Jun-26,MER-US,CUST-1005,Silverline Beverages,Enterprise,Manufacturing,Expansion,84700.0,
+2026-06-30,2026-06,Jun-26,MER-US,CUST-1070,Nimbus Manufacturing,SMB,Technology,Expansion,10400.0,
+2026-06-30,2026-06,Jun-26,MER-US,CUST-1082,Palisade Telecom,SMB,Financial Services,Expansion,6000.0,
+2026-06-30,2026-06,Jun-26,MER-EU,CUST-1101,Halcyon Manufacturing,SMB,Energy & Utilities,Expansion,9000.0,
+2026-06-30,2026-06,Jun-26,MER-EU,CUST-1109,Halcyon Agriculture,SMB,Manufacturing,Contraction,-4600.0,
+2026-06-30,2026-06,Jun-26,MER-EU,CUST-1111,Yarrow Chemicals,SMB,Public Sector,Contraction,-5300.0,
+2026-06-30,2026-06,Jun-26,MER-US,CUST-1155,Fenwick Components,SMB,Energy & Utilities,Churn,-16000.0,
+2026-06-30,2026-06,Jun-26,MER-US,CUST-1166,Harrow Housing,SMB,Business Services,Churn,-45200.0,
+2026-06-30,2026-06,Jun-26,MER-EU,CUST-1168,Halcyon Freight,Enterprise,Manufacturing,Expansion,25800.0,
+2026-06-30,2026-06,Jun-26,MER-US,CUST-1169,Granite Systems,SMB,Logistics & Transport,Contraction,-5400.0,
+2026-06-30,2026-06,Jun-26,MER-US,CUST-1170,Westmere Manufacturing,SMB,Retail & CPG,Expansion,5700.0,
+2026-06-30,2026-06,Jun-26,MER-US,CUST-1171,Kestrel Marine,Mid-Market,Manufacturing,Expansion,17600.0,
+2026-06-30,2026-06,Jun-26,MER-EU,CUST-1172,Norwich Packaging,SMB,Logistics & Transport,Expansion,12000.0,
+2026-06-30,2026-06,Jun-26,MER-US,CUST-1175,Penrose Housing,SMB,Technology,Contraction,-5700.0,
+2026-06-30,2026-06,Jun-26,MER-US,CUST-1244,Nimbus Components,SMB,Healthcare,Churn,-18000.0,
+2026-06-30,2026-06,Jun-26,MER-EU,CUST-1286,Ravensworth Apparel,SMB,Healthcare,Churn,-38200.0,
+2026-06-30,2026-06,Jun-26,MER-US,CUST-1312,Harrow Publishing,Mid-Market,Public Sector,New Logo,81100.0,Marketing
+2026-06-30,2026-06,Jun-26,MER-US,CUST-1313,Fenwick Materials,Mid-Market,Healthcare,New Logo,151200.0,Marketing
+2026-06-30,2026-06,Jun-26,MER-EU,CUST-1314,Sable Labs,SMB,Manufacturing,New Logo,18500.0,Marketing
+2026-06-30,2026-06,Jun-26,MER-US,CUST-1315,Pinehaven Textiles,SMB,Logistics & Transport,New Logo,23500.0,Marketing
+2026-06-30,2026-06,Jun-26,MER-EU,CUST-1316,Ironwood Apparel,Mid-Market,Business Services,New Logo,106300.0,Marketing
+2026-06-30,2026-06,Jun-26,MER-US,CUST-1317,Dunmore Telecom,Enterprise,Retail & CPG,New Logo,302100.0,Marketing
+2026-06-30,2026-06,Jun-26,MER-US,CUST-1318,Cedar Ridge Packaging,SMB,Business Services,New Logo,13100.0,Marketing
+2026-06-30,2026-06,Jun-26,MER-US,CUST-1319,Wexley Diagnostics,Enterprise,Energy & Utilities,New Logo,192800.0,Marketing
+2026-06-30,2026-06,Jun-26,MER-EU,CUST-1320,Brightpath Hospitality,Mid-Market,Public Sector,New Logo,84900.0,Marketing
+2026-06-30,2026-06,Jun-26,MER-US,CUST-1321,Jessup Energy,Mid-Market,Logistics & Transport,New Logo,81100.0,Marketing
+2026-06-30,2026-06,Jun-26,MER-US,CUST-1322,Vernon Hill Aviation,SMB,Business Services,New Logo,45400.0,Sales
+2026-06-30,2026-06,Jun-26,MER-EU,CUST-1323,Sunstone Foods,Mid-Market,Financial Services,New Logo,125400.0,Sales
+2026-06-30,2026-06,Jun-26,MER-EU,CUST-1324,Thornbury Utilities,SMB,Retail & CPG,New Logo,39400.0,Sales
