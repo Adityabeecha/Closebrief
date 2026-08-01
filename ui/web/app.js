@@ -1968,22 +1968,41 @@ async function loadSchema(){
   profile=await api(`/ingest/${upload.upload_id}/schema${sheet?`?sheet=${encodeURIComponent(sheet)}`:""}`);
   $("layout-sel").value=profile.layout_guess;renderMap();
 }
-const ROLES=["period","metric_label","measure","budget","quantity","price","dimension","ignore"];
+const ROLES=["period","metric_label","measure","budget","id","quantity","price","dimension","ignore"];
 function renderMap(){
   if(!profile)return;const layout=$("layout-sel").value;
   $("map-holder").innerHTML=`<table class="map"><thead><tr><th>Column</th><th>Type</th><th>Sample</th><th>Role</th></tr></thead><tbody>`+
     profile.columns.map(c=>{const wp=profile.wide_period_cols.includes(c.column_name);
       return`<tr><td><b>${esc(c.column_name)}</b>${layout==="wide"&&wp?' <span class="suggest">period col</span>':""}</td>
         <td>${esc(c.dtype)}</td><td class="samp">${c.sample_values.slice(0,3).map(esc).join(" · ")}</td>
-        <td>${layout==="wide"&&wp?'<span class="samp">melted</span>':`<select data-col="${esc(c.column_name)}" class="role">${ROLES.map(r=>`<option value="${r}" ${c.guessed_role===r?"selected":""}>${r.replace("_"," ")}</option>`).join("")}</select>`}</td></tr>`;
+        <td>${layout==="wide"&&wp?'<span class="samp">melted</span>':`<select data-col="${esc(c.column_name)}" class="role" onchange="updateMapHint()">${ROLES.map(r=>`<option value="${r}" ${c.guessed_role===r?"selected":""}>${r.replace("_"," ")}</option>`).join("")}</select>`}</td></tr>`;
     }).join("")+`</tbody></table>`;
+  updateMapHint();
+}
+function updateMapHint(){
+  const el=$("map-hint");if(!el||$("layout-sel").value!=="long")return el&&(el.style.display="none");
+  const measures=[...document.querySelectorAll(".role")].filter(s=>s.value==="measure").map(s=>s.dataset.col);
+  const metricCol=[...document.querySelectorAll(".role")].find(s=>s.value==="metric_label");
+  if(measures.length>1){
+    el.style.display="";
+    const names=metricCol?`"${metricCol.dataset.col} ${measures[0]}"`:`"${measures[0]}"`;
+    el.innerHTML=`<b>${measures.length} value columns selected</b> — each becomes its own metric${metricCol?`, crossed with <b>${esc(metricCol.dataset.col)}</b>`:""} (e.g. ${esc(names)}, …) instead of only the first being kept.`;
+  }else{
+    el.style.display="none";
+  }
 }
 function buildMapping(){
   const layout=$("layout-sel").value,roleOf={};
   document.querySelectorAll(".role").forEach(s=>roleOf[s.dataset.col]=s.value);
   const by=r=>Object.keys(roleOf).filter(c=>roleOf[c]===r);
-  if(layout==="wide")return{layout:"wide",wide_period_cols:profile.wide_period_cols,wide_metric_col:by("metric_label")[0]||null,wide_value_label:by("metric_label").length?null:"Value",dimension_cols:by("dimension")};
-  return{layout:"long",period_col:by("period")[0]||null,metric_col:by("metric_label")[0]||null,value_col:by("measure")[0]||null,budget_col:by("budget")[0]||null,quantity_col:by("quantity")[0]||null,price_col:by("price")[0]||null,dimension_cols:by("dimension")};
+  if(layout==="wide")return{layout:"wide",wide_period_cols:profile.wide_period_cols,wide_metric_col:by("metric_label")[0]||null,wide_value_label:by("metric_label").length?null:"Value",id_col:by("id")[0]||null,dimension_cols:by("dimension")};
+  const measures=by("measure");
+  // Multiple measure columns cross with the metric column into one metric
+  // each ("<channel> Spend", "<channel> Clicks", ...) rather than silently
+  // keeping only the first and dropping the rest.
+  const base={layout:"long",period_col:by("period")[0]||null,metric_col:by("metric_label")[0]||null,budget_col:by("budget")[0]||null,id_col:by("id")[0]||null,dimension_cols:by("dimension")};
+  if(measures.length>1)return{...base,value_cols:measures};
+  return{...base,value_col:measures[0]||null,quantity_col:by("quantity")[0]||null,price_col:by("price")[0]||null};
 }
 async function confirmMapping(m){
   const mapping=m||buildMapping();

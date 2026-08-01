@@ -16,18 +16,68 @@ import pandas as pd
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
 MAX_ROWS = 100_000  # hardening: cap rows so a huge file can't exhaust memory
 UPLOAD_DIR = Path("./data/uploads")
+_HEADER_SCAN_ROWS = 15  # real FP&A exports put the header within a handful of title rows
 
 
 class UploadError(Exception):
     pass
 
 
-def _read_frame(raw: bytes, filename: str, sheet: str | None = None) -> pd.DataFrame:
+def _row_looks_numeric(row: pd.Series) -> bool:
+    """True if most of a row's non-null cells parse as a number — the signal
+    that separates a data row from a header/label row, both of which can have
+    equally high column-fill."""
+    non_null = row.dropna()
+    if non_null.empty:
+        return False
+    cleaned = (
+        non_null.astype(str).str.strip()
+        .str.replace(r"[\$€£,\s%]", "", regex=True)
+        .str.replace(r"^\((.*)\)$", r"-\1", regex=True)
+    )
+    return pd.to_numeric(cleaned, errors="coerce").notna().mean() >= 0.6
+
+
+def detect_header_row(raw_df: pd.DataFrame) -> int:
+    """Find the header row in a sheet that may carry title rows, blank spacer
+    rows, and section labels above the real table (a common FP&A export shape:
+    a company/report title, a blank line, then 'Account | GL Code | Jan-25 | …').
+
+    The header row is the first row whose non-null cell count is close to the
+    sheet's max column-fill (title rows and section labels are sparse — one or
+    two cells) AND whose cells are NOT themselves numeric data (which rules out
+    matching a wide data row that happens to be fully populated). Falls back to
+    row 0 — today's behaviour — when no row clears the bar, so a normal file
+    with a real row-0 header is unaffected."""
+    if raw_df.empty:
+        return 0
+    scan = raw_df.head(_HEADER_SCAN_ROWS)
+    fill = scan.notna().sum(axis=1)
+    max_fill = int(fill.max())
+    if max_fill <= 1:
+        return 0
+    threshold = max(2, int(max_fill * 0.6))
+    for i in range(len(scan)):
+        if fill.iloc[i] >= threshold and not _row_looks_numeric(scan.iloc[i]):
+            return i
+    return 0
+
+
+def _read_frame(raw: bytes, filename: str, sheet: str | None = None,
+                header_row: int | None = None) -> pd.DataFrame:
     name = filename.lower()
     if name.endswith(".csv"):
         return pd.read_csv(io.BytesIO(raw), dtype=str, keep_default_na=True)
     if name.endswith(".xlsx"):
-        return pd.read_excel(io.BytesIO(raw), sheet_name=sheet or 0, dtype=str, engine="openpyxl")
+        if header_row is None:
+            # Two-pass: read headerless to find the real header row, then
+            # re-read with it applied. Small files (<10MB cap) — the extra
+            # parse is cheap and keeps header detection out of every caller.
+            probe = pd.read_excel(io.BytesIO(raw), sheet_name=sheet or 0, header=None,
+                                  dtype=str, engine="openpyxl")
+            header_row = detect_header_row(probe)
+        return pd.read_excel(io.BytesIO(raw), sheet_name=sheet or 0, header=header_row,
+                             dtype=str, engine="openpyxl")
     if name.endswith(".xls"):
         # Legacy .xls needs xlrd, which isn't a dependency — fail clearly rather
         # than with an opaque engine error.
