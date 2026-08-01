@@ -27,6 +27,8 @@ _DIMENSION_NAME = re.compile(
     r"department|region|entity|cost ?cent(er|re)|product|segment|division|team", re.I
 )
 _PERIOD_NAME = re.compile(r"period|month|date|quarter|year|\bfy\b", re.I)
+_PERIOD_REPEAT_RATIO = 0.15
+_PERIOD_MAX_NULL_PCT = 50.0
 _QTY_NAME = re.compile(r"quantit|volume|units|qty", re.I)
 _PRICE_NAME = re.compile(r"price|asp|rate per|unit cost", re.I)
 # A conversion/multiplier rate (FX rate, tax rate, discount rate, ...): not a
@@ -171,6 +173,11 @@ def profile_columns(df: pd.DataFrame) -> dict:
         scored.sort(key=lambda t: t[1], reverse=True)
         return scored[0][0]
 
+    period_repeats = {
+        c: distinct_counts[c] <= max(3, len(df) * _PERIOD_REPEAT_RATIO)
+        for c, r in first_pass.items() if r == "period"
+    }
+
     metric_winner = winner("metric_label")
     id_winner = winner("id")
 
@@ -223,6 +230,7 @@ def profile_columns(df: pd.DataFrame) -> dict:
                 "null_pct": round(float(df[col].isna().mean()) * 100, 1),
                 "guessed_role": final[col],
                 "redundant_with": redundant_with.get(str(col)),
+                "period_repeats": period_repeats.get(col),
             }
         )
 
@@ -230,10 +238,11 @@ def profile_columns(df: pd.DataFrame) -> dict:
         "columns": profiles,
         "layout_guess": layout_guess,
         "wide_period_cols": [str(c) for c in wide_period_cols],
+        "row_count": int(len(df)),
     }
 
 
-def suggest_mapping(profile: dict) -> dict:
+def suggest_mapping(profile: dict, sheet_period: str | None = None) -> dict:
     """Build a best-effort MappingSpec dict from profile_columns() output, plus
     a `warnings` list naming anything uncertain enough that the user should
     look before confirming — a low-confidence guess is still a starting point
@@ -291,14 +300,44 @@ def suggest_mapping(profile: dict) -> dict:
         measure_candidates = [c for c in all_measures if c not in redundant]
         dropped_dupes = [c for c in all_measures if c in redundant]
         id_candidates = cols("id")
+        repeats = {c["column_name"]: c.get("period_repeats") for c in profile["columns"]}
+        null_pct = {c["column_name"]: c.get("null_pct") or 0 for c in profile["columns"]}
+        repeating = [c for c in period_candidates
+                     if repeats.get(c) and null_pct.get(c, 0) <= _PERIOD_MAX_NULL_PCT]
+        sparse = [c for c in period_candidates
+                  if repeats.get(c) and null_pct.get(c, 0) > _PERIOD_MAX_NULL_PCT]
+        transactional = [c for c in period_candidates if not repeats.get(c)]
+        snapshot = bool(sheet_period) and bool(period_candidates) and not repeating
+        preferred_period = (repeating or sparse or period_candidates or [None])[0]
         mapping = {
             "layout": "long",
-            "period_col": period_candidates[0] if period_candidates else None,
+            "period_col": None if snapshot else preferred_period,
+            "period_literal": sheet_period if snapshot else None,
             "metric_col": metric_candidates[0] if metric_candidates else None,
             "budget_col": (cols("budget") or [None])[0],
             "id_col": id_candidates[0] if id_candidates else None,
-            "dimension_cols": cols("dimension") + dropped_dupes,
+            "dimension_cols": cols("dimension") + dropped_dupes + (period_candidates if snapshot else []),
         }
+        if snapshot:
+            warnings.append(
+                f"This sheet reports a single as-of date ({sheet_period}); "
+                f"{', '.join(period_candidates)} look like per-row transaction dates, so every row "
+                f"is filed under {sheet_period} and those columns are kept as dimensions."
+            )
+        elif period_candidates and not repeating:
+            reasons = []
+            if transactional:
+                reasons.append(f"{', '.join(transactional)} holds a different date on almost every row")
+            if sparse:
+                reasons.append(
+                    f"{', '.join(sparse)} is empty on most rows "
+                    f"({', '.join(f'{null_pct[c]:.0f}%' for c in sparse)})"
+                )
+            warnings.append(
+                f"No column behaves like a reporting period: {'; '.join(reasons)}. This looks like a "
+                f"reference/roster list (one row per record) rather than a time series — such a file has "
+                f"no month-by-month history to track. Check the period column before confirming."
+            )
         if dropped_dupes:
             warnings.append(
                 f"{', '.join(dropped_dupes)} moved almost identically to "

@@ -22,6 +22,7 @@ class MappingSpec(BaseModel):
     layout: str = Field(pattern="^(long|wide)$")
     # long layout
     period_col: Optional[str] = None
+    period_literal: Optional[str] = None
     metric_col: Optional[str] = None
     value_col: Optional[str] = None
     # When multiple numeric columns are all measures (not one value column per
@@ -168,12 +169,21 @@ def _drop_total_rows(df: pd.DataFrame, metric_col: str | None, id_col: str | Non
     """Remove roll-up/section rows (a 'Total' line, a 'REVENUE' section label
     with no data, an account whose id is blank because it's a subtotal) before
     they're normalized into a fake metric. Source-format cleanup, not domain
-    logic — belongs before period/value coercion, not after."""
-    if metric_col is None or metric_col not in df.columns:
+    logic — belongs before period/value coercion, not after.
+
+    A sheet marks its total row in whichever label column reads best, which is
+    not always the column the mapping picked as the metric, so any text column
+    carrying a 'Total' marker condemns the row."""
+    if df.empty:
         return df
-    label = df[metric_col]
-    is_total = label.astype(str).map(lambda s: bool(_TOTAL_LABEL.match(s)))
-    if id_col and id_col in df.columns:
+    is_total = pd.Series(False, index=df.index)
+    for col in df.columns:
+        if pd.api.types.is_numeric_dtype(df[col]):
+            continue
+        col_str = df[col].map(lambda v: "" if pd.isna(v) else str(v))
+        is_total = is_total | col_str.map(lambda s: bool(_TOTAL_LABEL.match(s)))
+    if metric_col is not None and metric_col in df.columns and id_col and id_col in df.columns:
+        label = df[metric_col]
         id_blank = df[id_col].isna() | (df[id_col].astype(str).str.strip() == "")
         is_total = is_total | (id_blank & label.notna() & (label.astype(str).str.strip() != ""))
     return df[~is_total]
@@ -182,16 +192,25 @@ def _drop_total_rows(df: pd.DataFrame, metric_col: str | None, id_col: str | Non
 def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
     """Return the canonical long-format DataFrame."""
     if mapping.layout == "long":
-        period_col = _require(mapping, "period_col")
+        literal_period = parse_period(mapping.period_literal) if mapping.period_literal else None
+        period_col = None if literal_period else _require(mapping, "period_col")
         if not mapping.value_col and not mapping.value_cols:
             raise MappingError("Mapping is missing required field 'value_col' for layout=long")
-        _check_col(df, period_col, "Period")
+        if period_col:
+            _check_col(df, period_col, "Period")
         if mapping.budget_col:
             _check_col(df, mapping.budget_col, "Budget")
             _check_numeric(df, mapping.budget_col, "Budget")
         if mapping.id_col:
             _check_col(df, mapping.id_col, "Id")
         df = _drop_total_rows(df, mapping.metric_col, mapping.id_col)
+        if period_col:
+            df = df[df[period_col].notna()]
+
+        def _periods_for(frame: pd.DataFrame) -> pd.Series:
+            if literal_period:
+                return pd.Series(literal_period, index=frame.index)
+            return frame[period_col].map(parse_period)
 
         if mapping.value_cols:
             # Metric x value cross-product: one numeric column per measure, all
@@ -205,7 +224,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
             parts = []
             for vcol in mapping.value_cols:
                 part = pd.DataFrame()
-                part["period"] = df[period_col].map(parse_period)
+                part["period"] = _periods_for(df)
                 base_label = df[mapping.metric_col].map(sanitize_label) if mapping.metric_col else ""
                 suffix = sanitize_label(vcol)
                 part["metric"] = (base_label + " " + suffix).str.strip() if mapping.metric_col else suffix
@@ -230,7 +249,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
             _check_col(df, value_col, "Value")
             _check_numeric(df, value_col, "Value")
             out = pd.DataFrame()
-            out["period"] = df[period_col].map(parse_period)
+            out["period"] = _periods_for(df)
             if mapping.metric_col:
                 _check_col(df, mapping.metric_col, "Metric")
                 out["metric"] = df[mapping.metric_col].map(sanitize_label)
