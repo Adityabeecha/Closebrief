@@ -29,6 +29,7 @@ _DIMENSION_NAME = re.compile(
 _PERIOD_NAME = re.compile(r"period|month|date|quarter|year|\bfy\b", re.I)
 _PERIOD_REPEAT_RATIO = 0.15
 _PERIOD_MAX_NULL_PCT = 50.0
+_METRIC_ALT_RATIO = 0.35
 _QTY_NAME = re.compile(r"quantit|volume|units|qty", re.I)
 _PRICE_NAME = re.compile(r"price|asp|rate per|unit cost", re.I)
 # A conversion/multiplier rate (FX rate, tax rate, discount rate, ...): not a
@@ -181,6 +182,17 @@ def profile_columns(df: pd.DataFrame) -> dict:
     metric_winner = winner("metric_label")
     id_winner = winner("id")
 
+    metric_alternatives: list[str] = []
+    if metric_winner:
+        win_score = _identity_score(df, metric_winner, period_col)
+        for col, role in first_pass.items():
+            if col == metric_winner or role not in ("metric_label", "dimension"):
+                continue
+            if not 1 < distinct_counts[col] <= max(3, len(df) * 0.5):
+                continue
+            if _identity_score(df, col, period_col) >= win_score * _METRIC_ALT_RATIO:
+                metric_alternatives.append(str(col))
+
     final: dict = {}
     for col, role in first_pass.items():
         if role == "metric_label" and col != metric_winner:
@@ -239,6 +251,7 @@ def profile_columns(df: pd.DataFrame) -> dict:
         "layout_guess": layout_guess,
         "wide_period_cols": [str(c) for c in wide_period_cols],
         "row_count": int(len(df)),
+        "metric_alternatives": metric_alternatives,
     }
 
 
@@ -369,10 +382,18 @@ def suggest_mapping(profile: dict, sheet_period: str | None = None) -> dict:
                 f"picked \"{metric_candidates[0]}\" by how identity-like it looks — check this is right."
             )
 
+    metric_col = mapping.get("metric_col") or mapping.get("wide_metric_col")
+    alternatives = [c for c in profile.get("metric_alternatives") or [] if c != metric_col]
+    if metric_col and alternatives:
+        warnings.append(
+            f"Rows could be grouped by \"{metric_col}\" or by {', '.join(alternatives)} — these are "
+            f"different reports, not different spellings of the same one, and nothing in the file's "
+            f"structure says which you want. Confirm \"{metric_col}\" is the breakdown you're after."
+        )
+
     # A metric-name column with very few distinct values relative to the
     # row count under-detects: it's probably an attribute, not the metric
     # identity, even though it won a name/cardinality tie-break upstream.
-    metric_col = mapping.get("metric_col") or mapping.get("wide_metric_col")
     if metric_col and distinct.get(metric_col, 0) <= 1:
         warnings.append(
             f"\"{metric_col}\" has only {distinct.get(metric_col, 0)} distinct value(s) — "

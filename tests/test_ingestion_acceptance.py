@@ -84,11 +84,36 @@ def test_gl_actuals_27_metrics_468_facts(client):
     assert "amount_usd" not in result["metrics"]
     assert "Subscription Revenue" in result["metrics"]
 
-    # The two-rows-per-pair (entity) collapse is a real sum, not silently one
-    # row winning: verify a known account's Jan-2025 value is the US+EU total.
     facts = client.get("/facts?period=2025-01").json()
     sub_rev = next(f for f in facts if f["metric"] == "Subscription Revenue")
-    assert sub_rev["has_data"] and sub_rev["value"] > 0
+    assert sub_rev["has_data"]
+    assert sub_rev["value"] == pytest.approx(1378666.67 + 390250.00, abs=0.01)
+
+
+def test_gl_actuals_entity_rows_sum_never_take_first(client):
+    import pandas as pd
+
+    src = pd.read_csv(FIXTURES / "finance_gl_actuals.csv")
+    grouped = src.groupby(["account_name", "period"])["amount_usd"]
+    totals, firsts = grouped.sum().to_dict(), grouped.first().to_dict()
+    assert len(totals) == 468
+
+    up = _upload(client, "finance_gl_actuals.csv", "text/csv")
+    schema = _schema(client, up["upload_id"])
+    _confirm(client, up["upload_id"], schema["suggested_mapping"])
+
+    checked = 0
+    for period in sorted({p for _, p in totals}):
+        for fact in client.get("/facts", params={"period": period}).json():
+            key = (fact["metric"], period)
+            if key not in totals or not fact.get("has_data"):
+                continue
+            checked += 1
+            assert fact["value"] == pytest.approx(totals[key], abs=0.01), (
+                f"{key}: stored {fact['value']}, consolidated total {totals[key]}, "
+                f"first-entity-only {firsts[key]}"
+            )
+    assert checked == 468
 
 
 # ---------------------------------------------------- (2) finance_budget_plan
@@ -152,11 +177,17 @@ def test_budget_plan_assumptions_sheet_not_ingested(client):
 
 # ----------------------------------------------- (3) finance_vendor_saas_spend
 def test_vendor_saas_spend_regression_baseline(client):
-    """The one file that already worked. Must stay exactly as it was."""
     up = _upload(client, "finance_vendor_saas_spend.csv", "text/csv")
     schema = _schema(client, up["upload_id"])
-    assert schema["mapping_confidence"] == "high"
-    assert schema["mapping_warnings"] == []
+
+    assert schema["suggested_mapping"]["metric_col"] == "vendor"
+    assert schema["suggested_mapping"]["period_col"] == "period"
+
+    alternatives = [w for w in schema["mapping_warnings"] if "could be grouped by" in w]
+    assert len(alternatives) == 1
+    assert "category" in alternatives[0] and "owning_department" in alternatives[0]
+    assert len(schema["mapping_warnings"]) == 1
+
     result = _confirm(client, up["upload_id"], schema["suggested_mapping"])
     assert len(result["metrics"]) == 33
     assert result["rows_normalized"] == 436
