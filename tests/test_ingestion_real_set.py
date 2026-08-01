@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from dbharness import use_test_db
 
-REAL = Path(__file__).parent.parent.parent / "real_testing"
+REAL = Path(__file__).parent / "fixtures" / "ingestion"
 
 XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 CSV_MIME = "text/csv"

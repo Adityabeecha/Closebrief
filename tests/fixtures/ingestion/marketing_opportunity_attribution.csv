@@ -1,0 +1,1315 @@
+opportunity_id,created_date,created_period,account_name,entity,segment,industry,first_touch_channel,last_touch_channel,marketing_sourced,amount_usd,stage,close_date,sales_cycle_days,lost_reason
+OPP-5001,2025-01-15,2025-01,Prospect 5001,MER-US,Mid-Market,Logistics & Transport,Sales Outbound,Direct / Branded Search,No,164600.0,Discovery,,,
+OPP-5002,2025-01-28,2025-01,Prospect 5002,MER-EU,SMB,Business Services,Paid Social - LinkedIn,Email/Lifecycle,Yes,45500.0,Closed Lost,2025-02-20,23,Missing feature - approvals
+OPP-5003,2025-01-27,2025-01,Prospect 5003,MER-EU,Mid-Market,Healthcare,Retargeting,Retargeting,Yes,75400.0,Closed Lost,2025-04-07,70,No decision / budget frozen
+OPP-5004,2025-01-07,2025-01,Prospect 5004,MER-US,Mid-Market,Retail & CPG,Sales Outbound,Sales Outbound,No,61900.0,Closed Lost,2025-03-27,79,Timing
+OPP-5005,2025-01-08,2025-01,Prospect 5005,MER-US,Mid-Market,Logistics & Transport,Content/SEO,Content/SEO,Yes,89700.0,Disqualified,,,
+OPP-5006,2025-01-15,2025-01,Prospect 5006,MER-US,Mid-Market,Energy & Utilities,Content/SEO,Content/SEO,Yes,53200.0,Negotiation,,,
+OPP-5007,2025-01-13,2025-01,Prospect 5007,MER-US,Mid-Market,Retail & CPG,Webinars,Sales Outbound,Yes,126800.0,Discovery,,,
+OPP-5008,2025-01-17,2025-01,Prospect 5008,MER-US,Mid-Market,Manufacturing,Review Sites (G2),Review Sites (G2),Yes,117700.0,Closed Won,2025-04-11,84,
+OPP-5009,2025-01-23,2025-01,Prospect 5009,MER-EU,SMB,Logistics & Transport,Events/Field,Direct / Branded Search,Yes,26100.0,Discovery,,,
+OPP-5010,2025-01-13,2025-01,Prospect 5010,MER-EU,SMB,Financial Services,Webinars,Retargeting,Yes,30700.0,Disqualified,,,
+OPP-5011,2025-01-28,2025-01,Prospect 5011,MER-EU,SMB,Manufacturing,Sales Outbound,Sales Outbound,No,13800.0,Closed Won,2025-02-19,22,
+OPP-5012,2025-01-07,2025-01,Prospect 5012,MER-US,SMB,Logistics & Transport,Webinars,Retargeting,Yes,46600.0,Closed Lost,2025-01-31,24,Price
+OPP-5013,2025-01-28,2025-01,Prospect 5013,MER-US,Mid-Market,Manufacturing,Events/Field,Email/Lifecycle,Yes,52800.0,Closed Lost,2025-05-06,98,No decision / budget frozen
+OPP-5014,2025-01-14,2025-01,Prospect 5014,MER-US,SMB,Logistics & Transport,Sales Outbound,Direct / Branded Search,No,29800.0,Disqualified,,,
+OPP-5015,2025-01-13,2025-01,Prospect 5015,MER-US,SMB,Energy & Utilities,Paid Search,Direct / Branded Search,Yes,36000.0,Closed Won,2025-02-07,25,
+OPP-5016,2025-01-23,2025-01,Prospect 5016,MER-US,Mid-Market,Technology,Content/SEO,Direct / Branded Search,Yes,110700.0,Closed Lost,2025-03-14,50,Timing
+OPP-5017,2025-01-05,2025-01,Prospect 5017,MER-US,SMB,Healthcare,Sales Outbound,Sales Outbound,No,47800.0,Discovery,,,
+OPP-5018,2025-01-04,2025-01,Prospect 5018,MER-US,Mid-Market,Business Services,Content/SEO,Email/Lifecycle,Yes,137100.0,Closed Lost,2025-03-18,73,Price
+OPP-5019,2025-01-11,2025-01,Prospect 5019,MER-US,Mid-Market,Logistics & Transport,Sales Outbound,Sales Outbound,No,117600.0,Disqualified,,,
+OPP-5020,2025-01-21,2025-01,Prospect 5020,MER-US,Mid-Market,Technology,Paid Social - LinkedIn,Direct / Branded Search,Yes,64100.0,Discovery,,,
+OPP-5021,2025-01-25,2025-01,Prospect 5021,MER-US,SMB,Healthcare,Partner Co-marketing,Partner Co-marketing,Yes,46200.0,Disqualified,,,
+OPP-5022,2025-01-12,2025-01,Prospect 5022,MER-US,Enterprise,Business Services,Paid Search,Direct / Branded Search,Yes,355600.0,Closed Won,2025-06-17,156,
+OPP-5023,2025-01-09,2025-01,Prospect 5023,MER-US,SMB,Business Services,Sales Outbound,Direct / Branded Search,No,26000.0,Closed Lost,2025-02-05,27,No decision / budget frozen
+OPP-5024,2025-01-24,2025-01,Prospect 5024,MER-EU,SMB,Retail & CPG,Webinars,Webinars,Yes,28500.0,Discovery,,,
+OPP-5025,2025-01-20,2025-01,Prospect 5025,MER-EU,Mid-Market,Healthcare,Content/SEO,Direct / Branded Search,Yes,162100.0,Discovery,,,
+OPP-5026,2025-01-19,2025-01,Prospect 5026,MER-US,SMB,Energy & Utilities,Events/Field,Events/Field,Yes,45700.0,Closed Won,2025-02-10,22,
+OPP-5027,2025-01-25,2025-01,Prospect 5027,MER-EU,Mid-Market,Logistics & Transport,Content/SEO,Direct / Branded Search,Yes,85700.0,Discovery,,,
+OPP-5028,2025-01-17,2025-01,Prospect 5028,MER-US,Mid-Market,Logistics & Transport,Content/SEO,Direct / Branded Search,Yes,81400.0,Closed Won,2025-04-12,85,
+OPP-5029,2025-01-13,2025-01,Prospect 5029,MER-EU,SMB,Business Services,Partner Co-marketing,Direct / Branded Search,Yes,26500.0,Negotiation,,,
+OPP-5030,2025-01-06,2025-01,Prospect 5030,MER-EU,Enterprise,Manufacturing,Paid Search,Paid Search,Yes,223800.0,Disqualified,,,
+OPP-5031,2025-01-29,2025-01,Prospect 5031,MER-US,SMB,Energy & Utilities,Review Sites (G2),Review Sites (G2),Yes,22000.0,Closed Won,2025-03-04,34,
+OPP-5032,2025-01-06,2025-01,Prospect 5032,MER-US,Mid-Market,Financial Services,Content/SEO,Direct / Branded Search,Yes,115700.0,Disqualified,,,
+OPP-5033,2025-01-18,2025-01,Prospect 5033,MER-US,Mid-Market,Retail & CPG,Sales Outbound,Direct / Branded Search,No,120100.0,Closed Lost,2025-04-30,102,Lost to Loop3
+OPP-5034,2025-01-26,2025-01,Prospect 5034,MER-EU,SMB,Financial Services,Sales Outbound,Email/Lifecycle,No,15600.0,Closed Lost,2025-02-14,19,Lost to Loop3
+OPP-5035,2025-01-07,2025-01,Prospect 5035,MER-US,Mid-Market,Manufacturing,Sales Outbound,Email/Lifecycle,No,129500.0,Closed Lost,2025-02-23,47,No decision / budget frozen
+OPP-5036,2025-01-26,2025-01,Prospect 5036,MER-US,Mid-Market,Manufacturing,Sales Outbound,Sales Outbound,No,112800.0,Closed Lost,2025-03-16,49,Timing
+OPP-5037,2025-01-06,2025-01,Prospect 5037,MER-US,SMB,Healthcare,Paid Social - LinkedIn,Email/Lifecycle,Yes,38800.0,Closed Lost,2025-01-24,18,Missing feature - approvals
+OPP-5038,2025-01-21,2025-01,Prospect 5038,MER-US,Enterprise,Retail & CPG,Paid Social - LinkedIn,Direct / Branded Search,Yes,191000.0,Closed Won,2025-07-16,176,
+OPP-5039,2025-01-28,2025-01,Prospect 5039,MER-US,Mid-Market,Healthcare,Paid Social - LinkedIn,Direct / Branded Search,Yes,73000.0,Closed Lost,2025-05-06,98,Missing feature - approvals
+OPP-5040,2025-01-20,2025-01,Prospect 5040,MER-US,SMB,Retail & CPG,Events/Field,Direct / Branded Search,Yes,47100.0,Closed Won,2025-02-23,34,
+OPP-5041,2025-01-05,2025-01,Prospect 5041,MER-US,SMB,Business Services,Events/Field,Direct / Branded Search,Yes,29800.0,Disqualified,,,
+OPP-5042,2025-01-31,2025-01,Prospect 5042,MER-US,Mid-Market,Retail & CPG,Webinars,Webinars,Yes,72500.0,Closed Lost,2025-04-19,78,Lost to Loop3
+OPP-5043,2025-01-22,2025-01,Prospect 5043,MER-US,Mid-Market,Healthcare,Content/SEO,Email/Lifecycle,Yes,78700.0,Discovery,,,
+OPP-5044,2025-01-28,2025-01,Prospect 5044,MER-US,SMB,Logistics & Transport,Webinars,Email/Lifecycle,Yes,27000.0,Closed Lost,2025-02-10,13,Timing
+OPP-5045,2025-01-11,2025-01,Prospect 5045,MER-US,Enterprise,Manufacturing,Review Sites (G2),Review Sites (G2),Yes,292100.0,Closed Lost,2025-04-15,94,No decision / budget frozen
+OPP-5046,2025-01-20,2025-01,Prospect 5046,MER-EU,Mid-Market,Business Services,Webinars,Webinars,Yes,83400.0,Closed Lost,2025-03-19,58,Lost to Loop3
+OPP-5047,2025-01-15,2025-01,Prospect 5047,MER-US,SMB,Manufacturing,Content/SEO,Email/Lifecycle,Yes,33500.0,Closed Lost,2025-02-02,18,No decision / budget frozen
+OPP-5048,2025-01-07,2025-01,Prospect 5048,MER-US,SMB,Business Services,Paid Search,Paid Search,Yes,23300.0,Closed Won,2025-02-18,42,
+OPP-5049,2025-01-12,2025-01,Prospect 5049,MER-EU,Mid-Market,Financial Services,Sales Outbound,Direct / Branded Search,No,144300.0,Closed Won,2025-03-01,48,
+OPP-5050,2025-01-31,2025-01,Prospect 5050,MER-US,SMB,Business Services,Partner Co-marketing,Email/Lifecycle,Yes,28400.0,Closed Won,2025-02-28,28,
+OPP-5051,2025-01-31,2025-01,Prospect 5051,MER-EU,SMB,Financial Services,Paid Search,Email/Lifecycle,Yes,18000.0,Closed Lost,2025-03-08,36,No decision / budget frozen
+OPP-5052,2025-01-08,2025-01,Prospect 5052,MER-EU,Mid-Market,Business Services,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,151800.0,Closed Lost,2025-03-22,73,Price
+OPP-5053,2025-01-30,2025-01,Prospect 5053,MER-EU,Mid-Market,Healthcare,Content/SEO,Content/SEO,Yes,79600.0,Closed Lost,2025-03-14,43,Lost to incumbent
+OPP-5054,2025-01-21,2025-01,Prospect 5054,MER-US,SMB,Logistics & Transport,Sales Outbound,Sales Outbound,No,17200.0,Closed Won,2025-02-12,22,
+OPP-5055,2025-01-21,2025-01,Prospect 5055,MER-EU,Mid-Market,Financial Services,Sales Outbound,Sales Outbound,No,156100.0,Disqualified,,,
+OPP-5056,2025-01-25,2025-01,Prospect 5056,MER-EU,SMB,Financial Services,Partner Co-marketing,Partner Co-marketing,Yes,29000.0,Negotiation,,,
+OPP-5057,2025-01-22,2025-01,Prospect 5057,MER-US,SMB,Logistics & Transport,Retargeting,Direct / Branded Search,Yes,45400.0,Closed Lost,2025-02-07,16,Lost to incumbent
+OPP-5058,2025-01-16,2025-01,Prospect 5058,MER-US,Mid-Market,Technology,Sales Outbound,Sales Outbound,No,155100.0,Closed Lost,2025-04-23,97,Price
+OPP-5059,2025-01-24,2025-01,Prospect 5059,MER-EU,SMB,Energy & Utilities,Paid Search,Email/Lifecycle,Yes,35600.0,Discovery,,,
+OPP-5060,2025-01-20,2025-01,Prospect 5060,MER-US,Mid-Market,Retail & CPG,Events/Field,Direct / Branded Search,Yes,91100.0,Closed Lost,2025-03-26,65,Missing feature - approvals
+OPP-5061,2025-01-30,2025-01,Prospect 5061,MER-US,SMB,Healthcare,Sales Outbound,Sales Outbound,No,25100.0,Disqualified,,,
+OPP-5062,2025-01-09,2025-01,Prospect 5062,MER-US,SMB,Business Services,Paid Search,Direct / Branded Search,Yes,34800.0,Closed Lost,2025-02-16,38,Price
+OPP-5063,2025-01-06,2025-01,Prospect 5063,MER-EU,SMB,Energy & Utilities,Content/SEO,Direct / Branded Search,Yes,19900.0,Disqualified,,,
+OPP-5064,2025-02-18,2025-02,Prospect 5064,MER-EU,Mid-Market,Manufacturing,Events/Field,Events/Field,Yes,62800.0,Closed Won,2025-05-02,73,
+OPP-5065,2025-02-01,2025-02,Prospect 5065,MER-US,Mid-Market,Energy & Utilities,Paid Search,Direct / Branded Search,Yes,155300.0,Closed Lost,2025-04-01,59,Timing
+OPP-5066,2025-02-12,2025-02,Prospect 5066,MER-US,SMB,Logistics & Transport,Sales Outbound,Direct / Branded Search,No,44000.0,Discovery,,,
+OPP-5067,2025-02-19,2025-02,Prospect 5067,MER-EU,Mid-Market,Logistics & Transport,Paid Search,Sales Outbound,Yes,120400.0,Closed Lost,2025-05-10,80,Missing feature - approvals
+OPP-5068,2025-02-18,2025-02,Prospect 5068,MER-US,Enterprise,Business Services,Retargeting,Retargeting,Yes,201700.0,Disqualified,,,
+OPP-5069,2025-02-25,2025-02,Prospect 5069,MER-US,Enterprise,Healthcare,Content/SEO,Direct / Branded Search,Yes,184200.0,Closed Lost,2025-08-01,157,No decision / budget frozen
+OPP-5070,2025-02-17,2025-02,Prospect 5070,MER-EU,SMB,Energy & Utilities,Events/Field,Events/Field,Yes,20600.0,Closed Lost,2025-03-22,33,Lost to incumbent
+OPP-5071,2025-02-17,2025-02,Prospect 5071,MER-US,Mid-Market,Energy & Utilities,Content/SEO,Direct / Branded Search,Yes,55700.0,Closed Won,2025-04-01,43,
+OPP-5072,2025-02-27,2025-02,Prospect 5072,MER-US,Mid-Market,Retail & CPG,Paid Search,Retargeting,Yes,146000.0,Closed Lost,2025-04-15,47,Timing
+OPP-5073,2025-02-06,2025-02,Prospect 5073,MER-US,SMB,Business Services,Content/SEO,Content/SEO,Yes,22400.0,Disqualified,,,
+OPP-5074,2025-02-07,2025-02,Prospect 5074,MER-US,Mid-Market,Healthcare,Content/SEO,Content/SEO,Yes,87300.0,Closed Won,2025-03-27,48,
+OPP-5075,2025-02-24,2025-02,Prospect 5075,MER-US,SMB,Healthcare,Sales Outbound,Email/Lifecycle,No,36100.0,Negotiation,,,
+OPP-5076,2025-02-10,2025-02,Prospect 5076,MER-US,Mid-Market,Business Services,Paid Social - LinkedIn,Direct / Branded Search,Yes,119200.0,Discovery,,,
+OPP-5077,2025-02-28,2025-02,Prospect 5077,MER-US,SMB,Healthcare,Webinars,Webinars,Yes,36000.0,Closed Lost,2025-04-11,42,Lost to incumbent
+OPP-5078,2025-02-09,2025-02,Prospect 5078,MER-EU,SMB,Healthcare,Paid Social - LinkedIn,Direct / Branded Search,Yes,43600.0,Discovery,,,
+OPP-5079,2025-02-16,2025-02,Prospect 5079,MER-US,SMB,Technology,Sales Outbound,Sales Outbound,No,32200.0,Closed Won,2025-03-28,40,
+OPP-5080,2025-02-02,2025-02,Prospect 5080,MER-US,SMB,Technology,Paid Social - LinkedIn,Retargeting,Yes,42600.0,Closed Lost,2025-02-16,14,Timing
+OPP-5081,2025-02-08,2025-02,Prospect 5081,MER-EU,Mid-Market,Logistics & Transport,Content/SEO,Retargeting,Yes,132100.0,Negotiation,,,
+OPP-5082,2025-02-22,2025-02,Prospect 5082,MER-US,SMB,Energy & Utilities,Content/SEO,Direct / Branded Search,Yes,24900.0,Closed Won,2025-03-16,22,
+OPP-5083,2025-02-07,2025-02,Prospect 5083,MER-US,Mid-Market,Financial Services,Events/Field,Email/Lifecycle,Yes,128000.0,Discovery,,,
+OPP-5084,2025-02-17,2025-02,Prospect 5084,MER-EU,Mid-Market,Manufacturing,Content/SEO,Direct / Branded Search,Yes,80900.0,Closed Lost,2025-05-02,74,Lost to incumbent
+OPP-5085,2025-02-15,2025-02,Prospect 5085,MER-US,Mid-Market,Business Services,Review Sites (G2),Direct / Branded Search,Yes,53900.0,Discovery,,,
+OPP-5086,2025-02-17,2025-02,Prospect 5086,MER-US,Mid-Market,Financial Services,Events/Field,Events/Field,Yes,55200.0,Closed Lost,2025-04-21,63,Price
+OPP-5087,2025-02-09,2025-02,Prospect 5087,MER-EU,Mid-Market,Energy & Utilities,Content/SEO,Direct / Branded Search,Yes,150300.0,Closed Won,2025-03-19,38,
+OPP-5088,2025-02-05,2025-02,Prospect 5088,MER-US,SMB,Retail & CPG,Events/Field,Sales Outbound,Yes,38600.0,Discovery,,,
+OPP-5089,2025-02-05,2025-02,Prospect 5089,MER-US,SMB,Business Services,Paid Social - Meta,Paid Social - Meta,Yes,23200.0,Negotiation,,,
+OPP-5090,2025-02-07,2025-02,Prospect 5090,MER-US,SMB,Energy & Utilities,Partner Co-marketing,Direct / Branded Search,Yes,43900.0,Closed Won,2025-03-01,22,
+OPP-5091,2025-02-13,2025-02,Prospect 5091,MER-US,Mid-Market,Retail & CPG,Partner Co-marketing,Partner Co-marketing,Yes,118300.0,Closed Won,2025-04-10,56,
+OPP-5092,2025-02-02,2025-02,Prospect 5092,MER-EU,Mid-Market,Technology,Events/Field,Retargeting,Yes,103400.0,Closed Won,2025-05-07,94,
+OPP-5093,2025-02-05,2025-02,Prospect 5093,MER-US,Mid-Market,Energy & Utilities,Content/SEO,Direct / Branded Search,Yes,141200.0,Closed Lost,2025-05-10,94,Lost to incumbent
+OPP-5094,2025-02-22,2025-02,Prospect 5094,MER-US,Enterprise,Manufacturing,Webinars,Direct / Branded Search,Yes,348000.0,Closed Lost,2025-08-28,187,Timing
+OPP-5095,2025-02-10,2025-02,Prospect 5095,MER-EU,SMB,Technology,Sales Outbound,Direct / Branded Search,No,31800.0,Discovery,,,
+OPP-5096,2025-02-06,2025-02,Prospect 5096,MER-EU,SMB,Business Services,Webinars,Direct / Branded Search,Yes,33400.0,Negotiation,,,
+OPP-5097,2025-02-11,2025-02,Prospect 5097,MER-EU,Mid-Market,Financial Services,Sales Outbound,Direct / Branded Search,No,55100.0,Closed Lost,2025-04-03,51,Timing
+OPP-5098,2025-02-18,2025-02,Prospect 5098,MER-US,SMB,Technology,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,30400.0,Closed Lost,2025-03-14,24,Lost to incumbent
+OPP-5099,2025-02-25,2025-02,Prospect 5099,MER-US,Enterprise,Business Services,Content/SEO,Retargeting,Yes,333100.0,Closed Lost,2025-07-23,148,Lost to Loop3
+OPP-5100,2025-02-16,2025-02,Prospect 5100,MER-US,Enterprise,Manufacturing,Events/Field,Direct / Branded Search,Yes,270600.0,Negotiation,,,
+OPP-5101,2025-02-17,2025-02,Prospect 5101,MER-US,Enterprise,Retail & CPG,Paid Search,Paid Search,Yes,329900.0,Discovery,,,
+OPP-5102,2025-02-17,2025-02,Prospect 5102,MER-US,SMB,Retail & CPG,Events/Field,Events/Field,Yes,24900.0,Closed Lost,2025-03-08,19,Lost to Loop3
+OPP-5103,2025-02-15,2025-02,Prospect 5103,MER-EU,Mid-Market,Energy & Utilities,Sales Outbound,Sales Outbound,No,112800.0,Closed Lost,2025-04-09,53,Missing feature - approvals
+OPP-5104,2025-02-27,2025-02,Prospect 5104,MER-US,SMB,Technology,Content/SEO,Direct / Branded Search,Yes,35000.0,Closed Lost,2025-04-11,43,Missing feature - approvals
+OPP-5105,2025-02-22,2025-02,Prospect 5105,MER-EU,Mid-Market,Retail & CPG,Paid Social - Meta,Direct / Branded Search,Yes,52700.0,Closed Won,2025-04-04,41,
+OPP-5106,2025-02-04,2025-02,Prospect 5106,MER-US,Mid-Market,Energy & Utilities,Partner Co-marketing,Partner Co-marketing,Yes,87200.0,Closed Lost,2025-03-26,50,No decision / budget frozen
+OPP-5107,2025-02-02,2025-02,Prospect 5107,MER-US,Mid-Market,Technology,Sales Outbound,Retargeting,No,144800.0,Closed Won,2025-04-23,80,
+OPP-5108,2025-02-17,2025-02,Prospect 5108,MER-US,Mid-Market,Business Services,Events/Field,Direct / Branded Search,Yes,141400.0,Closed Lost,2025-05-28,100,Price
+OPP-5109,2025-02-13,2025-02,Prospect 5109,MER-US,Mid-Market,Healthcare,Webinars,Webinars,Yes,81300.0,Closed Won,2025-03-30,45,
+OPP-5110,2025-02-13,2025-02,Prospect 5110,MER-EU,Enterprise,Technology,Paid Social - Meta,Direct / Branded Search,Yes,301000.0,Closed Lost,2025-07-15,152,Lost to Loop3
+OPP-5111,2025-02-16,2025-02,Prospect 5111,MER-EU,Mid-Market,Technology,Webinars,Webinars,Yes,109100.0,Closed Won,2025-04-01,44,
+OPP-5112,2025-02-25,2025-02,Prospect 5112,MER-EU,Mid-Market,Retail & CPG,Paid Search,Email/Lifecycle,Yes,65600.0,Closed Lost,2025-05-31,95,Lost to Loop3
+OPP-5113,2025-02-23,2025-02,Prospect 5113,MER-US,SMB,Logistics & Transport,Paid Social - LinkedIn,Direct / Branded Search,Yes,34900.0,Closed Won,2025-03-27,32,
+OPP-5114,2025-02-18,2025-02,Prospect 5114,MER-US,Mid-Market,Business Services,Paid Social - LinkedIn,Retargeting,Yes,89300.0,Disqualified,,,
+OPP-5115,2025-02-03,2025-02,Prospect 5115,MER-EU,Enterprise,Manufacturing,Sales Outbound,Direct / Branded Search,No,322700.0,Negotiation,,,
+OPP-5116,2025-02-01,2025-02,Prospect 5116,MER-EU,SMB,Manufacturing,Retargeting,Retargeting,Yes,25000.0,Discovery,,,
+OPP-5117,2025-02-16,2025-02,Prospect 5117,MER-US,SMB,Technology,Paid Search,Retargeting,Yes,18900.0,Closed Won,2025-03-18,30,
+OPP-5118,2025-02-18,2025-02,Prospect 5118,MER-US,Mid-Market,Technology,Content/SEO,Content/SEO,Yes,86400.0,Discovery,,,
+OPP-5119,2025-02-18,2025-02,Prospect 5119,MER-US,SMB,Logistics & Transport,Paid Social - LinkedIn,Email/Lifecycle,Yes,27000.0,Closed Won,2025-03-13,23,
+OPP-5120,2025-02-11,2025-02,Prospect 5120,MER-US,SMB,Manufacturing,Sales Outbound,Retargeting,No,24500.0,Closed Lost,2025-03-12,29,Price
+OPP-5121,2025-02-05,2025-02,Prospect 5121,MER-US,SMB,Healthcare,Sales Outbound,Sales Outbound,No,23300.0,Closed Won,2025-03-09,32,
+OPP-5122,2025-02-26,2025-02,Prospect 5122,MER-US,Mid-Market,Financial Services,Webinars,Direct / Branded Search,Yes,102100.0,Closed Lost,2025-04-09,42,Price
+OPP-5123,2025-02-14,2025-02,Prospect 5123,MER-US,Mid-Market,Business Services,Retargeting,Retargeting,Yes,127100.0,Negotiation,,,
+OPP-5124,2025-02-11,2025-02,Prospect 5124,MER-US,SMB,Retail & CPG,Email/Lifecycle,Email/Lifecycle,Yes,12100.0,Closed Lost,2025-03-16,33,No decision / budget frozen
+OPP-5125,2025-02-03,2025-02,Prospect 5125,MER-EU,Mid-Market,Business Services,Sales Outbound,Direct / Branded Search,No,61600.0,Closed Lost,2025-04-25,81,Timing
+OPP-5126,2025-02-26,2025-02,Prospect 5126,MER-EU,SMB,Energy & Utilities,Events/Field,Email/Lifecycle,Yes,21100.0,Closed Won,2025-04-12,45,
+OPP-5127,2025-02-01,2025-02,Prospect 5127,MER-US,Mid-Market,Manufacturing,Review Sites (G2),Review Sites (G2),Yes,139200.0,Disqualified,,,
+OPP-5128,2025-02-12,2025-02,Prospect 5128,MER-US,SMB,Technology,Sales Outbound,Sales Outbound,No,47900.0,Discovery,,,
+OPP-5129,2025-02-11,2025-02,Prospect 5129,MER-US,SMB,Financial Services,Events/Field,Events/Field,Yes,28800.0,Closed Lost,2025-03-19,36,Lost to incumbent
+OPP-5130,2025-03-06,2025-03,Prospect 5130,MER-US,Mid-Market,Healthcare,Sales Outbound,Sales Outbound,No,72100.0,Disqualified,,,
+OPP-5131,2025-03-07,2025-03,Prospect 5131,MER-EU,Mid-Market,Energy & Utilities,Paid Search,Direct / Branded Search,Yes,54900.0,Discovery,,,
+OPP-5132,2025-03-23,2025-03,Prospect 5132,MER-US,SMB,Business Services,Content/SEO,Email/Lifecycle,Yes,44800.0,Closed Lost,2025-04-22,30,Lost to incumbent
+OPP-5133,2025-03-23,2025-03,Prospect 5133,MER-US,Mid-Market,Manufacturing,Events/Field,Direct / Branded Search,Yes,96500.0,Discovery,,,
+OPP-5134,2025-03-17,2025-03,Prospect 5134,MER-US,SMB,Retail & CPG,Sales Outbound,Sales Outbound,No,11800.0,Disqualified,,,
+OPP-5135,2025-03-10,2025-03,Prospect 5135,MER-US,SMB,Energy & Utilities,Retargeting,Direct / Branded Search,Yes,13700.0,Discovery,,,
+OPP-5136,2025-03-18,2025-03,Prospect 5136,MER-US,Mid-Market,Business Services,Sales Outbound,Sales Outbound,No,154000.0,Closed Lost,2025-05-07,50,Lost to Loop3
+OPP-5137,2025-03-24,2025-03,Prospect 5137,MER-EU,Mid-Market,Manufacturing,Retargeting,Retargeting,Yes,92200.0,Discovery,,,
+OPP-5138,2025-03-09,2025-03,Prospect 5138,MER-EU,Mid-Market,Retail & CPG,Content/SEO,Retargeting,Yes,148100.0,Discovery,,,
+OPP-5139,2025-03-07,2025-03,Prospect 5139,MER-US,SMB,Technology,Partner Co-marketing,Partner Co-marketing,Yes,21100.0,Negotiation,,,
+OPP-5140,2025-03-18,2025-03,Prospect 5140,MER-US,Mid-Market,Technology,Review Sites (G2),Sales Outbound,Yes,77000.0,Discovery,,,
+OPP-5141,2025-03-10,2025-03,Prospect 5141,MER-US,SMB,Technology,Paid Search,Direct / Branded Search,Yes,23900.0,Closed Lost,2025-04-23,44,Price
+OPP-5142,2025-03-15,2025-03,Prospect 5142,MER-EU,Mid-Market,Retail & CPG,Paid Search,Paid Search,Yes,58100.0,Closed Lost,2025-06-21,98,Missing feature - approvals
+OPP-5143,2025-03-17,2025-03,Prospect 5143,MER-EU,SMB,Financial Services,Review Sites (G2),Direct / Branded Search,Yes,44200.0,Closed Won,2025-05-01,45,
+OPP-5144,2025-03-07,2025-03,Prospect 5144,MER-EU,Mid-Market,Healthcare,Paid Search,Direct / Branded Search,Yes,76000.0,Closed Won,2025-04-22,46,
+OPP-5145,2025-03-06,2025-03,Prospect 5145,MER-EU,Mid-Market,Business Services,Webinars,Direct / Branded Search,Yes,54200.0,Negotiation,,,
+OPP-5146,2025-03-16,2025-03,Prospect 5146,MER-US,Enterprise,Energy & Utilities,Paid Search,Paid Search,Yes,335200.0,Closed Lost,2025-07-20,126,Missing feature - approvals
+OPP-5147,2025-03-27,2025-03,Prospect 5147,MER-US,Mid-Market,Manufacturing,Paid Search,Paid Search,Yes,86100.0,Negotiation,,,
+OPP-5148,2025-03-18,2025-03,Prospect 5148,MER-US,SMB,Energy & Utilities,Paid Social - LinkedIn,Direct / Branded Search,Yes,43600.0,Closed Lost,2025-04-24,37,Lost to incumbent
+OPP-5149,2025-03-21,2025-03,Prospect 5149,MER-US,Mid-Market,Healthcare,Paid Search,Direct / Branded Search,Yes,126300.0,Negotiation,,,
+OPP-5150,2025-03-08,2025-03,Prospect 5150,MER-US,Mid-Market,Energy & Utilities,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,80400.0,Closed Lost,2025-06-03,87,Price
+OPP-5151,2025-03-18,2025-03,Prospect 5151,MER-US,SMB,Healthcare,Content/SEO,Content/SEO,Yes,45300.0,Closed Won,2025-04-11,24,
+OPP-5152,2025-03-16,2025-03,Prospect 5152,MER-US,SMB,Logistics & Transport,Content/SEO,Content/SEO,Yes,23800.0,Closed Won,2025-04-18,33,
+OPP-5153,2025-03-11,2025-03,Prospect 5153,MER-US,Mid-Market,Logistics & Transport,Content/SEO,Direct / Branded Search,Yes,58600.0,Disqualified,,,
+OPP-5154,2025-03-25,2025-03,Prospect 5154,MER-US,SMB,Technology,Review Sites (G2),Email/Lifecycle,Yes,36200.0,Closed Lost,2025-04-21,27,Lost to incumbent
+OPP-5155,2025-03-04,2025-03,Prospect 5155,MER-US,SMB,Retail & CPG,Content/SEO,Content/SEO,Yes,25400.0,Closed Won,2025-03-24,20,
+OPP-5156,2025-03-11,2025-03,Prospect 5156,MER-EU,SMB,Financial Services,Retargeting,Retargeting,Yes,35700.0,Closed Lost,2025-03-30,19,Timing
+OPP-5157,2025-03-23,2025-03,Prospect 5157,MER-EU,SMB,Logistics & Transport,Sales Outbound,Retargeting,No,33100.0,Closed Lost,2025-05-04,42,Missing feature - approvals
+OPP-5158,2025-03-14,2025-03,Prospect 5158,MER-US,Mid-Market,Financial Services,Events/Field,Direct / Branded Search,Yes,125500.0,Closed Lost,2025-05-21,68,Missing feature - approvals
+OPP-5159,2025-03-24,2025-03,Prospect 5159,MER-EU,SMB,Energy & Utilities,Sales Outbound,Direct / Branded Search,No,43300.0,Closed Lost,2025-04-07,14,Missing feature - approvals
+OPP-5160,2025-03-14,2025-03,Prospect 5160,MER-US,SMB,Manufacturing,Paid Search,Paid Search,Yes,32300.0,Closed Won,2025-04-17,34,
+OPP-5161,2025-03-28,2025-03,Prospect 5161,MER-US,Mid-Market,Manufacturing,Content/SEO,Content/SEO,Yes,67600.0,Disqualified,,,
+OPP-5162,2025-03-04,2025-03,Prospect 5162,MER-US,Mid-Market,Business Services,Partner Co-marketing,Direct / Branded Search,Yes,69600.0,Closed Lost,2025-05-20,77,Price
+OPP-5163,2025-03-23,2025-03,Prospect 5163,MER-US,Mid-Market,Logistics & Transport,Paid Social - LinkedIn,Direct / Branded Search,Yes,164200.0,Closed Lost,2025-05-02,40,Lost to incumbent
+OPP-5164,2025-03-22,2025-03,Prospect 5164,MER-US,Mid-Market,Technology,Webinars,Retargeting,Yes,89500.0,Closed Lost,2025-06-05,75,Timing
+OPP-5165,2025-03-20,2025-03,Prospect 5165,MER-EU,SMB,Technology,Email/Lifecycle,Retargeting,Yes,18600.0,Disqualified,,,
+OPP-5166,2025-03-16,2025-03,Prospect 5166,MER-US,Mid-Market,Energy & Utilities,Events/Field,Direct / Branded Search,Yes,65200.0,Negotiation,,,
+OPP-5167,2025-03-21,2025-03,Prospect 5167,MER-EU,SMB,Energy & Utilities,Sales Outbound,Sales Outbound,No,25800.0,Closed Lost,2025-05-04,44,Price
+OPP-5168,2025-03-17,2025-03,Prospect 5168,MER-US,Enterprise,Logistics & Transport,Paid Search,Email/Lifecycle,Yes,263100.0,Disqualified,,,
+OPP-5169,2025-03-22,2025-03,Prospect 5169,MER-US,Mid-Market,Logistics & Transport,Partner Co-marketing,Direct / Branded Search,Yes,129900.0,Closed Lost,2025-05-26,65,Price
+OPP-5170,2025-03-13,2025-03,Prospect 5170,MER-US,SMB,Manufacturing,Sales Outbound,Sales Outbound,No,25800.0,Discovery,,,
+OPP-5171,2025-03-13,2025-03,Prospect 5171,MER-EU,Mid-Market,Energy & Utilities,Paid Search,Direct / Branded Search,Yes,151700.0,Closed Lost,2025-06-09,88,Timing
+OPP-5172,2025-03-23,2025-03,Prospect 5172,MER-US,Mid-Market,Business Services,Paid Search,Paid Search,Yes,82900.0,Discovery,,,
+OPP-5173,2025-03-27,2025-03,Prospect 5173,MER-US,Mid-Market,Business Services,Paid Search,Direct / Branded Search,Yes,158200.0,Closed Won,2025-05-12,46,
+OPP-5174,2025-03-29,2025-03,Prospect 5174,MER-US,SMB,Logistics & Transport,Review Sites (G2),Review Sites (G2),Yes,46200.0,Closed Lost,2025-05-06,38,No decision / budget frozen
+OPP-5175,2025-03-13,2025-03,Prospect 5175,MER-US,Enterprise,Technology,Paid Search,Email/Lifecycle,Yes,207700.0,Closed Lost,2025-06-08,87,Missing feature - approvals
+OPP-5176,2025-03-04,2025-03,Prospect 5176,MER-EU,Mid-Market,Logistics & Transport,Webinars,Webinars,Yes,150200.0,Closed Lost,2025-04-25,52,Lost to incumbent
+OPP-5177,2025-03-21,2025-03,Prospect 5177,MER-US,Mid-Market,Technology,Paid Search,Email/Lifecycle,Yes,76900.0,Closed Lost,2025-06-05,76,Lost to Loop3
+OPP-5178,2025-03-07,2025-03,Prospect 5178,MER-US,Mid-Market,Energy & Utilities,Review Sites (G2),Direct / Branded Search,Yes,134000.0,Negotiation,,,
+OPP-5179,2025-03-11,2025-03,Prospect 5179,MER-EU,Mid-Market,Technology,Content/SEO,Direct / Branded Search,Yes,143800.0,Discovery,,,
+OPP-5180,2025-03-31,2025-03,Prospect 5180,MER-US,Mid-Market,Energy & Utilities,Events/Field,Sales Outbound,Yes,84400.0,Discovery,,,
+OPP-5181,2025-03-08,2025-03,Prospect 5181,MER-US,SMB,Logistics & Transport,Sales Outbound,Direct / Branded Search,No,40200.0,Discovery,,,
+OPP-5182,2025-03-11,2025-03,Prospect 5182,MER-EU,SMB,Technology,Content/SEO,Content/SEO,Yes,30800.0,Disqualified,,,
+OPP-5183,2025-03-19,2025-03,Prospect 5183,MER-US,Mid-Market,Financial Services,Sales Outbound,Email/Lifecycle,No,140300.0,Negotiation,,,
+OPP-5184,2025-03-25,2025-03,Prospect 5184,MER-EU,SMB,Manufacturing,Sales Outbound,Sales Outbound,No,45500.0,Disqualified,,,
+OPP-5185,2025-03-10,2025-03,Prospect 5185,MER-US,Mid-Market,Energy & Utilities,Sales Outbound,Email/Lifecycle,No,134300.0,Closed Won,2025-04-30,51,
+OPP-5186,2025-03-29,2025-03,Prospect 5186,MER-US,SMB,Healthcare,Email/Lifecycle,Retargeting,Yes,42500.0,Closed Lost,2025-04-27,29,Lost to incumbent
+OPP-5187,2025-03-13,2025-03,Prospect 5187,MER-US,Mid-Market,Retail & CPG,Sales Outbound,Retargeting,No,163800.0,Disqualified,,,
+OPP-5188,2025-03-13,2025-03,Prospect 5188,MER-US,SMB,Logistics & Transport,Events/Field,Events/Field,Yes,28100.0,Negotiation,,,
+OPP-5189,2025-03-07,2025-03,Prospect 5189,MER-US,SMB,Retail & CPG,Paid Search,Email/Lifecycle,Yes,35600.0,Closed Won,2025-04-18,42,
+OPP-5190,2025-03-19,2025-03,Prospect 5190,MER-US,Enterprise,Manufacturing,Email/Lifecycle,Email/Lifecycle,Yes,358300.0,Closed Lost,2025-08-20,154,Timing
+OPP-5191,2025-03-14,2025-03,Prospect 5191,MER-US,Mid-Market,Technology,Sales Outbound,Sales Outbound,No,123000.0,Closed Lost,2025-06-23,101,Lost to Loop3
+OPP-5192,2025-03-17,2025-03,Prospect 5192,MER-EU,Mid-Market,Healthcare,Review Sites (G2),Review Sites (G2),Yes,114300.0,Closed Won,2025-04-30,44,
+OPP-5193,2025-03-05,2025-03,Prospect 5193,MER-EU,SMB,Energy & Utilities,Sales Outbound,Direct / Branded Search,No,27400.0,Closed Lost,2025-04-12,38,Timing
+OPP-5194,2025-03-19,2025-03,Prospect 5194,MER-US,SMB,Energy & Utilities,Events/Field,Direct / Branded Search,Yes,35300.0,Negotiation,,,
+OPP-5195,2025-03-12,2025-03,Prospect 5195,MER-US,SMB,Technology,Events/Field,Events/Field,Yes,23600.0,Closed Lost,2025-04-19,38,Price
+OPP-5196,2025-03-04,2025-03,Prospect 5196,MER-US,Mid-Market,Logistics & Transport,Sales Outbound,Direct / Branded Search,No,70200.0,Discovery,,,
+OPP-5197,2025-03-12,2025-03,Prospect 5197,MER-EU,Mid-Market,Energy & Utilities,Paid Search,Sales Outbound,Yes,135900.0,Closed Lost,2025-05-30,79,Missing feature - approvals
+OPP-5198,2025-03-28,2025-03,Prospect 5198,MER-US,SMB,Manufacturing,Content/SEO,Direct / Branded Search,Yes,25000.0,Disqualified,,,
+OPP-5199,2025-03-05,2025-03,Prospect 5199,MER-US,SMB,Logistics & Transport,Events/Field,Direct / Branded Search,Yes,37200.0,Disqualified,,,
+OPP-5200,2025-03-17,2025-03,Prospect 5200,MER-US,SMB,Manufacturing,Webinars,Direct / Branded Search,Yes,13600.0,Closed Lost,2025-04-02,16,Price
+OPP-5201,2025-03-07,2025-03,Prospect 5201,MER-US,Mid-Market,Healthcare,Partner Co-marketing,Email/Lifecycle,Yes,131000.0,Closed Lost,2025-06-17,102,Lost to Loop3
+OPP-5202,2025-03-21,2025-03,Prospect 5202,MER-US,Mid-Market,Technology,Sales Outbound,Direct / Branded Search,No,63500.0,Closed Lost,2025-06-27,98,Missing feature - approvals
+OPP-5203,2025-03-22,2025-03,Prospect 5203,MER-EU,SMB,Retail & CPG,Content/SEO,Email/Lifecycle,Yes,30300.0,Closed Lost,2025-04-28,37,Missing feature - approvals
+OPP-5204,2025-03-15,2025-03,Prospect 5204,MER-US,SMB,Retail & CPG,Content/SEO,Direct / Branded Search,Yes,18000.0,Closed Lost,2025-04-03,19,Lost to Loop3
+OPP-5205,2025-03-08,2025-03,Prospect 5205,MER-US,Mid-Market,Technology,Sales Outbound,Sales Outbound,No,127200.0,Discovery,,,
+OPP-5206,2025-04-09,2025-04,Prospect 5206,MER-US,SMB,Logistics & Transport,Events/Field,Email/Lifecycle,Yes,25700.0,Closed Lost,2025-05-15,36,No decision / budget frozen
+OPP-5207,2025-04-29,2025-04,Prospect 5207,MER-US,SMB,Healthcare,Paid Social - LinkedIn,Retargeting,Yes,28000.0,Closed Lost,2025-06-09,41,Missing feature - approvals
+OPP-5208,2025-04-23,2025-04,Prospect 5208,MER-US,SMB,Energy & Utilities,Webinars,Webinars,Yes,37900.0,Closed Lost,2025-05-26,33,Missing feature - approvals
+OPP-5209,2025-04-26,2025-04,Prospect 5209,MER-US,SMB,Logistics & Transport,Webinars,Direct / Branded Search,Yes,29400.0,Closed Lost,2025-05-31,35,Missing feature - approvals
+OPP-5210,2025-04-06,2025-04,Prospect 5210,MER-US,Enterprise,Manufacturing,Sales Outbound,Sales Outbound,No,328600.0,Discovery,,,
+OPP-5211,2025-04-25,2025-04,Prospect 5211,MER-US,Mid-Market,Financial Services,Sales Outbound,Sales Outbound,No,75400.0,Discovery,,,
+OPP-5212,2025-04-21,2025-04,Prospect 5212,MER-US,SMB,Technology,Email/Lifecycle,Direct / Branded Search,Yes,42300.0,Discovery,,,
+OPP-5213,2025-04-15,2025-04,Prospect 5213,MER-US,SMB,Healthcare,Sales Outbound,Sales Outbound,No,33000.0,Closed Won,2025-04-27,12,
+OPP-5214,2025-04-23,2025-04,Prospect 5214,MER-US,Enterprise,Business Services,Paid Social - Meta,Paid Social - Meta,Yes,228100.0,Disqualified,,,
+OPP-5215,2025-04-26,2025-04,Prospect 5215,MER-US,Mid-Market,Retail & CPG,Paid Social - Meta,Direct / Branded Search,Yes,134200.0,Discovery,,,
+OPP-5216,2025-04-27,2025-04,Prospect 5216,MER-US,Mid-Market,Financial Services,Paid Search,Paid Search,Yes,75700.0,Closed Lost,2025-07-27,91,Lost to Loop3
+OPP-5217,2025-04-20,2025-04,Prospect 5217,MER-US,Mid-Market,Retail & CPG,Content/SEO,Direct / Branded Search,Yes,103400.0,Disqualified,,,
+OPP-5218,2025-04-14,2025-04,Prospect 5218,MER-US,SMB,Financial Services,Paid Search,Email/Lifecycle,Yes,14500.0,Closed Lost,2025-05-16,32,No decision / budget frozen
+OPP-5219,2025-04-13,2025-04,Prospect 5219,MER-US,Mid-Market,Healthcare,Content/SEO,Direct / Branded Search,Yes,149600.0,Negotiation,,,
+OPP-5220,2025-04-22,2025-04,Prospect 5220,MER-EU,SMB,Financial Services,Sales Outbound,Direct / Branded Search,No,31300.0,Closed Won,2025-06-01,40,
+OPP-5221,2025-04-21,2025-04,Prospect 5221,MER-US,SMB,Manufacturing,Paid Search,Paid Search,Yes,13500.0,Closed Lost,2025-05-15,24,Timing
+OPP-5222,2025-04-18,2025-04,Prospect 5222,MER-EU,SMB,Business Services,Content/SEO,Sales Outbound,Yes,38600.0,Closed Lost,2025-05-13,25,Lost to incumbent
+OPP-5223,2025-04-17,2025-04,Prospect 5223,MER-US,Mid-Market,Healthcare,Email/Lifecycle,Retargeting,Yes,100000.0,Closed Lost,2025-07-04,78,Lost to incumbent
+OPP-5224,2025-04-18,2025-04,Prospect 5224,MER-US,Mid-Market,Manufacturing,Webinars,Retargeting,Yes,102600.0,Discovery,,,
+OPP-5225,2025-04-14,2025-04,Prospect 5225,MER-EU,Mid-Market,Manufacturing,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,106600.0,Closed Lost,2025-06-04,51,Lost to incumbent
+OPP-5226,2025-04-11,2025-04,Prospect 5226,MER-US,Mid-Market,Energy & Utilities,Partner Co-marketing,Retargeting,Yes,93600.0,Negotiation,,,
+OPP-5227,2025-04-29,2025-04,Prospect 5227,MER-US,SMB,Retail & CPG,Paid Social - LinkedIn,Direct / Branded Search,Yes,28800.0,Closed Won,2025-05-15,16,
+OPP-5228,2025-04-16,2025-04,Prospect 5228,MER-US,SMB,Logistics & Transport,Content/SEO,Retargeting,Yes,12000.0,Closed Won,2025-05-09,23,
+OPP-5229,2025-04-24,2025-04,Prospect 5229,MER-US,SMB,Manufacturing,Sales Outbound,Direct / Branded Search,No,43500.0,Discovery,,,
+OPP-5230,2025-04-07,2025-04,Prospect 5230,MER-US,SMB,Energy & Utilities,Retargeting,Retargeting,Yes,28500.0,Negotiation,,,
+OPP-5231,2025-04-03,2025-04,Prospect 5231,MER-US,SMB,Retail & CPG,Retargeting,Email/Lifecycle,Yes,29800.0,Closed Won,2025-04-17,14,
+OPP-5232,2025-04-17,2025-04,Prospect 5232,MER-US,Mid-Market,Healthcare,Events/Field,Retargeting,Yes,66500.0,Discovery,,,
+OPP-5233,2025-04-19,2025-04,Prospect 5233,MER-US,SMB,Energy & Utilities,Review Sites (G2),Direct / Branded Search,Yes,18400.0,Closed Lost,2025-05-28,39,Price
+OPP-5234,2025-04-28,2025-04,Prospect 5234,MER-EU,SMB,Retail & CPG,Events/Field,Direct / Branded Search,Yes,44800.0,Closed Won,2025-05-26,28,
+OPP-5235,2025-04-12,2025-04,Prospect 5235,MER-US,Mid-Market,Technology,Retargeting,Email/Lifecycle,Yes,127400.0,Negotiation,,,
+OPP-5236,2025-04-03,2025-04,Prospect 5236,MER-US,SMB,Manufacturing,Events/Field,Direct / Branded Search,Yes,39200.0,Closed Lost,2025-04-23,20,Price
+OPP-5237,2025-04-19,2025-04,Prospect 5237,MER-US,SMB,Logistics & Transport,Paid Search,Paid Search,Yes,47200.0,Closed Won,2025-05-21,32,
+OPP-5238,2025-04-30,2025-04,Prospect 5238,MER-EU,Mid-Market,Healthcare,Content/SEO,Direct / Branded Search,Yes,134700.0,Discovery,,,
+OPP-5239,2025-04-04,2025-04,Prospect 5239,MER-EU,SMB,Technology,Retargeting,Retargeting,Yes,22500.0,Disqualified,,,
+OPP-5240,2025-04-26,2025-04,Prospect 5240,MER-EU,Mid-Market,Healthcare,Paid Search,Sales Outbound,Yes,71000.0,Disqualified,,,
+OPP-5241,2025-04-06,2025-04,Prospect 5241,MER-EU,Mid-Market,Business Services,Review Sites (G2),Direct / Branded Search,Yes,161600.0,Disqualified,,,
+OPP-5242,2025-04-04,2025-04,Prospect 5242,MER-US,SMB,Healthcare,Webinars,Direct / Branded Search,Yes,38700.0,Closed Won,2025-04-20,16,
+OPP-5243,2025-04-30,2025-04,Prospect 5243,MER-EU,SMB,Manufacturing,Sales Outbound,Sales Outbound,No,22600.0,Closed Lost,2025-05-24,24,Missing feature - approvals
+OPP-5244,2025-04-18,2025-04,Prospect 5244,MER-US,SMB,Healthcare,Paid Search,Retargeting,Yes,40500.0,Closed Lost,2025-05-31,43,Timing
+OPP-5245,2025-04-22,2025-04,Prospect 5245,MER-US,Mid-Market,Retail & CPG,Review Sites (G2),Direct / Branded Search,Yes,144900.0,Disqualified,,,
+OPP-5246,2025-04-21,2025-04,Prospect 5246,MER-EU,SMB,Technology,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,44900.0,Closed Lost,2025-05-27,36,Missing feature - approvals
+OPP-5247,2025-04-27,2025-04,Prospect 5247,MER-US,SMB,Logistics & Transport,Events/Field,Events/Field,Yes,45900.0,Disqualified,,,
+OPP-5248,2025-04-04,2025-04,Prospect 5248,MER-EU,SMB,Business Services,Paid Search,Direct / Branded Search,Yes,11100.0,Closed Won,2025-05-08,34,
+OPP-5249,2025-04-18,2025-04,Prospect 5249,MER-US,SMB,Technology,Webinars,Webinars,Yes,11900.0,Negotiation,,,
+OPP-5250,2025-04-20,2025-04,Prospect 5250,MER-US,SMB,Logistics & Transport,Partner Co-marketing,Partner Co-marketing,Yes,17600.0,Closed Lost,2025-05-12,22,Timing
+OPP-5251,2025-04-16,2025-04,Prospect 5251,MER-US,Mid-Market,Financial Services,Paid Social - Meta,Email/Lifecycle,Yes,142500.0,Closed Lost,2025-06-09,54,Lost to Loop3
+OPP-5252,2025-04-19,2025-04,Prospect 5252,MER-EU,Enterprise,Energy & Utilities,Email/Lifecycle,Email/Lifecycle,Yes,250700.0,Closed Lost,2025-09-05,139,Lost to incumbent
+OPP-5253,2025-04-16,2025-04,Prospect 5253,MER-US,SMB,Energy & Utilities,Sales Outbound,Sales Outbound,No,38400.0,Disqualified,,,
+OPP-5254,2025-04-22,2025-04,Prospect 5254,MER-US,Mid-Market,Logistics & Transport,Retargeting,Sales Outbound,Yes,124200.0,Closed Lost,2025-07-09,78,No decision / budget frozen
+OPP-5255,2025-04-06,2025-04,Prospect 5255,MER-EU,SMB,Manufacturing,Sales Outbound,Email/Lifecycle,No,17500.0,Closed Won,2025-05-21,45,
+OPP-5256,2025-04-10,2025-04,Prospect 5256,MER-US,SMB,Financial Services,Sales Outbound,Retargeting,No,46400.0,Disqualified,,,
+OPP-5257,2025-04-21,2025-04,Prospect 5257,MER-US,SMB,Logistics & Transport,Sales Outbound,Sales Outbound,No,33200.0,Closed Lost,2025-05-31,40,No decision / budget frozen
+OPP-5258,2025-04-22,2025-04,Prospect 5258,MER-US,Mid-Market,Manufacturing,Sales Outbound,Sales Outbound,No,119900.0,Closed Lost,2025-07-03,72,Price
+OPP-5259,2025-04-09,2025-04,Prospect 5259,MER-US,SMB,Energy & Utilities,Events/Field,Events/Field,Yes,21800.0,Discovery,,,
+OPP-5260,2025-04-09,2025-04,Prospect 5260,MER-EU,Mid-Market,Financial Services,Paid Search,Sales Outbound,Yes,96700.0,Discovery,,,
+OPP-5261,2025-04-19,2025-04,Prospect 5261,MER-EU,SMB,Healthcare,Partner Co-marketing,Email/Lifecycle,Yes,12400.0,Closed Won,2025-05-19,30,
+OPP-5262,2025-04-17,2025-04,Prospect 5262,MER-EU,SMB,Energy & Utilities,Content/SEO,Sales Outbound,Yes,20400.0,Discovery,,,
+OPP-5263,2025-04-18,2025-04,Prospect 5263,MER-EU,SMB,Energy & Utilities,Webinars,Retargeting,Yes,27900.0,Negotiation,,,
+OPP-5264,2025-04-28,2025-04,Prospect 5264,MER-EU,SMB,Business Services,Content/SEO,Retargeting,Yes,38400.0,Closed Lost,2025-05-31,33,Price
+OPP-5265,2025-04-16,2025-04,Prospect 5265,MER-US,Mid-Market,Energy & Utilities,Sales Outbound,Sales Outbound,No,89400.0,Discovery,,,
+OPP-5266,2025-04-30,2025-04,Prospect 5266,MER-US,SMB,Financial Services,Retargeting,Retargeting,Yes,29200.0,Closed Lost,2025-05-28,28,Missing feature - approvals
+OPP-5267,2025-04-10,2025-04,Prospect 5267,MER-EU,SMB,Business Services,Events/Field,Direct / Branded Search,Yes,34300.0,Closed Won,2025-04-23,13,
+OPP-5268,2025-04-25,2025-04,Prospect 5268,MER-EU,SMB,Retail & CPG,Sales Outbound,Retargeting,No,34500.0,Negotiation,,,
+OPP-5269,2025-04-13,2025-04,Prospect 5269,MER-EU,Mid-Market,Technology,Events/Field,Direct / Branded Search,Yes,83100.0,Closed Lost,2025-05-24,41,Lost to incumbent
+OPP-5270,2025-04-21,2025-04,Prospect 5270,MER-US,SMB,Retail & CPG,Content/SEO,Content/SEO,Yes,39600.0,Closed Lost,2025-06-03,43,Missing feature - approvals
+OPP-5271,2025-04-12,2025-04,Prospect 5271,MER-US,Mid-Market,Retail & CPG,Content/SEO,Sales Outbound,Yes,100500.0,Closed Won,2025-05-31,49,
+OPP-5272,2025-04-13,2025-04,Prospect 5272,MER-US,Mid-Market,Financial Services,Content/SEO,Content/SEO,Yes,57300.0,Discovery,,,
+OPP-5273,2025-04-06,2025-04,Prospect 5273,MER-EU,Mid-Market,Energy & Utilities,Content/SEO,Email/Lifecycle,Yes,127400.0,Closed Lost,2025-05-26,50,Lost to incumbent
+OPP-5274,2025-04-24,2025-04,Prospect 5274,MER-US,Mid-Market,Logistics & Transport,Content/SEO,Email/Lifecycle,Yes,107100.0,Discovery,,,
+OPP-5275,2025-04-04,2025-04,Prospect 5275,MER-EU,SMB,Business Services,Content/SEO,Email/Lifecycle,Yes,26800.0,Closed Won,2025-05-17,43,
+OPP-5276,2025-04-05,2025-04,Prospect 5276,MER-US,SMB,Logistics & Transport,Content/SEO,Retargeting,Yes,24500.0,Closed Lost,2025-04-27,22,Price
+OPP-5277,2025-04-27,2025-04,Prospect 5277,MER-EU,SMB,Retail & CPG,Content/SEO,Direct / Branded Search,Yes,30200.0,Discovery,,,
+OPP-5278,2025-04-13,2025-04,Prospect 5278,MER-US,Mid-Market,Logistics & Transport,Email/Lifecycle,Retargeting,Yes,99400.0,Closed Lost,2025-05-24,41,Timing
+OPP-5279,2025-04-13,2025-04,Prospect 5279,MER-EU,Mid-Market,Retail & CPG,Webinars,Webinars,Yes,85600.0,Discovery,,,
+OPP-5280,2025-05-10,2025-05,Prospect 5280,MER-US,SMB,Manufacturing,Paid Social - Meta,Email/Lifecycle,Yes,28700.0,Closed Won,2025-06-18,39,
+OPP-5281,2025-05-06,2025-05,Prospect 5281,MER-EU,SMB,Logistics & Transport,Webinars,Webinars,Yes,42600.0,Closed Lost,2025-06-15,40,Missing feature - approvals
+OPP-5282,2025-05-18,2025-05,Prospect 5282,MER-US,Mid-Market,Energy & Utilities,Email/Lifecycle,Email/Lifecycle,Yes,154500.0,Closed Won,2025-06-27,40,
+OPP-5283,2025-05-07,2025-05,Prospect 5283,MER-US,Enterprise,Energy & Utilities,Retargeting,Retargeting,Yes,280900.0,Discovery,,,
+OPP-5284,2025-05-25,2025-05,Prospect 5284,MER-EU,Mid-Market,Logistics & Transport,Paid Search,Email/Lifecycle,Yes,73400.0,Closed Lost,2025-07-03,39,Timing
+OPP-5285,2025-05-28,2025-05,Prospect 5285,MER-US,Mid-Market,Retail & CPG,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,103400.0,Closed Won,2025-08-13,77,
+OPP-5286,2025-05-12,2025-05,Prospect 5286,MER-US,Mid-Market,Retail & CPG,Events/Field,Events/Field,Yes,73700.0,Closed Lost,2025-07-18,67,Lost to incumbent
+OPP-5287,2025-05-11,2025-05,Prospect 5287,MER-US,SMB,Manufacturing,Paid Social - LinkedIn,Email/Lifecycle,Yes,26800.0,Discovery,,,
+OPP-5288,2025-05-10,2025-05,Prospect 5288,MER-US,SMB,Business Services,Sales Outbound,Direct / Branded Search,No,32500.0,Closed Won,2025-06-13,34,
+OPP-5289,2025-05-27,2025-05,Prospect 5289,MER-US,Mid-Market,Energy & Utilities,Email/Lifecycle,Email/Lifecycle,Yes,74900.0,Negotiation,,,
+OPP-5290,2025-05-04,2025-05,Prospect 5290,MER-US,Mid-Market,Manufacturing,Email/Lifecycle,Email/Lifecycle,Yes,141200.0,Discovery,,,
+OPP-5291,2025-05-21,2025-05,Prospect 5291,MER-EU,SMB,Financial Services,Webinars,Direct / Branded Search,Yes,27700.0,Closed Won,2025-06-13,23,
+OPP-5292,2025-05-21,2025-05,Prospect 5292,MER-US,Mid-Market,Technology,Events/Field,Retargeting,Yes,156400.0,Closed Lost,2025-08-01,72,Timing
+OPP-5293,2025-05-30,2025-05,Prospect 5293,MER-US,SMB,Healthcare,Sales Outbound,Direct / Branded Search,No,35800.0,Closed Won,2025-06-16,17,
+OPP-5294,2025-05-17,2025-05,Prospect 5294,MER-US,SMB,Energy & Utilities,Events/Field,Email/Lifecycle,Yes,24500.0,Negotiation,,,
+OPP-5295,2025-05-22,2025-05,Prospect 5295,MER-EU,SMB,Technology,Paid Search,Paid Search,Yes,36800.0,Closed Won,2025-06-11,20,
+OPP-5296,2025-05-11,2025-05,Prospect 5296,MER-US,Mid-Market,Logistics & Transport,Webinars,Email/Lifecycle,Yes,130800.0,Closed Won,2025-06-26,46,
+OPP-5297,2025-05-22,2025-05,Prospect 5297,MER-US,Mid-Market,Manufacturing,Sales Outbound,Direct / Branded Search,No,150700.0,Discovery,,,
+OPP-5298,2025-05-19,2025-05,Prospect 5298,MER-US,SMB,Retail & CPG,Sales Outbound,Sales Outbound,No,43600.0,Closed Won,2025-06-07,19,
+OPP-5299,2025-05-15,2025-05,Prospect 5299,MER-US,Mid-Market,Financial Services,Events/Field,Events/Field,Yes,97400.0,Negotiation,,,
+OPP-5300,2025-05-20,2025-05,Prospect 5300,MER-US,SMB,Healthcare,Content/SEO,Content/SEO,Yes,44900.0,Closed Won,2025-06-14,25,
+OPP-5301,2025-05-21,2025-05,Prospect 5301,MER-US,Mid-Market,Manufacturing,Paid Social - LinkedIn,Direct / Branded Search,Yes,75800.0,Negotiation,,,
+OPP-5302,2025-05-17,2025-05,Prospect 5302,MER-EU,Mid-Market,Manufacturing,Webinars,Direct / Branded Search,Yes,134200.0,Negotiation,,,
+OPP-5303,2025-05-28,2025-05,Prospect 5303,MER-EU,SMB,Business Services,Content/SEO,Email/Lifecycle,Yes,34600.0,Closed Lost,2025-07-11,44,Missing feature - approvals
+OPP-5304,2025-05-31,2025-05,Prospect 5304,MER-US,Enterprise,Retail & CPG,Events/Field,Direct / Branded Search,Yes,235100.0,Discovery,,,
+OPP-5305,2025-05-25,2025-05,Prospect 5305,MER-US,SMB,Retail & CPG,Events/Field,Direct / Branded Search,Yes,43800.0,Disqualified,,,
+OPP-5306,2025-05-07,2025-05,Prospect 5306,MER-US,SMB,Technology,Paid Social - LinkedIn,Direct / Branded Search,Yes,16700.0,Closed Lost,2025-06-01,25,Missing feature - approvals
+OPP-5307,2025-05-25,2025-05,Prospect 5307,MER-US,Mid-Market,Healthcare,Paid Search,Paid Search,Yes,106900.0,Closed Won,2025-09-07,105,
+OPP-5308,2025-05-18,2025-05,Prospect 5308,MER-US,Mid-Market,Logistics & Transport,Events/Field,Direct / Branded Search,Yes,131800.0,Closed Lost,2025-07-08,51,Timing
+OPP-5309,2025-05-08,2025-05,Prospect 5309,MER-US,Enterprise,Business Services,Sales Outbound,Email/Lifecycle,No,291800.0,Disqualified,,,
+OPP-5310,2025-05-31,2025-05,Prospect 5310,MER-US,SMB,Business Services,Paid Search,Paid Search,Yes,31100.0,Closed Won,2025-06-19,19,
+OPP-5311,2025-05-27,2025-05,Prospect 5311,MER-EU,Mid-Market,Technology,Content/SEO,Email/Lifecycle,Yes,138800.0,Closed Lost,2025-08-24,89,Lost to incumbent
+OPP-5312,2025-05-25,2025-05,Prospect 5312,MER-US,SMB,Financial Services,Webinars,Direct / Branded Search,Yes,35000.0,Disqualified,,,
+OPP-5313,2025-05-21,2025-05,Prospect 5313,MER-US,SMB,Retail & CPG,Sales Outbound,Direct / Branded Search,No,35200.0,Disqualified,,,
+OPP-5314,2025-05-18,2025-05,Prospect 5314,MER-US,SMB,Technology,Content/SEO,Content/SEO,Yes,38000.0,Closed Lost,2025-06-10,23,Lost to incumbent
+OPP-5315,2025-05-25,2025-05,Prospect 5315,MER-EU,Mid-Market,Technology,Paid Search,Email/Lifecycle,Yes,58900.0,Closed Lost,2025-08-17,84,No decision / budget frozen
+OPP-5316,2025-05-24,2025-05,Prospect 5316,MER-EU,Mid-Market,Financial Services,Content/SEO,Content/SEO,Yes,140000.0,Disqualified,,,
+OPP-5317,2025-05-29,2025-05,Prospect 5317,MER-US,Mid-Market,Financial Services,Review Sites (G2),Direct / Branded Search,Yes,96600.0,Closed Lost,2025-08-20,83,Timing
+OPP-5318,2025-05-21,2025-05,Prospect 5318,MER-US,SMB,Manufacturing,Content/SEO,Content/SEO,Yes,46100.0,Closed Won,2025-06-29,39,
+OPP-5319,2025-05-27,2025-05,Prospect 5319,MER-US,Mid-Market,Healthcare,Sales Outbound,Direct / Branded Search,No,123500.0,Negotiation,,,
+OPP-5320,2025-05-28,2025-05,Prospect 5320,MER-US,Mid-Market,Technology,Paid Search,Email/Lifecycle,Yes,114900.0,Discovery,,,
+OPP-5321,2025-05-08,2025-05,Prospect 5321,MER-US,Mid-Market,Healthcare,Sales Outbound,Direct / Branded Search,No,138600.0,Discovery,,,
+OPP-5322,2025-05-18,2025-05,Prospect 5322,MER-US,SMB,Financial Services,Content/SEO,Content/SEO,Yes,26900.0,Closed Won,2025-06-16,29,
+OPP-5323,2025-05-20,2025-05,Prospect 5323,MER-US,Mid-Market,Financial Services,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,112500.0,Discovery,,,
+OPP-5324,2025-05-06,2025-05,Prospect 5324,MER-US,SMB,Manufacturing,Email/Lifecycle,Direct / Branded Search,Yes,23900.0,Discovery,,,
+OPP-5325,2025-05-07,2025-05,Prospect 5325,MER-US,Mid-Market,Financial Services,Sales Outbound,Email/Lifecycle,No,80500.0,Disqualified,,,
+OPP-5326,2025-05-20,2025-05,Prospect 5326,MER-US,SMB,Manufacturing,Paid Social - LinkedIn,Sales Outbound,Yes,11700.0,Closed Lost,2025-06-26,37,Lost to Loop3
+OPP-5327,2025-05-07,2025-05,Prospect 5327,MER-EU,Mid-Market,Logistics & Transport,Review Sites (G2),Direct / Branded Search,Yes,90300.0,Disqualified,,,
+OPP-5328,2025-05-16,2025-05,Prospect 5328,MER-US,SMB,Retail & CPG,Content/SEO,Direct / Branded Search,Yes,21700.0,Disqualified,,,
+OPP-5329,2025-05-04,2025-05,Prospect 5329,MER-US,SMB,Technology,Review Sites (G2),Review Sites (G2),Yes,36000.0,Closed Lost,2025-06-14,41,Timing
+OPP-5330,2025-05-22,2025-05,Prospect 5330,MER-US,Mid-Market,Technology,Paid Social - LinkedIn,Direct / Branded Search,Yes,77100.0,Disqualified,,,
+OPP-5331,2025-05-29,2025-05,Prospect 5331,MER-US,Mid-Market,Retail & CPG,Content/SEO,Direct / Branded Search,Yes,81200.0,Disqualified,,,
+OPP-5332,2025-05-08,2025-05,Prospect 5332,MER-US,SMB,Energy & Utilities,Content/SEO,Sales Outbound,Yes,41900.0,Discovery,,,
+OPP-5333,2025-05-14,2025-05,Prospect 5333,MER-US,SMB,Healthcare,Events/Field,Events/Field,Yes,22900.0,Disqualified,,,
+OPP-5334,2025-05-04,2025-05,Prospect 5334,MER-US,SMB,Financial Services,Sales Outbound,Sales Outbound,No,42700.0,Closed Won,2025-05-19,15,
+OPP-5335,2025-05-18,2025-05,Prospect 5335,MER-US,SMB,Healthcare,Sales Outbound,Email/Lifecycle,No,39400.0,Disqualified,,,
+OPP-5336,2025-05-09,2025-05,Prospect 5336,MER-US,SMB,Manufacturing,Review Sites (G2),Review Sites (G2),Yes,38500.0,Discovery,,,
+OPP-5337,2025-05-13,2025-05,Prospect 5337,MER-US,Mid-Market,Business Services,Sales Outbound,Direct / Branded Search,No,102100.0,Negotiation,,,
+OPP-5338,2025-05-19,2025-05,Prospect 5338,MER-US,Mid-Market,Energy & Utilities,Retargeting,Direct / Branded Search,Yes,93000.0,Disqualified,,,
+OPP-5339,2025-05-10,2025-05,Prospect 5339,MER-US,Mid-Market,Logistics & Transport,Webinars,Webinars,Yes,125400.0,Closed Lost,2025-06-18,39,Lost to Loop3
+OPP-5340,2025-05-19,2025-05,Prospect 5340,MER-US,Mid-Market,Technology,Sales Outbound,Sales Outbound,No,152800.0,Closed Lost,2025-08-18,91,Missing feature - approvals
+OPP-5341,2025-05-06,2025-05,Prospect 5341,MER-EU,SMB,Technology,Sales Outbound,Sales Outbound,No,35700.0,Negotiation,,,
+OPP-5342,2025-05-09,2025-05,Prospect 5342,MER-EU,SMB,Logistics & Transport,Events/Field,Retargeting,Yes,18000.0,Negotiation,,,
+OPP-5343,2025-05-27,2025-05,Prospect 5343,MER-EU,Mid-Market,Energy & Utilities,Webinars,Direct / Branded Search,Yes,85800.0,Closed Won,2025-07-24,58,
+OPP-5344,2025-05-29,2025-05,Prospect 5344,MER-EU,SMB,Business Services,Paid Social - LinkedIn,Retargeting,Yes,25000.0,Closed Lost,2025-06-10,12,No decision / budget frozen
+OPP-5345,2025-05-07,2025-05,Prospect 5345,MER-US,Mid-Market,Logistics & Transport,Sales Outbound,Direct / Branded Search,No,77500.0,Disqualified,,,
+OPP-5346,2025-05-07,2025-05,Prospect 5346,MER-EU,Mid-Market,Retail & CPG,Sales Outbound,Email/Lifecycle,No,102900.0,Disqualified,,,
+OPP-5347,2025-05-15,2025-05,Prospect 5347,MER-US,SMB,Energy & Utilities,Paid Search,Paid Search,Yes,33800.0,Closed Lost,2025-06-10,26,Missing feature - approvals
+OPP-5348,2025-05-09,2025-05,Prospect 5348,MER-US,SMB,Logistics & Transport,Sales Outbound,Retargeting,No,36100.0,Disqualified,,,
+OPP-5349,2025-05-09,2025-05,Prospect 5349,MER-US,SMB,Energy & Utilities,Sales Outbound,Direct / Branded Search,No,30000.0,Negotiation,,,
+OPP-5350,2025-05-29,2025-05,Prospect 5350,MER-US,SMB,Logistics & Transport,Content/SEO,Content/SEO,Yes,45700.0,Disqualified,,,
+OPP-5351,2025-05-24,2025-05,Prospect 5351,MER-EU,SMB,Technology,Webinars,Webinars,Yes,11400.0,Negotiation,,,
+OPP-5352,2025-06-19,2025-06,Prospect 5352,MER-US,SMB,Manufacturing,Content/SEO,Content/SEO,Yes,35300.0,Closed Lost,2025-07-28,39,Price
+OPP-5353,2025-06-16,2025-06,Prospect 5353,MER-US,Enterprise,Energy & Utilities,Paid Search,Email/Lifecycle,Yes,316000.0,Closed Lost,2025-11-11,148,Lost to incumbent
+OPP-5354,2025-06-23,2025-06,Prospect 5354,MER-EU,SMB,Energy & Utilities,Webinars,Webinars,Yes,28900.0,Closed Lost,2025-07-05,12,Missing feature - approvals
+OPP-5355,2025-06-13,2025-06,Prospect 5355,MER-US,SMB,Business Services,Events/Field,Email/Lifecycle,Yes,16700.0,Disqualified,,,
+OPP-5356,2025-06-24,2025-06,Prospect 5356,MER-US,SMB,Financial Services,Partner Co-marketing,Direct / Branded Search,Yes,20200.0,Closed Lost,2025-08-04,41,Lost to Loop3
+OPP-5357,2025-06-08,2025-06,Prospect 5357,MER-US,Mid-Market,Energy & Utilities,Sales Outbound,Retargeting,No,57000.0,Closed Lost,2025-08-31,84,No decision / budget frozen
+OPP-5358,2025-06-26,2025-06,Prospect 5358,MER-US,Mid-Market,Business Services,Paid Social - LinkedIn,Email/Lifecycle,Yes,66900.0,Disqualified,,,
+OPP-5359,2025-06-03,2025-06,Prospect 5359,MER-US,Mid-Market,Technology,Sales Outbound,Email/Lifecycle,No,138700.0,Discovery,,,
+OPP-5360,2025-06-09,2025-06,Prospect 5360,MER-EU,Mid-Market,Manufacturing,Webinars,Webinars,Yes,118900.0,Closed Lost,2025-08-11,63,Missing feature - approvals
+OPP-5361,2025-06-04,2025-06,Prospect 5361,MER-EU,Mid-Market,Business Services,Sales Outbound,Sales Outbound,No,59900.0,Disqualified,,,
+OPP-5362,2025-06-29,2025-06,Prospect 5362,MER-US,SMB,Manufacturing,Sales Outbound,Direct / Branded Search,No,16900.0,Closed Lost,2025-07-12,13,Lost to incumbent
+OPP-5363,2025-06-09,2025-06,Prospect 5363,MER-US,Enterprise,Energy & Utilities,Sales Outbound,Direct / Branded Search,No,206700.0,Disqualified,,,
+OPP-5364,2025-06-11,2025-06,Prospect 5364,MER-US,SMB,Financial Services,Email/Lifecycle,Sales Outbound,Yes,34400.0,Discovery,,,
+OPP-5365,2025-06-26,2025-06,Prospect 5365,MER-EU,SMB,Business Services,Webinars,Direct / Branded Search,Yes,25500.0,Discovery,,,
+OPP-5366,2025-06-29,2025-06,Prospect 5366,MER-US,SMB,Energy & Utilities,Review Sites (G2),Retargeting,Yes,13800.0,Closed Lost,2025-07-25,26,No decision / budget frozen
+OPP-5367,2025-06-09,2025-06,Prospect 5367,MER-US,Mid-Market,Retail & CPG,Retargeting,Retargeting,Yes,80800.0,Closed Won,2025-09-02,85,
+OPP-5368,2025-06-26,2025-06,Prospect 5368,MER-US,Mid-Market,Healthcare,Sales Outbound,Direct / Branded Search,No,136300.0,Discovery,,,
+OPP-5369,2025-06-21,2025-06,Prospect 5369,MER-US,SMB,Healthcare,Sales Outbound,Sales Outbound,No,43300.0,Disqualified,,,
+OPP-5370,2025-06-26,2025-06,Prospect 5370,MER-EU,Enterprise,Retail & CPG,Events/Field,Direct / Branded Search,Yes,340300.0,Closed Lost,2025-12-14,171,Missing feature - approvals
+OPP-5371,2025-06-29,2025-06,Prospect 5371,MER-US,Mid-Market,Logistics & Transport,Paid Social - LinkedIn,Sales Outbound,Yes,99600.0,Discovery,,,
+OPP-5372,2025-06-27,2025-06,Prospect 5372,MER-US,Mid-Market,Financial Services,Content/SEO,Retargeting,Yes,71000.0,Disqualified,,,
+OPP-5373,2025-06-10,2025-06,Prospect 5373,MER-US,Mid-Market,Healthcare,Sales Outbound,Sales Outbound,No,113400.0,Discovery,,,
+OPP-5374,2025-06-19,2025-06,Prospect 5374,MER-US,SMB,Business Services,Events/Field,Direct / Branded Search,Yes,35800.0,Closed Won,2025-07-13,24,
+OPP-5375,2025-06-15,2025-06,Prospect 5375,MER-US,Mid-Market,Healthcare,Sales Outbound,Direct / Branded Search,No,133900.0,Closed Lost,2025-09-03,80,Price
+OPP-5376,2025-06-16,2025-06,Prospect 5376,MER-EU,SMB,Healthcare,Sales Outbound,Direct / Branded Search,No,47200.0,Discovery,,,
+OPP-5377,2025-06-21,2025-06,Prospect 5377,MER-US,Mid-Market,Manufacturing,Sales Outbound,Direct / Branded Search,No,152100.0,Negotiation,,,
+OPP-5378,2025-06-15,2025-06,Prospect 5378,MER-US,Enterprise,Retail & CPG,Webinars,Retargeting,Yes,358000.0,Closed Lost,2025-10-28,135,Timing
+OPP-5379,2025-06-07,2025-06,Prospect 5379,MER-US,SMB,Business Services,Content/SEO,Email/Lifecycle,Yes,15700.0,Negotiation,,,
+OPP-5380,2025-06-18,2025-06,Prospect 5380,MER-EU,Mid-Market,Retail & CPG,Paid Search,Direct / Branded Search,Yes,108700.0,Closed Won,2025-08-27,70,
+OPP-5381,2025-06-30,2025-06,Prospect 5381,MER-US,SMB,Business Services,Paid Social - LinkedIn,Direct / Branded Search,Yes,18700.0,Discovery,,,
+OPP-5382,2025-06-06,2025-06,Prospect 5382,MER-US,SMB,Healthcare,Content/SEO,Direct / Branded Search,Yes,45100.0,Closed Lost,2025-06-19,13,Price
+OPP-5383,2025-06-29,2025-06,Prospect 5383,MER-US,SMB,Healthcare,Paid Social - LinkedIn,Email/Lifecycle,Yes,21900.0,Closed Lost,2025-07-18,19,Lost to Loop3
+OPP-5384,2025-06-29,2025-06,Prospect 5384,MER-EU,SMB,Retail & CPG,Paid Search,Direct / Branded Search,Yes,24800.0,Closed Lost,2025-08-10,42,Price
+OPP-5385,2025-06-30,2025-06,Prospect 5385,MER-US,SMB,Logistics & Transport,Paid Search,Retargeting,Yes,41000.0,Closed Lost,2025-08-11,42,Missing feature - approvals
+OPP-5386,2025-06-19,2025-06,Prospect 5386,MER-EU,Mid-Market,Manufacturing,Retargeting,Direct / Branded Search,Yes,72200.0,Closed Lost,2025-08-01,43,No decision / budget frozen
+OPP-5387,2025-06-29,2025-06,Prospect 5387,MER-US,SMB,Energy & Utilities,Paid Social - Meta,Paid Social - Meta,Yes,12900.0,Closed Lost,2025-07-14,15,No decision / budget frozen
+OPP-5388,2025-06-08,2025-06,Prospect 5388,MER-US,SMB,Financial Services,Review Sites (G2),Sales Outbound,Yes,46300.0,Closed Lost,2025-07-15,37,Timing
+OPP-5389,2025-06-30,2025-06,Prospect 5389,MER-US,Mid-Market,Energy & Utilities,Sales Outbound,Direct / Branded Search,No,115200.0,Closed Lost,2025-08-13,44,Timing
+OPP-5390,2025-06-14,2025-06,Prospect 5390,MER-EU,SMB,Healthcare,Sales Outbound,Direct / Branded Search,No,29700.0,Closed Won,2025-07-15,31,
+OPP-5391,2025-06-03,2025-06,Prospect 5391,MER-US,SMB,Energy & Utilities,Content/SEO,Retargeting,Yes,16800.0,Closed Lost,2025-07-12,39,Price
+OPP-5392,2025-06-26,2025-06,Prospect 5392,MER-US,Mid-Market,Logistics & Transport,Content/SEO,Direct / Branded Search,Yes,83100.0,Closed Won,2025-08-03,38,
+OPP-5393,2025-06-16,2025-06,Prospect 5393,MER-EU,SMB,Business Services,Webinars,Webinars,Yes,34600.0,Disqualified,,,
+OPP-5394,2025-06-06,2025-06,Prospect 5394,MER-US,Mid-Market,Manufacturing,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,109800.0,Discovery,,,
+OPP-5395,2025-06-23,2025-06,Prospect 5395,MER-EU,SMB,Manufacturing,Content/SEO,Content/SEO,Yes,21400.0,Closed Lost,2025-07-11,18,Price
+OPP-5396,2025-06-16,2025-06,Prospect 5396,MER-EU,SMB,Energy & Utilities,Review Sites (G2),Review Sites (G2),Yes,24100.0,Closed Lost,2025-07-10,24,Lost to Loop3
+OPP-5397,2025-06-19,2025-06,Prospect 5397,MER-US,Mid-Market,Retail & CPG,Review Sites (G2),Review Sites (G2),Yes,130200.0,Closed Lost,2025-08-14,56,Timing
+OPP-5398,2025-06-22,2025-06,Prospect 5398,MER-EU,Mid-Market,Logistics & Transport,Partner Co-marketing,Direct / Branded Search,Yes,73100.0,Closed Lost,2025-07-30,38,Price
+OPP-5399,2025-06-03,2025-06,Prospect 5399,MER-EU,Mid-Market,Energy & Utilities,Content/SEO,Content/SEO,Yes,85500.0,Closed Won,2025-09-06,95,
+OPP-5400,2025-06-21,2025-06,Prospect 5400,MER-US,Mid-Market,Financial Services,Paid Search,Paid Search,Yes,70500.0,Negotiation,,,
+OPP-5401,2025-06-06,2025-06,Prospect 5401,MER-US,Enterprise,Manufacturing,Paid Social - LinkedIn,Direct / Branded Search,Yes,193300.0,Closed Won,2025-10-18,134,
+OPP-5402,2025-06-20,2025-06,Prospect 5402,MER-US,Enterprise,Retail & CPG,Retargeting,Direct / Branded Search,Yes,290400.0,Closed Lost,2025-09-18,90,Missing feature - approvals
+OPP-5403,2025-06-29,2025-06,Prospect 5403,MER-EU,Enterprise,Manufacturing,Paid Search,Paid Search,Yes,255200.0,Discovery,,,
+OPP-5404,2025-06-17,2025-06,Prospect 5404,MER-US,SMB,Business Services,Paid Social - LinkedIn,Retargeting,Yes,42500.0,Negotiation,,,
+OPP-5405,2025-06-30,2025-06,Prospect 5405,MER-US,Mid-Market,Manufacturing,Paid Search,Retargeting,Yes,124100.0,Closed Won,2025-08-09,40,
+OPP-5406,2025-06-23,2025-06,Prospect 5406,MER-US,SMB,Financial Services,Review Sites (G2),Sales Outbound,Yes,34300.0,Closed Won,2025-07-05,12,
+OPP-5407,2025-06-28,2025-06,Prospect 5407,MER-US,SMB,Energy & Utilities,Paid Social - LinkedIn,Direct / Branded Search,Yes,42100.0,Disqualified,,,
+OPP-5408,2025-06-08,2025-06,Prospect 5408,MER-EU,Enterprise,Financial Services,Paid Social - LinkedIn,Retargeting,Yes,318700.0,Closed Won,2025-10-03,117,
+OPP-5409,2025-06-15,2025-06,Prospect 5409,MER-US,Mid-Market,Logistics & Transport,Paid Social - LinkedIn,Direct / Branded Search,Yes,66500.0,Closed Won,2025-08-14,60,
+OPP-5410,2025-06-04,2025-06,Prospect 5410,MER-US,SMB,Technology,Email/Lifecycle,Direct / Branded Search,Yes,26200.0,Discovery,,,
+OPP-5411,2025-06-22,2025-06,Prospect 5411,MER-EU,Mid-Market,Business Services,Content/SEO,Direct / Branded Search,Yes,138000.0,Closed Lost,2025-08-08,47,Price
+OPP-5412,2025-06-13,2025-06,Prospect 5412,MER-US,SMB,Business Services,Content/SEO,Content/SEO,Yes,16400.0,Negotiation,,,
+OPP-5413,2025-06-18,2025-06,Prospect 5413,MER-US,Mid-Market,Business Services,Paid Social - LinkedIn,Direct / Branded Search,Yes,158600.0,Disqualified,,,
+OPP-5414,2025-06-25,2025-06,Prospect 5414,MER-US,SMB,Manufacturing,Events/Field,Direct / Branded Search,Yes,13200.0,Negotiation,,,
+OPP-5415,2025-06-12,2025-06,Prospect 5415,MER-US,SMB,Retail & CPG,Paid Social - LinkedIn,Sales Outbound,Yes,23000.0,Closed Won,2025-07-18,36,
+OPP-5416,2025-06-25,2025-06,Prospect 5416,MER-US,SMB,Technology,Content/SEO,Sales Outbound,Yes,19300.0,Closed Lost,2025-07-22,27,Lost to incumbent
+OPP-5417,2025-07-17,2025-07,Prospect 5417,MER-EU,SMB,Energy & Utilities,Partner Co-marketing,Partner Co-marketing,Yes,13400.0,Disqualified,,,
+OPP-5418,2025-07-06,2025-07,Prospect 5418,MER-US,Enterprise,Retail & CPG,Partner Co-marketing,Retargeting,Yes,289200.0,Closed Lost,2025-11-01,118,No decision / budget frozen
+OPP-5419,2025-07-13,2025-07,Prospect 5419,MER-EU,SMB,Energy & Utilities,Email/Lifecycle,Sales Outbound,Yes,30700.0,Closed Lost,2025-08-13,31,Price
+OPP-5420,2025-07-11,2025-07,Prospect 5420,MER-US,Mid-Market,Retail & CPG,Webinars,Direct / Branded Search,Yes,68400.0,Closed Lost,2025-10-05,86,Lost to Loop3
+OPP-5421,2025-07-30,2025-07,Prospect 5421,MER-US,Mid-Market,Energy & Utilities,Paid Search,Retargeting,Yes,138900.0,Disqualified,,,
+OPP-5422,2025-07-22,2025-07,Prospect 5422,MER-US,Mid-Market,Financial Services,Sales Outbound,Sales Outbound,No,94300.0,Closed Won,2025-10-11,81,
+OPP-5423,2025-07-08,2025-07,Prospect 5423,MER-US,SMB,Retail & CPG,Sales Outbound,Sales Outbound,No,15600.0,Closed Lost,2025-07-24,16,No decision / budget frozen
+OPP-5424,2025-07-08,2025-07,Prospect 5424,MER-US,Mid-Market,Business Services,Sales Outbound,Sales Outbound,No,80200.0,Discovery,,,
+OPP-5425,2025-07-22,2025-07,Prospect 5425,MER-US,Mid-Market,Financial Services,Sales Outbound,Sales Outbound,No,141600.0,Closed Won,2025-10-21,91,
+OPP-5426,2025-07-16,2025-07,Prospect 5426,MER-US,SMB,Energy & Utilities,Sales Outbound,Sales Outbound,No,32700.0,Closed Lost,2025-08-29,44,Price
+OPP-5427,2025-07-09,2025-07,Prospect 5427,MER-EU,Enterprise,Business Services,Content/SEO,Retargeting,Yes,230500.0,Closed Lost,2025-10-04,87,Lost to incumbent
+OPP-5428,2025-07-13,2025-07,Prospect 5428,MER-US,Mid-Market,Technology,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,144200.0,Closed Lost,2025-09-08,57,Lost to Loop3
+OPP-5429,2025-07-27,2025-07,Prospect 5429,MER-US,Mid-Market,Retail & CPG,Paid Search,Paid Search,Yes,157900.0,Closed Lost,2025-10-29,94,Price
+OPP-5430,2025-07-04,2025-07,Prospect 5430,MER-EU,Mid-Market,Technology,Review Sites (G2),Retargeting,Yes,83300.0,Closed Lost,2025-10-05,93,No decision / budget frozen
+OPP-5431,2025-07-16,2025-07,Prospect 5431,MER-US,Mid-Market,Business Services,Email/Lifecycle,Sales Outbound,Yes,86500.0,Discovery,,,
+OPP-5432,2025-07-18,2025-07,Prospect 5432,MER-US,Mid-Market,Logistics & Transport,Content/SEO,Content/SEO,Yes,111800.0,Negotiation,,,
+OPP-5433,2025-07-23,2025-07,Prospect 5433,MER-US,Mid-Market,Technology,Events/Field,Sales Outbound,Yes,72600.0,Negotiation,,,
+OPP-5434,2025-07-24,2025-07,Prospect 5434,MER-US,Mid-Market,Energy & Utilities,Partner Co-marketing,Email/Lifecycle,Yes,102700.0,Negotiation,,,
+OPP-5435,2025-07-12,2025-07,Prospect 5435,MER-US,SMB,Logistics & Transport,Paid Social - LinkedIn,Email/Lifecycle,Yes,30500.0,Closed Lost,2025-08-21,40,No decision / budget frozen
+OPP-5436,2025-07-19,2025-07,Prospect 5436,MER-US,SMB,Financial Services,Sales Outbound,Direct / Branded Search,No,42100.0,Closed Lost,2025-08-23,35,Missing feature - approvals
+OPP-5437,2025-07-24,2025-07,Prospect 5437,MER-US,Mid-Market,Business Services,Content/SEO,Sales Outbound,Yes,135100.0,Closed Lost,2025-09-08,46,Lost to incumbent
+OPP-5438,2025-07-19,2025-07,Prospect 5438,MER-US,SMB,Logistics & Transport,Paid Search,Retargeting,Yes,17400.0,Negotiation,,,
+OPP-5439,2025-07-31,2025-07,Prospect 5439,MER-US,Mid-Market,Logistics & Transport,Content/SEO,Email/Lifecycle,Yes,158100.0,Closed Won,2025-09-17,48,
+OPP-5440,2025-07-14,2025-07,Prospect 5440,MER-US,Mid-Market,Retail & CPG,Content/SEO,Direct / Branded Search,Yes,123100.0,Discovery,,,
+OPP-5441,2025-07-17,2025-07,Prospect 5441,MER-US,Mid-Market,Manufacturing,Sales Outbound,Retargeting,No,158900.0,Negotiation,,,
+OPP-5442,2025-07-13,2025-07,Prospect 5442,MER-US,SMB,Energy & Utilities,Sales Outbound,Direct / Branded Search,No,42400.0,Closed Lost,2025-08-03,21,Price
+OPP-5443,2025-07-08,2025-07,Prospect 5443,MER-EU,Mid-Market,Healthcare,Content/SEO,Email/Lifecycle,Yes,135300.0,Discovery,,,
+OPP-5444,2025-07-07,2025-07,Prospect 5444,MER-EU,SMB,Retail & CPG,Sales Outbound,Retargeting,No,36200.0,Closed Lost,2025-07-22,15,Lost to incumbent
+OPP-5445,2025-07-19,2025-07,Prospect 5445,MER-EU,SMB,Manufacturing,Review Sites (G2),Review Sites (G2),Yes,16800.0,Closed Won,2025-08-03,15,
+OPP-5446,2025-07-25,2025-07,Prospect 5446,MER-US,Mid-Market,Business Services,Sales Outbound,Retargeting,No,113900.0,Closed Lost,2025-10-01,68,Lost to incumbent
+OPP-5447,2025-07-17,2025-07,Prospect 5447,MER-US,Mid-Market,Business Services,Webinars,Direct / Branded Search,Yes,117700.0,Discovery,,,
+OPP-5448,2025-07-26,2025-07,Prospect 5448,MER-US,SMB,Manufacturing,Paid Search,Sales Outbound,Yes,23700.0,Negotiation,,,
+OPP-5449,2025-07-25,2025-07,Prospect 5449,MER-US,SMB,Healthcare,Paid Search,Paid Search,Yes,20500.0,Discovery,,,
+OPP-5450,2025-07-25,2025-07,Prospect 5450,MER-US,Mid-Market,Financial Services,Paid Social - Meta,Direct / Branded Search,Yes,113500.0,Negotiation,,,
+OPP-5451,2025-07-05,2025-07,Prospect 5451,MER-US,Mid-Market,Logistics & Transport,Partner Co-marketing,Direct / Branded Search,Yes,126900.0,Closed Lost,2025-08-22,48,Lost to Loop3
+OPP-5452,2025-07-12,2025-07,Prospect 5452,MER-US,SMB,Financial Services,Paid Search,Retargeting,Yes,39300.0,Discovery,,,
+OPP-5453,2025-07-04,2025-07,Prospect 5453,MER-EU,Mid-Market,Financial Services,Content/SEO,Direct / Branded Search,Yes,128700.0,Negotiation,,,
+OPP-5454,2025-07-25,2025-07,Prospect 5454,MER-US,Mid-Market,Manufacturing,Webinars,Direct / Branded Search,Yes,127100.0,Closed Won,2025-09-26,63,
+OPP-5455,2025-07-10,2025-07,Prospect 5455,MER-US,SMB,Business Services,Paid Social - LinkedIn,Retargeting,Yes,32500.0,Discovery,,,
+OPP-5456,2025-07-24,2025-07,Prospect 5456,MER-US,SMB,Manufacturing,Sales Outbound,Email/Lifecycle,No,24100.0,Negotiation,,,
+OPP-5457,2025-07-26,2025-07,Prospect 5457,MER-EU,SMB,Logistics & Transport,Events/Field,Retargeting,Yes,20100.0,Closed Lost,2025-09-03,39,Lost to Loop3
+OPP-5458,2025-07-24,2025-07,Prospect 5458,MER-US,Mid-Market,Technology,Content/SEO,Content/SEO,Yes,78200.0,Closed Lost,2025-09-07,45,Price
+OPP-5459,2025-07-25,2025-07,Prospect 5459,MER-US,Mid-Market,Financial Services,Email/Lifecycle,Email/Lifecycle,Yes,52400.0,Disqualified,,,
+OPP-5460,2025-07-09,2025-07,Prospect 5460,MER-EU,SMB,Healthcare,Partner Co-marketing,Partner Co-marketing,Yes,45500.0,Discovery,,,
+OPP-5461,2025-07-19,2025-07,Prospect 5461,MER-EU,Mid-Market,Energy & Utilities,Paid Social - Meta,Retargeting,Yes,134400.0,Discovery,,,
+OPP-5462,2025-07-19,2025-07,Prospect 5462,MER-EU,Mid-Market,Manufacturing,Email/Lifecycle,Direct / Branded Search,Yes,125200.0,Disqualified,,,
+OPP-5463,2025-07-19,2025-07,Prospect 5463,MER-US,SMB,Financial Services,Sales Outbound,Retargeting,No,13700.0,Closed Won,2025-08-10,22,
+OPP-5464,2025-07-10,2025-07,Prospect 5464,MER-US,SMB,Business Services,Sales Outbound,Email/Lifecycle,No,37500.0,Closed Lost,2025-08-03,24,Timing
+OPP-5465,2025-07-16,2025-07,Prospect 5465,MER-EU,SMB,Retail & CPG,Review Sites (G2),Email/Lifecycle,Yes,42900.0,Closed Won,2025-08-08,23,
+OPP-5466,2025-07-13,2025-07,Prospect 5466,MER-US,SMB,Technology,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,19500.0,Discovery,,,
+OPP-5467,2025-07-31,2025-07,Prospect 5467,MER-US,Mid-Market,Energy & Utilities,Content/SEO,Direct / Branded Search,Yes,83000.0,Disqualified,,,
+OPP-5468,2025-07-18,2025-07,Prospect 5468,MER-EU,Mid-Market,Technology,Content/SEO,Direct / Branded Search,Yes,93600.0,Closed Lost,2025-10-01,75,Timing
+OPP-5469,2025-07-21,2025-07,Prospect 5469,MER-US,Mid-Market,Energy & Utilities,Paid Search,Direct / Branded Search,Yes,111100.0,Discovery,,,
+OPP-5470,2025-07-09,2025-07,Prospect 5470,MER-US,SMB,Financial Services,Review Sites (G2),Direct / Branded Search,Yes,35700.0,Discovery,,,
+OPP-5471,2025-07-04,2025-07,Prospect 5471,MER-US,SMB,Healthcare,Events/Field,Events/Field,Yes,15400.0,Discovery,,,
+OPP-5472,2025-07-22,2025-07,Prospect 5472,MER-US,Mid-Market,Healthcare,Email/Lifecycle,Retargeting,Yes,157300.0,Discovery,,,
+OPP-5473,2025-07-19,2025-07,Prospect 5473,MER-US,Enterprise,Financial Services,Webinars,Direct / Branded Search,Yes,327000.0,Negotiation,,,
+OPP-5474,2025-07-11,2025-07,Prospect 5474,MER-US,SMB,Financial Services,Content/SEO,Content/SEO,Yes,25000.0,Closed Lost,2025-08-05,25,Timing
+OPP-5475,2025-07-25,2025-07,Prospect 5475,MER-EU,SMB,Retail & CPG,Paid Search,Paid Search,Yes,17800.0,Closed Lost,2025-08-06,12,Timing
+OPP-5476,2025-07-16,2025-07,Prospect 5476,MER-US,SMB,Manufacturing,Content/SEO,Direct / Branded Search,Yes,34900.0,Closed Lost,2025-08-16,31,No decision / budget frozen
+OPP-5477,2025-07-08,2025-07,Prospect 5477,MER-US,Mid-Market,Business Services,Review Sites (G2),Review Sites (G2),Yes,53200.0,Closed Lost,2025-10-07,91,Timing
+OPP-5478,2025-07-22,2025-07,Prospect 5478,MER-EU,SMB,Technology,Content/SEO,Retargeting,Yes,17600.0,Closed Lost,2025-09-05,45,Lost to incumbent
+OPP-5479,2025-07-25,2025-07,Prospect 5479,MER-US,SMB,Manufacturing,Paid Search,Direct / Branded Search,Yes,13800.0,Disqualified,,,
+OPP-5480,2025-07-23,2025-07,Prospect 5480,MER-US,Mid-Market,Financial Services,Email/Lifecycle,Sales Outbound,Yes,124100.0,Closed Lost,2025-09-24,63,Missing feature - approvals
+OPP-5481,2025-07-13,2025-07,Prospect 5481,MER-EU,SMB,Financial Services,Content/SEO,Email/Lifecycle,Yes,22700.0,Closed Won,2025-08-04,22,
+OPP-5482,2025-08-18,2025-08,Prospect 5482,MER-US,Enterprise,Retail & CPG,Paid Social - LinkedIn,Sales Outbound,Yes,290900.0,Negotiation,,,
+OPP-5483,2025-08-12,2025-08,Prospect 5483,MER-EU,Mid-Market,Healthcare,Sales Outbound,Direct / Branded Search,No,66700.0,Closed Lost,2025-10-17,66,Timing
+OPP-5484,2025-08-20,2025-08,Prospect 5484,MER-US,SMB,Financial Services,Content/SEO,Content/SEO,Yes,20300.0,Closed Lost,2025-09-04,15,Timing
+OPP-5485,2025-08-28,2025-08,Prospect 5485,MER-US,Mid-Market,Retail & CPG,Paid Social - LinkedIn,Direct / Branded Search,Yes,117800.0,Negotiation,,,
+OPP-5486,2025-08-30,2025-08,Prospect 5486,MER-US,Mid-Market,Manufacturing,Sales Outbound,Retargeting,No,155600.0,Closed Lost,2025-11-26,88,Lost to incumbent
+OPP-5487,2025-08-07,2025-08,Prospect 5487,MER-US,Mid-Market,Financial Services,Content/SEO,Content/SEO,Yes,121600.0,Closed Won,2025-11-12,97,
+OPP-5488,2025-08-30,2025-08,Prospect 5488,MER-US,Mid-Market,Technology,Content/SEO,Content/SEO,Yes,75600.0,Closed Won,2025-11-28,90,
+OPP-5489,2025-08-22,2025-08,Prospect 5489,MER-US,SMB,Financial Services,Sales Outbound,Sales Outbound,No,11100.0,Closed Won,2025-09-05,14,
+OPP-5490,2025-08-31,2025-08,Prospect 5490,MER-US,Enterprise,Financial Services,Review Sites (G2),Review Sites (G2),Yes,241400.0,Disqualified,,,
+OPP-5491,2025-08-04,2025-08,Prospect 5491,MER-US,SMB,Energy & Utilities,Events/Field,Email/Lifecycle,Yes,46800.0,Discovery,,,
+OPP-5492,2025-08-27,2025-08,Prospect 5492,MER-US,SMB,Manufacturing,Paid Search,Paid Search,Yes,33100.0,Discovery,,,
+OPP-5493,2025-08-10,2025-08,Prospect 5493,MER-US,Enterprise,Manufacturing,Sales Outbound,Sales Outbound,No,337600.0,Closed Won,2025-12-14,126,
+OPP-5494,2025-08-31,2025-08,Prospect 5494,MER-EU,Mid-Market,Business Services,Email/Lifecycle,Sales Outbound,Yes,108400.0,Discovery,,,
+OPP-5495,2025-08-13,2025-08,Prospect 5495,MER-US,SMB,Retail & CPG,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,24700.0,Closed Lost,2025-09-08,26,Timing
+OPP-5496,2025-08-07,2025-08,Prospect 5496,MER-US,Mid-Market,Healthcare,Sales Outbound,Sales Outbound,No,96500.0,Closed Won,2025-11-17,102,
+OPP-5497,2025-08-14,2025-08,Prospect 5497,MER-US,Mid-Market,Technology,Events/Field,Events/Field,Yes,64700.0,Disqualified,,,
+OPP-5498,2025-08-18,2025-08,Prospect 5498,MER-US,SMB,Business Services,Events/Field,Direct / Branded Search,Yes,45000.0,Disqualified,,,
+OPP-5499,2025-08-21,2025-08,Prospect 5499,MER-US,Mid-Market,Financial Services,Paid Search,Direct / Branded Search,Yes,145900.0,Closed Won,2025-10-17,57,
+OPP-5500,2025-08-04,2025-08,Prospect 5500,MER-US,SMB,Healthcare,Paid Search,Paid Search,Yes,16200.0,Closed Lost,2025-08-26,22,Lost to Loop3
+OPP-5501,2025-08-10,2025-08,Prospect 5501,MER-US,Mid-Market,Financial Services,Content/SEO,Direct / Branded Search,Yes,66900.0,Closed Lost,2025-11-20,102,Price
+OPP-5502,2025-08-25,2025-08,Prospect 5502,MER-US,Mid-Market,Logistics & Transport,Review Sites (G2),Direct / Branded Search,Yes,118000.0,Closed Won,2025-10-11,47,
+OPP-5503,2025-08-07,2025-08,Prospect 5503,MER-US,Mid-Market,Logistics & Transport,Content/SEO,Content/SEO,Yes,125200.0,Disqualified,,,
+OPP-5504,2025-08-24,2025-08,Prospect 5504,MER-EU,Enterprise,Energy & Utilities,Events/Field,Events/Field,Yes,251000.0,Closed Lost,2025-12-04,102,Lost to Loop3
+OPP-5505,2025-08-11,2025-08,Prospect 5505,MER-US,Mid-Market,Manufacturing,Review Sites (G2),Review Sites (G2),Yes,102600.0,Closed Won,2025-10-21,71,
+OPP-5506,2025-08-10,2025-08,Prospect 5506,MER-US,Mid-Market,Logistics & Transport,Paid Search,Direct / Branded Search,Yes,94500.0,Closed Lost,2025-11-11,93,Price
+OPP-5507,2025-08-29,2025-08,Prospect 5507,MER-EU,SMB,Energy & Utilities,Paid Social - LinkedIn,Direct / Branded Search,Yes,14200.0,Negotiation,,,
+OPP-5508,2025-08-31,2025-08,Prospect 5508,MER-EU,SMB,Financial Services,Review Sites (G2),Direct / Branded Search,Yes,12500.0,Closed Lost,2025-09-16,16,Lost to Loop3
+OPP-5509,2025-08-10,2025-08,Prospect 5509,MER-EU,SMB,Financial Services,Sales Outbound,Direct / Branded Search,No,47700.0,Disqualified,,,
+OPP-5510,2025-08-18,2025-08,Prospect 5510,MER-EU,SMB,Retail & CPG,Review Sites (G2),Sales Outbound,Yes,17400.0,Closed Won,2025-09-13,26,
+OPP-5511,2025-08-21,2025-08,Prospect 5511,MER-US,SMB,Logistics & Transport,Sales Outbound,Direct / Branded Search,No,17500.0,Closed Lost,2025-09-09,19,No decision / budget frozen
+OPP-5512,2025-08-29,2025-08,Prospect 5512,MER-US,SMB,Energy & Utilities,Sales Outbound,Email/Lifecycle,No,15900.0,Closed Won,2025-10-12,44,
+OPP-5513,2025-08-22,2025-08,Prospect 5513,MER-US,SMB,Logistics & Transport,Events/Field,Events/Field,Yes,12700.0,Closed Won,2025-09-24,33,
+OPP-5514,2025-08-15,2025-08,Prospect 5514,MER-US,Mid-Market,Financial Services,Retargeting,Email/Lifecycle,Yes,147100.0,Closed Won,2025-10-07,53,
+OPP-5515,2025-08-17,2025-08,Prospect 5515,MER-US,SMB,Manufacturing,Webinars,Sales Outbound,Yes,39700.0,Discovery,,,
+OPP-5516,2025-08-20,2025-08,Prospect 5516,MER-US,Mid-Market,Business Services,Review Sites (G2),Direct / Branded Search,Yes,101600.0,Discovery,,,
+OPP-5517,2025-08-30,2025-08,Prospect 5517,MER-US,Mid-Market,Manufacturing,Sales Outbound,Email/Lifecycle,No,106000.0,Closed Lost,2025-11-27,89,Missing feature - approvals
+OPP-5518,2025-08-13,2025-08,Prospect 5518,MER-US,Mid-Market,Logistics & Transport,Webinars,Sales Outbound,Yes,85000.0,Closed Lost,2025-10-23,71,Missing feature - approvals
+OPP-5519,2025-08-31,2025-08,Prospect 5519,MER-US,Mid-Market,Retail & CPG,Paid Social - Meta,Email/Lifecycle,Yes,85000.0,Discovery,,,
+OPP-5520,2025-08-24,2025-08,Prospect 5520,MER-US,SMB,Retail & CPG,Webinars,Direct / Branded Search,Yes,24900.0,Disqualified,,,
+OPP-5521,2025-08-20,2025-08,Prospect 5521,MER-US,SMB,Manufacturing,Paid Social - LinkedIn,Direct / Branded Search,Yes,33400.0,Closed Lost,2025-09-17,28,Lost to Loop3
+OPP-5522,2025-08-25,2025-08,Prospect 5522,MER-US,SMB,Financial Services,Retargeting,Retargeting,Yes,34700.0,Closed Lost,2025-09-13,19,No decision / budget frozen
+OPP-5523,2025-08-30,2025-08,Prospect 5523,MER-US,SMB,Healthcare,Paid Search,Direct / Branded Search,Yes,29700.0,Discovery,,,
+OPP-5524,2025-08-11,2025-08,Prospect 5524,MER-US,SMB,Energy & Utilities,Sales Outbound,Email/Lifecycle,No,41500.0,Disqualified,,,
+OPP-5525,2025-08-10,2025-08,Prospect 5525,MER-US,Mid-Market,Energy & Utilities,Webinars,Email/Lifecycle,Yes,103500.0,Closed Won,2025-10-08,59,
+OPP-5526,2025-08-12,2025-08,Prospect 5526,MER-EU,SMB,Business Services,Webinars,Direct / Branded Search,Yes,45100.0,Closed Lost,2025-08-28,16,Price
+OPP-5527,2025-08-30,2025-08,Prospect 5527,MER-EU,Mid-Market,Technology,Webinars,Webinars,Yes,114700.0,Negotiation,,,
+OPP-5528,2025-08-14,2025-08,Prospect 5528,MER-US,SMB,Logistics & Transport,Partner Co-marketing,Direct / Branded Search,Yes,19900.0,Closed Won,2025-09-03,20,
+OPP-5529,2025-08-22,2025-08,Prospect 5529,MER-US,SMB,Energy & Utilities,Content/SEO,Content/SEO,Yes,11500.0,Closed Lost,2025-10-04,43,Missing feature - approvals
+OPP-5530,2025-08-16,2025-08,Prospect 5530,MER-US,Mid-Market,Manufacturing,Sales Outbound,Sales Outbound,No,110800.0,Discovery,,,
+OPP-5531,2025-08-13,2025-08,Prospect 5531,MER-US,Mid-Market,Healthcare,Webinars,Direct / Branded Search,Yes,67700.0,Closed Lost,2025-10-11,59,Missing feature - approvals
+OPP-5532,2025-08-09,2025-08,Prospect 5532,MER-US,Mid-Market,Business Services,Webinars,Webinars,Yes,53300.0,Closed Lost,2025-11-03,86,Missing feature - approvals
+OPP-5533,2025-08-24,2025-08,Prospect 5533,MER-US,Mid-Market,Retail & CPG,Partner Co-marketing,Retargeting,Yes,91900.0,Closed Lost,2025-11-14,82,Lost to incumbent
+OPP-5534,2025-08-17,2025-08,Prospect 5534,MER-EU,Mid-Market,Manufacturing,Sales Outbound,Retargeting,No,64900.0,Closed Lost,2025-09-28,42,Lost to Loop3
+OPP-5535,2025-08-28,2025-08,Prospect 5535,MER-US,SMB,Business Services,Retargeting,Direct / Branded Search,Yes,20400.0,Closed Lost,2025-09-19,22,Missing feature - approvals
+OPP-5536,2025-08-28,2025-08,Prospect 5536,MER-US,Mid-Market,Logistics & Transport,Content/SEO,Content/SEO,Yes,70800.0,Discovery,,,
+OPP-5537,2025-08-08,2025-08,Prospect 5537,MER-US,Mid-Market,Energy & Utilities,Sales Outbound,Sales Outbound,No,80200.0,Discovery,,,
+OPP-5538,2025-08-06,2025-08,Prospect 5538,MER-EU,Mid-Market,Technology,Sales Outbound,Sales Outbound,No,147200.0,Closed Lost,2025-11-07,93,Missing feature - approvals
+OPP-5539,2025-08-14,2025-08,Prospect 5539,MER-EU,SMB,Technology,Sales Outbound,Sales Outbound,No,35400.0,Disqualified,,,
+OPP-5540,2025-08-04,2025-08,Prospect 5540,MER-US,SMB,Technology,Review Sites (G2),Review Sites (G2),Yes,32400.0,Closed Lost,2025-09-16,43,Lost to incumbent
+OPP-5541,2025-08-22,2025-08,Prospect 5541,MER-EU,SMB,Retail & CPG,Sales Outbound,Sales Outbound,No,29800.0,Closed Won,2025-10-06,45,
+OPP-5542,2025-08-17,2025-08,Prospect 5542,MER-US,SMB,Manufacturing,Webinars,Direct / Branded Search,Yes,38300.0,Negotiation,,,
+OPP-5543,2025-08-23,2025-08,Prospect 5543,MER-EU,SMB,Financial Services,Review Sites (G2),Review Sites (G2),Yes,34000.0,Negotiation,,,
+OPP-5544,2025-08-17,2025-08,Prospect 5544,MER-EU,Mid-Market,Logistics & Transport,Retargeting,Direct / Branded Search,Yes,103400.0,Discovery,,,
+OPP-5545,2025-08-07,2025-08,Prospect 5545,MER-EU,Mid-Market,Retail & CPG,Sales Outbound,Retargeting,No,149100.0,Disqualified,,,
+OPP-5546,2025-08-24,2025-08,Prospect 5546,MER-EU,Mid-Market,Financial Services,Paid Search,Direct / Branded Search,Yes,125300.0,Disqualified,,,
+OPP-5547,2025-08-05,2025-08,Prospect 5547,MER-US,Mid-Market,Logistics & Transport,Sales Outbound,Sales Outbound,No,117600.0,Closed Won,2025-10-04,60,
+OPP-5548,2025-09-12,2025-09,Prospect 5548,MER-US,Mid-Market,Retail & CPG,Sales Outbound,Sales Outbound,No,136900.0,Closed Lost,2025-10-25,43,Price
+OPP-5549,2025-09-09,2025-09,Prospect 5549,MER-US,Mid-Market,Retail & CPG,Content/SEO,Email/Lifecycle,Yes,80900.0,Closed Lost,2025-10-24,45,Lost to Loop3
+OPP-5550,2025-09-23,2025-09,Prospect 5550,MER-US,Mid-Market,Technology,Content/SEO,Sales Outbound,Yes,97300.0,Closed Won,2025-12-06,74,
+OPP-5551,2025-09-10,2025-09,Prospect 5551,MER-US,SMB,Financial Services,Content/SEO,Direct / Branded Search,Yes,42300.0,Discovery,,,
+OPP-5552,2025-09-06,2025-09,Prospect 5552,MER-US,SMB,Retail & CPG,Partner Co-marketing,Partner Co-marketing,Yes,45300.0,Negotiation,,,
+OPP-5553,2025-09-14,2025-09,Prospect 5553,MER-EU,SMB,Business Services,Email/Lifecycle,Direct / Branded Search,Yes,20700.0,Disqualified,,,
+OPP-5554,2025-09-17,2025-09,Prospect 5554,MER-EU,Mid-Market,Retail & CPG,Webinars,Direct / Branded Search,Yes,131500.0,Closed Won,2025-11-06,50,
+OPP-5555,2025-09-03,2025-09,Prospect 5555,MER-US,SMB,Retail & CPG,Events/Field,Events/Field,Yes,11100.0,Closed Won,2025-09-24,21,
+OPP-5556,2025-09-28,2025-09,Prospect 5556,MER-US,Mid-Market,Logistics & Transport,Paid Social - Meta,Paid Social - Meta,Yes,111100.0,Negotiation,,,
+OPP-5557,2025-09-16,2025-09,Prospect 5557,MER-EU,SMB,Technology,Events/Field,Direct / Branded Search,Yes,13800.0,Disqualified,,,
+OPP-5558,2025-09-08,2025-09,Prospect 5558,MER-US,SMB,Technology,Content/SEO,Content/SEO,Yes,31100.0,Closed Won,2025-10-17,39,
+OPP-5559,2025-09-19,2025-09,Prospect 5559,MER-US,SMB,Technology,Content/SEO,Content/SEO,Yes,11800.0,Closed Lost,2025-10-27,38,No decision / budget frozen
+OPP-5560,2025-09-08,2025-09,Prospect 5560,MER-US,Mid-Market,Logistics & Transport,Paid Social - LinkedIn,Retargeting,Yes,56900.0,Closed Lost,2025-11-19,72,No decision / budget frozen
+OPP-5561,2025-09-18,2025-09,Prospect 5561,MER-US,SMB,Manufacturing,Partner Co-marketing,Direct / Branded Search,Yes,29400.0,Disqualified,,,
+OPP-5562,2025-09-04,2025-09,Prospect 5562,MER-US,SMB,Logistics & Transport,Sales Outbound,Email/Lifecycle,No,47400.0,Disqualified,,,
+OPP-5563,2025-09-19,2025-09,Prospect 5563,MER-US,Mid-Market,Retail & CPG,Retargeting,Retargeting,Yes,137600.0,Closed Won,2025-11-23,65,
+OPP-5564,2025-09-27,2025-09,Prospect 5564,MER-EU,Mid-Market,Healthcare,Content/SEO,Email/Lifecycle,Yes,106400.0,Closed Lost,2026-01-07,102,Lost to incumbent
+OPP-5565,2025-09-11,2025-09,Prospect 5565,MER-US,Mid-Market,Financial Services,Sales Outbound,Direct / Branded Search,No,96800.0,Disqualified,,,
+OPP-5566,2025-09-19,2025-09,Prospect 5566,MER-US,SMB,Energy & Utilities,Sales Outbound,Retargeting,No,20000.0,Disqualified,,,
+OPP-5567,2025-09-19,2025-09,Prospect 5567,MER-US,SMB,Technology,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,28600.0,Negotiation,,,
+OPP-5568,2025-09-06,2025-09,Prospect 5568,MER-US,SMB,Healthcare,Partner Co-marketing,Sales Outbound,Yes,44300.0,Discovery,,,
+OPP-5569,2025-09-08,2025-09,Prospect 5569,MER-US,SMB,Logistics & Transport,Partner Co-marketing,Sales Outbound,Yes,18900.0,Discovery,,,
+OPP-5570,2025-09-04,2025-09,Prospect 5570,MER-EU,Mid-Market,Retail & CPG,Review Sites (G2),Retargeting,Yes,153000.0,Closed Won,2025-11-07,64,
+OPP-5571,2025-09-09,2025-09,Prospect 5571,MER-US,SMB,Logistics & Transport,Partner Co-marketing,Retargeting,Yes,25500.0,Closed Won,2025-09-21,12,
+OPP-5572,2025-09-06,2025-09,Prospect 5572,MER-US,Mid-Market,Manufacturing,Email/Lifecycle,Direct / Branded Search,Yes,135900.0,Disqualified,,,
+OPP-5573,2025-09-25,2025-09,Prospect 5573,MER-US,Mid-Market,Healthcare,Sales Outbound,Direct / Branded Search,No,119000.0,Negotiation,,,
+OPP-5574,2025-09-09,2025-09,Prospect 5574,MER-US,Enterprise,Business Services,Review Sites (G2),Retargeting,Yes,341300.0,Disqualified,,,
+OPP-5575,2025-09-21,2025-09,Prospect 5575,MER-EU,Mid-Market,Technology,Email/Lifecycle,Email/Lifecycle,Yes,155500.0,Closed Lost,2025-12-14,84,Price
+OPP-5576,2025-09-21,2025-09,Prospect 5576,MER-US,SMB,Logistics & Transport,Webinars,Direct / Branded Search,Yes,27000.0,Discovery,,,
+OPP-5577,2025-09-30,2025-09,Prospect 5577,MER-US,SMB,Technology,Content/SEO,Content/SEO,Yes,38600.0,Negotiation,,,
+OPP-5578,2025-09-22,2025-09,Prospect 5578,MER-EU,SMB,Healthcare,Partner Co-marketing,Sales Outbound,Yes,32800.0,Closed Lost,2025-10-07,15,No decision / budget frozen
+OPP-5579,2025-09-20,2025-09,Prospect 5579,MER-EU,SMB,Healthcare,Events/Field,Direct / Branded Search,Yes,47500.0,Closed Won,2025-10-11,21,
+OPP-5580,2025-09-23,2025-09,Prospect 5580,MER-US,Mid-Market,Manufacturing,Content/SEO,Sales Outbound,Yes,63600.0,Closed Won,2025-11-16,54,
+OPP-5581,2025-09-23,2025-09,Prospect 5581,MER-EU,Mid-Market,Healthcare,Paid Search,Direct / Branded Search,Yes,78900.0,Closed Lost,2025-11-06,44,No decision / budget frozen
+OPP-5582,2025-09-19,2025-09,Prospect 5582,MER-US,SMB,Financial Services,Events/Field,Direct / Branded Search,Yes,25500.0,Closed Lost,2025-10-31,42,Lost to incumbent
+OPP-5583,2025-09-22,2025-09,Prospect 5583,MER-US,SMB,Retail & CPG,Webinars,Email/Lifecycle,Yes,18400.0,Negotiation,,,
+OPP-5584,2025-09-24,2025-09,Prospect 5584,MER-EU,Enterprise,Energy & Utilities,Paid Search,Paid Search,Yes,336000.0,Closed Lost,2026-01-10,108,Timing
+OPP-5585,2025-09-30,2025-09,Prospect 5585,MER-EU,SMB,Retail & CPG,Sales Outbound,Direct / Branded Search,No,11800.0,Closed Lost,2025-10-22,22,Price
+OPP-5586,2025-09-07,2025-09,Prospect 5586,MER-US,Mid-Market,Financial Services,Review Sites (G2),Direct / Branded Search,Yes,85100.0,Closed Lost,2025-11-06,60,Price
+OPP-5587,2025-09-29,2025-09,Prospect 5587,MER-US,Mid-Market,Business Services,Content/SEO,Content/SEO,Yes,145100.0,Closed Lost,2025-12-22,84,No decision / budget frozen
+OPP-5588,2025-09-07,2025-09,Prospect 5588,MER-EU,SMB,Technology,Content/SEO,Retargeting,Yes,38000.0,Closed Lost,2025-09-26,19,Missing feature - approvals
+OPP-5589,2025-09-10,2025-09,Prospect 5589,MER-US,Mid-Market,Financial Services,Sales Outbound,Sales Outbound,No,126500.0,Closed Lost,2025-11-18,69,Lost to Loop3
+OPP-5590,2025-09-03,2025-09,Prospect 5590,MER-US,Mid-Market,Manufacturing,Sales Outbound,Direct / Branded Search,No,105200.0,Closed Lost,2025-12-03,91,Lost to Loop3
+OPP-5591,2025-09-22,2025-09,Prospect 5591,MER-EU,Enterprise,Logistics & Transport,Review Sites (G2),Direct / Branded Search,Yes,274100.0,Closed Lost,2026-02-09,140,Price
+OPP-5592,2025-09-17,2025-09,Prospect 5592,MER-EU,SMB,Business Services,Paid Social - Meta,Direct / Branded Search,Yes,26800.0,Closed Lost,2025-10-22,35,Lost to Loop3
+OPP-5593,2025-09-28,2025-09,Prospect 5593,MER-EU,SMB,Technology,Webinars,Direct / Branded Search,Yes,14300.0,Closed Lost,2025-11-10,43,No decision / budget frozen
+OPP-5594,2025-09-08,2025-09,Prospect 5594,MER-EU,Mid-Market,Business Services,Paid Search,Paid Search,Yes,126000.0,Closed Lost,2025-11-26,79,Price
+OPP-5595,2025-09-23,2025-09,Prospect 5595,MER-EU,SMB,Logistics & Transport,Sales Outbound,Sales Outbound,No,43600.0,Discovery,,,
+OPP-5596,2025-09-10,2025-09,Prospect 5596,MER-US,SMB,Manufacturing,Content/SEO,Email/Lifecycle,Yes,36500.0,Closed Lost,2025-10-03,23,Timing
+OPP-5597,2025-09-11,2025-09,Prospect 5597,MER-EU,Mid-Market,Energy & Utilities,Sales Outbound,Sales Outbound,No,106900.0,Closed Lost,2025-11-16,66,Timing
+OPP-5598,2025-09-23,2025-09,Prospect 5598,MER-EU,Mid-Market,Financial Services,Sales Outbound,Sales Outbound,No,88800.0,Discovery,,,
+OPP-5599,2025-09-23,2025-09,Prospect 5599,MER-EU,SMB,Technology,Webinars,Retargeting,Yes,18800.0,Negotiation,,,
+OPP-5600,2025-09-03,2025-09,Prospect 5600,MER-US,Mid-Market,Manufacturing,Webinars,Email/Lifecycle,Yes,66200.0,Closed Lost,2025-11-22,80,Timing
+OPP-5601,2025-09-26,2025-09,Prospect 5601,MER-US,Enterprise,Healthcare,Partner Co-marketing,Partner Co-marketing,Yes,261000.0,Closed Lost,2026-01-26,122,Missing feature - approvals
+OPP-5602,2025-09-09,2025-09,Prospect 5602,MER-US,SMB,Retail & CPG,Retargeting,Retargeting,Yes,20300.0,Discovery,,,
+OPP-5603,2025-09-21,2025-09,Prospect 5603,MER-EU,Mid-Market,Logistics & Transport,Paid Search,Direct / Branded Search,Yes,161200.0,Negotiation,,,
+OPP-5604,2025-09-30,2025-09,Prospect 5604,MER-US,Mid-Market,Healthcare,Paid Social - LinkedIn,Sales Outbound,Yes,113800.0,Closed Won,2025-11-09,40,
+OPP-5605,2025-09-24,2025-09,Prospect 5605,MER-EU,SMB,Energy & Utilities,Paid Social - LinkedIn,Email/Lifecycle,Yes,31500.0,Negotiation,,,
+OPP-5606,2025-09-27,2025-09,Prospect 5606,MER-US,Mid-Market,Financial Services,Webinars,Direct / Branded Search,Yes,69700.0,Closed Lost,2025-11-23,57,Lost to incumbent
+OPP-5607,2025-09-15,2025-09,Prospect 5607,MER-US,SMB,Technology,Sales Outbound,Email/Lifecycle,No,11600.0,Disqualified,,,
+OPP-5608,2025-09-25,2025-09,Prospect 5608,MER-US,Mid-Market,Retail & CPG,Retargeting,Retargeting,Yes,146800.0,Closed Lost,2025-12-06,72,Timing
+OPP-5609,2025-09-18,2025-09,Prospect 5609,MER-US,Mid-Market,Healthcare,Sales Outbound,Direct / Branded Search,No,134000.0,Closed Lost,2025-11-26,69,No decision / budget frozen
+OPP-5610,2025-09-10,2025-09,Prospect 5610,MER-US,Enterprise,Financial Services,Sales Outbound,Direct / Branded Search,No,350800.0,Disqualified,,,
+OPP-5611,2025-09-09,2025-09,Prospect 5611,MER-US,Mid-Market,Technology,Webinars,Webinars,Yes,91500.0,Closed Won,2025-12-04,86,
+OPP-5612,2025-09-26,2025-09,Prospect 5612,MER-US,SMB,Logistics & Transport,Partner Co-marketing,Partner Co-marketing,Yes,14000.0,Discovery,,,
+OPP-5613,2025-09-27,2025-09,Prospect 5613,MER-US,Enterprise,Financial Services,Sales Outbound,Direct / Branded Search,No,269800.0,Discovery,,,
+OPP-5614,2025-09-25,2025-09,Prospect 5614,MER-US,SMB,Business Services,Paid Search,Paid Search,Yes,24400.0,Discovery,,,
+OPP-5615,2025-09-21,2025-09,Prospect 5615,MER-US,Mid-Market,Energy & Utilities,Events/Field,Direct / Branded Search,Yes,157500.0,Closed Lost,2025-12-14,84,No decision / budget frozen
+OPP-5616,2025-09-20,2025-09,Prospect 5616,MER-US,Mid-Market,Healthcare,Sales Outbound,Direct / Branded Search,No,153300.0,Closed Lost,2025-12-13,84,No decision / budget frozen
+OPP-5617,2025-09-24,2025-09,Prospect 5617,MER-EU,SMB,Manufacturing,Content/SEO,Email/Lifecycle,Yes,47100.0,Closed Won,2025-10-31,37,
+OPP-5618,2025-09-09,2025-09,Prospect 5618,MER-US,SMB,Financial Services,Webinars,Webinars,Yes,21700.0,Negotiation,,,
+OPP-5619,2025-09-04,2025-09,Prospect 5619,MER-US,Enterprise,Technology,Retargeting,Direct / Branded Search,Yes,358800.0,Closed Lost,2026-01-13,131,Missing feature - approvals
+OPP-5620,2025-09-25,2025-09,Prospect 5620,MER-EU,Mid-Market,Healthcare,Content/SEO,Content/SEO,Yes,116700.0,Closed Lost,2026-01-06,103,No decision / budget frozen
+OPP-5621,2025-09-17,2025-09,Prospect 5621,MER-US,Mid-Market,Retail & CPG,Paid Search,Retargeting,Yes,66300.0,Disqualified,,,
+OPP-5622,2025-09-17,2025-09,Prospect 5622,MER-US,SMB,Logistics & Transport,Content/SEO,Content/SEO,Yes,27700.0,Closed Lost,2025-10-20,33,No decision / budget frozen
+OPP-5623,2025-09-16,2025-09,Prospect 5623,MER-US,SMB,Manufacturing,Content/SEO,Sales Outbound,Yes,32600.0,Closed Won,2025-10-29,43,
+OPP-5624,2025-09-20,2025-09,Prospect 5624,MER-US,Mid-Market,Logistics & Transport,Paid Social - LinkedIn,Direct / Branded Search,Yes,124500.0,Negotiation,,,
+OPP-5625,2025-09-08,2025-09,Prospect 5625,MER-US,Mid-Market,Financial Services,Retargeting,Direct / Branded Search,Yes,147200.0,Closed Lost,2025-12-17,100,Timing
+OPP-5626,2025-09-30,2025-09,Prospect 5626,MER-US,SMB,Healthcare,Partner Co-marketing,Partner Co-marketing,Yes,24000.0,Disqualified,,,
+OPP-5627,2025-10-10,2025-10,Prospect 5627,MER-US,Mid-Market,Energy & Utilities,Events/Field,Retargeting,Yes,136200.0,Closed Won,2025-12-28,79,
+OPP-5628,2025-10-23,2025-10,Prospect 5628,MER-EU,Mid-Market,Business Services,Paid Search,Retargeting,Yes,97300.0,Disqualified,,,
+OPP-5629,2025-10-13,2025-10,Prospect 5629,MER-US,SMB,Financial Services,Content/SEO,Direct / Branded Search,Yes,19500.0,Disqualified,,,
+OPP-5630,2025-10-06,2025-10,Prospect 5630,MER-US,Mid-Market,Financial Services,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,109400.0,Closed Lost,2026-01-08,94,Missing feature - approvals
+OPP-5631,2025-10-04,2025-10,Prospect 5631,MER-US,SMB,Logistics & Transport,Review Sites (G2),Review Sites (G2),Yes,11000.0,Closed Won,2025-11-04,31,
+OPP-5632,2025-10-12,2025-10,Prospect 5632,MER-US,SMB,Technology,Content/SEO,Direct / Branded Search,Yes,30800.0,Closed Won,2025-11-08,27,
+OPP-5633,2025-10-10,2025-10,Prospect 5633,MER-US,Enterprise,Manufacturing,Partner Co-marketing,Retargeting,Yes,201600.0,Closed Lost,2026-02-15,128,Timing
+OPP-5634,2025-10-07,2025-10,Prospect 5634,MER-US,SMB,Financial Services,Webinars,Email/Lifecycle,Yes,32500.0,Closed Lost,2025-11-15,39,Lost to Loop3
+OPP-5635,2025-10-30,2025-10,Prospect 5635,MER-EU,SMB,Technology,Sales Outbound,Sales Outbound,No,37500.0,Discovery,,,
+OPP-5636,2025-10-13,2025-10,Prospect 5636,MER-US,SMB,Energy & Utilities,Webinars,Webinars,Yes,42300.0,Discovery,,,
+OPP-5637,2025-10-30,2025-10,Prospect 5637,MER-US,SMB,Logistics & Transport,Paid Search,Paid Search,Yes,35800.0,Closed Lost,2025-12-14,45,Lost to Loop3
+OPP-5638,2025-10-13,2025-10,Prospect 5638,MER-EU,Mid-Market,Retail & CPG,Events/Field,Retargeting,Yes,82600.0,Closed Won,2026-01-25,104,
+OPP-5639,2025-10-12,2025-10,Prospect 5639,MER-US,Mid-Market,Healthcare,Content/SEO,Direct / Branded Search,Yes,83200.0,Discovery,,,
+OPP-5640,2025-10-14,2025-10,Prospect 5640,MER-EU,SMB,Healthcare,Review Sites (G2),Review Sites (G2),Yes,28300.0,Closed Won,2025-11-09,26,
+OPP-5641,2025-10-28,2025-10,Prospect 5641,MER-US,Mid-Market,Energy & Utilities,Paid Search,Sales Outbound,Yes,135000.0,Negotiation,,,
+OPP-5642,2025-10-25,2025-10,Prospect 5642,MER-EU,Mid-Market,Manufacturing,Content/SEO,Retargeting,Yes,144400.0,Closed Lost,2025-12-08,44,Missing feature - approvals
+OPP-5643,2025-10-13,2025-10,Prospect 5643,MER-EU,Mid-Market,Financial Services,Webinars,Webinars,Yes,104800.0,Discovery,,,
+OPP-5644,2025-10-05,2025-10,Prospect 5644,MER-US,Enterprise,Financial Services,Review Sites (G2),Review Sites (G2),Yes,256100.0,Disqualified,,,
+OPP-5645,2025-10-21,2025-10,Prospect 5645,MER-EU,Mid-Market,Energy & Utilities,Content/SEO,Sales Outbound,Yes,108900.0,Discovery,,,
+OPP-5646,2025-10-30,2025-10,Prospect 5646,MER-US,Mid-Market,Logistics & Transport,Content/SEO,Retargeting,Yes,135600.0,Closed Lost,2026-01-28,90,Missing feature - approvals
+OPP-5647,2025-10-13,2025-10,Prospect 5647,MER-US,SMB,Technology,Events/Field,Direct / Branded Search,Yes,20200.0,Negotiation,,,
+OPP-5648,2025-10-26,2025-10,Prospect 5648,MER-US,SMB,Healthcare,Content/SEO,Sales Outbound,Yes,27300.0,Closed Lost,2025-12-07,42,No decision / budget frozen
+OPP-5649,2025-10-20,2025-10,Prospect 5649,MER-US,SMB,Financial Services,Sales Outbound,Email/Lifecycle,No,45400.0,Closed Won,2025-12-01,42,
+OPP-5650,2025-10-21,2025-10,Prospect 5650,MER-EU,SMB,Financial Services,Webinars,Direct / Branded Search,Yes,21300.0,Closed Lost,2025-11-28,38,Timing
+OPP-5651,2025-10-30,2025-10,Prospect 5651,MER-EU,Mid-Market,Financial Services,Sales Outbound,Sales Outbound,No,113100.0,Discovery,,,
+OPP-5652,2025-10-26,2025-10,Prospect 5652,MER-US,Mid-Market,Logistics & Transport,Sales Outbound,Sales Outbound,No,110500.0,Closed Won,2026-01-27,93,
+OPP-5653,2025-10-26,2025-10,Prospect 5653,MER-EU,Mid-Market,Healthcare,Paid Search,Retargeting,Yes,104400.0,Closed Lost,2025-12-12,47,No decision / budget frozen
+OPP-5654,2025-10-07,2025-10,Prospect 5654,MER-US,SMB,Financial Services,Events/Field,Direct / Branded Search,Yes,25600.0,Closed Lost,2025-11-10,34,Lost to incumbent
+OPP-5655,2025-10-28,2025-10,Prospect 5655,MER-US,Mid-Market,Technology,Sales Outbound,Sales Outbound,No,129300.0,Disqualified,,,
+OPP-5656,2025-10-20,2025-10,Prospect 5656,MER-US,SMB,Financial Services,Paid Social - Meta,Direct / Branded Search,Yes,45000.0,Disqualified,,,
+OPP-5657,2025-10-12,2025-10,Prospect 5657,MER-EU,SMB,Logistics & Transport,Content/SEO,Content/SEO,Yes,47400.0,Closed Lost,2025-10-31,19,Missing feature - approvals
+OPP-5658,2025-10-20,2025-10,Prospect 5658,MER-EU,SMB,Business Services,Content/SEO,Content/SEO,Yes,23600.0,Closed Won,2025-12-03,44,
+OPP-5659,2025-10-13,2025-10,Prospect 5659,MER-EU,SMB,Healthcare,Content/SEO,Direct / Branded Search,Yes,16600.0,Closed Lost,2025-11-15,33,No decision / budget frozen
+OPP-5660,2025-10-22,2025-10,Prospect 5660,MER-US,Mid-Market,Retail & CPG,Review Sites (G2),Retargeting,Yes,119900.0,Disqualified,,,
+OPP-5661,2025-10-11,2025-10,Prospect 5661,MER-EU,SMB,Technology,Sales Outbound,Email/Lifecycle,No,16100.0,Closed Won,2025-11-23,43,
+OPP-5662,2025-10-27,2025-10,Prospect 5662,MER-US,SMB,Technology,Paid Search,Direct / Branded Search,Yes,39300.0,Disqualified,,,
+OPP-5663,2025-10-21,2025-10,Prospect 5663,MER-US,SMB,Retail & CPG,Paid Search,Sales Outbound,Yes,33900.0,Closed Lost,2025-11-24,34,Lost to Loop3
+OPP-5664,2025-10-18,2025-10,Prospect 5664,MER-US,SMB,Energy & Utilities,Sales Outbound,Sales Outbound,No,46400.0,Discovery,,,
+OPP-5665,2025-10-08,2025-10,Prospect 5665,MER-US,Mid-Market,Manufacturing,Content/SEO,Direct / Branded Search,Yes,90500.0,Closed Lost,2025-11-17,40,Price
+OPP-5666,2025-10-11,2025-10,Prospect 5666,MER-US,Mid-Market,Manufacturing,Content/SEO,Sales Outbound,Yes,80100.0,Disqualified,,,
+OPP-5667,2025-10-24,2025-10,Prospect 5667,MER-US,Mid-Market,Retail & CPG,Sales Outbound,Direct / Branded Search,No,150200.0,Closed Lost,2025-12-13,50,Lost to incumbent
+OPP-5668,2025-10-16,2025-10,Prospect 5668,MER-US,Mid-Market,Healthcare,Webinars,Sales Outbound,Yes,117300.0,Closed Won,2025-11-29,44,
+OPP-5669,2025-10-29,2025-10,Prospect 5669,MER-US,SMB,Logistics & Transport,Paid Search,Direct / Branded Search,Yes,19400.0,Discovery,,,
+OPP-5670,2025-10-18,2025-10,Prospect 5670,MER-US,SMB,Business Services,Paid Search,Direct / Branded Search,Yes,37600.0,Closed Won,2025-11-30,43,
+OPP-5671,2025-10-08,2025-10,Prospect 5671,MER-US,Enterprise,Technology,Paid Search,Paid Search,Yes,181600.0,Closed Lost,2026-03-09,152,Price
+OPP-5672,2025-10-24,2025-10,Prospect 5672,MER-US,SMB,Financial Services,Review Sites (G2),Direct / Branded Search,Yes,25600.0,Disqualified,,,
+OPP-5673,2025-10-21,2025-10,Prospect 5673,MER-US,Enterprise,Energy & Utilities,Events/Field,Events/Field,Yes,228700.0,Closed Lost,2026-04-01,162,No decision / budget frozen
+OPP-5674,2025-10-22,2025-10,Prospect 5674,MER-EU,SMB,Business Services,Sales Outbound,Sales Outbound,No,13000.0,Closed Lost,2025-11-08,17,Lost to Loop3
+OPP-5675,2025-10-21,2025-10,Prospect 5675,MER-US,SMB,Financial Services,Paid Search,Email/Lifecycle,Yes,14300.0,Disqualified,,,
+OPP-5676,2025-10-17,2025-10,Prospect 5676,MER-US,SMB,Manufacturing,Sales Outbound,Email/Lifecycle,No,34800.0,Closed Lost,2025-11-07,21,No decision / budget frozen
+OPP-5677,2025-10-26,2025-10,Prospect 5677,MER-US,SMB,Retail & CPG,Webinars,Direct / Branded Search,Yes,43000.0,Negotiation,,,
+OPP-5678,2025-10-21,2025-10,Prospect 5678,MER-US,Mid-Market,Business Services,Paid Social - LinkedIn,Direct / Branded Search,Yes,148600.0,Closed Won,2026-01-13,84,
+OPP-5679,2025-10-08,2025-10,Prospect 5679,MER-EU,Mid-Market,Energy & Utilities,Sales Outbound,Sales Outbound,No,119700.0,Closed Won,2025-12-28,81,
+OPP-5680,2025-10-16,2025-10,Prospect 5680,MER-US,SMB,Business Services,Content/SEO,Content/SEO,Yes,43300.0,Closed Won,2025-11-11,26,
+OPP-5681,2025-10-13,2025-10,Prospect 5681,MER-EU,Mid-Market,Manufacturing,Webinars,Webinars,Yes,73500.0,Closed Lost,2026-01-21,100,Timing
+OPP-5682,2025-10-10,2025-10,Prospect 5682,MER-EU,Mid-Market,Financial Services,Events/Field,Direct / Branded Search,Yes,159000.0,Closed Lost,2026-01-20,102,Missing feature - approvals
+OPP-5683,2025-10-30,2025-10,Prospect 5683,MER-US,SMB,Technology,Review Sites (G2),Direct / Branded Search,Yes,26700.0,Discovery,,,
+OPP-5684,2025-10-14,2025-10,Prospect 5684,MER-US,SMB,Financial Services,Review Sites (G2),Retargeting,Yes,47700.0,Discovery,,,
+OPP-5685,2025-10-13,2025-10,Prospect 5685,MER-EU,Mid-Market,Business Services,Partner Co-marketing,Partner Co-marketing,Yes,138400.0,Disqualified,,,
+OPP-5686,2025-10-28,2025-10,Prospect 5686,MER-US,Enterprise,Financial Services,Review Sites (G2),Review Sites (G2),Yes,257200.0,Closed Lost,2026-04-05,159,Timing
+OPP-5687,2025-10-10,2025-10,Prospect 5687,MER-US,SMB,Energy & Utilities,Sales Outbound,Direct / Branded Search,No,35800.0,Negotiation,,,
+OPP-5688,2025-10-04,2025-10,Prospect 5688,MER-US,Enterprise,Healthcare,Webinars,Webinars,Yes,181300.0,Closed Won,2026-03-08,155,
+OPP-5689,2025-10-18,2025-10,Prospect 5689,MER-US,SMB,Technology,Partner Co-marketing,Direct / Branded Search,Yes,19600.0,Closed Lost,2025-11-15,28,Timing
+OPP-5690,2025-10-10,2025-10,Prospect 5690,MER-US,SMB,Financial Services,Sales Outbound,Direct / Branded Search,No,11300.0,Closed Lost,2025-11-06,27,Missing feature - approvals
+OPP-5691,2025-10-20,2025-10,Prospect 5691,MER-US,Mid-Market,Financial Services,Retargeting,Retargeting,Yes,78400.0,Closed Lost,2026-01-28,100,Lost to Loop3
+OPP-5692,2025-10-30,2025-10,Prospect 5692,MER-EU,Mid-Market,Technology,Sales Outbound,Sales Outbound,No,137000.0,Closed Won,2026-01-14,76,
+OPP-5693,2025-10-11,2025-10,Prospect 5693,MER-EU,Mid-Market,Technology,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,87400.0,Disqualified,,,
+OPP-5694,2025-10-16,2025-10,Prospect 5694,MER-US,Enterprise,Business Services,Content/SEO,Retargeting,Yes,213300.0,Closed Won,2026-01-25,101,
+OPP-5695,2025-10-04,2025-10,Prospect 5695,MER-US,SMB,Logistics & Transport,Sales Outbound,Direct / Branded Search,No,25000.0,Discovery,,,
+OPP-5696,2025-10-18,2025-10,Prospect 5696,MER-EU,Enterprise,Business Services,Sales Outbound,Email/Lifecycle,No,234000.0,Negotiation,,,
+OPP-5697,2025-10-23,2025-10,Prospect 5697,MER-US,Mid-Market,Logistics & Transport,Email/Lifecycle,Email/Lifecycle,Yes,88000.0,Disqualified,,,
+OPP-5698,2025-10-07,2025-10,Prospect 5698,MER-US,Mid-Market,Financial Services,Events/Field,Retargeting,Yes,56800.0,Disqualified,,,
+OPP-5699,2025-11-19,2025-11,Prospect 5699,MER-US,Enterprise,Healthcare,Partner Co-marketing,Direct / Branded Search,Yes,303300.0,Closed Won,2026-05-22,184,
+OPP-5700,2025-11-23,2025-11,Prospect 5700,MER-US,SMB,Business Services,Partner Co-marketing,Direct / Branded Search,Yes,47700.0,Closed Won,2026-01-02,40,
+OPP-5701,2025-11-06,2025-11,Prospect 5701,MER-US,Mid-Market,Manufacturing,Paid Search,Paid Search,Yes,124600.0,Closed Lost,2026-01-11,66,Price
+OPP-5702,2025-11-14,2025-11,Prospect 5702,MER-US,SMB,Financial Services,Events/Field,Direct / Branded Search,Yes,37700.0,Closed Won,2025-12-04,20,
+OPP-5703,2025-11-18,2025-11,Prospect 5703,MER-EU,SMB,Energy & Utilities,Sales Outbound,Email/Lifecycle,No,47500.0,Disqualified,,,
+OPP-5704,2025-11-15,2025-11,Prospect 5704,MER-US,Mid-Market,Technology,Sales Outbound,Direct / Branded Search,No,62000.0,Closed Won,2026-02-18,95,
+OPP-5705,2025-11-03,2025-11,Prospect 5705,MER-US,SMB,Manufacturing,Webinars,Sales Outbound,Yes,45200.0,Closed Lost,2025-12-11,38,Missing feature - approvals
+OPP-5706,2025-11-23,2025-11,Prospect 5706,MER-EU,Mid-Market,Energy & Utilities,Content/SEO,Direct / Branded Search,Yes,122300.0,Closed Lost,2026-01-24,62,Lost to incumbent
+OPP-5707,2025-11-19,2025-11,Prospect 5707,MER-US,SMB,Healthcare,Content/SEO,Direct / Branded Search,Yes,32400.0,Closed Won,2025-12-29,40,
+OPP-5708,2025-11-18,2025-11,Prospect 5708,MER-US,Mid-Market,Technology,Webinars,Email/Lifecycle,Yes,150500.0,Closed Lost,2026-01-15,58,No decision / budget frozen
+OPP-5709,2025-11-24,2025-11,Prospect 5709,MER-US,SMB,Financial Services,Webinars,Direct / Branded Search,Yes,42000.0,Closed Lost,2025-12-09,15,Missing feature - approvals
+OPP-5710,2025-11-11,2025-11,Prospect 5710,MER-US,SMB,Healthcare,Content/SEO,Content/SEO,Yes,18100.0,Discovery,,,
+OPP-5711,2025-11-28,2025-11,Prospect 5711,MER-EU,SMB,Business Services,Sales Outbound,Retargeting,No,43300.0,Discovery,,,
+OPP-5712,2025-11-15,2025-11,Prospect 5712,MER-US,Mid-Market,Healthcare,Sales Outbound,Sales Outbound,No,67000.0,Closed Won,2026-01-24,70,
+OPP-5713,2025-11-26,2025-11,Prospect 5713,MER-US,SMB,Manufacturing,Webinars,Webinars,Yes,14700.0,Disqualified,,,
+OPP-5714,2025-11-26,2025-11,Prospect 5714,MER-US,SMB,Business Services,Retargeting,Retargeting,Yes,28900.0,Closed Lost,2025-12-29,33,Missing feature - approvals
+OPP-5715,2025-11-10,2025-11,Prospect 5715,MER-EU,Enterprise,Logistics & Transport,Paid Search,Retargeting,Yes,297600.0,Closed Won,2026-02-11,93,
+OPP-5716,2025-11-19,2025-11,Prospect 5716,MER-US,SMB,Healthcare,Review Sites (G2),Direct / Branded Search,Yes,14300.0,Closed Lost,2025-12-01,12,Price
+OPP-5717,2025-11-11,2025-11,Prospect 5717,MER-EU,SMB,Energy & Utilities,Sales Outbound,Retargeting,No,24000.0,Closed Won,2025-12-15,34,
+OPP-5718,2025-11-21,2025-11,Prospect 5718,MER-US,SMB,Technology,Content/SEO,Retargeting,Yes,46500.0,Closed Lost,2025-12-27,36,Timing
+OPP-5719,2025-11-27,2025-11,Prospect 5719,MER-US,Enterprise,Business Services,Webinars,Direct / Branded Search,Yes,235700.0,Closed Lost,2026-05-29,183,Missing feature - approvals
+OPP-5720,2025-11-23,2025-11,Prospect 5720,MER-EU,SMB,Business Services,Paid Search,Paid Search,Yes,28200.0,Closed Won,2025-12-21,28,
+OPP-5721,2025-11-15,2025-11,Prospect 5721,MER-EU,SMB,Energy & Utilities,Sales Outbound,Direct / Branded Search,No,37500.0,Disqualified,,,
+OPP-5722,2025-11-25,2025-11,Prospect 5722,MER-US,SMB,Manufacturing,Content/SEO,Content/SEO,Yes,12600.0,Closed Lost,2026-01-08,44,Lost to incumbent
+OPP-5723,2025-11-16,2025-11,Prospect 5723,MER-EU,SMB,Logistics & Transport,Review Sites (G2),Direct / Branded Search,Yes,36500.0,Closed Won,2025-12-19,33,
+OPP-5724,2025-11-09,2025-11,Prospect 5724,MER-US,SMB,Retail & CPG,Paid Search,Email/Lifecycle,Yes,31800.0,Discovery,,,
+OPP-5725,2025-11-08,2025-11,Prospect 5725,MER-US,SMB,Manufacturing,Email/Lifecycle,Email/Lifecycle,Yes,15100.0,Closed Lost,2025-12-02,24,Lost to incumbent
+OPP-5726,2025-11-20,2025-11,Prospect 5726,MER-US,Mid-Market,Logistics & Transport,Sales Outbound,Sales Outbound,No,82200.0,Disqualified,,,
+OPP-5727,2025-11-13,2025-11,Prospect 5727,MER-US,Mid-Market,Manufacturing,Partner Co-marketing,Partner Co-marketing,Yes,106300.0,Discovery,,,
+OPP-5728,2025-11-04,2025-11,Prospect 5728,MER-US,Enterprise,Financial Services,Content/SEO,Content/SEO,Yes,330400.0,Disqualified,,,
+OPP-5729,2025-11-22,2025-11,Prospect 5729,MER-EU,Mid-Market,Business Services,Retargeting,Direct / Branded Search,Yes,83200.0,Disqualified,,,
+OPP-5730,2025-11-29,2025-11,Prospect 5730,MER-US,SMB,Technology,Webinars,Direct / Branded Search,Yes,12600.0,Disqualified,,,
+OPP-5731,2025-11-15,2025-11,Prospect 5731,MER-US,Mid-Market,Financial Services,Events/Field,Direct / Branded Search,Yes,59100.0,Negotiation,,,
+OPP-5732,2025-11-15,2025-11,Prospect 5732,MER-EU,Mid-Market,Retail & CPG,Sales Outbound,Direct / Branded Search,No,89600.0,Negotiation,,,
+OPP-5733,2025-11-14,2025-11,Prospect 5733,MER-US,SMB,Manufacturing,Email/Lifecycle,Direct / Branded Search,Yes,13400.0,Negotiation,,,
+OPP-5734,2025-11-21,2025-11,Prospect 5734,MER-EU,Enterprise,Business Services,Sales Outbound,Direct / Branded Search,No,221600.0,Disqualified,,,
+OPP-5735,2025-11-12,2025-11,Prospect 5735,MER-US,SMB,Manufacturing,Events/Field,Direct / Branded Search,Yes,31100.0,Discovery,,,
+OPP-5736,2025-11-13,2025-11,Prospect 5736,MER-US,SMB,Retail & CPG,Partner Co-marketing,Direct / Branded Search,Yes,45500.0,Closed Won,2025-12-15,32,
+OPP-5737,2025-11-11,2025-11,Prospect 5737,MER-EU,SMB,Logistics & Transport,Content/SEO,Retargeting,Yes,32300.0,Discovery,,,
+OPP-5738,2025-11-07,2025-11,Prospect 5738,MER-US,Mid-Market,Healthcare,Events/Field,Email/Lifecycle,Yes,69800.0,Discovery,,,
+OPP-5739,2025-11-14,2025-11,Prospect 5739,MER-US,SMB,Retail & CPG,Paid Search,Email/Lifecycle,Yes,37700.0,Disqualified,,,
+OPP-5740,2025-11-12,2025-11,Prospect 5740,MER-EU,Mid-Market,Business Services,Content/SEO,Sales Outbound,Yes,123400.0,Closed Lost,2026-02-03,83,Missing feature - approvals
+OPP-5741,2025-11-06,2025-11,Prospect 5741,MER-US,Mid-Market,Technology,Webinars,Direct / Branded Search,Yes,86600.0,Closed Won,2026-02-11,97,
+OPP-5742,2025-11-17,2025-11,Prospect 5742,MER-US,SMB,Technology,Events/Field,Direct / Branded Search,Yes,46000.0,Closed Lost,2025-12-10,23,Price
+OPP-5743,2025-11-20,2025-11,Prospect 5743,MER-US,SMB,Technology,Content/SEO,Direct / Branded Search,Yes,20600.0,Closed Lost,2025-12-26,36,Lost to Loop3
+OPP-5744,2025-11-23,2025-11,Prospect 5744,MER-EU,Mid-Market,Logistics & Transport,Sales Outbound,Sales Outbound,No,126800.0,Closed Lost,2026-01-12,50,Price
+OPP-5745,2025-11-05,2025-11,Prospect 5745,MER-US,Enterprise,Energy & Utilities,Events/Field,Events/Field,Yes,292700.0,Closed Lost,2026-03-06,121,No decision / budget frozen
+OPP-5746,2025-11-22,2025-11,Prospect 5746,MER-EU,SMB,Business Services,Sales Outbound,Sales Outbound,No,17000.0,Negotiation,,,
+OPP-5747,2025-11-21,2025-11,Prospect 5747,MER-US,Enterprise,Business Services,Retargeting,Direct / Branded Search,Yes,188700.0,Closed Won,2026-04-25,155,
+OPP-5748,2025-11-26,2025-11,Prospect 5748,MER-US,SMB,Financial Services,Review Sites (G2),Review Sites (G2),Yes,15400.0,Discovery,,,
+OPP-5749,2025-11-18,2025-11,Prospect 5749,MER-US,SMB,Healthcare,Content/SEO,Sales Outbound,Yes,23700.0,Discovery,,,
+OPP-5750,2025-11-03,2025-11,Prospect 5750,MER-US,SMB,Logistics & Transport,Sales Outbound,Sales Outbound,No,33200.0,Disqualified,,,
+OPP-5751,2025-11-10,2025-11,Prospect 5751,MER-US,Mid-Market,Energy & Utilities,Events/Field,Email/Lifecycle,Yes,57400.0,Closed Lost,2026-01-24,75,Missing feature - approvals
+OPP-5752,2025-11-11,2025-11,Prospect 5752,MER-EU,Enterprise,Business Services,Review Sites (G2),Review Sites (G2),Yes,351700.0,Closed Lost,2026-03-30,139,Price
+OPP-5753,2025-11-05,2025-11,Prospect 5753,MER-US,SMB,Energy & Utilities,Paid Social - Meta,Paid Social - Meta,Yes,43600.0,Closed Lost,2025-11-17,12,No decision / budget frozen
+OPP-5754,2025-11-16,2025-11,Prospect 5754,MER-US,Mid-Market,Retail & CPG,Sales Outbound,Direct / Branded Search,No,164500.0,Closed Won,2026-01-12,57,
+OPP-5755,2025-11-03,2025-11,Prospect 5755,MER-US,SMB,Logistics & Transport,Retargeting,Email/Lifecycle,Yes,25400.0,Negotiation,,,
+OPP-5756,2025-11-24,2025-11,Prospect 5756,MER-US,SMB,Financial Services,Sales Outbound,Email/Lifecycle,No,40900.0,Negotiation,,,
+OPP-5757,2025-11-04,2025-11,Prospect 5757,MER-US,Enterprise,Technology,Webinars,Retargeting,Yes,349600.0,Closed Won,2026-03-31,147,
+OPP-5758,2025-11-17,2025-11,Prospect 5758,MER-US,SMB,Healthcare,Sales Outbound,Direct / Branded Search,No,23500.0,Closed Won,2025-11-30,13,
+OPP-5759,2025-11-28,2025-11,Prospect 5759,MER-US,Mid-Market,Healthcare,Content/SEO,Content/SEO,Yes,113000.0,Discovery,,,
+OPP-5760,2025-11-16,2025-11,Prospect 5760,MER-EU,Mid-Market,Energy & Utilities,Paid Search,Paid Search,Yes,160400.0,Closed Lost,2026-02-24,100,Timing
+OPP-5761,2025-11-15,2025-11,Prospect 5761,MER-EU,Enterprise,Technology,Content/SEO,Content/SEO,Yes,309200.0,Disqualified,,,
+OPP-5762,2025-11-28,2025-11,Prospect 5762,MER-EU,SMB,Technology,Paid Search,Retargeting,Yes,36800.0,Closed Lost,2025-12-13,15,Timing
+OPP-5763,2025-11-03,2025-11,Prospect 5763,MER-EU,SMB,Logistics & Transport,Sales Outbound,Email/Lifecycle,No,12200.0,Closed Lost,2025-11-22,19,No decision / budget frozen
+OPP-5764,2025-11-14,2025-11,Prospect 5764,MER-US,SMB,Manufacturing,Review Sites (G2),Review Sites (G2),Yes,36800.0,Closed Lost,2025-12-14,30,Missing feature - approvals
+OPP-5765,2025-11-03,2025-11,Prospect 5765,MER-US,Mid-Market,Retail & CPG,Paid Social - LinkedIn,Retargeting,Yes,100400.0,Negotiation,,,
+OPP-5766,2025-11-26,2025-11,Prospect 5766,MER-US,Mid-Market,Logistics & Transport,Review Sites (G2),Review Sites (G2),Yes,94700.0,Closed Lost,2026-02-16,82,No decision / budget frozen
+OPP-5767,2025-11-25,2025-11,Prospect 5767,MER-US,SMB,Business Services,Paid Search,Paid Search,Yes,15700.0,Disqualified,,,
+OPP-5768,2025-11-16,2025-11,Prospect 5768,MER-US,Mid-Market,Healthcare,Paid Social - Meta,Email/Lifecycle,Yes,101600.0,Disqualified,,,
+OPP-5769,2025-11-21,2025-11,Prospect 5769,MER-US,Mid-Market,Retail & CPG,Events/Field,Direct / Branded Search,Yes,88800.0,Discovery,,,
+OPP-5770,2025-12-24,2025-12,Prospect 5770,MER-US,Mid-Market,Healthcare,Sales Outbound,Sales Outbound,No,75100.0,Disqualified,,,
+OPP-5771,2025-12-27,2025-12,Prospect 5771,MER-US,SMB,Retail & CPG,Paid Search,Direct / Branded Search,Yes,43200.0,Closed Won,2026-01-26,30,
+OPP-5772,2025-12-11,2025-12,Prospect 5772,MER-US,SMB,Healthcare,Paid Search,Direct / Branded Search,Yes,34800.0,Disqualified,,,
+OPP-5773,2025-12-29,2025-12,Prospect 5773,MER-US,SMB,Financial Services,Webinars,Direct / Branded Search,Yes,29400.0,Closed Lost,2026-02-10,43,Price
+OPP-5774,2025-12-14,2025-12,Prospect 5774,MER-US,SMB,Retail & CPG,Sales Outbound,Sales Outbound,No,37500.0,Closed Lost,2025-12-30,16,No decision / budget frozen
+OPP-5775,2025-12-10,2025-12,Prospect 5775,MER-EU,Enterprise,Healthcare,Partner Co-marketing,Partner Co-marketing,Yes,256400.0,Closed Lost,2026-03-16,96,Lost to incumbent
+OPP-5776,2025-12-31,2025-12,Prospect 5776,MER-US,SMB,Retail & CPG,Content/SEO,Direct / Branded Search,Yes,28000.0,Closed Lost,2026-01-30,30,Timing
+OPP-5777,2025-12-26,2025-12,Prospect 5777,MER-US,SMB,Logistics & Transport,Sales Outbound,Email/Lifecycle,No,32000.0,Discovery,,,
+OPP-5778,2025-12-10,2025-12,Prospect 5778,MER-US,Mid-Market,Energy & Utilities,Content/SEO,Direct / Branded Search,Yes,66000.0,Closed Lost,2026-01-28,49,Lost to incumbent
+OPP-5779,2025-12-29,2025-12,Prospect 5779,MER-EU,Mid-Market,Energy & Utilities,Retargeting,Retargeting,Yes,79800.0,Closed Won,2026-02-22,55,
+OPP-5780,2025-12-04,2025-12,Prospect 5780,MER-EU,SMB,Energy & Utilities,Sales Outbound,Retargeting,No,21600.0,Closed Lost,2025-12-26,22,Missing feature - approvals
+OPP-5781,2025-12-05,2025-12,Prospect 5781,MER-US,SMB,Energy & Utilities,Sales Outbound,Sales Outbound,No,44200.0,Disqualified,,,
+OPP-5782,2025-12-29,2025-12,Prospect 5782,MER-US,SMB,Healthcare,Partner Co-marketing,Email/Lifecycle,Yes,23600.0,Discovery,,,
+OPP-5783,2025-12-18,2025-12,Prospect 5783,MER-US,SMB,Business Services,Sales Outbound,Sales Outbound,No,12600.0,Closed Lost,2026-01-30,43,Price
+OPP-5784,2025-12-13,2025-12,Prospect 5784,MER-US,SMB,Energy & Utilities,Content/SEO,Email/Lifecycle,Yes,14500.0,Discovery,,,
+OPP-5785,2025-12-16,2025-12,Prospect 5785,MER-US,Mid-Market,Technology,Sales Outbound,Retargeting,No,102300.0,Closed Lost,2026-03-20,94,Lost to incumbent
+OPP-5786,2025-12-31,2025-12,Prospect 5786,MER-US,Mid-Market,Energy & Utilities,Webinars,Direct / Branded Search,Yes,99800.0,Discovery,,,
+OPP-5787,2025-12-28,2025-12,Prospect 5787,MER-US,Mid-Market,Energy & Utilities,Content/SEO,Sales Outbound,Yes,121300.0,Closed Won,2026-02-25,59,
+OPP-5788,2025-12-08,2025-12,Prospect 5788,MER-EU,SMB,Financial Services,Webinars,Webinars,Yes,22400.0,Closed Lost,2025-12-23,15,Lost to Loop3
+OPP-5789,2025-12-17,2025-12,Prospect 5789,MER-US,Mid-Market,Technology,Sales Outbound,Sales Outbound,No,89300.0,Closed Lost,2026-01-26,40,Lost to Loop3
+OPP-5790,2025-12-16,2025-12,Prospect 5790,MER-US,Mid-Market,Retail & CPG,Paid Search,Direct / Branded Search,Yes,82600.0,Disqualified,,,
+OPP-5791,2025-12-26,2025-12,Prospect 5791,MER-US,Enterprise,Healthcare,Events/Field,Events/Field,Yes,208400.0,Closed Lost,2026-05-28,153,Missing feature - approvals
+OPP-5792,2025-12-28,2025-12,Prospect 5792,MER-US,Mid-Market,Logistics & Transport,Paid Search,Email/Lifecycle,Yes,104700.0,Closed Lost,2026-02-10,44,Lost to Loop3
+OPP-5793,2025-12-27,2025-12,Prospect 5793,MER-US,SMB,Logistics & Transport,Retargeting,Sales Outbound,Yes,12900.0,Discovery,,,
+OPP-5794,2025-12-12,2025-12,Prospect 5794,MER-US,SMB,Healthcare,Email/Lifecycle,Email/Lifecycle,Yes,21900.0,Discovery,,,
+OPP-5795,2025-12-25,2025-12,Prospect 5795,MER-EU,Mid-Market,Logistics & Transport,Sales Outbound,Retargeting,No,111900.0,Closed Won,2026-02-25,62,
+OPP-5796,2025-12-08,2025-12,Prospect 5796,MER-US,Mid-Market,Logistics & Transport,Events/Field,Retargeting,Yes,89300.0,Closed Lost,2026-01-29,52,Lost to Loop3
+OPP-5797,2025-12-16,2025-12,Prospect 5797,MER-EU,SMB,Retail & CPG,Partner Co-marketing,Direct / Branded Search,Yes,28300.0,Discovery,,,
+OPP-5798,2025-12-25,2025-12,Prospect 5798,MER-US,Mid-Market,Manufacturing,Sales Outbound,Email/Lifecycle,No,92800.0,Negotiation,,,
+OPP-5799,2025-12-18,2025-12,Prospect 5799,MER-EU,Mid-Market,Technology,Sales Outbound,Sales Outbound,No,65800.0,Closed Won,2026-02-06,50,
+OPP-5800,2025-12-24,2025-12,Prospect 5800,MER-US,Mid-Market,Business Services,Paid Search,Email/Lifecycle,Yes,52800.0,Negotiation,,,
+OPP-5801,2025-12-06,2025-12,Prospect 5801,MER-US,Mid-Market,Retail & CPG,Paid Social - Meta,Paid Social - Meta,Yes,131500.0,Disqualified,,,
+OPP-5802,2025-12-07,2025-12,Prospect 5802,MER-US,SMB,Energy & Utilities,Retargeting,Retargeting,Yes,24500.0,Closed Lost,2025-12-20,13,Timing
+OPP-5803,2025-12-06,2025-12,Prospect 5803,MER-US,Mid-Market,Technology,Sales Outbound,Direct / Branded Search,No,154900.0,Closed Won,2026-03-21,105,
+OPP-5804,2025-12-29,2025-12,Prospect 5804,MER-EU,SMB,Manufacturing,Paid Social - LinkedIn,Email/Lifecycle,Yes,20800.0,Closed Won,2026-01-21,23,
+OPP-5805,2025-12-28,2025-12,Prospect 5805,MER-US,Mid-Market,Business Services,Content/SEO,Retargeting,Yes,103900.0,Closed Lost,2026-03-19,81,No decision / budget frozen
+OPP-5806,2025-12-20,2025-12,Prospect 5806,MER-US,SMB,Manufacturing,Paid Search,Paid Search,Yes,28900.0,Discovery,,,
+OPP-5807,2025-12-11,2025-12,Prospect 5807,MER-US,Mid-Market,Manufacturing,Retargeting,Sales Outbound,Yes,159300.0,Closed Lost,2026-01-29,49,No decision / budget frozen
+OPP-5808,2025-12-27,2025-12,Prospect 5808,MER-US,Mid-Market,Healthcare,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,87800.0,Closed Lost,2026-02-18,53,Timing
+OPP-5809,2025-12-29,2025-12,Prospect 5809,MER-EU,Mid-Market,Technology,Paid Search,Direct / Branded Search,Yes,103500.0,Discovery,,,
+OPP-5810,2025-12-13,2025-12,Prospect 5810,MER-US,Mid-Market,Business Services,Events/Field,Sales Outbound,Yes,157800.0,Discovery,,,
+OPP-5811,2025-12-14,2025-12,Prospect 5811,MER-US,Mid-Market,Retail & CPG,Email/Lifecycle,Email/Lifecycle,Yes,140400.0,Discovery,,,
+OPP-5812,2025-12-27,2025-12,Prospect 5812,MER-US,SMB,Retail & CPG,Content/SEO,Content/SEO,Yes,47900.0,Closed Lost,2026-02-09,44,No decision / budget frozen
+OPP-5813,2025-12-10,2025-12,Prospect 5813,MER-US,Enterprise,Financial Services,Sales Outbound,Email/Lifecycle,No,248100.0,Closed Won,2026-06-11,183,
+OPP-5814,2025-12-04,2025-12,Prospect 5814,MER-EU,Mid-Market,Retail & CPG,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,70800.0,Negotiation,,,
+OPP-5815,2025-12-15,2025-12,Prospect 5815,MER-US,Mid-Market,Healthcare,Sales Outbound,Sales Outbound,No,88900.0,Closed Lost,2026-02-04,51,Missing feature - approvals
+OPP-5816,2025-12-09,2025-12,Prospect 5816,MER-US,SMB,Manufacturing,Sales Outbound,Sales Outbound,No,32500.0,Discovery,,,
+OPP-5817,2025-12-30,2025-12,Prospect 5817,MER-US,Mid-Market,Logistics & Transport,Sales Outbound,Sales Outbound,No,144900.0,Disqualified,,,
+OPP-5818,2025-12-14,2025-12,Prospect 5818,MER-US,SMB,Manufacturing,Events/Field,Events/Field,Yes,19900.0,Discovery,,,
+OPP-5819,2025-12-07,2025-12,Prospect 5819,MER-EU,SMB,Business Services,Events/Field,Direct / Branded Search,Yes,12200.0,Closed Won,2026-01-05,29,
+OPP-5820,2025-12-25,2025-12,Prospect 5820,MER-US,SMB,Financial Services,Email/Lifecycle,Retargeting,Yes,12000.0,Closed Lost,2026-01-20,26,Lost to Loop3
+OPP-5821,2025-12-17,2025-12,Prospect 5821,MER-US,SMB,Logistics & Transport,Content/SEO,Email/Lifecycle,Yes,11300.0,Closed Lost,2026-01-17,31,Missing feature - approvals
+OPP-5822,2025-12-09,2025-12,Prospect 5822,MER-US,SMB,Technology,Review Sites (G2),Review Sites (G2),Yes,20900.0,Disqualified,,,
+OPP-5823,2025-12-11,2025-12,Prospect 5823,MER-US,Mid-Market,Logistics & Transport,Partner Co-marketing,Email/Lifecycle,Yes,63800.0,Closed Won,2026-03-12,91,
+OPP-5824,2025-12-22,2025-12,Prospect 5824,MER-US,SMB,Manufacturing,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,11100.0,Negotiation,,,
+OPP-5825,2025-12-05,2025-12,Prospect 5825,MER-US,SMB,Business Services,Sales Outbound,Sales Outbound,No,29600.0,Closed Won,2026-01-02,28,
+OPP-5826,2026-01-23,2026-01,Prospect 5826,MER-US,Mid-Market,Logistics & Transport,Content/SEO,Direct / Branded Search,Yes,59500.0,Discovery,,,
+OPP-5827,2026-01-16,2026-01,Prospect 5827,MER-US,Enterprise,Technology,Review Sites (G2),Review Sites (G2),Yes,192100.0,Discovery,,,
+OPP-5828,2026-01-04,2026-01,Prospect 5828,MER-US,SMB,Business Services,Partner Co-marketing,Sales Outbound,Yes,21100.0,Disqualified,,,
+OPP-5829,2026-01-10,2026-01,Prospect 5829,MER-US,Mid-Market,Manufacturing,Paid Search,Sales Outbound,Yes,67000.0,Disqualified,,,
+OPP-5830,2026-01-18,2026-01,Prospect 5830,MER-US,Mid-Market,Retail & CPG,Email/Lifecycle,Direct / Branded Search,Yes,113800.0,Discovery,,,
+OPP-5831,2026-01-09,2026-01,Prospect 5831,MER-US,Enterprise,Energy & Utilities,Content/SEO,Direct / Branded Search,Yes,299400.0,Discovery,,,
+OPP-5832,2026-01-05,2026-01,Prospect 5832,MER-US,Enterprise,Technology,Content/SEO,Email/Lifecycle,Yes,195300.0,Closed Lost,2026-06-04,150,Missing feature - approvals
+OPP-5833,2026-01-17,2026-01,Prospect 5833,MER-US,Mid-Market,Financial Services,Retargeting,Retargeting,Yes,132700.0,Disqualified,,,
+OPP-5834,2026-01-06,2026-01,Prospect 5834,MER-US,SMB,Business Services,Partner Co-marketing,Partner Co-marketing,Yes,23600.0,Closed Lost,2026-02-04,29,Lost to Loop3
+OPP-5835,2026-01-29,2026-01,Prospect 5835,MER-US,SMB,Healthcare,Paid Social - LinkedIn,Email/Lifecycle,Yes,42800.0,Negotiation,,,
+OPP-5836,2026-01-20,2026-01,Prospect 5836,MER-US,SMB,Energy & Utilities,Paid Social - LinkedIn,Direct / Branded Search,Yes,35400.0,Discovery,,,
+OPP-5837,2026-01-24,2026-01,Prospect 5837,MER-US,SMB,Healthcare,Paid Search,Paid Search,Yes,12500.0,Closed Lost,2026-02-28,35,Missing feature - approvals
+OPP-5838,2026-01-28,2026-01,Prospect 5838,MER-US,SMB,Energy & Utilities,Sales Outbound,Sales Outbound,No,32700.0,Closed Lost,2026-02-28,31,Timing
+OPP-5839,2026-01-21,2026-01,Prospect 5839,MER-EU,Mid-Market,Business Services,Content/SEO,Content/SEO,Yes,103300.0,Disqualified,,,
+OPP-5840,2026-01-13,2026-01,Prospect 5840,MER-EU,SMB,Healthcare,Paid Social - LinkedIn,Direct / Branded Search,Yes,45300.0,Closed Lost,2026-02-01,19,Price
+OPP-5841,2026-01-06,2026-01,Prospect 5841,MER-US,Mid-Market,Technology,Email/Lifecycle,Direct / Branded Search,Yes,63500.0,Closed Won,2026-02-15,40,
+OPP-5842,2026-01-09,2026-01,Prospect 5842,MER-US,SMB,Technology,Partner Co-marketing,Direct / Branded Search,Yes,30600.0,Discovery,,,
+OPP-5843,2026-01-11,2026-01,Prospect 5843,MER-EU,Mid-Market,Retail & CPG,Webinars,Direct / Branded Search,Yes,68800.0,Discovery,,,
+OPP-5844,2026-01-04,2026-01,Prospect 5844,MER-US,SMB,Business Services,Events/Field,Events/Field,Yes,22800.0,Closed Won,2026-01-30,26,
+OPP-5845,2026-01-26,2026-01,Prospect 5845,MER-US,Enterprise,Business Services,Webinars,Email/Lifecycle,Yes,283200.0,Disqualified,,,
+OPP-5846,2026-01-08,2026-01,Prospect 5846,MER-US,Mid-Market,Healthcare,Paid Search,Direct / Branded Search,Yes,55500.0,Closed Won,2026-02-24,47,
+OPP-5847,2026-01-31,2026-01,Prospect 5847,MER-US,Mid-Market,Healthcare,Paid Social - LinkedIn,Retargeting,Yes,110900.0,Disqualified,,,
+OPP-5848,2026-01-09,2026-01,Prospect 5848,MER-EU,Mid-Market,Healthcare,Webinars,Email/Lifecycle,Yes,96700.0,Discovery,,,
+OPP-5849,2026-01-10,2026-01,Prospect 5849,MER-US,Mid-Market,Logistics & Transport,Partner Co-marketing,Partner Co-marketing,Yes,57400.0,Closed Won,2026-03-27,76,
+OPP-5850,2026-01-29,2026-01,Prospect 5850,MER-EU,Mid-Market,Business Services,Paid Social - LinkedIn,Direct / Branded Search,Yes,159800.0,Closed Won,2026-04-05,66,
+OPP-5851,2026-01-24,2026-01,Prospect 5851,MER-US,SMB,Business Services,Paid Search,Direct / Branded Search,Yes,20200.0,Closed Lost,2026-02-10,17,Missing feature - approvals
+OPP-5852,2026-01-27,2026-01,Prospect 5852,MER-EU,Mid-Market,Healthcare,Partner Co-marketing,Direct / Branded Search,Yes,53300.0,Negotiation,,,
+OPP-5853,2026-01-05,2026-01,Prospect 5853,MER-US,Mid-Market,Healthcare,Review Sites (G2),Email/Lifecycle,Yes,164600.0,Closed Lost,2026-04-20,105,Lost to incumbent
+OPP-5854,2026-01-26,2026-01,Prospect 5854,MER-EU,SMB,Financial Services,Review Sites (G2),Review Sites (G2),Yes,16800.0,Negotiation,,,
+OPP-5855,2026-01-04,2026-01,Prospect 5855,MER-US,Mid-Market,Healthcare,Paid Search,Direct / Branded Search,Yes,145000.0,Closed Won,2026-03-16,71,
+OPP-5856,2026-01-08,2026-01,Prospect 5856,MER-EU,SMB,Logistics & Transport,Paid Social - LinkedIn,Sales Outbound,Yes,44800.0,Discovery,,,
+OPP-5857,2026-01-31,2026-01,Prospect 5857,MER-EU,SMB,Financial Services,Paid Social - LinkedIn,Email/Lifecycle,Yes,32900.0,Closed Lost,2026-03-03,31,Price
+OPP-5858,2026-01-27,2026-01,Prospect 5858,MER-EU,SMB,Business Services,Paid Search,Retargeting,Yes,25300.0,Closed Lost,2026-03-03,35,Missing feature - approvals
+OPP-5859,2026-01-04,2026-01,Prospect 5859,MER-EU,SMB,Technology,Events/Field,Email/Lifecycle,Yes,46900.0,Disqualified,,,
+OPP-5860,2026-01-13,2026-01,Prospect 5860,MER-US,Mid-Market,Technology,Events/Field,Direct / Branded Search,Yes,91200.0,Closed Lost,2026-04-02,79,Lost to Loop3
+OPP-5861,2026-01-19,2026-01,Prospect 5861,MER-US,Mid-Market,Retail & CPG,Content/SEO,Retargeting,Yes,84500.0,Closed Lost,2026-03-14,54,Price
+OPP-5862,2026-01-10,2026-01,Prospect 5862,MER-US,Mid-Market,Logistics & Transport,Content/SEO,Content/SEO,Yes,115600.0,Closed Lost,2026-02-22,43,Lost to Loop3
+OPP-5863,2026-01-18,2026-01,Prospect 5863,MER-US,Mid-Market,Energy & Utilities,Webinars,Email/Lifecycle,Yes,66600.0,Negotiation,,,
+OPP-5864,2026-01-11,2026-01,Prospect 5864,MER-US,Mid-Market,Manufacturing,Paid Social - Meta,Paid Social - Meta,Yes,75100.0,Closed Lost,2026-03-23,71,No decision / budget frozen
+OPP-5865,2026-01-18,2026-01,Prospect 5865,MER-EU,SMB,Technology,Content/SEO,Direct / Branded Search,Yes,24400.0,Discovery,,,
+OPP-5866,2026-01-25,2026-01,Prospect 5866,MER-US,SMB,Financial Services,Paid Search,Sales Outbound,Yes,19500.0,Negotiation,,,
+OPP-5867,2026-01-10,2026-01,Prospect 5867,MER-US,Mid-Market,Financial Services,Paid Search,Paid Search,Yes,60400.0,Closed Lost,2026-04-24,104,Missing feature - approvals
+OPP-5868,2026-01-06,2026-01,Prospect 5868,MER-US,SMB,Business Services,Events/Field,Events/Field,Yes,32000.0,Discovery,,,
+OPP-5869,2026-01-11,2026-01,Prospect 5869,MER-US,Mid-Market,Business Services,Sales Outbound,Direct / Branded Search,No,109100.0,Closed Lost,2026-02-20,40,Timing
+OPP-5870,2026-01-11,2026-01,Prospect 5870,MER-US,SMB,Technology,Content/SEO,Direct / Branded Search,Yes,20900.0,Negotiation,,,
+OPP-5871,2026-01-28,2026-01,Prospect 5871,MER-US,SMB,Financial Services,Sales Outbound,Direct / Branded Search,No,23300.0,Discovery,,,
+OPP-5872,2026-01-19,2026-01,Prospect 5872,MER-US,SMB,Financial Services,Content/SEO,Content/SEO,Yes,32200.0,Negotiation,,,
+OPP-5873,2026-01-07,2026-01,Prospect 5873,MER-US,Enterprise,Business Services,Content/SEO,Sales Outbound,Yes,279600.0,Closed Won,2026-04-21,104,
+OPP-5874,2026-01-20,2026-01,Prospect 5874,MER-US,SMB,Technology,Paid Search,Direct / Branded Search,Yes,41700.0,Discovery,,,
+OPP-5875,2026-01-22,2026-01,Prospect 5875,MER-US,Enterprise,Business Services,Sales Outbound,Direct / Branded Search,No,189500.0,Negotiation,,,
+OPP-5876,2026-01-10,2026-01,Prospect 5876,MER-US,Mid-Market,Financial Services,Content/SEO,Direct / Branded Search,Yes,103600.0,Closed Won,2026-03-19,68,
+OPP-5877,2026-01-31,2026-01,Prospect 5877,MER-EU,SMB,Financial Services,Content/SEO,Content/SEO,Yes,42700.0,Closed Lost,2026-03-09,37,Price
+OPP-5878,2026-01-31,2026-01,Prospect 5878,MER-US,SMB,Healthcare,Webinars,Direct / Branded Search,Yes,14900.0,Closed Won,2026-03-05,33,
+OPP-5879,2026-01-28,2026-01,Prospect 5879,MER-EU,SMB,Retail & CPG,Sales Outbound,Direct / Branded Search,No,37700.0,Closed Lost,2026-03-14,45,No decision / budget frozen
+OPP-5880,2026-01-19,2026-01,Prospect 5880,MER-US,SMB,Technology,Review Sites (G2),Review Sites (G2),Yes,24300.0,Discovery,,,
+OPP-5881,2026-01-07,2026-01,Prospect 5881,MER-EU,Mid-Market,Logistics & Transport,Sales Outbound,Direct / Branded Search,No,109300.0,Closed Lost,2026-03-11,63,Missing feature - approvals
+OPP-5882,2026-01-14,2026-01,Prospect 5882,MER-US,SMB,Manufacturing,Sales Outbound,Retargeting,No,19300.0,Closed Won,2026-02-10,27,
+OPP-5883,2026-01-09,2026-01,Prospect 5883,MER-EU,Enterprise,Healthcare,Paid Social - LinkedIn,Email/Lifecycle,Yes,293500.0,Closed Won,2026-06-13,155,
+OPP-5884,2026-01-22,2026-01,Prospect 5884,MER-US,SMB,Logistics & Transport,Sales Outbound,Sales Outbound,No,28900.0,Discovery,,,
+OPP-5885,2026-01-09,2026-01,Prospect 5885,MER-US,SMB,Healthcare,Paid Search,Sales Outbound,Yes,46100.0,Closed Lost,2026-02-10,32,Timing
+OPP-5886,2026-01-29,2026-01,Prospect 5886,MER-EU,Mid-Market,Technology,Content/SEO,Retargeting,Yes,63900.0,Closed Lost,2026-04-25,86,No decision / budget frozen
+OPP-5887,2026-01-06,2026-01,Prospect 5887,MER-US,SMB,Business Services,Sales Outbound,Sales Outbound,No,28300.0,Discovery,,,
+OPP-5888,2026-01-07,2026-01,Prospect 5888,MER-EU,SMB,Technology,Sales Outbound,Sales Outbound,No,44400.0,Closed Lost,2026-01-19,12,Lost to incumbent
+OPP-5889,2026-01-14,2026-01,Prospect 5889,MER-EU,SMB,Technology,Events/Field,Events/Field,Yes,34500.0,Closed Lost,2026-02-07,24,No decision / budget frozen
+OPP-5890,2026-01-26,2026-01,Prospect 5890,MER-US,Mid-Market,Technology,Sales Outbound,Sales Outbound,No,134900.0,Discovery,,,
+OPP-5891,2026-01-21,2026-01,Prospect 5891,MER-US,SMB,Healthcare,Content/SEO,Retargeting,Yes,15300.0,Closed Lost,2026-02-05,15,Missing feature - approvals
+OPP-5892,2026-01-24,2026-01,Prospect 5892,MER-US,Mid-Market,Retail & CPG,Paid Search,Paid Search,Yes,78000.0,Closed Lost,2026-04-08,74,Price
+OPP-5893,2026-01-30,2026-01,Prospect 5893,MER-EU,SMB,Manufacturing,Retargeting,Direct / Branded Search,Yes,14800.0,Disqualified,,,
+OPP-5894,2026-01-25,2026-01,Prospect 5894,MER-US,Mid-Market,Logistics & Transport,Partner Co-marketing,Direct / Branded Search,Yes,140500.0,Disqualified,,,
+OPP-5895,2026-01-12,2026-01,Prospect 5895,MER-US,Mid-Market,Financial Services,Content/SEO,Content/SEO,Yes,129700.0,Closed Won,2026-02-20,39,
+OPP-5896,2026-01-26,2026-01,Prospect 5896,MER-US,Mid-Market,Energy & Utilities,Sales Outbound,Direct / Branded Search,No,139100.0,Closed Won,2026-04-08,72,
+OPP-5897,2026-01-29,2026-01,Prospect 5897,MER-EU,Mid-Market,Retail & CPG,Events/Field,Sales Outbound,Yes,84100.0,Disqualified,,,
+OPP-5898,2026-02-22,2026-02,Prospect 5898,MER-EU,SMB,Logistics & Transport,Webinars,Email/Lifecycle,Yes,39400.0,Closed Lost,2026-03-30,36,Timing
+OPP-5899,2026-02-16,2026-02,Prospect 5899,MER-US,Enterprise,Logistics & Transport,Paid Social - Meta,Paid Social - Meta,Yes,307600.0,Closed Lost,2026-05-25,98,No decision / budget frozen
+OPP-5900,2026-02-21,2026-02,Prospect 5900,MER-US,Mid-Market,Technology,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,135300.0,Closed Won,2026-04-26,64,
+OPP-5901,2026-02-05,2026-02,Prospect 5901,MER-US,Mid-Market,Logistics & Transport,Content/SEO,Content/SEO,Yes,87000.0,Closed Won,2026-03-23,46,
+OPP-5902,2026-02-19,2026-02,Prospect 5902,MER-US,SMB,Energy & Utilities,Events/Field,Sales Outbound,Yes,39600.0,Closed Lost,2026-03-12,21,Missing feature - approvals
+OPP-5903,2026-02-06,2026-02,Prospect 5903,MER-US,SMB,Business Services,Sales Outbound,Direct / Branded Search,No,47900.0,Discovery,,,
+OPP-5904,2026-02-22,2026-02,Prospect 5904,MER-US,Mid-Market,Healthcare,Webinars,Sales Outbound,Yes,132300.0,Discovery,,,
+OPP-5905,2026-02-12,2026-02,Prospect 5905,MER-EU,SMB,Retail & CPG,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,31800.0,Closed Lost,2026-03-18,34,Price
+OPP-5906,2026-02-11,2026-02,Prospect 5906,MER-EU,Mid-Market,Energy & Utilities,Sales Outbound,Retargeting,No,60300.0,Disqualified,,,
+OPP-5907,2026-02-18,2026-02,Prospect 5907,MER-EU,Mid-Market,Business Services,Sales Outbound,Sales Outbound,No,95400.0,Closed Won,2026-05-05,76,
+OPP-5908,2026-02-22,2026-02,Prospect 5908,MER-US,Mid-Market,Retail & CPG,Sales Outbound,Email/Lifecycle,No,88000.0,Closed Lost,2026-05-08,75,Lost to Loop3
+OPP-5909,2026-02-09,2026-02,Prospect 5909,MER-US,Mid-Market,Financial Services,Sales Outbound,Email/Lifecycle,No,69900.0,Disqualified,,,
+OPP-5910,2026-02-04,2026-02,Prospect 5910,MER-US,Mid-Market,Energy & Utilities,Content/SEO,Content/SEO,Yes,106200.0,Negotiation,,,
+OPP-5911,2026-02-27,2026-02,Prospect 5911,MER-US,Mid-Market,Manufacturing,Sales Outbound,Sales Outbound,No,76700.0,Discovery,,,
+OPP-5912,2026-02-09,2026-02,Prospect 5912,MER-US,Mid-Market,Logistics & Transport,Sales Outbound,Sales Outbound,No,102300.0,Disqualified,,,
+OPP-5913,2026-02-11,2026-02,Prospect 5913,MER-US,Mid-Market,Retail & CPG,Sales Outbound,Sales Outbound,No,103200.0,Discovery,,,
+OPP-5914,2026-02-28,2026-02,Prospect 5914,MER-US,SMB,Business Services,Sales Outbound,Direct / Branded Search,No,45100.0,Closed Won,2026-03-29,29,
+OPP-5915,2026-02-15,2026-02,Prospect 5915,MER-US,Mid-Market,Healthcare,Content/SEO,Email/Lifecycle,Yes,76900.0,Discovery,,,
+OPP-5916,2026-02-05,2026-02,Prospect 5916,MER-EU,Mid-Market,Manufacturing,Paid Social - LinkedIn,Direct / Branded Search,Yes,144800.0,Closed Lost,2026-03-19,42,Missing feature - approvals
+OPP-5917,2026-02-09,2026-02,Prospect 5917,MER-US,SMB,Logistics & Transport,Sales Outbound,Direct / Branded Search,No,25900.0,Closed Won,2026-03-18,37,
+OPP-5918,2026-02-07,2026-02,Prospect 5918,MER-US,Mid-Market,Energy & Utilities,Content/SEO,Content/SEO,Yes,106900.0,Closed Won,2026-05-01,83,
+OPP-5919,2026-02-04,2026-02,Prospect 5919,MER-US,SMB,Retail & CPG,Review Sites (G2),Direct / Branded Search,Yes,11500.0,Closed Won,2026-03-02,26,
+OPP-5920,2026-02-22,2026-02,Prospect 5920,MER-EU,Mid-Market,Healthcare,Paid Search,Paid Search,Yes,82200.0,Closed Won,2026-05-14,81,
+OPP-5921,2026-02-11,2026-02,Prospect 5921,MER-US,SMB,Logistics & Transport,Retargeting,Retargeting,Yes,15600.0,Closed Won,2026-03-12,29,
+OPP-5922,2026-02-08,2026-02,Prospect 5922,MER-US,SMB,Technology,Sales Outbound,Sales Outbound,No,32000.0,Closed Lost,2026-03-07,27,No decision / budget frozen
+OPP-5923,2026-02-02,2026-02,Prospect 5923,MER-US,Mid-Market,Financial Services,Events/Field,Events/Field,Yes,130600.0,Closed Won,2026-05-03,90,
+OPP-5924,2026-02-21,2026-02,Prospect 5924,MER-EU,Enterprise,Financial Services,Partner Co-marketing,Direct / Branded Search,Yes,242100.0,Discovery,,,
+OPP-5925,2026-02-03,2026-02,Prospect 5925,MER-US,Mid-Market,Energy & Utilities,Retargeting,Direct / Branded Search,Yes,157200.0,Closed Lost,2026-03-15,40,Lost to Loop3
+OPP-5926,2026-02-28,2026-02,Prospect 5926,MER-US,SMB,Logistics & Transport,Webinars,Direct / Branded Search,Yes,40000.0,Closed Won,2026-04-09,40,
+OPP-5927,2026-02-27,2026-02,Prospect 5927,MER-US,Mid-Market,Logistics & Transport,Content/SEO,Content/SEO,Yes,58300.0,Closed Lost,2026-04-10,42,Timing
+OPP-5928,2026-02-16,2026-02,Prospect 5928,MER-EU,SMB,Logistics & Transport,Sales Outbound,Sales Outbound,No,41700.0,Closed Won,2026-04-01,44,
+OPP-5929,2026-02-10,2026-02,Prospect 5929,MER-US,Enterprise,Healthcare,Sales Outbound,Email/Lifecycle,No,284400.0,Closed Lost,2026-06-21,131,Price
+OPP-5930,2026-02-28,2026-02,Prospect 5930,MER-EU,SMB,Manufacturing,Events/Field,Email/Lifecycle,Yes,29800.0,Disqualified,,,
+OPP-5931,2026-02-19,2026-02,Prospect 5931,MER-US,Mid-Market,Retail & CPG,Events/Field,Sales Outbound,Yes,85900.0,Closed Lost,2026-05-25,95,Missing feature - approvals
+OPP-5932,2026-02-05,2026-02,Prospect 5932,MER-US,SMB,Technology,Events/Field,Events/Field,Yes,25200.0,Closed Won,2026-02-27,22,
+OPP-5933,2026-02-16,2026-02,Prospect 5933,MER-US,Mid-Market,Logistics & Transport,Review Sites (G2),Review Sites (G2),Yes,55800.0,Negotiation,,,
+OPP-5934,2026-02-12,2026-02,Prospect 5934,MER-US,SMB,Technology,Content/SEO,Direct / Branded Search,Yes,44600.0,Closed Lost,2026-03-10,26,Missing feature - approvals
+OPP-5935,2026-02-10,2026-02,Prospect 5935,MER-EU,Mid-Market,Technology,Content/SEO,Content/SEO,Yes,53100.0,Closed Lost,2026-04-23,72,Missing feature - approvals
+OPP-5936,2026-02-02,2026-02,Prospect 5936,MER-EU,Enterprise,Retail & CPG,Events/Field,Direct / Branded Search,Yes,225800.0,Discovery,,,
+OPP-5937,2026-02-27,2026-02,Prospect 5937,MER-US,SMB,Retail & CPG,Review Sites (G2),Review Sites (G2),Yes,37800.0,Closed Lost,2026-04-13,45,No decision / budget frozen
+OPP-5938,2026-02-20,2026-02,Prospect 5938,MER-US,Enterprise,Financial Services,Partner Co-marketing,Retargeting,Yes,276200.0,Closed Lost,2026-05-19,88,Timing
+OPP-5939,2026-02-27,2026-02,Prospect 5939,MER-US,SMB,Healthcare,Sales Outbound,Sales Outbound,No,46100.0,Closed Won,2026-04-06,38,
+OPP-5940,2026-02-14,2026-02,Prospect 5940,MER-US,Enterprise,Business Services,Content/SEO,Direct / Branded Search,Yes,210500.0,Closed Won,2026-07-26,162,
+OPP-5941,2026-02-28,2026-02,Prospect 5941,MER-US,SMB,Technology,Sales Outbound,Retargeting,No,23300.0,Closed Lost,2026-03-29,29,Price
+OPP-5942,2026-02-16,2026-02,Prospect 5942,MER-US,Enterprise,Financial Services,Events/Field,Email/Lifecycle,Yes,195400.0,Closed Won,2026-06-21,125,
+OPP-5943,2026-02-15,2026-02,Prospect 5943,MER-US,SMB,Energy & Utilities,Events/Field,Events/Field,Yes,30600.0,Negotiation,,,
+OPP-5944,2026-02-08,2026-02,Prospect 5944,MER-US,SMB,Logistics & Transport,Events/Field,Direct / Branded Search,Yes,29400.0,Closed Lost,2026-03-13,33,Lost to Loop3
+OPP-5945,2026-02-12,2026-02,Prospect 5945,MER-US,SMB,Business Services,Paid Search,Direct / Branded Search,Yes,34900.0,Closed Won,2026-03-14,30,
+OPP-5946,2026-02-10,2026-02,Prospect 5946,MER-US,SMB,Retail & CPG,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,45100.0,Closed Lost,2026-02-26,16,Missing feature - approvals
+OPP-5947,2026-02-05,2026-02,Prospect 5947,MER-US,SMB,Technology,Sales Outbound,Direct / Branded Search,No,37500.0,Closed Won,2026-03-22,45,
+OPP-5948,2026-02-19,2026-02,Prospect 5948,MER-US,Mid-Market,Retail & CPG,Events/Field,Direct / Branded Search,Yes,99000.0,Closed Lost,2026-04-01,41,Price
+OPP-5949,2026-02-28,2026-02,Prospect 5949,MER-US,Mid-Market,Business Services,Partner Co-marketing,Partner Co-marketing,Yes,96600.0,Closed Lost,2026-04-11,42,Lost to Loop3
+OPP-5950,2026-02-06,2026-02,Prospect 5950,MER-EU,Mid-Market,Financial Services,Email/Lifecycle,Retargeting,Yes,97000.0,Discovery,,,
+OPP-5951,2026-02-16,2026-02,Prospect 5951,MER-US,SMB,Financial Services,Webinars,Direct / Branded Search,Yes,27200.0,Disqualified,,,
+OPP-5952,2026-02-07,2026-02,Prospect 5952,MER-US,SMB,Logistics & Transport,Review Sites (G2),Review Sites (G2),Yes,34700.0,Discovery,,,
+OPP-5953,2026-02-08,2026-02,Prospect 5953,MER-US,Mid-Market,Technology,Retargeting,Retargeting,Yes,100400.0,Closed Won,2026-05-09,90,
+OPP-5954,2026-02-14,2026-02,Prospect 5954,MER-US,Mid-Market,Technology,Paid Search,Direct / Branded Search,Yes,106500.0,Closed Won,2026-03-26,40,
+OPP-5955,2026-02-11,2026-02,Prospect 5955,MER-US,SMB,Healthcare,Webinars,Webinars,Yes,41900.0,Closed Lost,2026-03-07,24,No decision / budget frozen
+OPP-5956,2026-02-19,2026-02,Prospect 5956,MER-US,Mid-Market,Energy & Utilities,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,142400.0,Closed Won,2026-05-27,97,
+OPP-5957,2026-02-21,2026-02,Prospect 5957,MER-US,SMB,Energy & Utilities,Sales Outbound,Direct / Branded Search,No,39100.0,Discovery,,,
+OPP-5958,2026-02-10,2026-02,Prospect 5958,MER-EU,Mid-Market,Financial Services,Paid Search,Paid Search,Yes,159400.0,Closed Lost,2026-03-30,48,Timing
+OPP-5959,2026-02-04,2026-02,Prospect 5959,MER-EU,SMB,Healthcare,Paid Social - LinkedIn,Direct / Branded Search,Yes,36800.0,Disqualified,,,
+OPP-5960,2026-02-13,2026-02,Prospect 5960,MER-EU,SMB,Retail & CPG,Sales Outbound,Retargeting,No,19100.0,Disqualified,,,
+OPP-5961,2026-02-14,2026-02,Prospect 5961,MER-US,SMB,Logistics & Transport,Sales Outbound,Sales Outbound,No,47700.0,Disqualified,,,
+OPP-5962,2026-02-07,2026-02,Prospect 5962,MER-US,Mid-Market,Healthcare,Content/SEO,Direct / Branded Search,Yes,69500.0,Closed Won,2026-04-26,78,
+OPP-5963,2026-02-24,2026-02,Prospect 5963,MER-US,Enterprise,Retail & CPG,Email/Lifecycle,Email/Lifecycle,Yes,275200.0,Closed Won,2026-08-19,176,
+OPP-5964,2026-02-21,2026-02,Prospect 5964,MER-US,Mid-Market,Logistics & Transport,Review Sites (G2),Sales Outbound,Yes,90700.0,Closed Lost,2026-05-18,86,Timing
+OPP-5965,2026-02-05,2026-02,Prospect 5965,MER-US,Mid-Market,Technology,Paid Search,Paid Search,Yes,95200.0,Discovery,,,
+OPP-5966,2026-02-10,2026-02,Prospect 5966,MER-US,Mid-Market,Financial Services,Content/SEO,Sales Outbound,Yes,91600.0,Closed Won,2026-04-08,57,
+OPP-5967,2026-02-26,2026-02,Prospect 5967,MER-EU,SMB,Manufacturing,Paid Search,Email/Lifecycle,Yes,19000.0,Discovery,,,
+OPP-5968,2026-02-08,2026-02,Prospect 5968,MER-EU,Mid-Market,Energy & Utilities,Paid Search,Direct / Branded Search,Yes,163700.0,Negotiation,,,
+OPP-5969,2026-02-27,2026-02,Prospect 5969,MER-US,Mid-Market,Business Services,Review Sites (G2),Direct / Branded Search,Yes,153200.0,Closed Won,2026-04-22,54,
+OPP-5970,2026-02-11,2026-02,Prospect 5970,MER-EU,SMB,Business Services,Events/Field,Direct / Branded Search,Yes,28400.0,Discovery,,,
+OPP-5971,2026-02-05,2026-02,Prospect 5971,MER-EU,SMB,Energy & Utilities,Sales Outbound,Direct / Branded Search,No,32600.0,Closed Lost,2026-02-20,15,No decision / budget frozen
+OPP-5972,2026-02-26,2026-02,Prospect 5972,MER-US,Mid-Market,Retail & CPG,Paid Search,Direct / Branded Search,Yes,56700.0,Closed Lost,2026-05-29,92,Price
+OPP-5973,2026-02-06,2026-02,Prospect 5973,MER-EU,Mid-Market,Retail & CPG,Content/SEO,Content/SEO,Yes,157500.0,Discovery,,,
+OPP-5974,2026-03-30,2026-03,Prospect 5974,MER-US,SMB,Logistics & Transport,Paid Search,Email/Lifecycle,Yes,41800.0,Closed Lost,2026-05-08,39,Missing feature - approvals
+OPP-5975,2026-03-31,2026-03,Prospect 5975,MER-US,Enterprise,Technology,Sales Outbound,Sales Outbound,No,191700.0,Discovery,,,
+OPP-5976,2026-03-22,2026-03,Prospect 5976,MER-US,SMB,Technology,Content/SEO,Email/Lifecycle,Yes,31000.0,Negotiation,,,
+OPP-5977,2026-03-23,2026-03,Prospect 5977,MER-EU,SMB,Business Services,Sales Outbound,Direct / Branded Search,No,29400.0,Closed Lost,2026-04-21,29,No decision / budget frozen
+OPP-5978,2026-03-26,2026-03,Prospect 5978,MER-US,Mid-Market,Financial Services,Paid Social - Meta,Paid Social - Meta,Yes,84700.0,Discovery,,,
+OPP-5979,2026-03-20,2026-03,Prospect 5979,MER-EU,Mid-Market,Logistics & Transport,Events/Field,Events/Field,Yes,78500.0,Closed Lost,2026-06-04,76,Price
+OPP-5980,2026-03-29,2026-03,Prospect 5980,MER-US,SMB,Energy & Utilities,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,14300.0,Discovery,,,
+OPP-5981,2026-03-19,2026-03,Prospect 5981,MER-US,Mid-Market,Financial Services,Content/SEO,Content/SEO,Yes,76700.0,Disqualified,,,
+OPP-5982,2026-03-22,2026-03,Prospect 5982,MER-EU,Mid-Market,Technology,Review Sites (G2),Review Sites (G2),Yes,59400.0,Closed Lost,2026-05-04,43,No decision / budget frozen
+OPP-5983,2026-03-17,2026-03,Prospect 5983,MER-US,Mid-Market,Healthcare,Content/SEO,Sales Outbound,Yes,133900.0,Closed Lost,2026-06-19,94,Lost to Loop3
+OPP-5984,2026-03-30,2026-03,Prospect 5984,MER-EU,SMB,Logistics & Transport,Sales Outbound,Sales Outbound,No,24200.0,Discovery,,,
+OPP-5985,2026-03-20,2026-03,Prospect 5985,MER-US,Mid-Market,Technology,Events/Field,Direct / Branded Search,Yes,105200.0,Closed Won,2026-04-28,39,
+OPP-5986,2026-03-10,2026-03,Prospect 5986,MER-EU,SMB,Logistics & Transport,Content/SEO,Email/Lifecycle,Yes,29800.0,Closed Won,2026-04-04,25,
+OPP-5987,2026-03-31,2026-03,Prospect 5987,MER-US,SMB,Business Services,Content/SEO,Content/SEO,Yes,25200.0,Negotiation,,,
+OPP-5988,2026-03-07,2026-03,Prospect 5988,MER-EU,SMB,Technology,Review Sites (G2),Email/Lifecycle,Yes,24100.0,Closed Won,2026-03-29,22,
+OPP-5989,2026-03-08,2026-03,Prospect 5989,MER-EU,SMB,Healthcare,Paid Search,Paid Search,Yes,46400.0,Closed Lost,2026-04-13,36,No decision / budget frozen
+OPP-5990,2026-03-31,2026-03,Prospect 5990,MER-US,Mid-Market,Business Services,Content/SEO,Content/SEO,Yes,123700.0,Disqualified,,,
+OPP-5991,2026-03-11,2026-03,Prospect 5991,MER-US,Enterprise,Energy & Utilities,Sales Outbound,Direct / Branded Search,No,182600.0,Disqualified,,,
+OPP-5992,2026-03-29,2026-03,Prospect 5992,MER-US,Enterprise,Logistics & Transport,Sales Outbound,Sales Outbound,No,228900.0,Closed Won,2026-09-09,164,
+OPP-5993,2026-03-29,2026-03,Prospect 5993,MER-EU,Mid-Market,Manufacturing,Content/SEO,Sales Outbound,Yes,134100.0,Closed Lost,2026-06-27,90,Missing feature - approvals
+OPP-5994,2026-03-27,2026-03,Prospect 5994,MER-US,SMB,Technology,Events/Field,Retargeting,Yes,15900.0,Disqualified,,,
+OPP-5995,2026-03-21,2026-03,Prospect 5995,MER-US,Mid-Market,Technology,Paid Search,Paid Search,Yes,95000.0,Closed Won,2026-06-25,96,
+OPP-5996,2026-03-04,2026-03,Prospect 5996,MER-US,Mid-Market,Logistics & Transport,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,114600.0,Closed Lost,2026-04-14,41,Timing
+OPP-5997,2026-03-12,2026-03,Prospect 5997,MER-US,SMB,Energy & Utilities,Paid Search,Retargeting,Yes,24300.0,Disqualified,,,
+OPP-5998,2026-03-04,2026-03,Prospect 5998,MER-US,Mid-Market,Technology,Content/SEO,Content/SEO,Yes,90500.0,Closed Lost,2026-04-22,49,Timing
+OPP-5999,2026-03-06,2026-03,Prospect 5999,MER-US,Mid-Market,Manufacturing,Sales Outbound,Direct / Branded Search,No,144500.0,Closed Lost,2026-05-16,71,Lost to incumbent
+OPP-6000,2026-03-09,2026-03,Prospect 6000,MER-US,Enterprise,Manufacturing,Sales Outbound,Retargeting,No,243700.0,Disqualified,,,
+OPP-6001,2026-03-06,2026-03,Prospect 6001,MER-US,Mid-Market,Financial Services,Paid Search,Retargeting,Yes,99400.0,Negotiation,,,
+OPP-6002,2026-03-26,2026-03,Prospect 6002,MER-EU,SMB,Financial Services,Events/Field,Events/Field,Yes,27100.0,Closed Lost,2026-04-10,15,No decision / budget frozen
+OPP-6003,2026-03-16,2026-03,Prospect 6003,MER-US,Mid-Market,Business Services,Paid Social - LinkedIn,Direct / Branded Search,Yes,153700.0,Discovery,,,
+OPP-6004,2026-03-14,2026-03,Prospect 6004,MER-US,Mid-Market,Energy & Utilities,Sales Outbound,Sales Outbound,No,107200.0,Discovery,,,
+OPP-6005,2026-03-23,2026-03,Prospect 6005,MER-US,Enterprise,Retail & CPG,Sales Outbound,Sales Outbound,No,227800.0,Discovery,,,
+OPP-6006,2026-03-12,2026-03,Prospect 6006,MER-US,Mid-Market,Technology,Content/SEO,Content/SEO,Yes,98100.0,Discovery,,,
+OPP-6007,2026-03-24,2026-03,Prospect 6007,MER-US,Mid-Market,Manufacturing,Paid Search,Email/Lifecycle,Yes,74300.0,Closed Lost,2026-07-04,102,Price
+OPP-6008,2026-03-27,2026-03,Prospect 6008,MER-US,Mid-Market,Business Services,Sales Outbound,Retargeting,No,101500.0,Closed Lost,2026-05-09,43,Price
+OPP-6009,2026-03-05,2026-03,Prospect 6009,MER-EU,SMB,Manufacturing,Webinars,Email/Lifecycle,Yes,11200.0,Closed Lost,2026-04-18,44,Price
+OPP-6010,2026-03-14,2026-03,Prospect 6010,MER-US,SMB,Logistics & Transport,Paid Search,Sales Outbound,Yes,47700.0,Closed Won,2026-03-26,12,
+OPP-6011,2026-03-24,2026-03,Prospect 6011,MER-US,Mid-Market,Manufacturing,Sales Outbound,Direct / Branded Search,No,106400.0,Closed Lost,2026-05-25,62,No decision / budget frozen
+OPP-6012,2026-03-27,2026-03,Prospect 6012,MER-US,SMB,Technology,Partner Co-marketing,Partner Co-marketing,Yes,13700.0,Closed Lost,2026-04-15,19,Lost to Loop3
+OPP-6013,2026-03-27,2026-03,Prospect 6013,MER-US,Mid-Market,Financial Services,Partner Co-marketing,Partner Co-marketing,Yes,119200.0,Closed Won,2026-05-25,59,
+OPP-6014,2026-03-10,2026-03,Prospect 6014,MER-EU,SMB,Healthcare,Review Sites (G2),Review Sites (G2),Yes,33100.0,Negotiation,,,
+OPP-6015,2026-03-07,2026-03,Prospect 6015,MER-EU,SMB,Healthcare,Sales Outbound,Sales Outbound,No,39800.0,Closed Lost,2026-04-13,37,Missing feature - approvals
+OPP-6016,2026-03-29,2026-03,Prospect 6016,MER-EU,Mid-Market,Healthcare,Paid Social - LinkedIn,Retargeting,Yes,146500.0,Closed Won,2026-07-07,100,
+OPP-6017,2026-03-29,2026-03,Prospect 6017,MER-US,Mid-Market,Energy & Utilities,Content/SEO,Email/Lifecycle,Yes,158900.0,Disqualified,,,
+OPP-6018,2026-03-06,2026-03,Prospect 6018,MER-EU,Mid-Market,Energy & Utilities,Content/SEO,Content/SEO,Yes,122700.0,Closed Lost,2026-06-19,105,Missing feature - approvals
+OPP-6019,2026-03-20,2026-03,Prospect 6019,MER-EU,Enterprise,Energy & Utilities,Content/SEO,Content/SEO,Yes,334200.0,Closed Lost,2026-08-07,140,Missing feature - approvals
+OPP-6020,2026-03-26,2026-03,Prospect 6020,MER-US,SMB,Business Services,Webinars,Direct / Branded Search,Yes,17500.0,Disqualified,,,
+OPP-6021,2026-03-15,2026-03,Prospect 6021,MER-EU,Mid-Market,Logistics & Transport,Content/SEO,Direct / Branded Search,Yes,99800.0,Negotiation,,,
+OPP-6022,2026-03-26,2026-03,Prospect 6022,MER-EU,SMB,Energy & Utilities,Sales Outbound,Direct / Branded Search,No,41700.0,Disqualified,,,
+OPP-6023,2026-03-12,2026-03,Prospect 6023,MER-US,Mid-Market,Technology,Sales Outbound,Email/Lifecycle,No,150400.0,Closed Won,2026-05-05,54,
+OPP-6024,2026-03-23,2026-03,Prospect 6024,MER-US,Mid-Market,Retail & CPG,Paid Search,Sales Outbound,Yes,56600.0,Discovery,,,
+OPP-6025,2026-03-24,2026-03,Prospect 6025,MER-EU,Mid-Market,Retail & CPG,Events/Field,Direct / Branded Search,Yes,97400.0,Disqualified,,,
+OPP-6026,2026-03-31,2026-03,Prospect 6026,MER-US,Mid-Market,Financial Services,Paid Search,Direct / Branded Search,Yes,64500.0,Closed Won,2026-05-22,52,
+OPP-6027,2026-03-25,2026-03,Prospect 6027,MER-US,Mid-Market,Retail & CPG,Content/SEO,Email/Lifecycle,Yes,124300.0,Closed Lost,2026-07-08,105,No decision / budget frozen
+OPP-6028,2026-03-15,2026-03,Prospect 6028,MER-EU,SMB,Healthcare,Paid Social - LinkedIn,Retargeting,Yes,28900.0,Disqualified,,,
+OPP-6029,2026-03-04,2026-03,Prospect 6029,MER-US,Mid-Market,Energy & Utilities,Sales Outbound,Email/Lifecycle,No,151000.0,Discovery,,,
+OPP-6030,2026-03-16,2026-03,Prospect 6030,MER-EU,SMB,Retail & CPG,Email/Lifecycle,Email/Lifecycle,Yes,30900.0,Discovery,,,
+OPP-6031,2026-03-08,2026-03,Prospect 6031,MER-EU,Mid-Market,Business Services,Content/SEO,Email/Lifecycle,Yes,90500.0,Closed Won,2026-05-20,73,
+OPP-6032,2026-03-15,2026-03,Prospect 6032,MER-US,Mid-Market,Logistics & Transport,Webinars,Direct / Branded Search,Yes,155100.0,Closed Lost,2026-05-21,67,Missing feature - approvals
+OPP-6033,2026-03-17,2026-03,Prospect 6033,MER-US,SMB,Retail & CPG,Retargeting,Direct / Branded Search,Yes,20800.0,Closed Lost,2026-04-05,19,Lost to incumbent
+OPP-6034,2026-03-19,2026-03,Prospect 6034,MER-EU,SMB,Business Services,Content/SEO,Email/Lifecycle,Yes,31100.0,Negotiation,,,
+OPP-6035,2026-03-16,2026-03,Prospect 6035,MER-US,Enterprise,Manufacturing,Content/SEO,Email/Lifecycle,Yes,300100.0,Discovery,,,
+OPP-6036,2026-03-05,2026-03,Prospect 6036,MER-US,SMB,Financial Services,Webinars,Webinars,Yes,36100.0,Discovery,,,
+OPP-6037,2026-03-27,2026-03,Prospect 6037,MER-US,SMB,Financial Services,Events/Field,Events/Field,Yes,37600.0,Closed Won,2026-05-03,37,
+OPP-6038,2026-03-27,2026-03,Prospect 6038,MER-US,SMB,Logistics & Transport,Paid Social - Meta,Direct / Branded Search,Yes,33600.0,Closed Won,2026-05-07,41,
+OPP-6039,2026-03-20,2026-03,Prospect 6039,MER-EU,Mid-Market,Business Services,Paid Search,Retargeting,Yes,164100.0,Closed Lost,2026-04-28,39,Lost to incumbent
+OPP-6040,2026-03-12,2026-03,Prospect 6040,MER-EU,Mid-Market,Healthcare,Sales Outbound,Email/Lifecycle,No,109400.0,Discovery,,,
+OPP-6041,2026-03-10,2026-03,Prospect 6041,MER-US,Mid-Market,Technology,Sales Outbound,Email/Lifecycle,No,103000.0,Closed Won,2026-04-17,38,
+OPP-6042,2026-03-17,2026-03,Prospect 6042,MER-US,Enterprise,Energy & Utilities,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,227500.0,Discovery,,,
+OPP-6043,2026-03-23,2026-03,Prospect 6043,MER-US,SMB,Logistics & Transport,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,12300.0,Closed Won,2026-04-19,27,
+OPP-6044,2026-03-10,2026-03,Prospect 6044,MER-US,Enterprise,Energy & Utilities,Paid Social - Meta,Paid Social - Meta,Yes,302400.0,Closed Lost,2026-07-11,123,Missing feature - approvals
+OPP-6045,2026-03-31,2026-03,Prospect 6045,MER-EU,SMB,Energy & Utilities,Sales Outbound,Sales Outbound,No,43500.0,Negotiation,,,
+OPP-6046,2026-03-08,2026-03,Prospect 6046,MER-US,SMB,Energy & Utilities,Paid Social - LinkedIn,Direct / Branded Search,Yes,15200.0,Disqualified,,,
+OPP-6047,2026-03-26,2026-03,Prospect 6047,MER-US,Mid-Market,Energy & Utilities,Paid Search,Email/Lifecycle,Yes,76200.0,Disqualified,,,
+OPP-6048,2026-03-24,2026-03,Prospect 6048,MER-US,SMB,Manufacturing,Review Sites (G2),Review Sites (G2),Yes,38500.0,Closed Lost,2026-04-12,19,Lost to Loop3
+OPP-6049,2026-03-30,2026-03,Prospect 6049,MER-EU,SMB,Healthcare,Events/Field,Direct / Branded Search,Yes,47100.0,Negotiation,,,
+OPP-6050,2026-03-07,2026-03,Prospect 6050,MER-US,Enterprise,Healthcare,Webinars,Webinars,Yes,239000.0,Disqualified,,,
+OPP-6051,2026-03-13,2026-03,Prospect 6051,MER-US,Mid-Market,Logistics & Transport,Paid Social - LinkedIn,Email/Lifecycle,Yes,130700.0,Closed Won,2026-05-12,60,
+OPP-6052,2026-03-04,2026-03,Prospect 6052,MER-EU,SMB,Technology,Sales Outbound,Sales Outbound,No,13000.0,Closed Lost,2026-03-27,23,No decision / budget frozen
+OPP-6053,2026-03-30,2026-03,Prospect 6053,MER-US,Enterprise,Logistics & Transport,Paid Search,Paid Search,Yes,327000.0,Closed Won,2026-08-27,150,
+OPP-6054,2026-03-11,2026-03,Prospect 6054,MER-US,SMB,Technology,Paid Search,Paid Search,Yes,20600.0,Closed Lost,2026-04-17,37,Lost to incumbent
+OPP-6055,2026-03-22,2026-03,Prospect 6055,MER-US,SMB,Healthcare,Content/SEO,Content/SEO,Yes,18700.0,Closed Lost,2026-04-17,26,Timing
+OPP-6056,2026-03-16,2026-03,Prospect 6056,MER-US,Mid-Market,Logistics & Transport,Partner Co-marketing,Direct / Branded Search,Yes,133400.0,Closed Lost,2026-06-15,91,Price
+OPP-6057,2026-03-18,2026-03,Prospect 6057,MER-EU,Mid-Market,Healthcare,Content/SEO,Sales Outbound,Yes,56700.0,Negotiation,,,
+OPP-6058,2026-03-15,2026-03,Prospect 6058,MER-US,SMB,Manufacturing,Sales Outbound,Sales Outbound,No,22200.0,Discovery,,,
+OPP-6059,2026-03-16,2026-03,Prospect 6059,MER-US,Mid-Market,Financial Services,Review Sites (G2),Direct / Branded Search,Yes,68300.0,Discovery,,,
+OPP-6060,2026-03-16,2026-03,Prospect 6060,MER-US,SMB,Logistics & Transport,Content/SEO,Sales Outbound,Yes,15100.0,Disqualified,,,
+OPP-6061,2026-03-29,2026-03,Prospect 6061,MER-US,Mid-Market,Manufacturing,Retargeting,Direct / Branded Search,Yes,142300.0,Closed Lost,2026-05-27,59,Missing feature - approvals
+OPP-6062,2026-03-31,2026-03,Prospect 6062,MER-US,SMB,Energy & Utilities,Sales Outbound,Retargeting,No,11100.0,Closed Lost,2026-05-10,40,Lost to incumbent
+OPP-6063,2026-03-31,2026-03,Prospect 6063,MER-US,Enterprise,Financial Services,Paid Search,Direct / Branded Search,Yes,288200.0,Disqualified,,,
+OPP-6064,2026-03-26,2026-03,Prospect 6064,MER-US,SMB,Manufacturing,Review Sites (G2),Direct / Branded Search,Yes,46400.0,Closed Lost,2026-05-06,41,Lost to incumbent
+OPP-6065,2026-03-16,2026-03,Prospect 6065,MER-EU,SMB,Manufacturing,Webinars,Email/Lifecycle,Yes,45600.0,Discovery,,,
+OPP-6066,2026-03-12,2026-03,Prospect 6066,MER-US,Mid-Market,Energy & Utilities,Paid Social - LinkedIn,Direct / Branded Search,Yes,146900.0,Disqualified,,,
+OPP-6067,2026-03-13,2026-03,Prospect 6067,MER-US,SMB,Logistics & Transport,Sales Outbound,Retargeting,No,15100.0,Closed Won,2026-03-28,15,
+OPP-6068,2026-03-06,2026-03,Prospect 6068,MER-US,Mid-Market,Retail & CPG,Content/SEO,Content/SEO,Yes,113400.0,Closed Lost,2026-05-13,68,Timing
+OPP-6069,2026-03-19,2026-03,Prospect 6069,MER-US,SMB,Financial Services,Content/SEO,Content/SEO,Yes,35900.0,Closed Lost,2026-04-07,19,No decision / budget frozen
+OPP-6070,2026-04-07,2026-04,Prospect 6070,MER-US,Mid-Market,Technology,Content/SEO,Direct / Branded Search,Yes,152600.0,Negotiation,,,
+OPP-6071,2026-04-10,2026-04,Prospect 6071,MER-US,SMB,Manufacturing,Sales Outbound,Sales Outbound,No,27400.0,Closed Lost,2026-04-23,13,Price
+OPP-6072,2026-04-27,2026-04,Prospect 6072,MER-US,SMB,Logistics & Transport,Email/Lifecycle,Retargeting,Yes,46000.0,Discovery,,,
+OPP-6073,2026-04-09,2026-04,Prospect 6073,MER-EU,SMB,Manufacturing,Review Sites (G2),Retargeting,Yes,26700.0,Negotiation,,,
+OPP-6074,2026-04-04,2026-04,Prospect 6074,MER-US,SMB,Retail & CPG,Events/Field,Events/Field,Yes,24800.0,Discovery,,,
+OPP-6075,2026-04-17,2026-04,Prospect 6075,MER-US,Mid-Market,Retail & CPG,Paid Social - Meta,Direct / Branded Search,Yes,77400.0,Discovery,,,
+OPP-6076,2026-04-13,2026-04,Prospect 6076,MER-US,SMB,Business Services,Webinars,Direct / Branded Search,Yes,24800.0,Closed Lost,2026-05-21,38,Lost to Loop3
+OPP-6077,2026-04-05,2026-04,Prospect 6077,MER-US,SMB,Energy & Utilities,Paid Search,Email/Lifecycle,Yes,46500.0,Negotiation,,,
+OPP-6078,2026-04-29,2026-04,Prospect 6078,MER-US,SMB,Business Services,Sales Outbound,Retargeting,No,20200.0,Closed Lost,2026-06-09,41,Missing feature - approvals
+OPP-6079,2026-04-28,2026-04,Prospect 6079,MER-US,SMB,Healthcare,Sales Outbound,Sales Outbound,No,39700.0,Disqualified,,,
+OPP-6080,2026-04-22,2026-04,Prospect 6080,MER-US,SMB,Healthcare,Webinars,Direct / Branded Search,Yes,17300.0,Closed Lost,2026-05-24,32,Lost to Loop3
+OPP-6081,2026-04-29,2026-04,Prospect 6081,MER-US,Mid-Market,Retail & CPG,Sales Outbound,Direct / Branded Search,No,66700.0,Closed Lost,2026-07-27,89,Lost to Loop3
+OPP-6082,2026-04-09,2026-04,Prospect 6082,MER-US,SMB,Energy & Utilities,Webinars,Sales Outbound,Yes,31400.0,Closed Lost,2026-04-25,16,Timing
+OPP-6083,2026-04-16,2026-04,Prospect 6083,MER-EU,SMB,Retail & CPG,Sales Outbound,Direct / Branded Search,No,12300.0,Closed Won,2026-05-14,28,
+OPP-6084,2026-04-08,2026-04,Prospect 6084,MER-US,SMB,Technology,Sales Outbound,Direct / Branded Search,No,23400.0,Closed Lost,2026-04-21,13,No decision / budget frozen
+OPP-6085,2026-04-15,2026-04,Prospect 6085,MER-US,SMB,Logistics & Transport,Paid Search,Paid Search,Yes,31100.0,Closed Won,2026-05-25,40,
+OPP-6086,2026-04-09,2026-04,Prospect 6086,MER-EU,Mid-Market,Manufacturing,Content/SEO,Content/SEO,Yes,68500.0,Discovery,,,
+OPP-6087,2026-04-28,2026-04,Prospect 6087,MER-US,SMB,Healthcare,Paid Search,Direct / Branded Search,Yes,43100.0,Discovery,,,
+OPP-6088,2026-04-07,2026-04,Prospect 6088,MER-US,SMB,Technology,Partner Co-marketing,Direct / Branded Search,Yes,29800.0,Closed Won,2026-05-05,28,
+OPP-6089,2026-04-20,2026-04,Prospect 6089,MER-EU,SMB,Business Services,Content/SEO,Email/Lifecycle,Yes,21300.0,Closed Lost,2026-05-13,23,Lost to Loop3
+OPP-6090,2026-04-21,2026-04,Prospect 6090,MER-EU,Mid-Market,Technology,Sales Outbound,Direct / Branded Search,No,130000.0,Closed Lost,2026-06-14,54,No decision / budget frozen
+OPP-6091,2026-04-12,2026-04,Prospect 6091,MER-US,Mid-Market,Logistics & Transport,Paid Social - LinkedIn,Direct / Branded Search,Yes,161000.0,Closed Lost,2026-07-07,86,Lost to Loop3
+OPP-6092,2026-04-28,2026-04,Prospect 6092,MER-US,Mid-Market,Healthcare,Paid Search,Sales Outbound,Yes,105600.0,Closed Lost,2026-06-22,55,Lost to incumbent
+OPP-6093,2026-04-09,2026-04,Prospect 6093,MER-US,SMB,Logistics & Transport,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,30500.0,Closed Lost,2026-05-19,40,Missing feature - approvals
+OPP-6094,2026-04-20,2026-04,Prospect 6094,MER-US,Mid-Market,Retail & CPG,Partner Co-marketing,Direct / Branded Search,Yes,59000.0,Closed Lost,2026-06-03,44,Lost to Loop3
+OPP-6095,2026-04-17,2026-04,Prospect 6095,MER-US,SMB,Technology,Paid Search,Direct / Branded Search,Yes,31300.0,Disqualified,,,
+OPP-6096,2026-04-18,2026-04,Prospect 6096,MER-US,SMB,Healthcare,Sales Outbound,Sales Outbound,No,45400.0,Disqualified,,,
+OPP-6097,2026-04-10,2026-04,Prospect 6097,MER-US,SMB,Business Services,Review Sites (G2),Review Sites (G2),Yes,14900.0,Closed Lost,2026-05-16,36,No decision / budget frozen
+OPP-6098,2026-04-10,2026-04,Prospect 6098,MER-US,Mid-Market,Technology,Partner Co-marketing,Direct / Branded Search,Yes,134000.0,Discovery,,,
+OPP-6099,2026-04-21,2026-04,Prospect 6099,MER-US,Mid-Market,Technology,Review Sites (G2),Direct / Branded Search,Yes,138100.0,Disqualified,,,
+OPP-6100,2026-04-23,2026-04,Prospect 6100,MER-US,Mid-Market,Business Services,Sales Outbound,Retargeting,No,121700.0,Closed Lost,2026-06-01,39,Price
+OPP-6101,2026-04-03,2026-04,Prospect 6101,MER-US,SMB,Financial Services,Paid Search,Email/Lifecycle,Yes,37800.0,Discovery,,,
+OPP-6102,2026-04-08,2026-04,Prospect 6102,MER-US,SMB,Logistics & Transport,Sales Outbound,Email/Lifecycle,No,17300.0,Disqualified,,,
+OPP-6103,2026-04-05,2026-04,Prospect 6103,MER-US,Mid-Market,Manufacturing,Sales Outbound,Direct / Branded Search,No,62700.0,Closed Lost,2026-05-16,41,Missing feature - approvals
+OPP-6104,2026-04-18,2026-04,Prospect 6104,MER-US,Mid-Market,Manufacturing,Paid Search,Paid Search,Yes,135200.0,Negotiation,,,
+OPP-6105,2026-04-17,2026-04,Prospect 6105,MER-US,Mid-Market,Business Services,Content/SEO,Content/SEO,Yes,58700.0,Discovery,,,
+OPP-6106,2026-04-08,2026-04,Prospect 6106,MER-US,SMB,Financial Services,Webinars,Direct / Branded Search,Yes,42700.0,Discovery,,,
+OPP-6107,2026-04-04,2026-04,Prospect 6107,MER-US,Mid-Market,Technology,Sales Outbound,Email/Lifecycle,No,123300.0,Closed Lost,2026-06-18,75,Timing
+OPP-6108,2026-04-27,2026-04,Prospect 6108,MER-US,Enterprise,Manufacturing,Events/Field,Sales Outbound,Yes,306500.0,Discovery,,,
+OPP-6109,2026-04-29,2026-04,Prospect 6109,MER-EU,SMB,Manufacturing,Sales Outbound,Email/Lifecycle,No,47500.0,Discovery,,,
+OPP-6110,2026-04-11,2026-04,Prospect 6110,MER-EU,Mid-Market,Manufacturing,Paid Social - LinkedIn,Email/Lifecycle,Yes,117500.0,Closed Lost,2026-06-20,70,Lost to Loop3
+OPP-6111,2026-04-03,2026-04,Prospect 6111,MER-US,Mid-Market,Energy & Utilities,Content/SEO,Content/SEO,Yes,90800.0,Disqualified,,,
+OPP-6112,2026-04-30,2026-04,Prospect 6112,MER-US,SMB,Energy & Utilities,Sales Outbound,Sales Outbound,No,24600.0,Closed Lost,2026-05-16,16,Price
+OPP-6113,2026-04-03,2026-04,Prospect 6113,MER-US,Mid-Market,Business Services,Paid Search,Direct / Branded Search,Yes,111900.0,Closed Won,2026-06-02,60,
+OPP-6114,2026-04-17,2026-04,Prospect 6114,MER-US,SMB,Technology,Webinars,Webinars,Yes,21000.0,Disqualified,,,
+OPP-6115,2026-04-29,2026-04,Prospect 6115,MER-US,SMB,Retail & CPG,Email/Lifecycle,Email/Lifecycle,Yes,25300.0,Closed Won,2026-06-11,43,
+OPP-6116,2026-04-10,2026-04,Prospect 6116,MER-EU,Mid-Market,Technology,Partner Co-marketing,Retargeting,Yes,138000.0,Discovery,,,
+OPP-6117,2026-04-22,2026-04,Prospect 6117,MER-US,Mid-Market,Healthcare,Events/Field,Email/Lifecycle,Yes,114100.0,Closed Lost,2026-06-13,52,Price
+OPP-6118,2026-04-20,2026-04,Prospect 6118,MER-EU,Mid-Market,Financial Services,Events/Field,Events/Field,Yes,98200.0,Disqualified,,,
+OPP-6119,2026-04-29,2026-04,Prospect 6119,MER-EU,SMB,Manufacturing,Paid Social - Meta,Paid Social - Meta,Yes,46600.0,Discovery,,,
+OPP-6120,2026-04-15,2026-04,Prospect 6120,MER-EU,Mid-Market,Manufacturing,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,79100.0,Discovery,,,
+OPP-6121,2026-04-23,2026-04,Prospect 6121,MER-US,SMB,Energy & Utilities,Paid Search,Direct / Branded Search,Yes,14200.0,Disqualified,,,
+OPP-6122,2026-04-13,2026-04,Prospect 6122,MER-EU,SMB,Business Services,Webinars,Webinars,Yes,33200.0,Closed Lost,2026-04-27,14,Price
+OPP-6123,2026-04-12,2026-04,Prospect 6123,MER-US,Mid-Market,Healthcare,Events/Field,Retargeting,Yes,120300.0,Closed Lost,2026-07-22,101,No decision / budget frozen
+OPP-6124,2026-04-21,2026-04,Prospect 6124,MER-US,SMB,Logistics & Transport,Webinars,Retargeting,Yes,31900.0,Closed Lost,2026-05-30,39,Lost to Loop3
+OPP-6125,2026-04-17,2026-04,Prospect 6125,MER-US,SMB,Financial Services,Content/SEO,Sales Outbound,Yes,24200.0,Closed Won,2026-05-13,26,
+OPP-6126,2026-04-26,2026-04,Prospect 6126,MER-US,SMB,Manufacturing,Paid Search,Paid Search,Yes,18000.0,Discovery,,,
+OPP-6127,2026-04-18,2026-04,Prospect 6127,MER-US,Mid-Market,Retail & CPG,Sales Outbound,Email/Lifecycle,No,142100.0,Closed Lost,2026-06-10,53,Lost to incumbent
+OPP-6128,2026-04-18,2026-04,Prospect 6128,MER-US,Mid-Market,Logistics & Transport,Webinars,Webinars,Yes,119500.0,Closed Won,2026-06-07,50,
+OPP-6129,2026-04-24,2026-04,Prospect 6129,MER-US,SMB,Technology,Sales Outbound,Direct / Branded Search,No,35800.0,Disqualified,,,
+OPP-6130,2026-04-11,2026-04,Prospect 6130,MER-EU,SMB,Financial Services,Review Sites (G2),Direct / Branded Search,Yes,26900.0,Disqualified,,,
+OPP-6131,2026-04-15,2026-04,Prospect 6131,MER-US,SMB,Logistics & Transport,Webinars,Direct / Branded Search,Yes,30700.0,Closed Lost,2026-05-28,43,Lost to incumbent
+OPP-6132,2026-04-06,2026-04,Prospect 6132,MER-US,SMB,Manufacturing,Sales Outbound,Retargeting,No,26900.0,Discovery,,,
+OPP-6133,2026-04-23,2026-04,Prospect 6133,MER-US,Enterprise,Healthcare,Paid Search,Email/Lifecycle,Yes,212500.0,Closed Won,2026-10-15,175,
+OPP-6134,2026-04-03,2026-04,Prospect 6134,MER-EU,SMB,Healthcare,Review Sites (G2),Retargeting,Yes,28200.0,Discovery,,,
+OPP-6135,2026-04-20,2026-04,Prospect 6135,MER-US,Mid-Market,Business Services,Sales Outbound,Direct / Branded Search,No,123400.0,Discovery,,,
+OPP-6136,2026-04-08,2026-04,Prospect 6136,MER-US,Mid-Market,Business Services,Paid Search,Retargeting,Yes,152400.0,Discovery,,,
+OPP-6137,2026-04-13,2026-04,Prospect 6137,MER-US,SMB,Energy & Utilities,Paid Social - Meta,Paid Social - Meta,Yes,36300.0,Closed Won,2026-05-04,21,
+OPP-6138,2026-04-18,2026-04,Prospect 6138,MER-US,SMB,Energy & Utilities,Paid Social - LinkedIn,Email/Lifecycle,Yes,36000.0,Discovery,,,
+OPP-6139,2026-04-13,2026-04,Prospect 6139,MER-EU,Mid-Market,Business Services,Events/Field,Events/Field,Yes,97000.0,Disqualified,,,
+OPP-6140,2026-04-15,2026-04,Prospect 6140,MER-EU,SMB,Energy & Utilities,Content/SEO,Direct / Branded Search,Yes,16800.0,Closed Won,2026-05-29,44,
+OPP-6141,2026-04-04,2026-04,Prospect 6141,MER-US,SMB,Logistics & Transport,Sales Outbound,Retargeting,No,15000.0,Closed Won,2026-05-01,27,
+OPP-6142,2026-04-05,2026-04,Prospect 6142,MER-US,SMB,Retail & CPG,Sales Outbound,Direct / Branded Search,No,26800.0,Discovery,,,
+OPP-6143,2026-04-03,2026-04,Prospect 6143,MER-US,SMB,Technology,Webinars,Email/Lifecycle,Yes,42800.0,Disqualified,,,
+OPP-6144,2026-04-05,2026-04,Prospect 6144,MER-US,SMB,Business Services,Content/SEO,Direct / Branded Search,Yes,24400.0,Discovery,,,
+OPP-6145,2026-04-27,2026-04,Prospect 6145,MER-US,Mid-Market,Retail & CPG,Paid Social - LinkedIn,Sales Outbound,Yes,59800.0,Closed Lost,2026-07-29,93,Lost to incumbent
+OPP-6146,2026-04-10,2026-04,Prospect 6146,MER-US,SMB,Retail & CPG,Events/Field,Events/Field,Yes,43100.0,Closed Lost,2026-05-16,36,Price
+OPP-6147,2026-04-13,2026-04,Prospect 6147,MER-US,SMB,Technology,Events/Field,Direct / Branded Search,Yes,29700.0,Negotiation,,,
+OPP-6148,2026-04-25,2026-04,Prospect 6148,MER-EU,SMB,Healthcare,Sales Outbound,Sales Outbound,No,32200.0,Discovery,,,
+OPP-6149,2026-04-18,2026-04,Prospect 6149,MER-US,SMB,Logistics & Transport,Content/SEO,Content/SEO,Yes,24600.0,Closed Lost,2026-05-01,13,Missing feature - approvals
+OPP-6150,2026-04-22,2026-04,Prospect 6150,MER-US,SMB,Financial Services,Paid Search,Paid Search,Yes,35000.0,Closed Lost,2026-05-08,16,Missing feature - approvals
+OPP-6151,2026-05-06,2026-05,Prospect 6151,MER-US,SMB,Retail & CPG,Sales Outbound,Sales Outbound,No,23100.0,Closed Lost,2026-05-19,13,Lost to incumbent
+OPP-6152,2026-05-31,2026-05,Prospect 6152,MER-US,Mid-Market,Technology,Paid Social - LinkedIn,Email/Lifecycle,Yes,88500.0,Closed Lost,2026-07-10,40,Missing feature - approvals
+OPP-6153,2026-05-21,2026-05,Prospect 6153,MER-EU,SMB,Financial Services,Events/Field,Direct / Branded Search,Yes,41800.0,Closed Lost,2026-06-07,17,No decision / budget frozen
+OPP-6154,2026-05-19,2026-05,Prospect 6154,MER-EU,Mid-Market,Technology,Content/SEO,Email/Lifecycle,Yes,99600.0,Discovery,,,
+OPP-6155,2026-05-14,2026-05,Prospect 6155,MER-US,Mid-Market,Healthcare,Events/Field,Events/Field,Yes,160200.0,Closed Lost,2026-08-07,85,Missing feature - approvals
+OPP-6156,2026-05-08,2026-05,Prospect 6156,MER-US,Mid-Market,Manufacturing,Content/SEO,Content/SEO,Yes,76700.0,Closed Lost,2026-08-07,91,Timing
+OPP-6157,2026-05-18,2026-05,Prospect 6157,MER-US,Mid-Market,Energy & Utilities,Sales Outbound,Direct / Branded Search,No,57300.0,Closed Won,2026-07-22,65,
+OPP-6158,2026-05-17,2026-05,Prospect 6158,MER-US,Mid-Market,Energy & Utilities,Paid Search,Direct / Branded Search,Yes,87900.0,Disqualified,,,
+OPP-6159,2026-05-13,2026-05,Prospect 6159,MER-EU,SMB,Manufacturing,Partner Co-marketing,Direct / Branded Search,Yes,11200.0,Closed Lost,2026-06-23,41,Price
+OPP-6160,2026-05-22,2026-05,Prospect 6160,MER-US,Mid-Market,Energy & Utilities,Paid Social - LinkedIn,Direct / Branded Search,Yes,131300.0,Discovery,,,
+OPP-6161,2026-05-29,2026-05,Prospect 6161,MER-EU,Mid-Market,Financial Services,Paid Social - LinkedIn,Direct / Branded Search,Yes,137900.0,Disqualified,,,
+OPP-6162,2026-05-10,2026-05,Prospect 6162,MER-EU,Mid-Market,Financial Services,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,124000.0,Disqualified,,,
+OPP-6163,2026-05-12,2026-05,Prospect 6163,MER-US,SMB,Business Services,Review Sites (G2),Direct / Branded Search,Yes,42100.0,Discovery,,,
+OPP-6164,2026-05-25,2026-05,Prospect 6164,MER-EU,SMB,Logistics & Transport,Partner Co-marketing,Sales Outbound,Yes,11600.0,Closed Won,2026-06-14,20,
+OPP-6165,2026-05-15,2026-05,Prospect 6165,MER-EU,Enterprise,Business Services,Sales Outbound,Direct / Branded Search,No,359100.0,Discovery,,,
+OPP-6166,2026-05-04,2026-05,Prospect 6166,MER-US,SMB,Energy & Utilities,Webinars,Email/Lifecycle,Yes,33400.0,Disqualified,,,
+OPP-6167,2026-05-31,2026-05,Prospect 6167,MER-EU,SMB,Technology,Partner Co-marketing,Direct / Branded Search,Yes,44500.0,Discovery,,,
+OPP-6168,2026-05-30,2026-05,Prospect 6168,MER-US,Mid-Market,Logistics & Transport,Sales Outbound,Retargeting,No,146300.0,Discovery,,,
+OPP-6169,2026-05-22,2026-05,Prospect 6169,MER-US,SMB,Retail & CPG,Sales Outbound,Sales Outbound,No,41500.0,Closed Lost,2026-06-07,16,Timing
+OPP-6170,2026-05-31,2026-05,Prospect 6170,MER-US,SMB,Business Services,Sales Outbound,Email/Lifecycle,No,23200.0,Closed Lost,2026-06-12,12,Timing
+OPP-6171,2026-05-11,2026-05,Prospect 6171,MER-US,SMB,Business Services,Partner Co-marketing,Partner Co-marketing,Yes,43500.0,Discovery,,,
+OPP-6172,2026-05-05,2026-05,Prospect 6172,MER-US,SMB,Logistics & Transport,Content/SEO,Sales Outbound,Yes,18200.0,Closed Won,2026-05-26,21,
+OPP-6173,2026-05-20,2026-05,Prospect 6173,MER-EU,SMB,Technology,Events/Field,Email/Lifecycle,Yes,39600.0,Disqualified,,,
+OPP-6174,2026-05-06,2026-05,Prospect 6174,MER-EU,SMB,Retail & CPG,Paid Search,Direct / Branded Search,Yes,17600.0,Closed Lost,2026-05-29,23,Lost to Loop3
+OPP-6175,2026-05-30,2026-05,Prospect 6175,MER-US,SMB,Healthcare,Webinars,Webinars,Yes,20600.0,Closed Lost,2026-07-07,38,Lost to incumbent
+OPP-6176,2026-05-29,2026-05,Prospect 6176,MER-US,Enterprise,Technology,Events/Field,Direct / Branded Search,Yes,202300.0,Negotiation,,,
+OPP-6177,2026-05-26,2026-05,Prospect 6177,MER-US,SMB,Technology,Content/SEO,Direct / Branded Search,Yes,15600.0,Closed Lost,2026-07-10,45,No decision / budget frozen
+OPP-6178,2026-05-24,2026-05,Prospect 6178,MER-US,SMB,Retail & CPG,Webinars,Email/Lifecycle,Yes,24100.0,Negotiation,,,
+OPP-6179,2026-05-29,2026-05,Prospect 6179,MER-US,Mid-Market,Healthcare,Sales Outbound,Sales Outbound,No,121400.0,Closed Won,2026-07-15,47,
+OPP-6180,2026-05-27,2026-05,Prospect 6180,MER-EU,SMB,Energy & Utilities,Events/Field,Events/Field,Yes,27900.0,Disqualified,,,
+OPP-6181,2026-05-28,2026-05,Prospect 6181,MER-US,Mid-Market,Retail & CPG,Sales Outbound,Direct / Branded Search,No,118800.0,Closed Won,2026-08-10,74,
+OPP-6182,2026-05-06,2026-05,Prospect 6182,MER-US,Mid-Market,Business Services,Sales Outbound,Sales Outbound,No,137700.0,Closed Lost,2026-06-28,53,Lost to incumbent
+OPP-6183,2026-05-07,2026-05,Prospect 6183,MER-EU,SMB,Manufacturing,Paid Search,Paid Search,Yes,46800.0,Closed Lost,2026-06-07,31,Lost to incumbent
+OPP-6184,2026-05-28,2026-05,Prospect 6184,MER-EU,Mid-Market,Financial Services,Content/SEO,Content/SEO,Yes,77600.0,Closed Lost,2026-08-19,83,Timing
+OPP-6185,2026-05-11,2026-05,Prospect 6185,MER-EU,Mid-Market,Business Services,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,53700.0,Discovery,,,
+OPP-6186,2026-05-20,2026-05,Prospect 6186,MER-EU,Enterprise,Financial Services,Sales Outbound,Retargeting,No,277300.0,Discovery,,,
+OPP-6187,2026-05-20,2026-05,Prospect 6187,MER-US,Mid-Market,Financial Services,Paid Search,Email/Lifecycle,Yes,66400.0,Closed Lost,2026-07-05,46,Lost to Loop3
+OPP-6188,2026-05-28,2026-05,Prospect 6188,MER-US,Mid-Market,Logistics & Transport,Webinars,Direct / Branded Search,Yes,71500.0,Closed Won,2026-08-26,90,
+OPP-6189,2026-05-04,2026-05,Prospect 6189,MER-US,SMB,Logistics & Transport,Paid Social - LinkedIn,Direct / Branded Search,Yes,14000.0,Closed Won,2026-05-19,15,
+OPP-6190,2026-05-19,2026-05,Prospect 6190,MER-EU,Mid-Market,Business Services,Webinars,Webinars,Yes,127200.0,Discovery,,,
+OPP-6191,2026-05-06,2026-05,Prospect 6191,MER-US,SMB,Healthcare,Paid Social - LinkedIn,Retargeting,Yes,40300.0,Closed Lost,2026-05-29,23,Timing
+OPP-6192,2026-05-24,2026-05,Prospect 6192,MER-EU,SMB,Technology,Email/Lifecycle,Retargeting,Yes,17800.0,Disqualified,,,
+OPP-6193,2026-05-21,2026-05,Prospect 6193,MER-EU,Mid-Market,Manufacturing,Paid Social - LinkedIn,Direct / Branded Search,Yes,151300.0,Closed Won,2026-06-28,38,
+OPP-6194,2026-05-18,2026-05,Prospect 6194,MER-EU,Mid-Market,Manufacturing,Content/SEO,Direct / Branded Search,Yes,96600.0,Closed Lost,2026-07-23,66,Price
+OPP-6195,2026-05-18,2026-05,Prospect 6195,MER-US,SMB,Manufacturing,Paid Social - LinkedIn,Direct / Branded Search,Yes,47900.0,Negotiation,,,
+OPP-6196,2026-05-10,2026-05,Prospect 6196,MER-US,Mid-Market,Manufacturing,Sales Outbound,Direct / Branded Search,No,84400.0,Disqualified,,,
+OPP-6197,2026-05-08,2026-05,Prospect 6197,MER-US,Enterprise,Healthcare,Sales Outbound,Direct / Branded Search,No,287100.0,Closed Won,2026-09-19,134,
+OPP-6198,2026-05-31,2026-05,Prospect 6198,MER-EU,SMB,Retail & CPG,Events/Field,Events/Field,Yes,16200.0,Disqualified,,,
+OPP-6199,2026-05-09,2026-05,Prospect 6199,MER-US,Enterprise,Technology,Sales Outbound,Sales Outbound,No,181500.0,Closed Won,2026-10-16,160,
+OPP-6200,2026-05-17,2026-05,Prospect 6200,MER-US,SMB,Technology,Events/Field,Email/Lifecycle,Yes,27500.0,Negotiation,,,
+OPP-6201,2026-05-17,2026-05,Prospect 6201,MER-US,SMB,Energy & Utilities,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,40900.0,Closed Lost,2026-06-07,21,Price
+OPP-6202,2026-05-28,2026-05,Prospect 6202,MER-US,SMB,Financial Services,Sales Outbound,Sales Outbound,No,17200.0,Disqualified,,,
+OPP-6203,2026-05-20,2026-05,Prospect 6203,MER-US,SMB,Logistics & Transport,Content/SEO,Sales Outbound,Yes,18900.0,Closed Won,2026-06-15,26,
+OPP-6204,2026-05-19,2026-05,Prospect 6204,MER-US,SMB,Technology,Partner Co-marketing,Direct / Branded Search,Yes,47800.0,Closed Lost,2026-06-03,15,Timing
+OPP-6205,2026-05-26,2026-05,Prospect 6205,MER-US,Mid-Market,Energy & Utilities,Content/SEO,Content/SEO,Yes,101000.0,Closed Lost,2026-08-30,96,No decision / budget frozen
+OPP-6206,2026-05-05,2026-05,Prospect 6206,MER-US,Enterprise,Manufacturing,Retargeting,Direct / Branded Search,Yes,190000.0,Closed Won,2026-08-11,98,
+OPP-6207,2026-05-04,2026-05,Prospect 6207,MER-US,Mid-Market,Healthcare,Paid Social - LinkedIn,Direct / Branded Search,Yes,82400.0,Discovery,,,
+OPP-6208,2026-05-28,2026-05,Prospect 6208,MER-US,SMB,Logistics & Transport,Sales Outbound,Sales Outbound,No,35500.0,Discovery,,,
+OPP-6209,2026-05-19,2026-05,Prospect 6209,MER-US,Enterprise,Technology,Paid Search,Paid Search,Yes,252400.0,Closed Lost,2026-09-07,111,No decision / budget frozen
+OPP-6210,2026-05-23,2026-05,Prospect 6210,MER-EU,Enterprise,Financial Services,Partner Co-marketing,Partner Co-marketing,Yes,325200.0,Closed Lost,2026-08-27,96,Timing
+OPP-6211,2026-05-20,2026-05,Prospect 6211,MER-US,Enterprise,Business Services,Paid Search,Email/Lifecycle,Yes,293600.0,Closed Lost,2026-10-11,144,Price
+OPP-6212,2026-05-15,2026-05,Prospect 6212,MER-US,SMB,Business Services,Sales Outbound,Retargeting,No,26000.0,Discovery,,,
+OPP-6213,2026-05-31,2026-05,Prospect 6213,MER-US,SMB,Manufacturing,Content/SEO,Email/Lifecycle,Yes,45700.0,Closed Won,2026-06-20,20,
+OPP-6214,2026-05-31,2026-05,Prospect 6214,MER-US,Mid-Market,Logistics & Transport,Partner Co-marketing,Retargeting,Yes,115900.0,Closed Lost,2026-07-25,55,No decision / budget frozen
+OPP-6215,2026-05-20,2026-05,Prospect 6215,MER-US,SMB,Logistics & Transport,Partner Co-marketing,Direct / Branded Search,Yes,32500.0,Discovery,,,
+OPP-6216,2026-05-24,2026-05,Prospect 6216,MER-US,SMB,Technology,Review Sites (G2),Email/Lifecycle,Yes,17800.0,Discovery,,,
+OPP-6217,2026-05-22,2026-05,Prospect 6217,MER-US,Enterprise,Manufacturing,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,197100.0,Closed Lost,2026-10-30,161,Lost to Loop3
+OPP-6218,2026-05-12,2026-05,Prospect 6218,MER-EU,SMB,Technology,Sales Outbound,Sales Outbound,No,47200.0,Closed Won,2026-06-06,25,
+OPP-6219,2026-05-13,2026-05,Prospect 6219,MER-US,SMB,Energy & Utilities,Email/Lifecycle,Direct / Branded Search,Yes,18900.0,Closed Won,2026-06-23,41,
+OPP-6220,2026-05-22,2026-05,Prospect 6220,MER-US,SMB,Healthcare,Content/SEO,Direct / Branded Search,Yes,14900.0,Closed Lost,2026-07-06,45,No decision / budget frozen
+OPP-6221,2026-05-04,2026-05,Prospect 6221,MER-US,SMB,Retail & CPG,Paid Search,Paid Search,Yes,37800.0,Closed Lost,2026-06-03,30,Missing feature - approvals
+OPP-6222,2026-05-20,2026-05,Prospect 6222,MER-US,Mid-Market,Healthcare,Content/SEO,Email/Lifecycle,Yes,153800.0,Closed Lost,2026-07-31,72,Missing feature - approvals
+OPP-6223,2026-05-30,2026-05,Prospect 6223,MER-US,SMB,Energy & Utilities,Webinars,Webinars,Yes,45900.0,Disqualified,,,
+OPP-6224,2026-05-19,2026-05,Prospect 6224,MER-US,SMB,Business Services,Paid Search,Paid Search,Yes,46600.0,Discovery,,,
+OPP-6225,2026-05-22,2026-05,Prospect 6225,MER-US,SMB,Healthcare,Paid Social - LinkedIn,Direct / Branded Search,Yes,27800.0,Discovery,,,
+OPP-6226,2026-05-26,2026-05,Prospect 6226,MER-US,SMB,Financial Services,Paid Search,Paid Search,Yes,18900.0,Closed Won,2026-06-20,25,
+OPP-6227,2026-05-20,2026-05,Prospect 6227,MER-EU,SMB,Technology,Email/Lifecycle,Email/Lifecycle,Yes,19900.0,Closed Lost,2026-06-25,36,Timing
+OPP-6228,2026-06-29,2026-06,Prospect 6228,MER-EU,SMB,Technology,Partner Co-marketing,Partner Co-marketing,Yes,13500.0,Discovery,,,
+OPP-6229,2026-06-05,2026-06,Prospect 6229,MER-US,SMB,Manufacturing,Sales Outbound,Direct / Branded Search,No,27400.0,Closed Lost,2026-06-17,12,Lost to Loop3
+OPP-6230,2026-06-03,2026-06,Prospect 6230,MER-US,Mid-Market,Retail & CPG,Paid Social - Meta,Paid Social - Meta,Yes,141200.0,Disqualified,,,
+OPP-6231,2026-06-22,2026-06,Prospect 6231,MER-US,Mid-Market,Logistics & Transport,Content/SEO,Direct / Branded Search,Yes,65300.0,Disqualified,,,
+OPP-6232,2026-06-29,2026-06,Prospect 6232,MER-US,SMB,Financial Services,Content/SEO,Email/Lifecycle,Yes,33800.0,Disqualified,,,
+OPP-6233,2026-06-16,2026-06,Prospect 6233,MER-US,SMB,Financial Services,Sales Outbound,Sales Outbound,No,33800.0,Closed Lost,2026-07-10,24,Price
+OPP-6234,2026-06-30,2026-06,Prospect 6234,MER-US,SMB,Logistics & Transport,Sales Outbound,Email/Lifecycle,No,21300.0,Discovery,,,
+OPP-6235,2026-06-14,2026-06,Prospect 6235,MER-US,SMB,Manufacturing,Content/SEO,Content/SEO,Yes,29200.0,Discovery,,,
+OPP-6236,2026-06-26,2026-06,Prospect 6236,MER-US,SMB,Healthcare,Sales Outbound,Direct / Branded Search,No,22000.0,Closed Lost,2026-08-02,37,Price
+OPP-6237,2026-06-28,2026-06,Prospect 6237,MER-US,SMB,Manufacturing,Sales Outbound,Direct / Branded Search,No,41500.0,Negotiation,,,
+OPP-6238,2026-06-26,2026-06,Prospect 6238,MER-US,Enterprise,Logistics & Transport,Paid Search,Paid Search,Yes,245000.0,Closed Lost,2026-10-08,104,Timing
+OPP-6239,2026-06-29,2026-06,Prospect 6239,MER-EU,SMB,Healthcare,Paid Search,Direct / Branded Search,Yes,34400.0,Disqualified,,,
+OPP-6240,2026-06-14,2026-06,Prospect 6240,MER-US,Mid-Market,Financial Services,Sales Outbound,Direct / Branded Search,No,156500.0,Discovery,,,
+OPP-6241,2026-06-13,2026-06,Prospect 6241,MER-EU,SMB,Manufacturing,Webinars,Retargeting,Yes,13800.0,Closed Lost,2026-07-13,30,Lost to Loop3
+OPP-6242,2026-06-23,2026-06,Prospect 6242,MER-US,SMB,Manufacturing,Sales Outbound,Direct / Branded Search,No,35900.0,Closed Lost,2026-07-17,24,Price
+OPP-6243,2026-06-18,2026-06,Prospect 6243,MER-US,Mid-Market,Technology,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,64500.0,Closed Won,2026-07-27,39,
+OPP-6244,2026-06-03,2026-06,Prospect 6244,MER-US,Mid-Market,Healthcare,Webinars,Direct / Branded Search,Yes,127800.0,Discovery,,,
+OPP-6245,2026-06-04,2026-06,Prospect 6245,MER-US,SMB,Technology,Sales Outbound,Sales Outbound,No,23100.0,Discovery,,,
+OPP-6246,2026-06-23,2026-06,Prospect 6246,MER-US,Enterprise,Business Services,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,232000.0,Disqualified,,,
+OPP-6247,2026-06-17,2026-06,Prospect 6247,MER-US,SMB,Retail & CPG,Review Sites (G2),Review Sites (G2),Yes,16300.0,Closed Lost,2026-07-24,37,No decision / budget frozen
+OPP-6248,2026-06-23,2026-06,Prospect 6248,MER-US,Mid-Market,Technology,Partner Co-marketing,Email/Lifecycle,Yes,98800.0,Disqualified,,,
+OPP-6249,2026-06-28,2026-06,Prospect 6249,MER-US,Mid-Market,Retail & CPG,Content/SEO,Direct / Branded Search,Yes,90200.0,Closed Lost,2026-08-24,57,Price
+OPP-6250,2026-06-20,2026-06,Prospect 6250,MER-EU,SMB,Financial Services,Paid Search,Direct / Branded Search,Yes,30700.0,Closed Won,2026-07-18,28,
+OPP-6251,2026-06-28,2026-06,Prospect 6251,MER-US,SMB,Technology,Events/Field,Events/Field,Yes,22500.0,Closed Lost,2026-07-31,33,Price
+OPP-6252,2026-06-10,2026-06,Prospect 6252,MER-EU,Mid-Market,Energy & Utilities,Sales Outbound,Retargeting,No,158400.0,Discovery,,,
+OPP-6253,2026-06-30,2026-06,Prospect 6253,MER-US,Mid-Market,Manufacturing,Sales Outbound,Direct / Branded Search,No,129300.0,Disqualified,,,
+OPP-6254,2026-06-17,2026-06,Prospect 6254,MER-US,SMB,Financial Services,Content/SEO,Retargeting,Yes,42300.0,Closed Lost,2026-07-16,29,Price
+OPP-6255,2026-06-07,2026-06,Prospect 6255,MER-EU,Mid-Market,Healthcare,Paid Social - Meta,Paid Social - Meta,Yes,152500.0,Disqualified,,,
+OPP-6256,2026-06-06,2026-06,Prospect 6256,MER-US,SMB,Technology,Paid Search,Paid Search,Yes,24200.0,Closed Lost,2026-07-02,26,No decision / budget frozen
+OPP-6257,2026-06-04,2026-06,Prospect 6257,MER-US,Enterprise,Logistics & Transport,Sales Outbound,Retargeting,No,248200.0,Discovery,,,
+OPP-6258,2026-06-03,2026-06,Prospect 6258,MER-EU,SMB,Business Services,Paid Search,Paid Search,Yes,34100.0,Closed Lost,2026-07-06,33,No decision / budget frozen
+OPP-6259,2026-06-04,2026-06,Prospect 6259,MER-US,Mid-Market,Energy & Utilities,Sales Outbound,Email/Lifecycle,No,157100.0,Disqualified,,,
+OPP-6260,2026-06-05,2026-06,Prospect 6260,MER-US,SMB,Energy & Utilities,Paid Social - LinkedIn,Retargeting,Yes,14200.0,Discovery,,,
+OPP-6261,2026-06-30,2026-06,Prospect 6261,MER-US,SMB,Energy & Utilities,Sales Outbound,Sales Outbound,No,17600.0,Disqualified,,,
+OPP-6262,2026-06-12,2026-06,Prospect 6262,MER-US,Mid-Market,Retail & CPG,Content/SEO,Email/Lifecycle,Yes,107900.0,Closed Won,2026-08-06,55,
+OPP-6263,2026-06-13,2026-06,Prospect 6263,MER-EU,Mid-Market,Retail & CPG,Sales Outbound,Direct / Branded Search,No,150900.0,Closed Lost,2026-08-13,61,Price
+OPP-6264,2026-06-05,2026-06,Prospect 6264,MER-US,Mid-Market,Business Services,Sales Outbound,Direct / Branded Search,No,97800.0,Closed Lost,2026-07-28,53,Timing
+OPP-6265,2026-06-22,2026-06,Prospect 6265,MER-EU,SMB,Retail & CPG,Sales Outbound,Sales Outbound,No,37200.0,Closed Lost,2026-08-01,40,Missing feature - approvals
+OPP-6266,2026-06-16,2026-06,Prospect 6266,MER-US,Mid-Market,Manufacturing,Review Sites (G2),Direct / Branded Search,Yes,137500.0,Closed Lost,2026-08-30,75,Timing
+OPP-6267,2026-06-21,2026-06,Prospect 6267,MER-EU,Mid-Market,Financial Services,Events/Field,Direct / Branded Search,Yes,84000.0,Disqualified,,,
+OPP-6268,2026-06-07,2026-06,Prospect 6268,MER-US,Enterprise,Technology,Paid Search,Paid Search,Yes,238300.0,Closed Lost,2026-10-30,145,Timing
+OPP-6269,2026-06-29,2026-06,Prospect 6269,MER-US,SMB,Retail & CPG,Paid Search,Direct / Branded Search,Yes,20800.0,Discovery,,,
+OPP-6270,2026-06-16,2026-06,Prospect 6270,MER-US,Mid-Market,Business Services,Content/SEO,Email/Lifecycle,Yes,103500.0,Closed Won,2026-08-29,74,
+OPP-6271,2026-06-25,2026-06,Prospect 6271,MER-US,SMB,Retail & CPG,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,27000.0,Discovery,,,
+OPP-6272,2026-06-22,2026-06,Prospect 6272,MER-US,Mid-Market,Manufacturing,Paid Search,Direct / Branded Search,Yes,99300.0,Discovery,,,
+OPP-6273,2026-06-25,2026-06,Prospect 6273,MER-EU,Mid-Market,Healthcare,Webinars,Sales Outbound,Yes,139200.0,Closed Lost,2026-08-19,55,Timing
+OPP-6274,2026-06-16,2026-06,Prospect 6274,MER-US,SMB,Logistics & Transport,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,34400.0,Discovery,,,
+OPP-6275,2026-06-23,2026-06,Prospect 6275,MER-US,SMB,Energy & Utilities,Events/Field,Events/Field,Yes,42900.0,Disqualified,,,
+OPP-6276,2026-06-17,2026-06,Prospect 6276,MER-US,Mid-Market,Energy & Utilities,Partner Co-marketing,Email/Lifecycle,Yes,138000.0,Closed Won,2026-09-28,103,
+OPP-6277,2026-06-05,2026-06,Prospect 6277,MER-US,Mid-Market,Financial Services,Sales Outbound,Direct / Branded Search,No,151300.0,Closed Lost,2026-09-07,94,Lost to Loop3
+OPP-6278,2026-06-10,2026-06,Prospect 6278,MER-US,SMB,Technology,Sales Outbound,Retargeting,No,39000.0,Closed Lost,2026-07-05,25,Price
+OPP-6279,2026-06-21,2026-06,Prospect 6279,MER-EU,SMB,Technology,Review Sites (G2),Direct / Branded Search,Yes,22600.0,Closed Won,2026-07-17,26,
+OPP-6280,2026-06-25,2026-06,Prospect 6280,MER-EU,Mid-Market,Financial Services,Paid Social - LinkedIn,Direct / Branded Search,Yes,121500.0,Closed Won,2026-08-04,40,
+OPP-6281,2026-06-04,2026-06,Prospect 6281,MER-US,Mid-Market,Energy & Utilities,Webinars,Direct / Branded Search,Yes,128300.0,Disqualified,,,
+OPP-6282,2026-06-15,2026-06,Prospect 6282,MER-EU,SMB,Business Services,Paid Search,Direct / Branded Search,Yes,44800.0,Discovery,,,
+OPP-6283,2026-06-11,2026-06,Prospect 6283,MER-US,Mid-Market,Healthcare,Sales Outbound,Sales Outbound,No,121300.0,Closed Lost,2026-07-29,48,Price
+OPP-6284,2026-06-11,2026-06,Prospect 6284,MER-US,SMB,Energy & Utilities,Review Sites (G2),Direct / Branded Search,Yes,39500.0,Disqualified,,,
+OPP-6285,2026-06-20,2026-06,Prospect 6285,MER-EU,Mid-Market,Business Services,Paid Search,Sales Outbound,Yes,157700.0,Discovery,,,
+OPP-6286,2026-06-28,2026-06,Prospect 6286,MER-US,Mid-Market,Retail & CPG,Partner Co-marketing,Sales Outbound,Yes,64400.0,Closed Lost,2026-10-05,99,Missing feature - approvals
+OPP-6287,2026-06-24,2026-06,Prospect 6287,MER-US,Enterprise,Retail & CPG,Sales Outbound,Sales Outbound,No,199200.0,Closed Won,2026-10-22,120,
+OPP-6288,2026-06-14,2026-06,Prospect 6288,MER-EU,Mid-Market,Logistics & Transport,Retargeting,Direct / Branded Search,Yes,122100.0,Closed Lost,2026-08-28,75,Price
+OPP-6289,2026-06-22,2026-06,Prospect 6289,MER-EU,Mid-Market,Healthcare,Paid Social - LinkedIn,Retargeting,Yes,108700.0,Closed Lost,2026-09-13,83,No decision / budget frozen
+OPP-6290,2026-06-23,2026-06,Prospect 6290,MER-US,SMB,Business Services,Sales Outbound,Direct / Branded Search,No,11000.0,Disqualified,,,
+OPP-6291,2026-06-11,2026-06,Prospect 6291,MER-EU,Mid-Market,Technology,Events/Field,Retargeting,Yes,150100.0,Discovery,,,
+OPP-6292,2026-06-24,2026-06,Prospect 6292,MER-US,SMB,Financial Services,Events/Field,Direct / Branded Search,Yes,40900.0,Closed Lost,2026-07-14,20,Lost to incumbent
+OPP-6293,2026-06-13,2026-06,Prospect 6293,MER-US,SMB,Retail & CPG,Content/SEO,Direct / Branded Search,Yes,12000.0,Negotiation,,,
+OPP-6294,2026-06-30,2026-06,Prospect 6294,MER-US,Enterprise,Retail & CPG,Paid Search,Sales Outbound,Yes,222400.0,Closed Lost,2026-11-01,124,Lost to incumbent
+OPP-6295,2026-06-12,2026-06,Prospect 6295,MER-EU,Mid-Market,Retail & CPG,Partner Co-marketing,Sales Outbound,Yes,151100.0,Closed Won,2026-08-24,73,
+OPP-6296,2026-06-08,2026-06,Prospect 6296,MER-EU,Mid-Market,Retail & CPG,Sales Outbound,Direct / Branded Search,No,71300.0,Discovery,,,
+OPP-6297,2026-06-11,2026-06,Prospect 6297,MER-US,Mid-Market,Technology,Webinars,Sales Outbound,Yes,87000.0,Closed Lost,2026-07-27,46,Lost to Loop3
+OPP-6298,2026-06-05,2026-06,Prospect 6298,MER-US,SMB,Financial Services,Partner Co-marketing,Partner Co-marketing,Yes,31600.0,Closed Lost,2026-06-25,20,No decision / budget frozen
+OPP-6299,2026-06-27,2026-06,Prospect 6299,MER-EU,SMB,Manufacturing,Review Sites (G2),Email/Lifecycle,Yes,15700.0,Closed Lost,2026-07-22,25,Price
+OPP-6300,2026-06-18,2026-06,Prospect 6300,MER-US,Mid-Market,Energy & Utilities,Paid Social - LinkedIn,Paid Social - LinkedIn,Yes,153700.0,Disqualified,,,
+OPP-6301,2026-06-06,2026-06,Prospect 6301,MER-US,SMB,Healthcare,Partner Co-marketing,Partner Co-marketing,Yes,30600.0,Negotiation,,,
+OPP-6302,2026-06-08,2026-06,Prospect 6302,MER-US,Mid-Market,Technology,Sales Outbound,Sales Outbound,No,145900.0,Disqualified,,,
+OPP-6303,2026-06-25,2026-06,Prospect 6303,MER-US,SMB,Business Services,Sales Outbound,Retargeting,No,26400.0,Closed Lost,2026-07-18,23,Timing
+OPP-6304,2026-06-15,2026-06,Prospect 6304,MER-US,Mid-Market,Technology,Content/SEO,Retargeting,Yes,102700.0,Closed Lost,2026-08-28,74,Timing
+OPP-6305,2026-06-11,2026-06,Prospect 6305,MER-US,Enterprise,Business Services,Paid Social - LinkedIn,Direct / Branded Search,Yes,300800.0,Negotiation,,,
+OPP-6306,2026-06-24,2026-06,Prospect 6306,MER-US,SMB,Healthcare,Webinars,Retargeting,Yes,13300.0,Discovery,,,
+OPP-6307,2026-06-20,2026-06,Prospect 6307,MER-US,SMB,Manufacturing,Content/SEO,Content/SEO,Yes,17800.0,Closed Lost,2026-07-06,16,Lost to Loop3
+OPP-6308,2026-06-04,2026-06,Prospect 6308,MER-EU,SMB,Business Services,Partner Co-marketing,Direct / Branded Search,Yes,30800.0,Closed Lost,2026-06-22,18,Lost to incumbent
+OPP-6309,2026-06-08,2026-06,Prospect 6309,MER-US,Mid-Market,Manufacturing,Sales Outbound,Sales Outbound,No,158900.0,Closed Lost,2026-08-01,54,No decision / budget frozen
+OPP-6310,2026-06-07,2026-06,Prospect 6310,MER-EU,SMB,Technology,Content/SEO,Retargeting,Yes,14900.0,Closed Lost,2026-06-30,23,Timing
+OPP-6311,2026-06-16,2026-06,Prospect 6311,MER-EU,SMB,Technology,Webinars,Direct / Branded Search,Yes,45900.0,Closed Won,2026-06-28,12,
+OPP-6312,2026-06-12,2026-06,Prospect 6312,MER-EU,SMB,Healthcare,Sales Outbound,Direct / Branded Search,No,26400.0,Disqualified,,,
+OPP-6313,2026-06-12,2026-06,Prospect 6313,MER-US,Enterprise,Logistics & Transport,Webinars,Webinars,Yes,350700.0,Closed Lost,2026-10-04,114,No decision / budget frozen
+OPP-6314,2026-06-03,2026-06,Prospect 6314,MER-EU,SMB,Retail & CPG,Content/SEO,Sales Outbound,Yes,15700.0,Discovery,,,
