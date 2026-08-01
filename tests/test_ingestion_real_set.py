@@ -1,9 +1,3 @@
-"""Acceptance tests for the remaining real files in real_testing/ (the five
-already covered by test_ingestion_acceptance.py are not repeated here).
-Everything is driven through the real upload -> schema -> mapping HTTP
-endpoints, and the AR totals are asserted against the figures the scenario
-README states independently of this code."""
-
 from pathlib import Path
 
 import pytest
@@ -68,10 +62,6 @@ AR_TOTALS = {
 
 
 def test_ar_aging_uses_sheet_as_of_date_and_reconciles(client):
-    """Each AR sheet is one balance-sheet date stated only in its title row and
-    sheet name; Invoice Date / Due Date are per-invoice attributes. Every sheet
-    must land on exactly one period and its invoice amounts must sum to the
-    documented AR balance -- the TOTAL row must not be double-counted."""
     up = _upload(client, "finance_ar_aging.xlsx", XLSX_MIME)
     assert up["sheets"] == ["AR Jun-25", "AR Sep-25", "AR Dec-25", "AR Mar-26", "AR Jun-26"]
 
@@ -96,9 +86,6 @@ def test_ar_aging_uses_sheet_as_of_date_and_reconciles(client):
 
 
 def test_ar_aging_total_row_never_becomes_a_metric(client):
-    """The TOTAL row marks itself in Customer, not in the mapped metric column
-    (Terms), so a filter that only looks at the metric column lets it through
-    as a phantom metric holding the whole sheet's total."""
     up = _upload(client, "finance_ar_aging.xlsx", XLSX_MIME)
     schema = _schema(client, up["upload_id"], sheet="AR Jun-25")
     result = _confirm(client, up["upload_id"], schema["suggested_mapping"])
@@ -109,9 +96,6 @@ def test_ar_aging_total_row_never_becomes_a_metric(client):
 
 
 def test_web_analytics_missing_month_is_absent_not_zero(client):
-    """Jul-2025 is missing from the workbook entirely (GA4 migration, never
-    backfilled). It must stay absent rather than being invented as zero, and
-    the SUM-formula Total row must not become a metric."""
     up = _upload(client, "marketing_web_analytics.xlsx", XLSX_MIME)
     schema = _schema(client, up["upload_id"], sheet="Sessions by Source")
     result = _confirm(client, up["upload_id"], schema["suggested_mapping"])
@@ -124,10 +108,6 @@ def test_web_analytics_missing_month_is_absent_not_zero(client):
 
 
 def test_customer_master_roster_is_flagged_not_silently_mismapped(client):
-    """A roster (one row per customer, no repeating period) has no month-by-month
-    history. contract_start is near-unique and churn_period is 85% empty, so
-    neither is a reporting period -- the user must be warned rather than handed
-    a confident but meaningless mapping."""
     up = _upload(client, "finance_customer_master.csv", CSV_MIME)
     schema = _schema(client, up["upload_id"])
 
@@ -139,9 +119,6 @@ def test_customer_master_roster_is_flagged_not_silently_mismapped(client):
 
 
 def test_attribution_prefers_repeating_period_over_transaction_date(client):
-    """created_date holds 467 distinct dates across 1,314 opportunities while
-    created_period holds the 18 reporting months. Picking the former would
-    shatter the series into hundreds of one-row periods."""
     up = _upload(client, "marketing_opportunity_attribution.csv", CSV_MIME)
     schema = _schema(client, up["upload_id"])
 
@@ -149,6 +126,44 @@ def test_attribution_prefers_repeating_period_over_transaction_date(client):
 
     result = _confirm(client, up["upload_id"], schema["suggested_mapping"])
     assert len(result["periods"]) == 18
+
+
+def test_arr_movement_surfaces_movement_type_as_an_alternative(client):
+    up = _upload(client, "finance_arr_movement.csv", CSV_MIME)
+    schema = _schema(client, up["upload_id"])
+
+    assert schema["mapping_confidence"] == "low"
+    grouping = [w for w in schema["mapping_warnings"] if "could be grouped by" in w]
+    assert len(grouping) == 1
+    assert "movement_type" in grouping[0]
+
+    result = _confirm(client, up["upload_id"], schema["suggested_mapping"])
+    assert len(result["periods"]) == 18
+
+
+def test_arr_movement_by_movement_type_gives_the_waterfall(client):
+    up = _upload(client, "finance_arr_movement.csv", CSV_MIME)
+    schema = _schema(client, up["upload_id"])
+
+    mapping = dict(schema["suggested_mapping"])
+    mapping["metric_col"] = "movement_type"
+    mapping["dimension_cols"] = [
+        c for c in mapping["dimension_cols"] if c != "movement_type"
+    ] + ["industry"]
+
+    result = _confirm(client, up["upload_id"], mapping)
+    assert set(result["metrics"]) == {"New Logo", "Expansion", "Contraction", "Churn"}
+
+    totals = {}
+    for period in result["periods"]:
+        for fact in client.get("/facts", params={"period": period}).json():
+            if fact.get("has_data"):
+                totals[fact["metric"]] = totals.get(fact["metric"], 0) + fact["value"]
+
+    assert totals["New Logo"] == pytest.approx(14474100.0, abs=1.0)
+    assert totals["Expansion"] == pytest.approx(2539800.0, abs=1.0)
+    assert totals["Contraction"] == pytest.approx(-980600.0, abs=1.0)
+    assert totals["Churn"] == pytest.approx(-5444900.0, abs=1.0)
 
 
 @pytest.mark.parametrize("filename,mime,min_periods", [

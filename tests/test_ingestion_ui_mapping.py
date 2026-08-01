@@ -1,8 +1,3 @@
-"""The mapping screen rebuilds the payload from its own role dropdowns rather
-than posting the suggestion back verbatim, so anything the suggestion carries
-outside those dropdowns has to be threaded through explicitly. These tests
-reproduce that rebuild against real files."""
-
 from pathlib import Path
 
 import pytest
@@ -36,9 +31,6 @@ def client(tmp_path, monkeypatch):
 
 
 def _rebuild_like_ui(schema):
-    """Mirror of buildMapping() in ui/web/app.js for the long layout: roles come
-    from the per-column dropdowns, period_literal rides along from the
-    suggestion because no dropdown represents it."""
     roles = {c["column_name"]: c["guessed_role"] for c in schema["columns"]}
     by = lambda r: [c for c, v in roles.items() if v == r]  # noqa: E731
     suggested = schema["suggested_mapping"]
