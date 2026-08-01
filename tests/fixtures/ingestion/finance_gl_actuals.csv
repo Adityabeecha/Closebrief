@@ -1,0 +1,937 @@
+period,period_end,month_label,entity,entity_name,currency,fx_rate_usd_per_local,cost_center,account_code,account_name,account_group,amount_local,amount_usd
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4010,Subscription Revenue,Revenue,1378666.67,1378666.67
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4020,Professional Services Revenue,Revenue,73670.1,73670.1
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4030,Training & Certification Revenue,Revenue,18383.93,18383.93
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-000,4010,Subscription Revenue,Revenue,358356.29,390250.0
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-000,4020,Professional Services Revenue,Revenue,25612.99,27892.55
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-000,4030,Training & Certification Revenue,Revenue,3735.82,4068.31
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5010,Cloud Hosting & Infrastructure,COGS,141159.55,141159.55
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5020,Third-Party Software Licenses (COGS),COGS,47053.18,47053.18
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5040,Payment Processing Fees,COGS,12368.27,12368.27
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5030,Customer Support Salaries & Benefits,COGS,62472.38,62472.38
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6120,Contractors - Engineering,Research & Development,72200.0,72200.0
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-100,5010,Cloud Hosting & Infrastructure,COGS,40933.61,44576.7
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-100,5020,Third-Party Software Licenses (COGS),COGS,13644.54,14858.9
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-100,5040,Payment Processing Fees,COGS,3586.56,3905.77
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-100,5030,Customer Support Salaries & Benefits,COGS,16180.36,17620.42
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-200,6120,Contractors - Engineering,Research & Development,20936.64,22800.0
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,246150.31,246150.31
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,93322.94,93322.94
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,274391.38,274391.38
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,35100.0,35100.0
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6040,Sales Tools & CRM,Sales & Marketing,20280.0,20280.0
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,63752.99,69427.01
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,24170.67,26321.86
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,62991.59,68597.84
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,9090.91,9900.0
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-300,6040,Sales Tools & CRM,Sales & Marketing,5252.53,5720.0
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6110,Engineering Salaries & Benefits,Research & Development,317825.04,317825.04
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6130,Product Salaries & Benefits,Research & Development,89288.64,89288.64
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,32680.0,32680.0
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6210,G&A Salaries & Benefits,General & Administrative,95666.4,95666.4
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,88863.46,88863.46
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6220,Rent & Facilities,General & Administrative,67080.0,67080.0
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6230,Legal & Professional Fees,General & Administrative,39684.64,39684.64
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,63640.0,63640.0
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6250,Insurance,General & Administrative,24510.0,24510.0
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6260,Bad Debt Expense,General & Administrative,6085.07,6085.07
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6270,Corporate SaaS & IT,General & Administrative,44720.0,44720.0
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7010,Depreciation & Amortization,Other,37840.0,37840.0
+2025-01,2025-01-31,Jan-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7020,Interest Income,Other,-40629.67,-40629.67
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-200,6110,Engineering Salaries & Benefits,Research & Development,47510.52,51738.96
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-200,6130,Product Salaries & Benefits,Research & Development,13347.44,14535.36
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,4885.22,5320.0
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-400,6210,G&A Salaries & Benefits,General & Administrative,14300.83,15573.6
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,13283.88,14466.14
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-400,6220,Rent & Facilities,General & Administrative,10027.55,10920.0
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-400,6230,Legal & Professional Fees,General & Administrative,6135.23,6681.26
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,9513.31,10360.0
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-400,6250,Insurance,General & Administrative,3663.91,3990.0
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-400,6260,Bad Debt Expense,General & Administrative,909.64,990.59
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-400,6270,Corporate SaaS & IT,General & Administrative,6685.03,7280.0
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-900,7010,Depreciation & Amortization,Other,5656.57,6160.0
+2025-01,2025-01-31,Jan-25,MER-EU,Meridian Labs B.V.,EUR,1.089,CC-900,7020,Interest Income,Other,-7061.02,-7689.45
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4010,Subscription Revenue,Revenue,1396241.67,1396241.67
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4020,Professional Services Revenue,Revenue,96451.09,96451.09
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4030,Training & Certification Revenue,Revenue,20545.97,20545.97
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-000,4010,Subscription Revenue,Revenue,371984.35,403975.0
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-000,4020,Professional Services Revenue,Revenue,21132.94,22950.37
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-000,4030,Training & Certification Revenue,Revenue,5269.09,5722.23
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5010,Cloud Hosting & Infrastructure,COGS,142853.46,142853.46
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5020,Third-Party Software Licenses (COGS),COGS,48718.34,48718.34
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5040,Payment Processing Fees,COGS,12805.96,12805.96
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5030,Customer Support Salaries & Benefits,COGS,62472.38,62472.38
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6120,Contractors - Engineering,Research & Development,74366.0,74366.0
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-100,5010,Cloud Hosting & Infrastructure,COGS,41539.25,45111.62
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-100,5020,Third-Party Software Licenses (COGS),COGS,14166.43,15384.74
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-100,5040,Payment Processing Fees,COGS,3723.75,4043.99
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-100,5030,Customer Support Salaries & Benefits,COGS,16225.06,17620.42
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-200,6120,Contractors - Engineering,Research & Development,21624.31,23484.0
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,229281.49,229281.49
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,93322.94,93322.94
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,274689.61,274689.61
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,36270.0,36270.0
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6040,Sales Tools & CRM,Sales & Marketing,20826.0,20826.0
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,59548.01,64669.14
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,24237.44,26321.86
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,63234.26,68672.4
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,9419.89,10230.0
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-300,6040,Sales Tools & CRM,Sales & Marketing,5408.84,5874.0
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6110,Engineering Salaries & Benefits,Research & Development,317825.04,317825.04
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6130,Product Salaries & Benefits,Research & Development,89288.64,89288.64
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,33626.0,33626.0
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6210,G&A Salaries & Benefits,General & Administrative,95666.4,95666.4
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,96941.95,96941.95
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6220,Rent & Facilities,General & Administrative,67080.0,67080.0
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6230,Legal & Professional Fees,General & Administrative,32033.35,32033.35
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,63640.0,63640.0
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6250,Insurance,General & Administrative,24510.0,24510.0
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6260,Bad Debt Expense,General & Administrative,6300.42,6300.42
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6270,Corporate SaaS & IT,General & Administrative,46240.48,46240.48
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7010,Depreciation & Amortization,Other,38614.0,38614.0
+2025-02,2025-02-28,Feb-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7020,Interest Income,Other,-44476.16,-44476.16
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-200,6110,Engineering Salaries & Benefits,Research & Development,47641.77,51738.96
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-200,6130,Product Salaries & Benefits,Research & Development,13384.31,14535.36
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,5040.52,5474.0
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-400,6210,G&A Salaries & Benefits,General & Administrative,14340.33,15573.6
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,14531.54,15781.25
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-400,6220,Rent & Facilities,General & Administrative,10055.25,10920.0
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-400,6230,Legal & Professional Fees,General & Administrative,6247.41,6784.69
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,9539.59,10360.0
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-400,6250,Insurance,General & Administrative,3674.03,3990.0
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-400,6260,Bad Debt Expense,General & Administrative,944.43,1025.65
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-400,6270,Corporate SaaS & IT,General & Administrative,6931.42,7527.52
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-900,7010,Depreciation & Amortization,Other,5788.21,6286.0
+2025-02,2025-02-28,Feb-25,MER-EU,Meridian Labs B.V.,EUR,1.086,CC-900,7020,Interest Income,Other,-6810.84,-7396.57
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4010,Subscription Revenue,Revenue,1448716.67,1448716.67
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4020,Professional Services Revenue,Revenue,101587.64,101587.64
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4030,Training & Certification Revenue,Revenue,17678.98,17678.98
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-000,4010,Subscription Revenue,Revenue,392697.83,428433.33
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-000,4020,Professional Services Revenue,Revenue,26977.15,29432.07
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-000,4030,Training & Certification Revenue,Revenue,3875.85,4228.55
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5010,Cloud Hosting & Infrastructure,COGS,144567.71,144567.71
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5020,Third-Party Software Licenses (COGS),COGS,51146.04,51146.04
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5040,Payment Processing Fees,COGS,13444.1,13444.1
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5030,Customer Support Salaries & Benefits,COGS,67678.42,67678.42
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6120,Contractors - Engineering,Research & Development,76532.0,76532.0
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-100,5010,Cloud Hosting & Infrastructure,COGS,41845.06,45652.96
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-100,5020,Third-Party Software Licenses (COGS),COGS,14804.2,16151.38
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-100,5040,Payment Processing Fees,COGS,3891.39,4245.51
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-100,5030,Customer Support Salaries & Benefits,COGS,17496.59,19088.78
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-200,6120,Contractors - Engineering,Research & Development,22152.15,24168.0
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,240895.93,240895.93
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,93322.94,93322.94
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,285018.9,285018.9
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,37440.0,37440.0
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6040,Sales Tools & CRM,Sales & Marketing,21372.0,21372.0
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,62277.73,67945.01
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,24126.36,26321.86
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,65311.39,71254.72
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,9679.19,10560.0
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-300,6040,Sales Tools & CRM,Sales & Marketing,5525.21,6028.0
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6110,Engineering Salaries & Benefits,Research & Development,330049.08,330049.08
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6130,Product Salaries & Benefits,Research & Development,89288.64,89288.64
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,34572.0,34572.0
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6210,G&A Salaries & Benefits,General & Administrative,95666.4,95666.4
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,96941.95,96941.95
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6220,Rent & Facilities,General & Administrative,67080.0,67080.0
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6230,Legal & Professional Fees,General & Administrative,35088.17,35088.17
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,63640.0,63640.0
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6250,Insurance,General & Administrative,24510.0,24510.0
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6260,Bad Debt Expense,General & Administrative,6614.37,6614.37
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6270,Corporate SaaS & IT,General & Administrative,47812.66,47812.66
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7010,Depreciation & Amortization,Other,39388.0,39388.0
+2025-03,2025-03-31,Mar-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7020,Interest Income,Other,-44424.91,-44424.91
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-200,6110,Engineering Salaries & Benefits,Research & Development,49247.41,53728.92
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-200,6130,Product Salaries & Benefits,Research & Development,13322.97,14535.36
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,5158.57,5628.0
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-400,6210,G&A Salaries & Benefits,General & Administrative,14274.61,15573.6
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,14464.94,15781.25
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-400,6220,Rent & Facilities,General & Administrative,10009.17,10920.0
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-400,6230,Legal & Professional Fees,General & Administrative,4546.03,4959.71
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,9495.88,10360.0
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-400,6250,Insurance,General & Administrative,3657.2,3990.0
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-400,6260,Bad Debt Expense,General & Administrative,986.95,1076.76
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-400,6270,Corporate SaaS & IT,General & Administrative,7134.24,7783.46
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-900,7010,Depreciation & Amortization,Other,5877.18,6412.0
+2025-03,2025-03-31,Mar-25,MER-EU,Meridian Labs B.V.,EUR,1.091,CC-900,7020,Interest Income,Other,-6648.97,-7254.03
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4010,Subscription Revenue,Revenue,1518550.0,1518550.0
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4020,Professional Services Revenue,Revenue,87483.88,87483.88
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4030,Training & Certification Revenue,Revenue,17958.74,17958.74
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-000,4010,Subscription Revenue,Revenue,402789.16,442262.5
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-000,4020,Professional Services Revenue,Revenue,21657.96,23780.44
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-000,4030,Training & Certification Revenue,Revenue,3401.16,3734.48
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5010,Cloud Hosting & Infrastructure,COGS,146302.52,146302.52
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5020,Third-Party Software Licenses (COGS),COGS,53169.19,53169.19
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5040,Payment Processing Fees,COGS,13975.9,13975.9
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5030,Customer Support Salaries & Benefits,COGS,67678.42,67678.42
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6120,Contractors - Engineering,Research & Development,78698.0,78698.0
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-100,5010,Cloud Hosting & Infrastructure,COGS,42077.23,46200.8
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-100,5020,Third-Party Software Licenses (COGS),COGS,15291.68,16790.27
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-100,5040,Payment Processing Fees,COGS,4019.53,4413.44
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-100,5030,Customer Support Salaries & Benefits,COGS,17385.05,19088.78
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-200,6120,Contractors - Engineering,Research & Development,22633.88,24852.0
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,245946.37,245946.37
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,101806.85,101806.85
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,280183.94,280183.94
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,38610.0,38610.0
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6040,Sales Tools & CRM,Sales & Marketing,21918.0,21918.0
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,63178.04,69369.49
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,26151.87,28714.75
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,63794.16,70045.98
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,9918.03,10890.0
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-300,6040,Sales Tools & CRM,Sales & Marketing,5630.24,6182.0
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6110,Engineering Salaries & Benefits,Research & Development,342273.12,342273.12
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6130,Product Salaries & Benefits,Research & Development,89288.64,89288.64
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,35518.0,35518.0
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6210,G&A Salaries & Benefits,General & Administrative,106296.0,106296.0
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,96941.95,96941.95
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6220,Rent & Facilities,General & Administrative,67080.0,67080.0
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6230,Legal & Professional Fees,General & Administrative,40932.83,40932.83
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,22360.0,22360.0
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6250,Insurance,General & Administrative,24510.0,24510.0
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6260,Bad Debt Expense,General & Administrative,6876.02,6876.02
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6270,Corporate SaaS & IT,General & Administrative,49438.29,49438.29
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7010,Depreciation & Amortization,Other,40162.0,40162.0
+2025-04,2025-04-30,Apr-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7020,Interest Income,Other,-44828.98,-44828.98
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-200,6110,Engineering Salaries & Benefits,Research & Development,50745.79,55718.88
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-200,6130,Product Salaries & Benefits,Research & Development,13238.03,14535.36
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,5265.94,5782.0
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-400,6210,G&A Salaries & Benefits,General & Administrative,15759.56,17304.0
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,14372.72,15781.25
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-400,6220,Rent & Facilities,General & Administrative,9945.36,10920.0
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-400,6230,Legal & Professional Fees,General & Administrative,4546.03,4991.54
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,3315.12,3640.0
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-400,6250,Insurance,General & Administrative,3633.88,3990.0
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-400,6260,Bad Debt Expense,General & Administrative,1019.45,1119.35
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-400,6270,Corporate SaaS & IT,General & Administrative,7329.78,8048.09
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-900,7010,Depreciation & Amortization,Other,5954.46,6538.0
+2025-04,2025-04-30,Apr-25,MER-EU,Meridian Labs B.V.,EUR,1.098,CC-900,7020,Interest Income,Other,-6280.84,-6896.36
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4010,Subscription Revenue,Revenue,1565912.5,1565912.5
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4020,Professional Services Revenue,Revenue,84289.41,84289.41
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4030,Training & Certification Revenue,Revenue,19087.69,19087.69
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-000,4010,Subscription Revenue,Revenue,407308.68,448854.17
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-000,4020,Professional Services Revenue,Revenue,25063.79,27620.3
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-000,4030,Training & Certification Revenue,Revenue,6090.7,6711.95
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5010,Cloud Hosting & Infrastructure,COGS,148058.15,148058.15
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5020,Third-Party Software Licenses (COGS),COGS,54016.4,54016.4
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5040,Payment Processing Fees,COGS,14198.6,14198.6
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5030,Customer Support Salaries & Benefits,COGS,72884.45,72884.45
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6120,Contractors - Engineering,Research & Development,80864.0,80864.0
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-100,5010,Cloud Hosting & Infrastructure,COGS,42427.59,46755.2
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-100,5020,Third-Party Software Licenses (COGS),COGS,15478.96,17057.81
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-100,5040,Payment Processing Fees,COGS,4068.75,4483.77
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-100,5030,Customer Support Salaries & Benefits,COGS,18654.4,20557.15
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-200,6120,Contractors - Engineering,Research & Development,23172.41,25536.0
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,285033.58,285033.58
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,110290.75,110290.75
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,276229.58,276229.58
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,39780.0,39780.0
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6040,Sales Tools & CRM,Sales & Marketing,22464.0,22464.0
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,72952.89,80394.09
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,28228.36,31107.65
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,62665.51,69057.4
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,10181.49,11220.0
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-300,6040,Sales Tools & CRM,Sales & Marketing,5749.55,6336.0
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6110,Engineering Salaries & Benefits,Research & Development,366721.2,366721.2
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6130,Product Salaries & Benefits,Research & Development,102044.16,102044.16
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,36464.0,36464.0
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6210,G&A Salaries & Benefits,General & Administrative,106296.0,106296.0
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,105020.45,105020.45
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6220,Rent & Facilities,General & Administrative,67080.0,67080.0
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6230,Legal & Professional Fees,General & Administrative,32983.05,32983.05
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,22360.0,22360.0
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6250,Insurance,General & Administrative,24510.0,24510.0
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6260,Bad Debt Expense,General & Administrative,6985.58,6985.58
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6270,Corporate SaaS & IT,General & Administrative,51119.19,51119.19
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7010,Depreciation & Amortization,Other,40936.0,40936.0
+2025-05,2025-05-31,May-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7020,Interest Income,Other,-40824.79,-40824.79
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-200,6110,Engineering Salaries & Benefits,Research & Development,54173.14,59698.8
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-200,6130,Product Salaries & Benefits,Research & Development,15074.26,16611.84
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,5386.57,5936.0
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-400,6210,G&A Salaries & Benefits,General & Administrative,15702.36,17304.0
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,15513.93,17096.35
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-400,6220,Rent & Facilities,General & Administrative,9909.26,10920.0
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-400,6230,Legal & Professional Fees,General & Administrative,5852.29,6449.23
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,3303.09,3640.0
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-400,6250,Insurance,General & Administrative,3620.69,3990.0
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-400,6260,Bad Debt Expense,General & Administrative,1031.93,1137.19
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-400,6270,Corporate SaaS & IT,General & Administrative,7551.48,8321.73
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-900,7010,Depreciation & Amortization,Other,6047.19,6664.0
+2025-05,2025-05-31,May-25,MER-EU,Meridian Labs B.V.,EUR,1.102,CC-900,7020,Interest Income,Other,-6910.55,-7615.43
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4010,Subscription Revenue,Revenue,1615566.67,1615566.67
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4020,Professional Services Revenue,Revenue,94372.05,94372.05
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4030,Training & Certification Revenue,Revenue,22134.0,22134.0
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-000,4010,Subscription Revenue,Revenue,419277.02,459108.33
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-000,4020,Professional Services Revenue,Revenue,25439.43,27856.18
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-000,4030,Training & Certification Revenue,Revenue,4900.99,5366.58
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5010,Cloud Hosting & Infrastructure,COGS,149834.85,149834.85
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5020,Third-Party Software Licenses (COGS),COGS,56356.31,56356.31
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5040,Payment Processing Fees,COGS,14813.66,14813.66
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5030,Customer Support Salaries & Benefits,COGS,78090.48,78090.48
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6120,Contractors - Engineering,Research & Development,83030.0,83030.0
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-100,5010,Cloud Hosting & Infrastructure,COGS,43211.2,47316.27
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-100,5020,Third-Party Software Licenses (COGS),COGS,16252.72,17796.73
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-100,5040,Payment Processing Fees,COGS,4272.14,4678.0
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-100,5030,Customer Support Salaries & Benefits,COGS,20114.63,22025.52
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-200,6120,Contractors - Engineering,Research & Development,23945.21,26220.0
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,324976.82,324976.82
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,118774.66,118774.66
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,270960.54,270960.54
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,40950.0,40950.0
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6040,Sales Tools & CRM,Sales & Marketing,23010.0,23010.0
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,83707.88,91660.13
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,30594.1,33500.54
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,61863.14,67740.13
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,10547.95,11550.0
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-300,6040,Sales Tools & CRM,Sales & Marketing,5926.94,6490.0
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6110,Engineering Salaries & Benefits,Research & Development,391169.28,391169.28
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6130,Product Salaries & Benefits,Research & Development,102044.16,102044.16
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,37410.0,37410.0
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6210,G&A Salaries & Benefits,General & Administrative,116925.6,116925.6
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,113098.94,113098.94
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6220,Rent & Facilities,General & Administrative,67080.0,67080.0
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6230,Legal & Professional Fees,General & Administrative,192331.89,192331.89
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,22360.0,22360.0
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6250,Insurance,General & Administrative,24510.0,24510.0
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6260,Bad Debt Expense,General & Administrative,7288.18,7288.18
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6270,Corporate SaaS & IT,General & Administrative,52857.24,52857.24
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7010,Depreciation & Amortization,Other,41710.0,41710.0
+2025-06,2025-06-30,Jun-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7020,Interest Income,Other,-44541.7,-44541.7
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-200,6110,Engineering Salaries & Benefits,Research & Development,58154.08,63678.72
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-200,6130,Product Salaries & Benefits,Research & Development,15170.63,16611.84
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,5561.64,6090.0
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-400,6210,G&A Salaries & Benefits,General & Administrative,17383.01,19034.4
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,16814.12,18411.46
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-400,6220,Rent & Facilities,General & Administrative,9972.6,10920.0
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-400,6230,Legal & Professional Fees,General & Administrative,28535.49,31246.36
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,3324.2,3640.0
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-400,6250,Insurance,General & Administrative,3643.84,3990.0
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-400,6260,Bad Debt Expense,General & Administrative,1083.51,1186.45
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-400,6270,Corporate SaaS & IT,General & Administrative,7858.14,8604.67
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-900,7010,Depreciation & Amortization,Other,6200.91,6790.0
+2025-06,2025-06-30,Jun-25,MER-EU,Meridian Labs B.V.,EUR,1.095,CC-900,7020,Interest Income,Other,-6635.27,-7265.62
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4010,Subscription Revenue,Revenue,1665766.67,1665766.67
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4020,Professional Services Revenue,Revenue,112727.12,112727.12
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4030,Training & Certification Revenue,Revenue,15421.85,15421.85
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-000,4010,Subscription Revenue,Revenue,429400.28,467187.5
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-000,4020,Professional Services Revenue,Revenue,30786.29,33495.48
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-000,4030,Training & Certification Revenue,Revenue,5644.19,6140.87
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5010,Cloud Hosting & Infrastructure,COGS,167515.36,167515.36
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5020,Third-Party Software Licenses (COGS),COGS,57116.85,57116.85
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5040,Payment Processing Fees,COGS,15013.57,15013.57
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5030,Customer Support Salaries & Benefits,COGS,83296.51,83296.51
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6120,Contractors - Engineering,Research & Development,85196.0,85196.0
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-100,5010,Cloud Hosting & Infrastructure,COGS,48620.94,52899.59
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-100,5020,Third-Party Software Licenses (COGS),COGS,16578.03,18036.9
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-100,5040,Payment Processing Fees,COGS,4357.65,4741.13
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-100,5030,Customer Support Salaries & Benefits,COGS,21593.65,23493.89
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-200,6120,Contractors - Engineering,Research & Development,24727.94,26904.0
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,328920.01,328920.01
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,118774.66,118774.66
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,269311.57,269311.57
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,42120.0,42120.0
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6040,Sales Tools & CRM,Sales & Marketing,23556.0,23556.0
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,85268.67,92772.31
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,30790.94,33500.54
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,61882.25,67327.89
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,10919.12,11880.0
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-300,6040,Sales Tools & CRM,Sales & Marketing,6106.62,6644.0
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6110,Engineering Salaries & Benefits,Research & Development,403393.32,403393.32
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6130,Product Salaries & Benefits,Research & Development,102044.16,102044.16
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,38356.0,38356.0
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6210,G&A Salaries & Benefits,General & Administrative,116925.6,116925.6
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,121177.44,121177.44
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6220,Rent & Facilities,General & Administrative,67080.0,67080.0
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6230,Legal & Professional Fees,General & Administrative,193206.13,193206.13
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,22360.0,22360.0
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6250,Insurance,General & Administrative,24510.0,24510.0
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6260,Bad Debt Expense,General & Administrative,7386.54,7386.54
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6270,Corporate SaaS & IT,General & Administrative,54654.39,54654.39
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7010,Depreciation & Amortization,Other,42484.0,42484.0
+2025-07,2025-07-31,Jul-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7020,Interest Income,Other,-43774.96,-43774.96
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-200,6110,Engineering Salaries & Benefits,Research & Development,60357.24,65668.68
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-200,6130,Product Salaries & Benefits,Research & Development,15268.24,16611.84
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,5738.97,6244.0
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-400,6210,G&A Salaries & Benefits,General & Administrative,17494.85,19034.4
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,18131.03,19726.56
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-400,6220,Rent & Facilities,General & Administrative,10036.76,10920.0
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-400,6230,Legal & Professional Fees,General & Administrative,29057.97,31615.07
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,3345.59,3640.0
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-400,6250,Insurance,General & Administrative,3667.28,3990.0
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-400,6260,Bad Debt Expense,General & Administrative,1105.2,1202.46
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-400,6270,Corporate SaaS & IT,General & Administrative,8177.6,8897.23
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-900,7010,Depreciation & Amortization,Other,6356.62,6916.0
+2025-07,2025-07-31,Jul-25,MER-EU,Meridian Labs B.V.,EUR,1.088,CC-900,7020,Interest Income,Other,-6182.58,-6726.65
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4010,Subscription Revenue,Revenue,1703154.17,1703154.17
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4020,Professional Services Revenue,Revenue,86359.76,86359.76
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4030,Training & Certification Revenue,Revenue,18074.01,18074.01
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-000,4010,Subscription Revenue,Revenue,434199.78,469804.17
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-000,4020,Professional Services Revenue,Revenue,30673.57,33188.8
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-000,4030,Training & Certification Revenue,Revenue,3887.07,4205.81
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5010,Cloud Hosting & Infrastructure,COGS,187282.17,187282.17
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5020,Third-Party Software Licenses (COGS),COGS,58484.53,58484.53
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5040,Payment Processing Fees,COGS,15373.08,15373.08
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5030,Customer Support Salaries & Benefits,COGS,88502.54,88502.54
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6120,Contractors - Engineering,Research & Development,87362.0,87362.0
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-100,5010,Cloud Hosting & Infrastructure,COGS,54659.65,59141.74
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-100,5020,Third-Party Software Licenses (COGS),COGS,17069.13,18468.8
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-100,5040,Payment Processing Fees,COGS,4486.74,4854.66
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-100,5030,Customer Support Salaries & Benefits,COGS,23070.48,24962.26
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-200,6120,Contractors - Engineering,Research & Development,25497.23,27588.0
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,353276.07,353276.07
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,127258.56,127258.56
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,268599.78,268599.78
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,43290.0,43290.0
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6040,Sales Tools & CRM,Sales & Marketing,24102.0,24102.0
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,92090.54,99641.97
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,33173.23,35893.44
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,62060.95,67149.95
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,11284.66,12210.0
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-300,6040,Sales Tools & CRM,Sales & Marketing,6282.81,6798.0
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6110,Engineering Salaries & Benefits,Research & Development,415617.36,415617.36
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6130,Product Salaries & Benefits,Research & Development,114799.68,114799.68
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,39302.0,39302.0
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6210,G&A Salaries & Benefits,General & Administrative,116925.6,116925.6
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,121177.44,121177.44
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6220,Rent & Facilities,General & Administrative,67080.0,67080.0
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6230,Legal & Professional Fees,General & Administrative,1193429.5,1193429.5
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,22360.0,22360.0
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6250,Insurance,General & Administrative,24510.0,24510.0
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6260,Bad Debt Expense,General & Administrative,7563.41,7563.41
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6270,Corporate SaaS & IT,General & Administrative,56512.64,56512.64
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7010,Depreciation & Amortization,Other,43258.0,43258.0
+2025-08,2025-08-31,Aug-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7020,Interest Income,Other,-41337.93,-41337.93
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-200,6110,Engineering Salaries & Benefits,Research & Development,62531.09,67658.64
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-200,6130,Product Salaries & Benefits,Research & Development,17272.01,18688.32
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,5913.12,6398.0
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-400,6210,G&A Salaries & Benefits,General & Administrative,17591.87,19034.4
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,18231.57,19726.56
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-400,6220,Rent & Facilities,General & Administrative,10092.42,10920.0
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-400,6230,Legal & Professional Fees,General & Administrative,180358.89,195148.32
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,3364.14,3640.0
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-400,6250,Insurance,General & Administrative,3687.62,3990.0
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-400,6260,Bad Debt Expense,General & Administrative,1137.94,1231.25
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-400,6270,Corporate SaaS & IT,General & Administrative,8502.52,9199.73
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-900,7010,Depreciation & Amortization,Other,6508.32,7042.0
+2025-08,2025-08-31,Aug-25,MER-EU,Meridian Labs B.V.,EUR,1.082,CC-900,7020,Interest Income,Other,-6319.1,-6837.27
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4010,Subscription Revenue,Revenue,1771062.5,1771062.5
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4020,Professional Services Revenue,Revenue,111788.21,111788.21
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4030,Training & Certification Revenue,Revenue,27437.64,27437.64
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-000,4010,Subscription Revenue,Revenue,448737.26,484187.5
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-000,4020,Professional Services Revenue,Revenue,22527.19,24306.83
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-000,4030,Training & Certification Revenue,Revenue,4583.54,4945.64
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5010,Cloud Hosting & Infrastructure,COGS,209381.47,209381.47
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5020,Third-Party Software Licenses (COGS),COGS,61494.77,61494.77
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5040,Payment Processing Fees,COGS,16164.34,16164.34
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5030,Customer Support Salaries & Benefits,COGS,93708.58,93708.58
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6120,Contractors - Engineering,Research & Development,89528.0,89528.0
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-100,5010,Cloud Hosting & Infrastructure,COGS,61279.39,66120.46
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-100,5020,Third-Party Software Licenses (COGS),COGS,17997.59,19419.4
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-100,5040,Payment Processing Fees,COGS,4730.8,5104.53
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-100,5030,Customer Support Salaries & Benefits,COGS,24495.48,26430.62
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-200,6120,Contractors - Engineering,Research & Development,26202.04,28272.0
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,356939.44,356939.44
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,135742.46,135742.46
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,340967.09,340967.09
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,84474.0,84474.0
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6040,Sales Tools & CRM,Sales & Marketing,24648.0,24648.0
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,93304.2,100675.23
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,35483.17,38286.34
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,79000.72,85241.77
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,22081.56,23826.0
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-300,6040,Sales Tools & CRM,Sales & Marketing,6443.0,6952.0
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6110,Engineering Salaries & Benefits,Research & Development,440065.44,440065.44
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6130,Product Salaries & Benefits,Research & Development,114799.68,114799.68
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,40248.0,40248.0
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6210,G&A Salaries & Benefits,General & Administrative,127555.2,127555.2
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,129255.94,129255.94
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6220,Rent & Facilities,General & Administrative,67080.0,67080.0
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6230,Legal & Professional Fees,General & Administrative,37274.72,37274.72
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,22360.0,22360.0
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6250,Insurance,General & Administrative,24510.0,24510.0
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6260,Bad Debt Expense,General & Administrative,7952.71,7952.71
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6270,Corporate SaaS & IT,General & Administrative,58434.07,58434.07
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7010,Depreciation & Amortization,Other,44032.0,44032.0
+2025-09,2025-09-30,Sep-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7020,Interest Income,Other,-43239.98,-43239.98
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-200,6110,Engineering Salaries & Benefits,Research & Development,66393.48,71638.56
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-200,6130,Product Salaries & Benefits,Research & Development,17320.04,18688.32
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,6072.29,6552.0
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-400,6210,G&A Salaries & Benefits,General & Administrative,19244.49,20764.8
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,19501.08,21041.66
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-400,6220,Rent & Facilities,General & Administrative,10120.48,10920.0
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-400,6230,Legal & Professional Fees,General & Administrative,6401.24,6906.93
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,3373.49,3640.0
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-400,6250,Insurance,General & Administrative,3697.87,3990.0
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-400,6260,Bad Debt Expense,General & Administrative,1199.84,1294.63
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-400,6270,Corporate SaaS & IT,General & Administrative,8816.05,9512.52
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-900,7010,Depreciation & Amortization,Other,6643.19,7168.0
+2025-09,2025-09-30,Sep-25,MER-EU,Meridian Labs B.V.,EUR,1.079,CC-900,7020,Interest Income,Other,-6664.11,-7190.58
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4010,Subscription Revenue,Revenue,1821712.5,1821712.5
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4020,Professional Services Revenue,Revenue,102355.15,102355.15
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4030,Training & Certification Revenue,Revenue,15154.93,15154.93
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-000,4010,Subscription Revenue,Revenue,465879.84,500820.83
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-000,4020,Professional Services Revenue,Revenue,28846.95,31010.47
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-000,4030,Training & Certification Revenue,Revenue,5534.06,5949.11
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5010,Cloud Hosting & Infrastructure,COGS,234088.48,234088.48
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5020,Third-Party Software Licenses (COGS),COGS,62064.01,62064.01
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5040,Payment Processing Fees,COGS,16313.97,16313.97
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5030,Customer Support Salaries & Benefits,COGS,93708.58,93708.58
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5210,Contractors - Professional Services,COGS,91694.0,91694.0
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-100,5010,Cloud Hosting & Infrastructure,COGS,68765.28,73922.68
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-100,5020,Third-Party Software Licenses (COGS),COGS,18231.78,19599.16
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-100,5040,Payment Processing Fees,COGS,4792.35,5151.78
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-100,5030,Customer Support Salaries & Benefits,COGS,24586.63,26430.62
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-100,5210,Contractors - Professional Services,COGS,26935.81,28956.0
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,379098.57,379098.57
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,135742.46,135742.46
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,281647.06,281647.06
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,45630.0,45630.0
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6040,Sales Tools & CRM,Sales & Marketing,25194.0,25194.0
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,99465.34,106925.24
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,35615.2,38286.34
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,65499.32,70411.77
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,11972.09,12870.0
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-300,6040,Sales Tools & CRM,Sales & Marketing,6610.23,7106.0
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6110,Engineering Salaries & Benefits,Research & Development,452289.48,452289.48
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6130,Product Salaries & Benefits,Research & Development,114799.68,114799.68
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,41194.0,41194.0
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6210,G&A Salaries & Benefits,General & Administrative,127555.2,127555.2
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,137334.43,137334.43
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6220,Rent & Facilities,General & Administrative,67080.0,67080.0
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6230,Legal & Professional Fees,General & Administrative,42383.03,42383.03
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,22360.0,22360.0
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6250,Insurance,General & Administrative,24510.0,24510.0
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6260,Bad Debt Expense,General & Administrative,8026.32,8026.32
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6270,Corporate SaaS & IT,General & Administrative,60420.82,60420.82
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7010,Depreciation & Amortization,Other,44806.0,44806.0
+2025-10,2025-10-31,Oct-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7020,Interest Income,Other,-42940.81,-42940.81
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-200,6110,Engineering Salaries & Benefits,Research & Development,68491.65,73628.52
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-200,6130,Product Salaries & Benefits,Research & Development,17384.48,18688.32
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,6238.14,6706.0
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-400,6210,G&A Salaries & Benefits,General & Administrative,19316.09,20764.8
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,20796.99,22356.77
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-400,6220,Rent & Facilities,General & Administrative,10158.14,10920.0
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-400,6230,Legal & Professional Fees,General & Administrative,6329.97,6804.72
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,3386.05,3640.0
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-400,6250,Insurance,General & Administrative,3711.63,3990.0
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-400,6260,Bad Debt Expense,General & Administrative,1215.45,1306.61
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-400,6270,Corporate SaaS & IT,General & Administrative,9149.72,9835.95
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-900,7010,Depreciation & Amortization,Other,6785.12,7294.0
+2025-10,2025-10-31,Oct-25,MER-EU,Meridian Labs B.V.,EUR,1.075,CC-900,7020,Interest Income,Other,-6806.81,-7317.32
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4010,Subscription Revenue,Revenue,1819483.33,1819483.33
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4020,Professional Services Revenue,Revenue,129968.92,129968.92
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4030,Training & Certification Revenue,Revenue,23815.2,23815.2
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-000,4010,Subscription Revenue,Revenue,488729.38,523429.17
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-000,4020,Professional Services Revenue,Revenue,26942.63,28855.56
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-000,4030,Training & Certification Revenue,Revenue,7753.15,8303.62
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5010,Cloud Hosting & Infrastructure,COGS,261710.92,261710.92
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5020,Third-Party Software Licenses (COGS),COGS,62578.94,62578.94
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5040,Payment Processing Fees,COGS,16449.32,16449.32
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5030,Customer Support Salaries & Benefits,COGS,98914.61,98914.61
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5210,Contractors - Professional Services,COGS,93860.0,93860.0
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-100,5010,Cloud Hosting & Infrastructure,COGS,77166.72,82645.55
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-100,5020,Third-Party Software Licenses (COGS),COGS,18451.7,19761.77
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-100,5040,Payment Processing Fees,COGS,4850.16,5194.52
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-100,5030,Customer Support Salaries & Benefits,COGS,26049.48,27898.99
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-100,5210,Contractors - Professional Services,COGS,27675.07,29640.0
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,382376.86,382376.86
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,135742.46,135742.46
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,278461.82,278461.82
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,46800.0,46800.0
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6040,Sales Tools & CRM,Sales & Marketing,25740.0,25740.0
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,100700.17,107849.88
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,35748.21,38286.34
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,65000.43,69615.46
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,12324.93,13200.0
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-300,6040,Sales Tools & CRM,Sales & Marketing,6778.71,7260.0
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6110,Engineering Salaries & Benefits,Research & Development,464513.52,464513.52
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6130,Product Salaries & Benefits,Research & Development,114799.68,114799.68
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,42140.0,42140.0
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6210,G&A Salaries & Benefits,General & Administrative,127555.2,127555.2
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,137334.43,137334.43
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6220,Rent & Facilities,General & Administrative,67080.0,67080.0
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6230,Legal & Professional Fees,General & Administrative,34925.69,34925.69
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,22360.0,22360.0
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6250,Insurance,General & Administrative,24510.0,24510.0
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6260,Bad Debt Expense,General & Administrative,8092.92,8092.92
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6270,Corporate SaaS & IT,General & Administrative,62475.13,62475.13
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7010,Depreciation & Amortization,Other,45580.0,45580.0
+2025-11,2025-11-30,Nov-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7020,Interest Income,Other,-46266.1,-46266.1
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-200,6110,Engineering Salaries & Benefits,Research & Development,70605.49,75618.48
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-200,6130,Product Salaries & Benefits,Research & Development,17449.41,18688.32
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,6405.23,6860.0
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-400,6210,G&A Salaries & Benefits,General & Administrative,19388.24,20764.8
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,20874.67,22356.77
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-400,6220,Rent & Facilities,General & Administrative,10196.08,10920.0
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-400,6230,Legal & Professional Fees,General & Administrative,6400.11,6854.52
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,3398.69,3640.0
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-400,6250,Insurance,General & Administrative,3725.49,3990.0
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-400,6260,Bad Debt Expense,General & Administrative,1230.11,1317.45
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-400,6270,Corporate SaaS & IT,General & Administrative,9496.14,10170.37
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-900,7010,Depreciation & Amortization,Other,6928.1,7420.0
+2025-11,2025-11-30,Nov-25,MER-EU,Meridian Labs B.V.,EUR,1.071,CC-900,7020,Interest Income,Other,-6503.02,-6964.74
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4010,Subscription Revenue,Revenue,1820150.0,1820150.0
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4020,Professional Services Revenue,Revenue,109705.47,109705.47
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4030,Training & Certification Revenue,Revenue,18909.77,18909.77
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-000,4010,Subscription Revenue,Revenue,509359.39,543995.83
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-000,4020,Professional Services Revenue,Revenue,26055.18,27826.93
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-000,4030,Training & Certification Revenue,Revenue,4886.69,5218.99
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5010,Cloud Hosting & Infrastructure,COGS,214602.96,214602.96
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5020,Third-Party Software Licenses (COGS),COGS,63193.62,63193.62
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5040,Payment Processing Fees,COGS,16610.89,16610.89
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5030,Customer Support Salaries & Benefits,COGS,98914.61,98914.61
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5210,Contractors - Professional Services,COGS,96026.0,96026.0
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-100,5010,Cloud Hosting & Infrastructure,COGS,63454.45,67769.35
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-100,5020,Third-Party Software Licenses (COGS),COGS,18685.28,19955.88
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-100,5040,Payment Processing Fees,COGS,4911.56,5245.55
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-100,5030,Customer Support Salaries & Benefits,COGS,26122.65,27898.99
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-100,5210,Contractors - Professional Services,COGS,28393.26,30324.0
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,389057.01,389057.01
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,135742.46,135742.46
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,244977.35,244977.35
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,47970.0,47970.0
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6040,Sales Tools & CRM,Sales & Marketing,26286.0,26286.0
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,102747.22,109734.03
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,35848.63,38286.34
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,57344.89,61244.34
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,12668.54,13530.0
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-300,6040,Sales Tools & CRM,Sales & Marketing,6941.95,7414.0
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6110,Engineering Salaries & Benefits,Research & Development,464513.52,464513.52
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6130,Product Salaries & Benefits,Research & Development,114799.68,114799.68
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,43086.0,43086.0
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6210,G&A Salaries & Benefits,General & Administrative,127555.2,127555.2
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,137334.43,137334.43
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6220,Rent & Facilities,General & Administrative,67080.0,67080.0
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6230,Legal & Professional Fees,General & Administrative,33904.83,33904.83
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,22360.0,22360.0
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6250,Insurance,General & Administrative,24510.0,24510.0
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6260,Bad Debt Expense,General & Administrative,8172.41,8172.41
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6270,Corporate SaaS & IT,General & Administrative,64599.29,64599.29
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7010,Depreciation & Amortization,Other,46354.0,46354.0
+2025-12,2025-12-31,Dec-25,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7020,Interest Income,Other,-41401.56,-41401.56
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-200,6110,Engineering Salaries & Benefits,Research & Development,70803.82,75618.48
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-200,6130,Product Salaries & Benefits,Research & Development,17498.43,18688.32
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,6567.42,7014.0
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-400,6210,G&A Salaries & Benefits,General & Administrative,19442.7,20764.8
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,20933.3,22356.77
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-400,6220,Rent & Facilities,General & Administrative,10224.72,10920.0
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-400,6230,Legal & Professional Fees,General & Administrative,4615.77,4929.64
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,3408.24,3640.0
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-400,6250,Insurance,General & Administrative,3735.96,3990.0
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-400,6260,Bad Debt Expense,General & Administrative,1245.69,1330.39
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-400,6270,Corporate SaaS & IT,General & Administrative,9846.59,10516.16
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-900,7010,Depreciation & Amortization,Other,7065.54,7546.0
+2025-12,2025-12-31,Dec-25,MER-EU,Meridian Labs B.V.,EUR,1.068,CC-900,7020,Interest Income,Other,-6463.84,-6903.38
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4010,Subscription Revenue,Revenue,1831658.33,1831658.33
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4020,Professional Services Revenue,Revenue,122641.01,122641.01
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4030,Training & Certification Revenue,Revenue,23825.66,23825.66
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-000,4010,Subscription Revenue,Revenue,512554.93,544333.33
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-000,4020,Professional Services Revenue,Revenue,33501.21,35578.28
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-000,4030,Training & Certification Revenue,Revenue,5513.65,5855.5
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5010,Cloud Hosting & Infrastructure,COGS,209237.88,209237.88
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5020,Third-Party Software Licenses (COGS),COGS,63209.14,63209.14
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5040,Payment Processing Fees,COGS,16614.97,16614.97
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5030,Customer Support Salaries & Benefits,COGS,103069.02,103069.02
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5210,Contractors - Professional Services,COGS,98192.0,98192.0
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-100,5010,Cloud Hosting & Infrastructure,COGS,62217.63,66075.12
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-100,5020,Third-Party Software Licenses (COGS),COGS,18795.46,19960.78
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-100,5040,Payment Processing Fees,COGS,4940.52,5246.83
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-100,5030,Customer Support Salaries & Benefits,COGS,27373.59,29070.75
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-100,5210,Contractors - Professional Services,COGS,29197.74,31008.0
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,404542.01,404542.01
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,141443.65,141443.65
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,300870.79,300870.79
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,49140.0,49140.0
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6040,Sales Tools & CRM,Sales & Marketing,26832.0,26832.0
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,107440.29,114101.59
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,37565.31,39894.36
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,70826.46,75217.7
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,13050.85,13860.0
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-300,6040,Sales Tools & CRM,Sales & Marketing,7126.18,7568.0
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6110,Engineering Salaries & Benefits,Research & Development,496760.54,496760.54
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6130,Product Salaries & Benefits,Research & Development,119621.27,119621.27
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,44032.0,44032.0
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6210,G&A Salaries & Benefits,General & Administrative,132912.52,132912.52
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,151520.27,151520.27
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6220,Rent & Facilities,General & Administrative,67080.0,67080.0
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6230,Legal & Professional Fees,General & Administrative,30202.74,30202.74
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,63640.0,63640.0
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6250,Insurance,General & Administrative,24510.0,24510.0
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6260,Bad Debt Expense,General & Administrative,8174.41,8174.41
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6270,Corporate SaaS & IT,General & Administrative,66795.66,66795.66
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7010,Depreciation & Amortization,Other,47128.0,47128.0
+2026-01,2026-01-31,Jan-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7020,Interest Income,Other,-47239.53,-47239.53
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-200,6110,Engineering Salaries & Benefits,Research & Development,76146.89,80867.99
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-200,6130,Product Salaries & Benefits,Research & Development,18336.37,19473.23
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,6749.53,7168.0
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-400,6210,G&A Salaries & Benefits,General & Administrative,20373.75,21636.92
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,23226.07,24666.09
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-400,6220,Rent & Facilities,General & Administrative,10282.49,10920.0
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-400,6230,Legal & Professional Fees,General & Administrative,5817.59,6178.28
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,9755.18,10360.0
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-400,6250,Insurance,General & Administrative,3757.06,3990.0
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-400,6260,Bad Debt Expense,General & Administrative,1253.03,1330.72
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-400,6270,Corporate SaaS & IT,General & Administrative,10238.9,10873.71
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-900,7010,Depreciation & Amortization,Other,7224.11,7672.0
+2026-01,2026-01-31,Jan-26,MER-EU,Meridian Labs B.V.,EUR,1.062,CC-900,7020,Interest Income,Other,-6469.66,-6870.78
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4010,Subscription Revenue,Revenue,1767029.17,1767029.17
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4020,Professional Services Revenue,Revenue,120915.17,120915.17
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4030,Training & Certification Revenue,Revenue,22641.46,22641.46
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-000,4010,Subscription Revenue,Revenue,528597.95,557670.83
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-000,4020,Professional Services Revenue,Revenue,34886.4,36805.15
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-000,4030,Training & Certification Revenue,Revenue,4488.12,4734.97
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5010,Cloud Hosting & Infrastructure,COGS,204006.93,204006.93
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5020,Third-Party Software Licenses (COGS),COGS,60464.9,60464.9
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5040,Payment Processing Fees,COGS,15893.63,15893.63
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5030,Customer Support Salaries & Benefits,COGS,173480.91,173480.91
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5210,Contractors - Professional Services,COGS,100358.0,100358.0
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-100,5010,Cloud Hosting & Infrastructure,COGS,61064.68,64423.24
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-100,5020,Third-Party Software Licenses (COGS),COGS,18098.75,19094.18
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-100,5040,Payment Processing Fees,COGS,4757.39,5019.04
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-100,5030,Customer Support Salaries & Benefits,COGS,46379.63,48930.51
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-100,5210,Contractors - Professional Services,COGS,30039.81,31692.0
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,441865.03,441865.03
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,152883.42,152883.42
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,322914.76,322914.76
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,50310.0,50310.0
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6040,Sales Tools & CRM,Sales & Marketing,27378.0,27378.0
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,118131.37,124628.6
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,40872.95,43120.96
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,76520.09,80728.69
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,13450.24,14190.0
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-300,6040,Sales Tools & CRM,Sales & Marketing,7319.43,7722.0
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6110,Engineering Salaries & Benefits,Research & Development,496760.54,496760.54
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6130,Product Salaries & Benefits,Research & Development,119621.27,119621.27
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,44978.0,44978.0
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6210,G&A Salaries & Benefits,General & Administrative,132912.52,132912.52
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,151520.27,151520.27
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6220,Rent & Facilities,General & Administrative,67080.0,67080.0
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6230,Legal & Professional Fees,General & Administrative,40868.71,40868.71
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,63640.0,63640.0
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6250,Insurance,General & Administrative,24510.0,24510.0
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6260,Bad Debt Expense,General & Administrative,7819.52,7819.52
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6270,Corporate SaaS & IT,General & Administrative,69066.71,69066.71
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7010,Depreciation & Amortization,Other,47902.0,47902.0
+2026-02,2026-02-28,Feb-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7020,Interest Income,Other,-45115.32,-45115.32
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-200,6110,Engineering Salaries & Benefits,Research & Development,76652.13,80867.99
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-200,6130,Product Salaries & Benefits,Research & Development,18458.04,19473.23
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,6940.28,7322.0
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-400,6210,G&A Salaries & Benefits,General & Administrative,20508.93,21636.92
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,23380.18,24666.09
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-400,6220,Rent & Facilities,General & Administrative,10350.71,10920.0
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-400,6230,Legal & Professional Fees,General & Administrative,5310.23,5602.29
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,9819.91,10360.0
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-400,6250,Insurance,General & Administrative,3781.99,3990.0
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-400,6260,Bad Debt Expense,General & Administrative,1206.58,1272.95
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-400,6270,Corporate SaaS & IT,General & Administrative,10657.27,11243.42
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-900,7010,Depreciation & Amortization,Other,7391.47,7798.0
+2026-02,2026-02-28,Feb-26,MER-EU,Meridian Labs B.V.,EUR,1.055,CC-900,7020,Interest Income,Other,-6899.42,-7278.88
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4010,Subscription Revenue,Revenue,1739637.5,1739637.5
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4020,Professional Services Revenue,Revenue,83849.75,83849.75
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4030,Training & Certification Revenue,Revenue,16055.09,16055.09
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-000,4010,Subscription Revenue,Revenue,575536.22,603737.5
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-000,4020,Professional Services Revenue,Revenue,39733.38,41680.31
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-000,4030,Training & Certification Revenue,Revenue,7504.34,7872.05
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5010,Cloud Hosting & Infrastructure,COGS,198906.76,198906.76
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5020,Third-Party Software Licenses (COGS),COGS,64202.65,64202.65
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5040,Payment Processing Fees,COGS,16876.12,16876.12
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5030,Customer Support Salaries & Benefits,COGS,104840.91,104840.91
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5210,Contractors - Professional Services,COGS,102524.0,102524.0
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-100,5010,Cloud Hosting & Infrastructure,COGS,59878.61,62812.66
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-100,5020,Third-Party Software Licenses (COGS),COGS,19327.47,20274.52
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-100,5040,Payment Processing Fees,COGS,5080.36,5329.3
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-100,5030,Customer Support Salaries & Benefits,COGS,28189.24,29570.51
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-100,5210,Contractors - Professional Services,COGS,30863.68,32376.0
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,404493.06,404493.06
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,132603.42,132603.42
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,403464.22,403464.22
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,97812.0,97812.0
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6040,Sales Tools & CRM,Sales & Marketing,27924.0,27924.0
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,108758.61,114087.79
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,35653.92,37400.96
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,96154.48,100866.05
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,26299.33,27588.0
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-300,6040,Sales Tools & CRM,Sales & Marketing,7508.1,7876.0
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6110,Engineering Salaries & Benefits,Research & Development,509497.99,509497.99
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6130,Product Salaries & Benefits,Research & Development,132912.52,132912.52
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,45924.0,45924.0
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6210,G&A Salaries & Benefits,General & Administrative,132912.52,132912.52
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,151520.27,151520.27
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6220,Rent & Facilities,General & Administrative,67080.0,67080.0
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6230,Legal & Professional Fees,General & Administrative,41010.75,41010.75
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,63640.0,63640.0
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6250,Insurance,General & Administrative,24510.0,24510.0
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6260,Bad Debt Expense,General & Administrative,274902.9,274902.9
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6270,Corporate SaaS & IT,General & Administrative,71414.98,71414.98
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7010,Depreciation & Amortization,Other,48676.0,48676.0
+2026-03,2026-03-31,Mar-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7020,Interest Income,Other,-44185.22,-44185.22
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-200,6110,Engineering Salaries & Benefits,Research & Development,79067.24,82941.53
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-200,6130,Product Salaries & Benefits,Research & Development,20626.24,21636.92
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,7126.79,7476.0
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-400,6210,G&A Salaries & Benefits,General & Administrative,20626.24,21636.92
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,23513.91,24666.09
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-400,6220,Rent & Facilities,General & Administrative,10409.91,10920.0
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-400,6230,Legal & Professional Fees,General & Administrative,6632.44,6957.43
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,9876.07,10360.0
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-400,6250,Insurance,General & Administrative,3803.62,3990.0
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-400,6260,Bad Debt Expense,General & Administrative,42661.23,44751.63
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-400,6270,Corporate SaaS & IT,General & Administrative,11082.65,11625.69
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-900,7010,Depreciation & Amortization,Other,7553.86,7924.0
+2026-03,2026-03-31,Mar-26,MER-EU,Meridian Labs B.V.,EUR,1.049,CC-900,7020,Interest Income,Other,-7016.35,-7360.16
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4010,Subscription Revenue,Revenue,1799295.83,1799295.83
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4020,Professional Services Revenue,Revenue,93914.99,93914.99
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4030,Training & Certification Revenue,Revenue,27195.23,27195.23
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-000,4010,Subscription Revenue,Revenue,622753.03,650154.17
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-000,4020,Professional Services Revenue,Revenue,41335.38,43154.14
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-000,4030,Training & Certification Revenue,Revenue,7070.24,7381.33
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5010,Cloud Hosting & Infrastructure,COGS,201293.64,201293.64
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5020,Third-Party Software Licenses (COGS),COGS,66108.09,66108.09
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5040,Payment Processing Fees,COGS,17376.98,17376.98
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5030,Customer Support Salaries & Benefits,COGS,70520.91,70520.91
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5210,Contractors - Professional Services,COGS,104690.0,104690.0
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-100,5010,Cloud Hosting & Infrastructure,COGS,60887.37,63566.41
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-100,5020,Third-Party Software Licenses (COGS),COGS,19996.4,20876.24
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-100,5040,Payment Processing Fees,COGS,5256.2,5487.47
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-100,5030,Customer Support Salaries & Benefits,COGS,19052.22,19890.51
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-100,5210,Contractors - Professional Services,COGS,31666.67,33060.0
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,380446.02,380446.02
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,141443.65,141443.65
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,328544.66,328544.66
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,52650.0,52650.0
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6040,Sales Tools & CRM,Sales & Marketing,28470.0,28470.0
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,102782.84,107305.29
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,38212.99,39894.36
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,78674.49,82136.16
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,14224.14,14850.0
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-300,6040,Sales Tools & CRM,Sales & Marketing,7691.57,8030.0
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6110,Engineering Salaries & Benefits,Research & Development,522235.44,522235.44
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6130,Product Salaries & Benefits,Research & Development,132912.52,132912.52
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,46870.0,46870.0
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6210,G&A Salaries & Benefits,General & Administrative,143988.56,143988.56
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,159938.06,159938.06
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6220,Rent & Facilities,General & Administrative,67080.0,67080.0
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6230,Legal & Professional Fees,General & Administrative,38346.75,38346.75
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,22360.0,22360.0
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6250,Insurance,General & Administrative,24510.0,24510.0
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6260,Bad Debt Expense,General & Administrative,8549.32,8549.32
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6270,Corporate SaaS & IT,General & Administrative,73843.09,73843.09
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7010,Depreciation & Amortization,Other,49450.0,49450.0
+2026-04,2026-04-30,Apr-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7020,Interest Income,Other,-42435.11,-42435.11
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-200,6110,Engineering Salaries & Benefits,Research & Development,81432.06,85015.07
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-200,6130,Product Salaries & Benefits,Research & Development,20725.02,21636.92
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,7308.43,7630.0
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-400,6210,G&A Salaries & Benefits,General & Administrative,22452.11,23440.0
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,24939.11,26036.43
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-400,6220,Rent & Facilities,General & Administrative,10459.77,10920.0
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-400,6230,Legal & Professional Fees,General & Administrative,5487.44,5728.88
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,3486.59,3640.0
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-400,6250,Insurance,General & Administrative,3821.84,3990.0
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-400,6260,Bad Debt Expense,General & Administrative,1333.09,1391.75
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-400,6270,Corporate SaaS & IT,General & Administrative,11514.34,12020.97
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-900,7010,Depreciation & Amortization,Other,7710.73,8050.0
+2026-04,2026-04-30,Apr-26,MER-EU,Meridian Labs B.V.,EUR,1.044,CC-900,7020,Interest Income,Other,-7282.7,-7603.14
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4010,Subscription Revenue,Revenue,1837791.67,1837791.67
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4020,Professional Services Revenue,Revenue,103118.57,103118.57
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4030,Training & Certification Revenue,Revenue,18583.32,18583.32
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-000,4010,Subscription Revenue,Revenue,648070.77,674641.67
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-000,4020,Professional Services Revenue,Revenue,38253.99,39822.4
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-000,4030,Training & Certification Revenue,Revenue,6194.07,6448.02
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5010,Cloud Hosting & Infrastructure,COGS,203709.17,203709.17
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5020,Third-Party Software Licenses (COGS),COGS,67553.36,67553.36
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5040,Payment Processing Fees,COGS,17756.88,17756.88
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5030,Customer Support Salaries & Benefits,COGS,75945.59,75945.59
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5210,Contractors - Professional Services,COGS,106856.0,106856.0
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-100,5010,Cloud Hosting & Infrastructure,COGS,61795.59,64329.21
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-100,5020,Third-Party Software Licenses (COGS),COGS,20492.45,21332.64
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-100,5040,Payment Processing Fees,COGS,5386.59,5607.44
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-100,5030,Customer Support Salaries & Benefits,COGS,20576.9,21420.55
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-100,5210,Contractors - Professional Services,COGS,32414.99,33744.0
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,390156.4,390156.4
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,141443.65,141443.65
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,326854.58,326854.58
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,53820.0,53820.0
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6040,Sales Tools & CRM,Sales & Marketing,29016.0,29016.0
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,105710.0,110044.11
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,38323.11,39894.36
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,78495.34,81713.64
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,14582.13,15180.0
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-300,6040,Sales Tools & CRM,Sales & Marketing,7861.67,8184.0
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6110,Engineering Salaries & Benefits,Research & Development,534972.89,534972.89
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6130,Product Salaries & Benefits,Research & Development,132912.52,132912.52
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,47816.0,47816.0
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6210,G&A Salaries & Benefits,General & Administrative,143988.56,143988.56
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,159938.06,159938.06
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6220,Rent & Facilities,General & Administrative,67080.0,67080.0
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6230,Legal & Professional Fees,General & Administrative,39969.79,39969.79
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,22360.0,22360.0
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6250,Insurance,General & Administrative,24510.0,24510.0
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6260,Bad Debt Expense,General & Administrative,8736.22,8736.22
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6270,Corporate SaaS & IT,General & Administrative,76353.76,76353.76
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7010,Depreciation & Amortization,Other,50224.0,50224.0
+2026-05,2026-05-31,May-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7020,Interest Income,Other,-46189.12,-46189.12
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-200,6110,Engineering Salaries & Benefits,Research & Development,83658.61,87088.61
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-200,6130,Product Salaries & Benefits,Research & Development,20784.75,21636.92
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,7477.43,7784.0
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-400,6210,G&A Salaries & Benefits,General & Administrative,22516.81,23440.0
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,25010.98,26036.43
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-400,6220,Rent & Facilities,General & Administrative,10489.91,10920.0
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-400,6230,Legal & Professional Fees,General & Administrative,6305.25,6563.77
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,3496.64,3640.0
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-400,6250,Insurance,General & Administrative,3832.85,3990.0
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-400,6260,Bad Debt Expense,General & Administrative,1366.16,1422.18
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-400,6270,Corporate SaaS & IT,General & Administrative,11940.14,12429.68
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-900,7010,Depreciation & Amortization,Other,7853.99,8176.0
+2026-05,2026-05-31,May-26,MER-EU,Meridian Labs B.V.,EUR,1.041,CC-900,7020,Interest Income,Other,-7115.47,-7407.2
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4010,Subscription Revenue,Revenue,1893841.67,1893841.67
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4020,Professional Services Revenue,Revenue,133225.29,133225.29
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-000,4030,Training & Certification Revenue,Revenue,27320.2,27320.2
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-000,4010,Subscription Revenue,Revenue,674205.2,699825.0
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-000,4020,Professional Services Revenue,Revenue,32653.69,33894.53
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-000,4030,Training & Certification Revenue,Revenue,6739.8,6995.91
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5010,Cloud Hosting & Infrastructure,COGS,206153.68,206153.68
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5020,Third-Party Software Licenses (COGS),COGS,70429.71,70429.71
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5040,Payment Processing Fees,COGS,18512.95,18512.95
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5030,Customer Support Salaries & Benefits,COGS,81370.28,81370.28
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-100,5210,Contractors - Professional Services,COGS,109022.0,109022.0
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-100,5010,Cloud Hosting & Infrastructure,COGS,62717.88,65101.16
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-100,5020,Third-Party Software Licenses (COGS),COGS,21426.74,22240.96
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-100,5040,Payment Processing Fees,COGS,5632.17,5846.2
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-100,5030,Customer Support Salaries & Benefits,COGS,22110.4,22950.59
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-100,5210,Contractors - Professional Services,COGS,33167.63,34428.0
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,398151.95,398151.95
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,141443.65,141443.65
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,327544.47,327544.47
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,54990.0,54990.0
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-300,6040,Sales Tools & CRM,Sales & Marketing,29562.0,29562.0
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-300,6010,Sales Salaries & Commissions,Sales & Marketing,108188.12,112299.27
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-300,6015,Marketing Salaries & Benefits,Sales & Marketing,38433.87,39894.36
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-300,6020,Marketing Programs & Advertising,Sales & Marketing,78888.36,81886.12
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-300,6030,Travel & Entertainment - Sales,Sales & Marketing,14942.2,15510.0
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-300,6040,Sales Tools & CRM,Sales & Marketing,8032.76,8338.0
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6110,Engineering Salaries & Benefits,Research & Development,547710.34,547710.34
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6130,Product Salaries & Benefits,Research & Development,132912.52,132912.52
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,48762.0,48762.0
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6210,G&A Salaries & Benefits,General & Administrative,143988.56,143988.56
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,168355.86,168355.86
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6220,Rent & Facilities,General & Administrative,67080.0,67080.0
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6230,Legal & Professional Fees,General & Administrative,39115.12,39115.12
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,22360.0,22360.0
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6250,Insurance,General & Administrative,24510.0,24510.0
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6260,Bad Debt Expense,General & Administrative,9108.2,9108.2
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-400,6270,Corporate SaaS & IT,General & Administrative,78949.79,78949.79
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7010,Depreciation & Amortization,Other,50998.0,50998.0
+2026-06,2026-06-30,Jun-26,MER-US,"Meridian Labs, Inc.",USD,1.0,CC-900,7020,Interest Income,Other,-45127.64,-45127.64
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-200,6110,Engineering Salaries & Benefits,Research & Development,85898.02,89162.15
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-200,6130,Product Salaries & Benefits,Research & Development,20844.82,21636.92
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-200,6140,Development Tools & Cloud (non-prod),Research & Development,7647.4,7938.0
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-400,6210,G&A Salaries & Benefits,General & Administrative,22581.89,23440.0
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-400,6280,Customer Success Salaries & Benefits,General & Administrative,26403.44,27406.77
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-400,6220,Rent & Facilities,General & Administrative,10520.23,10920.0
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-400,6230,Legal & Professional Fees,General & Administrative,6715.18,6970.36
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-400,6240,"Audit, Tax & Compliance",General & Administrative,3506.74,3640.0
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-400,6250,Insurance,General & Administrative,3843.93,3990.0
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-400,6260,Bad Debt Expense,General & Administrative,1428.45,1482.73
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-400,6270,Corporate SaaS & IT,General & Administrative,12381.78,12852.29
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-900,7010,Depreciation & Amortization,Other,7998.07,8302.0
+2026-06,2026-06-30,Jun-26,MER-EU,Meridian Labs B.V.,EUR,1.038,CC-900,7020,Interest Income,Other,-7282.34,-7559.07

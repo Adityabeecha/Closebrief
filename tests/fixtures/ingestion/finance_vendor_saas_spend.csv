@@ -1,0 +1,437 @@
+period,month_label,vendor,category,owning_department,contract_model,renewal_month,amount_usd,auto_renew
+2025-01,Jan-25,Amazon Web Services,Cloud Infrastructure,Engineering,Usage,,149114.63,No
+2025-01,Jan-25,Snowflake,Data Warehouse,Data,Usage,,22268.05,No
+2025-01,Jan-25,Atlassian Cloud,Dev Tooling,Engineering,Annual,2025-01,2808.76,Yes
+2025-01,Jan-25,Linear,Dev Tooling,Product,Monthly,,1206.35,No
+2025-01,Jan-25,Confluence,Docs & Wiki,Engineering,Annual,2025-01,1409.17,No
+2025-01,Jan-25,NetSuite,ERP,Finance,Annual,2025-01,5636.27,No
+2025-01,Jan-25,Ramp,Spend Management,Finance,Monthly,,903.48,No
+2025-01,Jan-25,OpenAI API,AI / LLM,Engineering,Usage,,4341.56,No
+2025-01,Jan-25,Anthropic API,AI / LLM,Engineering,Usage,,5029.29,No
+2025-02,Feb-25,HubSpot Marketing Hub,Marketing Automation,Marketing,Annual,2025-02,3919.9,No
+2025-02,Feb-25,Amazon Web Services,Cloud Infrastructure,Engineering,Usage,,163434.15,No
+2025-02,Feb-25,Snowflake,Data Warehouse,Data,Usage,,20707.48,No
+2025-02,Feb-25,Atlassian Cloud,Dev Tooling,Engineering,Annual,2025-01,2787.76,Yes
+2025-02,Feb-25,Linear,Dev Tooling,Product,Monthly,,1200.9,No
+2025-02,Feb-25,Confluence,Docs & Wiki,Engineering,Annual,2025-01,1393.63,Yes
+2025-02,Feb-25,Slack,Comms,Company-wide,Annual,2025-02,3075.69,Yes
+2025-02,Feb-25,NetSuite,ERP,Finance,Annual,2025-01,5614.48,Yes
+2025-02,Feb-25,Ramp,Spend Management,Finance,Monthly,,898.45,No
+2025-02,Feb-25,OpenAI API,AI / LLM,Engineering,Usage,,4993.25,No
+2025-02,Feb-25,Anthropic API,AI / LLM,Engineering,Usage,,6245.6,No
+2025-03,Mar-25,Salesforce,CRM,Sales,Annual,2025-03,4845.22,Yes
+2025-03,Mar-25,HubSpot Marketing Hub,Marketing Automation,Marketing,Annual,2025-02,3877.27,No
+2025-03,Mar-25,Amazon Web Services,Cloud Infrastructure,Engineering,Usage,,155386.4,No
+2025-03,Mar-25,Snowflake,Data Warehouse,Data,Usage,,21416.37,No
+2025-03,Mar-25,Atlassian Cloud,Dev Tooling,Engineering,Annual,2025-01,2780.91,Yes
+2025-03,Mar-25,Linear,Dev Tooling,Product,Monthly,,1194.26,No
+2025-03,Mar-25,Confluence,Docs & Wiki,Engineering,Annual,2025-01,1409.26,Yes
+2025-03,Mar-25,Slack,Comms,Company-wide,Annual,2025-02,3081.21,Yes
+2025-03,Mar-25,Zoom,Comms,Company-wide,Annual,2025-03,1796.44,Yes
+2025-03,Mar-25,NetSuite,ERP,Finance,Annual,2025-01,5554.73,Yes
+2025-03,Mar-25,Ramp,Spend Management,Finance,Monthly,,897.97,No
+2025-03,Mar-25,OpenAI API,AI / LLM,Engineering,Usage,,6019.6,No
+2025-03,Mar-25,Anthropic API,AI / LLM,Engineering,Usage,,7383.03,No
+2025-04,Apr-25,Salesforce,CRM,Sales,Annual,2025-03,4812.35,Yes
+2025-04,Apr-25,HubSpot Marketing Hub,Marketing Automation,Marketing,Annual,2025-02,3868.55,Yes
+2025-04,Apr-25,Amazon Web Services,Cloud Infrastructure,Engineering,Usage,,158517.89,No
+2025-04,Apr-25,Datadog,Observability,Engineering,Annual,2025-04,7050.27,Yes
+2025-04,Apr-25,Snowflake,Data Warehouse,Data,Usage,,22182.16,No
+2025-04,Apr-25,Atlassian Cloud,Dev Tooling,Engineering,Annual,2025-01,2774.48,Yes
+2025-04,Apr-25,Linear,Dev Tooling,Product,Monthly,,1191.66,No
+2025-04,Apr-25,Confluence,Docs & Wiki,Engineering,Annual,2025-01,1389.75,No
+2025-04,Apr-25,Slack,Comms,Company-wide,Annual,2025-02,3087.73,No
+2025-04,Apr-25,Zoom,Comms,Company-wide,Annual,2025-03,1783.17,Yes
+2025-04,Apr-25,NetSuite,ERP,Finance,Annual,2025-01,5560.34,Yes
+2025-04,Apr-25,Ramp,Spend Management,Finance,Monthly,,897.48,No
+2025-04,Apr-25,Rippling,HRIS & Payroll,G&A,Annual,2025-04,4266.94,Yes
+2025-04,Apr-25,OpenAI API,AI / LLM,Engineering,Usage,,6685.08,No
+2025-04,Apr-25,Anthropic API,AI / LLM,Engineering,Usage,,8318.17,No
+2025-05,May-25,Salesforce,CRM,Sales,Annual,2025-03,4806.36,Yes
+2025-05,May-25,HubSpot Marketing Hub,Marketing Automation,Marketing,Annual,2025-02,3878.1,Yes
+2025-05,May-25,Outreach,Sales Engagement,Sales,Annual,2025-05,2922.73,No
+2025-05,May-25,Amazon Web Services,Cloud Infrastructure,Engineering,Usage,,184649.93,No
+2025-05,May-25,Datadog,Observability,Engineering,Annual,2025-04,7033.22,Yes
+2025-05,May-25,Snowflake,Data Warehouse,Data,Usage,,24770.85,No
+2025-05,May-25,Atlassian Cloud,Dev Tooling,Engineering,Annual,2025-01,2789.5,No
+2025-05,May-25,Linear,Dev Tooling,Product,Monthly,,1209.72,No
+2025-05,May-25,Confluence,Docs & Wiki,Engineering,Annual,2025-01,1409.16,Yes
+2025-05,May-25,Slack,Comms,Company-wide,Annual,2025-02,3113.68,Yes
+2025-05,May-25,Zoom,Comms,Company-wide,Annual,2025-03,1786.13,Yes
+2025-05,May-25,NetSuite,ERP,Finance,Annual,2025-01,5548.3,No
+2025-05,May-25,Ramp,Spend Management,Finance,Monthly,,892.78,No
+2025-05,May-25,Rippling,HRIS & Payroll,G&A,Annual,2025-04,4257.69,No
+2025-05,May-25,Greenhouse,ATS,G&A,Annual,2025-05,2084.51,Yes
+2025-05,May-25,OpenAI API,AI / LLM,Engineering,Usage,,7746.23,No
+2025-05,May-25,Anthropic API,AI / LLM,Engineering,Usage,,9442.76,No
+2025-06,Jun-25,Salesforce,CRM,Sales,Annual,2025-03,4792.97,No
+2025-06,Jun-25,HubSpot Marketing Hub,Marketing Automation,Marketing,Annual,2025-02,3894.66,No
+2025-06,Jun-25,Outreach,Sales Engagement,Sales,Annual,2025-05,2895.14,No
+2025-06,Jun-25,Amazon Web Services,Cloud Infrastructure,Engineering,Usage,,172390.39,No
+2025-06,Jun-25,Datadog,Observability,Engineering,Annual,2025-04,7125.16,Yes
+2025-06,Jun-25,Snowflake,Data Warehouse,Data,Usage,,26132.72,No
+2025-06,Jun-25,Looker,BI,Data,Annual,2025-06,4122.45,Yes
+2025-06,Jun-25,Atlassian Cloud,Dev Tooling,Engineering,Annual,2025-01,2795.07,No
+2025-06,Jun-25,Linear,Dev Tooling,Product,Monthly,,1202.93,No
+2025-06,Jun-25,Confluence,Docs & Wiki,Engineering,Annual,2025-01,1388.63,No
+2025-06,Jun-25,Slack,Comms,Company-wide,Annual,2025-02,3128.68,Yes
+2025-06,Jun-25,Zoom,Comms,Company-wide,Annual,2025-03,1784.35,Yes
+2025-06,Jun-25,NetSuite,ERP,Finance,Annual,2025-01,5558.6,No
+2025-06,Jun-25,Ramp,Spend Management,Finance,Monthly,,899.57,No
+2025-06,Jun-25,Rippling,HRIS & Payroll,G&A,Annual,2025-04,4293.74,Yes
+2025-06,Jun-25,Greenhouse,ATS,G&A,Annual,2025-05,2089.89,Yes
+2025-06,Jun-25,Vanta,Compliance,G&A,Annual,2025-06,1913.49,Yes
+2025-06,Jun-25,OpenAI API,AI / LLM,Engineering,Usage,,9102.22,No
+2025-06,Jun-25,Anthropic API,AI / LLM,Engineering,Usage,,12091.65,No
+2025-07,Jul-25,Salesforce,CRM,Sales,Annual,2025-03,4811.51,Yes
+2025-07,Jul-25,HubSpot Marketing Hub,Marketing Automation,Marketing,Annual,2025-02,3904.07,No
+2025-07,Jul-25,Outreach,Sales Engagement,Sales,Annual,2025-05,2909.54,Yes
+2025-07,Jul-25,Gong,Conversation Intelligence,Sales,Annual,2025-07,3383.45,Yes
+2025-07,Jul-25,Amazon Web Services,Cloud Infrastructure,Engineering,Usage,,175285.81,No
+2025-07,Jul-25,Datadog,Observability,Engineering,Annual,2025-04,7137.78,No
+2025-07,Jul-25,Snowflake,Data Warehouse,Data,Usage,,24198.96,No
+2025-07,Jul-25,Looker,BI,Data,Annual,2025-06,4092.56,Yes
+2025-07,Jul-25,Atlassian Cloud,Dev Tooling,Engineering,Annual,2025-01,2784.92,No
+2025-07,Jul-25,Linear,Dev Tooling,Product,Monthly,,1188.21,No
+2025-07,Jul-25,Confluence,Docs & Wiki,Engineering,Annual,2025-01,1398.16,Yes
+2025-07,Jul-25,Slack,Comms,Company-wide,Annual,2025-02,3099.89,Yes
+2025-07,Jul-25,Zoom,Comms,Company-wide,Annual,2025-03,1817.05,Yes
+2025-07,Jul-25,NetSuite,ERP,Finance,Annual,2025-01,5630.73,No
+2025-07,Jul-25,Ramp,Spend Management,Finance,Monthly,,903.99,No
+2025-07,Jul-25,Rippling,HRIS & Payroll,G&A,Annual,2025-04,4307.93,No
+2025-07,Jul-25,Greenhouse,ATS,G&A,Annual,2025-05,2119.59,Yes
+2025-07,Jul-25,Vanta,Compliance,G&A,Annual,2025-06,1902.69,Yes
+2025-07,Jul-25,1Password,Security,Company-wide,Annual,2025-07,1093.25,Yes
+2025-07,Jul-25,OpenAI API,AI / LLM,Engineering,Usage,,11199.7,No
+2025-07,Jul-25,Anthropic API,AI / LLM,Engineering,Usage,,13018.62,No
+2025-08,Aug-25,Salesforce,CRM,Sales,Annual,2025-03,4763.36,No
+2025-08,Aug-25,HubSpot Marketing Hub,Marketing Automation,Marketing,Annual,2025-02,3888.52,No
+2025-08,Aug-25,Outreach,Sales Engagement,Sales,Annual,2025-05,2888.66,Yes
+2025-08,Aug-25,Gong,Conversation Intelligence,Sales,Annual,2025-07,3373.15,Yes
+2025-08,Aug-25,Amazon Web Services,Cloud Infrastructure,Engineering,Usage,,198958.63,No
+2025-08,Aug-25,Datadog,Observability,Engineering,Annual,2025-04,7051.7,Yes
+2025-08,Aug-25,Snowflake,Data Warehouse,Data,Usage,,26621.82,No
+2025-08,Aug-25,Looker,BI,Data,Annual,2025-06,4095.79,Yes
+2025-08,Aug-25,Tableau,BI,Finance,Annual,2025-08,2703.37,No
+2025-08,Aug-25,Atlassian Cloud,Dev Tooling,Engineering,Annual,2025-01,2804.68,Yes
+2025-08,Aug-25,Linear,Dev Tooling,Product,Monthly,,1204.6,No
+2025-08,Aug-25,Confluence,Docs & Wiki,Engineering,Annual,2025-01,1386.07,Yes
+2025-08,Aug-25,Slack,Comms,Company-wide,Annual,2025-02,3083.24,Yes
+2025-08,Aug-25,Zoom,Comms,Company-wide,Annual,2025-03,1806.27,Yes
+2025-08,Aug-25,NetSuite,ERP,Finance,Annual,2025-01,5649.27,Yes
+2025-08,Aug-25,Ramp,Spend Management,Finance,Monthly,,900.93,No
+2025-08,Aug-25,Rippling,HRIS & Payroll,G&A,Annual,2025-04,4293.64,No
+2025-08,Aug-25,Greenhouse,ATS,G&A,Annual,2025-05,2081.68,No
+2025-08,Aug-25,Vanta,Compliance,G&A,Annual,2025-06,1892.84,Yes
+2025-08,Aug-25,1Password,Security,Company-wide,Annual,2025-07,1103.46,Yes
+2025-08,Aug-25,Figma,Design,Product,Annual,2025-08,1490.7,Yes
+2025-08,Aug-25,OpenAI API,AI / LLM,Engineering,Usage,,12123.67,No
+2025-08,Aug-25,Anthropic API,AI / LLM,Engineering,Usage,,15343.15,No
+2025-09,Sep-25,Salesforce,CRM,Sales,Annual,2025-03,4841.87,Yes
+2025-09,Sep-25,HubSpot Marketing Hub,Marketing Automation,Marketing,Annual,2025-02,3875.92,Yes
+2025-09,Sep-25,Outreach,Sales Engagement,Sales,Annual,2025-05,2895.92,Yes
+2025-09,Sep-25,Gong,Conversation Intelligence,Sales,Annual,2025-07,3373.28,Yes
+2025-09,Sep-25,Amazon Web Services,Cloud Infrastructure,Engineering,Usage,,193842.3,No
+2025-09,Sep-25,Datadog,Observability,Engineering,Annual,2025-04,7150.01,Yes
+2025-09,Sep-25,New Relic,Observability,Engineering,Annual,2025-09,3174.82,Yes
+2025-09,Sep-25,Snowflake,Data Warehouse,Data,Usage,,24947.38,No
+2025-09,Sep-25,Looker,BI,Data,Annual,2025-06,4092.02,Yes
+2025-09,Sep-25,Tableau,BI,Finance,Annual,2025-08,2721.5,Yes
+2025-09,Sep-25,Atlassian Cloud,Dev Tooling,Engineering,Annual,2025-01,2784.16,Yes
+2025-09,Sep-25,Linear,Dev Tooling,Product,Monthly,,1211.13,No
+2025-09,Sep-25,Confluence,Docs & Wiki,Engineering,Annual,2025-01,1388.65,Yes
+2025-09,Sep-25,Slack,Comms,Company-wide,Annual,2025-02,3117.29,Yes
+2025-09,Sep-25,Zoom,Comms,Company-wide,Annual,2025-03,1782.55,No
+2025-09,Sep-25,NetSuite,ERP,Finance,Annual,2025-01,5555.48,Yes
+2025-09,Sep-25,Ramp,Spend Management,Finance,Monthly,,902.49,No
+2025-09,Sep-25,Rippling,HRIS & Payroll,G&A,Annual,2025-04,4291.48,Yes
+2025-09,Sep-25,Greenhouse,ATS,G&A,Annual,2025-05,2082.91,No
+2025-09,Sep-25,Vanta,Compliance,G&A,Annual,2025-06,1914.6,Yes
+2025-09,Sep-25,1Password,Security,Company-wide,Annual,2025-07,1096.2,Yes
+2025-09,Sep-25,Figma,Design,Product,Annual,2025-08,1514.45,Yes
+2025-09,Sep-25,Zendesk,Support Desk,Support,Annual,2025-09,3319.85,Yes
+2025-09,Sep-25,OpenAI API,AI / LLM,Engineering,Usage,,14937.05,No
+2025-09,Sep-25,Anthropic API,AI / LLM,Engineering,Usage,,18204.8,No
+2025-10,Oct-25,Salesforce,CRM,Sales,Annual,2025-03,4843.73,No
+2025-10,Oct-25,HubSpot Marketing Hub,Marketing Automation,Marketing,Annual,2025-02,3876.14,Yes
+2025-10,Oct-25,Outreach,Sales Engagement,Sales,Annual,2025-05,2910.08,Yes
+2025-10,Oct-25,Gong,Conversation Intelligence,Sales,Annual,2025-07,3417.64,Yes
+2025-10,Oct-25,Amazon Web Services,Cloud Infrastructure,Engineering,Usage,,193105.01,No
+2025-10,Oct-25,Datadog,Observability,Engineering,Annual,2025-04,7045.2,Yes
+2025-10,Oct-25,New Relic,Observability,Engineering,Annual,2025-09,3193.88,Yes
+2025-10,Oct-25,Snowflake,Data Warehouse,Data,Usage,,26778.63,No
+2025-10,Oct-25,Looker,BI,Data,Annual,2025-06,4082.88,No
+2025-10,Oct-25,Tableau,BI,Finance,Annual,2025-08,2681.76,Yes
+2025-10,Oct-25,Atlassian Cloud,Dev Tooling,Engineering,Annual,2025-01,2825.24,No
+2025-10,Oct-25,Linear,Dev Tooling,Product,Monthly,,1199.38,No
+2025-10,Oct-25,Notion,Docs & Wiki,Company-wide,Annual,2025-10,1594.43,No
+2025-10,Oct-25,Confluence,Docs & Wiki,Engineering,Annual,2025-01,1408.49,Yes
+2025-10,Oct-25,Slack,Comms,Company-wide,Annual,2025-02,3115.52,Yes
+2025-10,Oct-25,Zoom,Comms,Company-wide,Annual,2025-03,1791.11,Yes
+2025-10,Oct-25,NetSuite,ERP,Finance,Annual,2025-01,5623.72,No
+2025-10,Oct-25,Ramp,Spend Management,Finance,Monthly,,901.39,No
+2025-10,Oct-25,Rippling,HRIS & Payroll,G&A,Annual,2025-04,4283.29,Yes
+2025-10,Oct-25,Greenhouse,ATS,G&A,Annual,2025-05,2106.23,Yes
+2025-10,Oct-25,Vanta,Compliance,G&A,Annual,2025-06,1918.12,Yes
+2025-10,Oct-25,1Password,Security,Company-wide,Annual,2025-07,1100.71,Yes
+2025-10,Oct-25,Figma,Design,Product,Annual,2025-08,1510.45,Yes
+2025-10,Oct-25,Zendesk,Support Desk,Support,Annual,2025-09,3304.37,No
+2025-10,Oct-25,Amplitude,Product Analytics,Product,Annual,2025-10,2893.68,Yes
+2025-10,Oct-25,OpenAI API,AI / LLM,Engineering,Usage,,17392.55,No
+2025-10,Oct-25,Anthropic API,AI / LLM,Engineering,Usage,,23420.54,No
+2025-11,Nov-25,Salesforce,CRM,Sales,Annual,2025-03,4781.78,Yes
+2025-11,Nov-25,HubSpot Marketing Hub,Marketing Automation,Marketing,Annual,2025-02,3879.7,Yes
+2025-11,Nov-25,Marketo Engage,Marketing Automation,Marketing,Annual,2025-11,5091.83,Yes
+2025-11,Nov-25,Outreach,Sales Engagement,Sales,Annual,2025-05,2895.11,Yes
+2025-11,Nov-25,Gong,Conversation Intelligence,Sales,Annual,2025-07,3372.32,No
+2025-11,Nov-25,Amazon Web Services,Cloud Infrastructure,Engineering,Usage,,196666.57,No
+2025-11,Nov-25,Datadog,Observability,Engineering,Annual,2025-04,7037.26,Yes
+2025-11,Nov-25,New Relic,Observability,Engineering,Annual,2025-09,3224.93,No
+2025-11,Nov-25,Snowflake,Data Warehouse,Data,Usage,,28619.17,No
+2025-11,Nov-25,Looker,BI,Data,Annual,2025-06,4137.78,No
+2025-11,Nov-25,Tableau,BI,Finance,Annual,2025-08,2676.33,Yes
+2025-11,Nov-25,Atlassian Cloud,Dev Tooling,Engineering,Annual,2025-01,2782.01,Yes
+2025-11,Nov-25,Linear,Dev Tooling,Product,Monthly,,1195.68,No
+2025-11,Nov-25,Notion,Docs & Wiki,Company-wide,Annual,2025-10,1613.53,Yes
+2025-11,Nov-25,Confluence,Docs & Wiki,Engineering,Annual,2025-01,1411.56,No
+2025-11,Nov-25,Slack,Comms,Company-wide,Annual,2025-02,3092.85,Yes
+2025-11,Nov-25,Zoom,Comms,Company-wide,Annual,2025-03,1786.77,Yes
+2025-11,Nov-25,NetSuite,ERP,Finance,Annual,2025-01,5630.68,Yes
+2025-11,Nov-25,Ramp,Spend Management,Finance,Monthly,,902.33,No
+2025-11,Nov-25,Rippling,HRIS & Payroll,G&A,Annual,2025-04,4270.87,Yes
+2025-11,Nov-25,Greenhouse,ATS,G&A,Annual,2025-05,2086.42,Yes
+2025-11,Nov-25,Vanta,Compliance,G&A,Annual,2025-06,1885.5,No
+2025-11,Nov-25,1Password,Security,Company-wide,Annual,2025-07,1091.83,No
+2025-11,Nov-25,Figma,Design,Product,Annual,2025-08,1491.1,Yes
+2025-11,Nov-25,Zendesk,Support Desk,Support,Annual,2025-09,3292.81,Yes
+2025-11,Nov-25,Amplitude,Product Analytics,Product,Annual,2025-10,2877.84,Yes
+2025-11,Nov-25,Segment,CDP,Data,Annual,2025-11,3593.18,Yes
+2025-11,Nov-25,OpenAI API,AI / LLM,Engineering,Usage,,21161.12,No
+2025-11,Nov-25,Anthropic API,AI / LLM,Engineering,Usage,,25805.16,No
+2025-12,Dec-25,Salesforce,CRM,Sales,Annual,2025-03,4773.67,Yes
+2025-12,Dec-25,HubSpot Marketing Hub,Marketing Automation,Marketing,Annual,2025-02,3908.74,Yes
+2025-12,Dec-25,Marketo Engage,Marketing Automation,Marketing,Annual,2025-11,5080.87,No
+2025-12,Dec-25,Outreach,Sales Engagement,Sales,Annual,2025-05,2896.98,Yes
+2025-12,Dec-25,Gong,Conversation Intelligence,Sales,Annual,2025-07,3369.34,Yes
+2025-12,Dec-25,Amazon Web Services,Cloud Infrastructure,Engineering,Usage,,225794.59,No
+2025-12,Dec-25,Datadog,Observability,Engineering,Annual,2025-04,7078.32,Yes
+2025-12,Dec-25,New Relic,Observability,Engineering,Annual,2025-09,3213.01,Yes
+2025-12,Dec-25,Snowflake,Data Warehouse,Data,Usage,,29564.49,No
+2025-12,Dec-25,Looker,BI,Data,Annual,2025-06,4072.95,Yes
+2025-12,Dec-25,Tableau,BI,Finance,Annual,2025-08,2716.43,Yes
+2025-12,Dec-25,Atlassian Cloud,Dev Tooling,Engineering,Annual,2025-01,2802.98,No
+2025-12,Dec-25,Linear,Dev Tooling,Product,Monthly,,1197.86,No
+2025-12,Dec-25,Notion,Docs & Wiki,Company-wide,Annual,2025-10,1595.39,Yes
+2025-12,Dec-25,Confluence,Docs & Wiki,Engineering,Annual,2025-01,1403.68,Yes
+2025-12,Dec-25,Slack,Comms,Company-wide,Annual,2025-02,3088.18,Yes
+2025-12,Dec-25,Zoom,Comms,Company-wide,Annual,2025-03,1787.23,Yes
+2025-12,Dec-25,NetSuite,ERP,Finance,Annual,2025-01,5576.92,Yes
+2025-12,Dec-25,Ramp,Spend Management,Finance,Monthly,,900.19,No
+2025-12,Dec-25,Rippling,HRIS & Payroll,G&A,Annual,2025-04,4329.18,Yes
+2025-12,Dec-25,Greenhouse,ATS,G&A,Annual,2025-05,2110.71,Yes
+2025-12,Dec-25,Vanta,Compliance,G&A,Annual,2025-06,1891.44,Yes
+2025-12,Dec-25,1Password,Security,Company-wide,Annual,2025-07,1090.97,Yes
+2025-12,Dec-25,Figma,Design,Product,Annual,2025-08,1512.93,No
+2025-12,Dec-25,Zendesk,Support Desk,Support,Annual,2025-09,3297.04,Yes
+2025-12,Dec-25,Intercom,Support Desk,Support,Annual,2025-12,2400.32,Yes
+2025-12,Dec-25,Amplitude,Product Analytics,Product,Annual,2025-10,2900.31,Yes
+2025-12,Dec-25,Segment,CDP,Data,Annual,2025-11,3625.61,Yes
+2025-12,Dec-25,OpenAI API,AI / LLM,Engineering,Usage,,25666.9,No
+2025-12,Dec-25,Anthropic API,AI / LLM,Engineering,Usage,,29132.36,No
+2026-01,Jan-26,Salesforce,CRM,Sales,Annual,2025-03,5240.61,Yes
+2026-01,Jan-26,HubSpot Marketing Hub,Marketing Automation,Marketing,Annual,2025-02,4256.6,Yes
+2026-01,Jan-26,Marketo Engage,Marketing Automation,Marketing,Annual,2025-11,5565.29,No
+2026-01,Jan-26,Outreach,Sales Engagement,Sales,Annual,2025-05,3174.18,Yes
+2026-01,Jan-26,Salesloft,Sales Engagement,Sales,Annual,2026-01,2852.14,No
+2026-01,Jan-26,Gong,Conversation Intelligence,Sales,Annual,2025-07,3686.47,Yes
+2026-01,Jan-26,Amazon Web Services,Cloud Infrastructure,Engineering,Usage,,226026.79,No
+2026-01,Jan-26,Datadog,Observability,Engineering,Annual,2025-04,7809.32,Yes
+2026-01,Jan-26,New Relic,Observability,Engineering,Annual,2025-09,3496.35,Yes
+2026-01,Jan-26,Snowflake,Data Warehouse,Data,Usage,,28765.58,No
+2026-01,Jan-26,Looker,BI,Data,Annual,2025-06,4485.9,Yes
+2026-01,Jan-26,Tableau,BI,Finance,Annual,2025-08,2925.13,No
+2026-01,Jan-26,Atlassian Cloud,Dev Tooling,Engineering,Annual,2025-01,3077.18,Yes
+2026-01,Jan-26,Linear,Dev Tooling,Product,Monthly,,1295.03,No
+2026-01,Jan-26,Notion,Docs & Wiki,Company-wide,Annual,2025-10,1738.04,Yes
+2026-01,Jan-26,Confluence,Docs & Wiki,Engineering,Annual,2025-01,1519.22,No
+2026-01,Jan-26,Slack,Comms,Company-wide,Annual,2025-02,3409.73,No
+2026-01,Jan-26,Zoom,Comms,Company-wide,Annual,2025-03,1958.09,Yes
+2026-01,Jan-26,NetSuite,ERP,Finance,Annual,2025-01,6063.87,No
+2026-01,Jan-26,Ramp,Spend Management,Finance,Monthly,,987.71,No
+2026-01,Jan-26,Rippling,HRIS & Payroll,G&A,Annual,2025-04,4688.65,Yes
+2026-01,Jan-26,Greenhouse,ATS,G&A,Annual,2025-05,2297.69,Yes
+2026-01,Jan-26,Vanta,Compliance,G&A,Annual,2025-06,2082.48,Yes
+2026-01,Jan-26,1Password,Security,Company-wide,Annual,2025-07,1194.61,No
+2026-01,Jan-26,Figma,Design,Product,Annual,2025-08,1643.29,No
+2026-01,Jan-26,Zendesk,Support Desk,Support,Annual,2025-09,3591.34,No
+2026-01,Jan-26,Intercom,Support Desk,Support,Annual,2025-12,2598.93,Yes
+2026-01,Jan-26,Amplitude,Product Analytics,Product,Annual,2025-10,3141.45,Yes
+2026-01,Jan-26,Mixpanel,Product Analytics,Marketing,Annual,2026-01,1858.39,Yes
+2026-01,Jan-26,Segment,CDP,Data,Annual,2025-11,3919.27,Yes
+2026-01,Jan-26,OpenAI API,AI / LLM,Engineering,Usage,,30213.36,No
+2026-01,Jan-26,Anthropic API,AI / LLM,Engineering,Usage,,35696.02,No
+2026-02,Feb-26,Salesforce,CRM,Sales,Annual,2025-03,5280.17,Yes
+2026-02,Feb-26,HubSpot Marketing Hub,Marketing Automation,Marketing,Annual,2025-02,4260.47,Yes
+2026-02,Feb-26,Marketo Engage,Marketing Automation,Marketing,Annual,2025-11,5573.92,Yes
+2026-02,Feb-26,Outreach,Sales Engagement,Sales,Annual,2025-05,3131.86,No
+2026-02,Feb-26,Salesloft,Sales Engagement,Sales,Annual,2026-01,2832.25,No
+2026-02,Feb-26,Gong,Conversation Intelligence,Sales,Annual,2025-07,3721.84,Yes
+2026-02,Feb-26,Amazon Web Services,Cloud Infrastructure,Engineering,Usage,,225387.28,No
+2026-02,Feb-26,Datadog,Observability,Engineering,Annual,2025-04,7788.88,Yes
+2026-02,Feb-26,New Relic,Observability,Engineering,Annual,2025-09,3512.95,No
+2026-02,Feb-26,Snowflake,Data Warehouse,Data,Usage,,30974.25,No
+2026-02,Feb-26,Looker,BI,Data,Annual,2025-06,4426.01,No
+2026-02,Feb-26,Tableau,BI,Finance,Annual,2025-08,2914.56,Yes
+2026-02,Feb-26,Power BI Premium,BI,Finance,Annual,2026-02,2079.39,No
+2026-02,Feb-26,Atlassian Cloud,Dev Tooling,Engineering,Annual,2025-01,3044.91,Yes
+2026-02,Feb-26,Linear,Dev Tooling,Product,Monthly,,1315.35,No
+2026-02,Feb-26,Notion,Docs & Wiki,Company-wide,Annual,2025-10,1757.55,No
+2026-02,Feb-26,Confluence,Docs & Wiki,Engineering,Annual,2025-01,1537.56,Yes
+2026-02,Feb-26,Slack,Comms,Company-wide,Annual,2025-02,3409.22,No
+2026-02,Feb-26,Zoom,Comms,Company-wide,Annual,2025-03,1958.25,No
+2026-02,Feb-26,NetSuite,ERP,Finance,Annual,2025-01,6076.14,No
+2026-02,Feb-26,Ramp,Spend Management,Finance,Monthly,,978.67,No
+2026-02,Feb-26,Rippling,HRIS & Payroll,G&A,Annual,2025-04,4706.2,Yes
+2026-02,Feb-26,Greenhouse,ATS,G&A,Annual,2025-05,2268.65,Yes
+2026-02,Feb-26,Vanta,Compliance,G&A,Annual,2025-06,2070.02,Yes
+2026-02,Feb-26,1Password,Security,Company-wide,Annual,2025-07,1192.81,Yes
+2026-02,Feb-26,Figma,Design,Product,Annual,2025-08,1623.98,Yes
+2026-02,Feb-26,Zendesk,Support Desk,Support,Annual,2025-09,3611.56,Yes
+2026-02,Feb-26,Intercom,Support Desk,Support,Annual,2025-12,2616.25,Yes
+2026-02,Feb-26,Amplitude,Product Analytics,Product,Annual,2025-10,3170.64,Yes
+2026-02,Feb-26,Mixpanel,Product Analytics,Marketing,Annual,2026-01,1861.38,Yes
+2026-02,Feb-26,Segment,CDP,Data,Annual,2025-11,3958.16,Yes
+2026-02,Feb-26,OpenAI API,AI / LLM,Engineering,Usage,,34323.31,No
+2026-02,Feb-26,Anthropic API,AI / LLM,Engineering,Usage,,41710.23,No
+2026-03,Mar-26,Salesforce,CRM,Sales,Annual,2025-03,5190.58,Yes
+2026-03,Mar-26,HubSpot Marketing Hub,Marketing Automation,Marketing,Annual,2025-02,4241.36,Yes
+2026-03,Mar-26,Marketo Engage,Marketing Automation,Marketing,Annual,2025-11,5573.27,Yes
+2026-03,Mar-26,Outreach,Sales Engagement,Sales,Annual,2025-05,3142.61,Yes
+2026-03,Mar-26,Salesloft,Sales Engagement,Sales,Annual,2026-01,2849.1,Yes
+2026-03,Mar-26,Gong,Conversation Intelligence,Sales,Annual,2025-07,3715.8,Yes
+2026-03,Mar-26,Amazon Web Services,Cloud Infrastructure,Engineering,Usage,,226363.75,No
+2026-03,Mar-26,Datadog,Observability,Engineering,Annual,2025-04,7808.19,Yes
+2026-03,Mar-26,New Relic,Observability,Engineering,Annual,2025-09,3506.31,Yes
+2026-03,Mar-26,Snowflake,Data Warehouse,Data,Usage,,32652.49,No
+2026-03,Mar-26,Looker,BI,Data,Annual,2025-06,4465.07,Yes
+2026-03,Mar-26,Tableau,BI,Finance,Annual,2025-08,2954.46,Yes
+2026-03,Mar-26,Power BI Premium,BI,Finance,Annual,2026-02,2054.79,No
+2026-03,Mar-26,Atlassian Cloud,Dev Tooling,Engineering,Annual,2025-01,3055.12,Yes
+2026-03,Mar-26,Linear,Dev Tooling,Product,Monthly,,1319.14,No
+2026-03,Mar-26,Notion,Docs & Wiki,Company-wide,Annual,2025-10,1739.85,Yes
+2026-03,Mar-26,Confluence,Docs & Wiki,Engineering,Annual,2025-01,1510.84,No
+2026-03,Mar-26,Slack,Comms,Company-wide,Annual,2025-02,3391.98,Yes
+2026-03,Mar-26,Zoom,Comms,Company-wide,Annual,2025-03,1970.16,No
+2026-03,Mar-26,NetSuite,ERP,Finance,Annual,2025-01,6095.78,Yes
+2026-03,Mar-26,Ramp,Spend Management,Finance,Monthly,,990.81,No
+2026-03,Mar-26,Rippling,HRIS & Payroll,G&A,Annual,2025-04,4674.33,Yes
+2026-03,Mar-26,Greenhouse,ATS,G&A,Annual,2025-05,2278.51,Yes
+2026-03,Mar-26,Vanta,Compliance,G&A,Annual,2025-06,2088.74,Yes
+2026-03,Mar-26,1Password,Security,Company-wide,Annual,2025-07,1187.45,No
+2026-03,Mar-26,Figma,Design,Product,Annual,2025-08,1624.52,Yes
+2026-03,Mar-26,Zendesk,Support Desk,Support,Annual,2025-09,3601.33,No
+2026-03,Mar-26,Intercom,Support Desk,Support,Annual,2025-12,2636.21,Yes
+2026-03,Mar-26,Amplitude,Product Analytics,Product,Annual,2025-10,3185.06,Yes
+2026-03,Mar-26,Mixpanel,Product Analytics,Marketing,Annual,2026-01,1862.17,Yes
+2026-03,Mar-26,Segment,CDP,Data,Annual,2025-11,3931.63,Yes
+2026-03,Mar-26,OpenAI API,AI / LLM,Engineering,Usage,,43364.92,No
+2026-03,Mar-26,Anthropic API,AI / LLM,Engineering,Usage,,52195.31,No
+2026-04,Apr-26,Salesforce,CRM,Sales,Annual,2025-03,5215.94,Yes
+2026-04,Apr-26,HubSpot Marketing Hub,Marketing Automation,Marketing,Annual,2025-02,4210.74,Yes
+2026-04,Apr-26,Marketo Engage,Marketing Automation,Marketing,Annual,2025-11,5550.81,Yes
+2026-04,Apr-26,Outreach,Sales Engagement,Sales,Annual,2025-05,3183.79,Yes
+2026-04,Apr-26,Salesloft,Sales Engagement,Sales,Annual,2026-01,2855.41,Yes
+2026-04,Apr-26,Gong,Conversation Intelligence,Sales,Annual,2025-07,3738.92,No
+2026-04,Apr-26,Amazon Web Services,Cloud Infrastructure,Engineering,Usage,,228867.18,No
+2026-04,Apr-26,Datadog,Observability,Engineering,Annual,2025-04,7740.66,Yes
+2026-04,Apr-26,New Relic,Observability,Engineering,Annual,2025-09,3480.03,Yes
+2026-04,Apr-26,Snowflake,Data Warehouse,Data,Usage,,31365.47,No
+2026-04,Apr-26,Looker,BI,Data,Annual,2025-06,4457.12,Yes
+2026-04,Apr-26,Tableau,BI,Finance,Annual,2025-08,2959.75,Yes
+2026-04,Apr-26,Power BI Premium,BI,Finance,Annual,2026-02,2065.33,Yes
+2026-04,Apr-26,Atlassian Cloud,Dev Tooling,Engineering,Annual,2025-01,3030.86,No
+2026-04,Apr-26,Linear,Dev Tooling,Product,Monthly,,1317.55,No
+2026-04,Apr-26,Notion,Docs & Wiki,Company-wide,Annual,2025-10,1733.61,No
+2026-04,Apr-26,Confluence,Docs & Wiki,Engineering,Annual,2025-01,1520.77,Yes
+2026-04,Apr-26,Slack,Comms,Company-wide,Annual,2025-02,3391.83,Yes
+2026-04,Apr-26,Zoom,Comms,Company-wide,Annual,2025-03,1969.97,Yes
+2026-04,Apr-26,NetSuite,ERP,Finance,Annual,2025-01,6154.98,No
+2026-04,Apr-26,Ramp,Spend Management,Finance,Monthly,,978.25,No
+2026-04,Apr-26,Rippling,HRIS & Payroll,G&A,Annual,2025-04,4653.57,No
+2026-04,Apr-26,Greenhouse,ATS,G&A,Annual,2025-05,2266.3,No
+2026-04,Apr-26,Vanta,Compliance,G&A,Annual,2025-06,2055.59,Yes
+2026-04,Apr-26,1Password,Security,Company-wide,Annual,2025-07,1189.03,No
+2026-04,Apr-26,Figma,Design,Product,Annual,2025-08,1630.15,Yes
+2026-04,Apr-26,Zendesk,Support Desk,Support,Annual,2025-09,3565.5,Yes
+2026-04,Apr-26,Intercom,Support Desk,Support,Annual,2025-12,2605.09,No
+2026-04,Apr-26,Amplitude,Product Analytics,Product,Annual,2025-10,3137.39,Yes
+2026-04,Apr-26,Mixpanel,Product Analytics,Marketing,Annual,2026-01,1837.35,Yes
+2026-04,Apr-26,Segment,CDP,Data,Annual,2025-11,3922.45,Yes
+2026-04,Apr-26,OpenAI API,AI / LLM,Engineering,Usage,,47976.24,No
+2026-04,Apr-26,Anthropic API,AI / LLM,Engineering,Usage,,55535.35,No
+2026-05,May-26,Salesforce,CRM,Sales,Annual,2025-03,5198.11,Yes
+2026-05,May-26,HubSpot Marketing Hub,Marketing Automation,Marketing,Annual,2025-02,4262.43,Yes
+2026-05,May-26,Marketo Engage,Marketing Automation,Marketing,Annual,2025-11,5601.94,Yes
+2026-05,May-26,Outreach,Sales Engagement,Sales,Annual,2025-05,3150.49,Yes
+2026-05,May-26,Salesloft,Sales Engagement,Sales,Annual,2026-01,2833.77,Yes
+2026-05,May-26,Gong,Conversation Intelligence,Sales,Annual,2025-07,3689.95,Yes
+2026-05,May-26,Amazon Web Services,Cloud Infrastructure,Engineering,Usage,,256146.06,No
+2026-05,May-26,Datadog,Observability,Engineering,Annual,2025-04,7715.05,Yes
+2026-05,May-26,New Relic,Observability,Engineering,Annual,2025-09,3498.55,Yes
+2026-05,May-26,Snowflake,Data Warehouse,Data,Usage,,36485.49,No
+2026-05,May-26,Looker,BI,Data,Annual,2025-06,4438.77,Yes
+2026-05,May-26,Tableau,BI,Finance,Annual,2025-08,2919.91,No
+2026-05,May-26,Power BI Premium,BI,Finance,Annual,2026-02,2073.8,Yes
+2026-05,May-26,Atlassian Cloud,Dev Tooling,Engineering,Annual,2025-01,3079.73,Yes
+2026-05,May-26,Linear,Dev Tooling,Product,Monthly,,1311.6,No
+2026-05,May-26,Notion,Docs & Wiki,Company-wide,Annual,2025-10,1752.65,Yes
+2026-05,May-26,Confluence,Docs & Wiki,Engineering,Annual,2025-01,1518.21,Yes
+2026-05,May-26,Slack,Comms,Company-wide,Annual,2025-02,3399.45,No
+2026-05,May-26,Zoom,Comms,Company-wide,Annual,2025-03,1978.38,Yes
+2026-05,May-26,NetSuite,ERP,Finance,Annual,2025-01,6075.77,Yes
+2026-05,May-26,Ramp,Spend Management,Finance,Monthly,,975.84,No
+2026-05,May-26,Rippling,HRIS & Payroll,G&A,Annual,2025-04,4649.34,Yes
+2026-05,May-26,Greenhouse,ATS,G&A,Annual,2025-05,2280.15,Yes
+2026-05,May-26,Vanta,Compliance,G&A,Annual,2025-06,2077.69,Yes
+2026-05,May-26,1Password,Security,Company-wide,Annual,2025-07,1198.74,No
+2026-05,May-26,Figma,Design,Product,Annual,2025-08,1640.09,Yes
+2026-05,May-26,Zendesk,Support Desk,Support,Annual,2025-09,3567.1,Yes
+2026-05,May-26,Intercom,Support Desk,Support,Annual,2025-12,2614.73,Yes
+2026-05,May-26,Amplitude,Product Analytics,Product,Annual,2025-10,3159.93,Yes
+2026-05,May-26,Mixpanel,Product Analytics,Marketing,Annual,2026-01,1859.95,Yes
+2026-05,May-26,Segment,CDP,Data,Annual,2025-11,3960.92,Yes
+2026-05,May-26,OpenAI API,AI / LLM,Engineering,Usage,,52749.7,No
+2026-05,May-26,Anthropic API,AI / LLM,Engineering,Usage,,71230.62,No
+2026-06,Jun-26,Salesforce,CRM,Sales,Annual,2025-03,5265.87,Yes
+2026-06,Jun-26,HubSpot Marketing Hub,Marketing Automation,Marketing,Annual,2025-02,4286.85,Yes
+2026-06,Jun-26,Marketo Engage,Marketing Automation,Marketing,Annual,2025-11,5513.66,Yes
+2026-06,Jun-26,Outreach,Sales Engagement,Sales,Annual,2025-05,3148.52,Yes
+2026-06,Jun-26,Salesloft,Sales Engagement,Sales,Annual,2026-01,2857.97,Yes
+2026-06,Jun-26,Gong,Conversation Intelligence,Sales,Annual,2025-07,3669.26,Yes
+2026-06,Jun-26,Amazon Web Services,Cloud Infrastructure,Engineering,Usage,,244646.91,No
+2026-06,Jun-26,Datadog,Observability,Engineering,Annual,2025-04,7758.46,Yes
+2026-06,Jun-26,New Relic,Observability,Engineering,Annual,2025-09,3478.39,Yes
+2026-06,Jun-26,Snowflake,Data Warehouse,Data,Usage,,33460.97,No
+2026-06,Jun-26,Looker,BI,Data,Annual,2025-06,4512.88,Yes
+2026-06,Jun-26,Tableau,BI,Finance,Annual,2025-08,2924.98,Yes
+2026-06,Jun-26,Power BI Premium,BI,Finance,Annual,2026-02,2061.14,Yes
+2026-06,Jun-26,Atlassian Cloud,Dev Tooling,Engineering,Annual,2025-01,3060.29,Yes
+2026-06,Jun-26,Linear,Dev Tooling,Product,Monthly,,1302.32,No
+2026-06,Jun-26,Notion,Docs & Wiki,Company-wide,Annual,2025-10,1752.72,Yes
+2026-06,Jun-26,Confluence,Docs & Wiki,Engineering,Annual,2025-01,1524.1,No
+2026-06,Jun-26,Slack,Comms,Company-wide,Annual,2025-02,3379.07,Yes
+2026-06,Jun-26,Zoom,Comms,Company-wide,Annual,2025-03,1946.61,Yes
+2026-06,Jun-26,NetSuite,ERP,Finance,Annual,2025-01,6072.29,Yes
+2026-06,Jun-26,Ramp,Spend Management,Finance,Monthly,,982.2,No
+2026-06,Jun-26,Rippling,HRIS & Payroll,G&A,Annual,2025-04,4715.2,No
+2026-06,Jun-26,Greenhouse,ATS,G&A,Annual,2025-05,2285.14,Yes
+2026-06,Jun-26,Vanta,Compliance,G&A,Annual,2025-06,2057.38,Yes
+2026-06,Jun-26,1Password,Security,Company-wide,Annual,2025-07,1190.54,No
+2026-06,Jun-26,Figma,Design,Product,Annual,2025-08,1644.3,Yes
+2026-06,Jun-26,Zendesk,Support Desk,Support,Annual,2025-09,3571.64,No
+2026-06,Jun-26,Intercom,Support Desk,Support,Annual,2025-12,2593.16,Yes
+2026-06,Jun-26,Amplitude,Product Analytics,Product,Annual,2025-10,3172.22,Yes
+2026-06,Jun-26,Mixpanel,Product Analytics,Marketing,Annual,2026-01,1847.11,Yes
+2026-06,Jun-26,Segment,CDP,Data,Annual,2025-11,3895.47,Yes
+2026-06,Jun-26,OpenAI API,AI / LLM,Engineering,Usage,,63501.08,No
+2026-06,Jun-26,Anthropic API,AI / LLM,Engineering,Usage,,82978.69,No

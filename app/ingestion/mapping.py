@@ -24,12 +24,23 @@ class MappingSpec(BaseModel):
     period_col: Optional[str] = None
     metric_col: Optional[str] = None
     value_col: Optional[str] = None
+    # When multiple numeric columns are all measures (not one value column per
+    # metric row), each is crossed with metric_col into its own metric — e.g.
+    # 10 channels x [Spend, Clicks] -> "<channel> Spend", "<channel> Clicks".
+    value_cols: list[str] = Field(default_factory=list)
     budget_col: Optional[str] = None
     quantity_col: Optional[str] = None
     price_col: Optional[str] = None
     budget_quantity_col: Optional[str] = None
     budget_price_col: Optional[str] = None
     dimension_cols: list[str] = Field(default_factory=list)
+    # A stable secondary identifier alongside metric_col (e.g. a GL code next
+    # to an account name). Two jobs: (1) a row whose id is blank while its
+    # label is a roll-up/total is dropped rather than ingested as a metric;
+    # (2) preferred over the label when joining a later upload's budget onto
+    # existing metrics (a code doesn't drift the way "  Foo Bar" vs "Foo Bar"
+    # or "Foo/Bar" vs "Foo Bar" does).
+    id_col: Optional[str] = None
     # wide layout
     wide_period_cols: list[str] = Field(default_factory=list)
     wide_value_label: Optional[str] = None
@@ -123,6 +134,23 @@ def _check_numeric(df: pd.DataFrame, col: str, what: str) -> None:
         raise MappingError(f"{what} column '{col}' is not numeric (values like '{df[col][non_null_src].iloc[0]}')")
 
 
+_TOTAL_LABEL = re.compile(r"^\s*(sub)?total\b|^\s*grand total\b", re.I)
+
+
+def _is_total_row(label: str, id_value=None, id_col_present: bool = False) -> bool:
+    """A summary/total row masquerading as a data row: its label starts with
+    'Total' (accounts for 'Total Operating Expenses', 'Subtotal', 'Grand
+    Total'), or — when the mapping has a secondary identifier column (e.g. GL
+    Code) — the identifier is blank while the metric label isn't (real line
+    items always carry an id; roll-up rows don't)."""
+    if _TOTAL_LABEL.match(str(label)):
+        return True
+    if id_col_present and (id_value is None or (isinstance(id_value, float) and pd.isna(id_value))
+                           or str(id_value).strip() == ""):
+        return True
+    return False
+
+
 _FORMULA_LEAD = ("=", "+", "@")  # leading '-' is left alone: it means negative
 
 
@@ -136,43 +164,95 @@ def sanitize_label(value) -> str:
     return s
 
 
+def _drop_total_rows(df: pd.DataFrame, metric_col: str | None, id_col: str | None) -> pd.DataFrame:
+    """Remove roll-up/section rows (a 'Total' line, a 'REVENUE' section label
+    with no data, an account whose id is blank because it's a subtotal) before
+    they're normalized into a fake metric. Source-format cleanup, not domain
+    logic — belongs before period/value coercion, not after."""
+    if metric_col is None or metric_col not in df.columns:
+        return df
+    label = df[metric_col]
+    is_total = label.astype(str).map(lambda s: bool(_TOTAL_LABEL.match(s)))
+    if id_col and id_col in df.columns:
+        id_blank = df[id_col].isna() | (df[id_col].astype(str).str.strip() == "")
+        is_total = is_total | (id_blank & label.notna() & (label.astype(str).str.strip() != ""))
+    return df[~is_total]
+
+
 def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
     """Return the canonical long-format DataFrame."""
     if mapping.layout == "long":
         period_col = _require(mapping, "period_col")
-        value_col = _require(mapping, "value_col")
+        if not mapping.value_col and not mapping.value_cols:
+            raise MappingError("Mapping is missing required field 'value_col' for layout=long")
         _check_col(df, period_col, "Period")
-        _check_col(df, value_col, "Value")
-        _check_numeric(df, value_col, "Value")
         if mapping.budget_col:
             _check_col(df, mapping.budget_col, "Budget")
             _check_numeric(df, mapping.budget_col, "Budget")
+        if mapping.id_col:
+            _check_col(df, mapping.id_col, "Id")
+        df = _drop_total_rows(df, mapping.metric_col, mapping.id_col)
 
-        out = pd.DataFrame()
-        out["period"] = df[period_col].map(parse_period)
-        if mapping.metric_col:
-            _check_col(df, mapping.metric_col, "Metric")
-            out["metric"] = df[mapping.metric_col].map(sanitize_label)
+        if mapping.value_cols:
+            # Metric x value cross-product: one numeric column per measure, all
+            # crossed with the metric-name column (e.g. 10 channels x [spend,
+            # clicks, ...] -> "<channel> Spend", "<channel> Clicks", ...). Each
+            # value column becomes its own set of rows, sharing period/budget/
+            # dimensions from the same source row.
+            for c in mapping.value_cols:
+                _check_col(df, c, "Value")
+                _check_numeric(df, c, "Value")
+            parts = []
+            for vcol in mapping.value_cols:
+                part = pd.DataFrame()
+                part["period"] = df[period_col].map(parse_period)
+                base_label = df[mapping.metric_col].map(sanitize_label) if mapping.metric_col else ""
+                suffix = sanitize_label(vcol)
+                part["metric"] = (base_label + " " + suffix).str.strip() if mapping.metric_col else suffix
+                part["value"] = df[vcol].map(coerce_value)
+                part["budget"] = df[mapping.budget_col].map(coerce_value) if mapping.budget_col else None
+                part["quantity"] = None
+                part["price"] = None
+                part["budget_quantity"] = None
+                part["budget_price"] = None
+                if mapping.dimension_cols:
+                    dims = [c for c in mapping.dimension_cols if c in df.columns]
+                    part["dimensions"] = df[dims].astype(str).apply(
+                        lambda r: json.dumps(dict(zip(dims, r))), axis=1
+                    ) if dims else None
+                else:
+                    part["dimensions"] = None
+                parts.append(part)
+            out = pd.concat(parts, ignore_index=True)
         else:
-            out["metric"] = sanitize_label(mapping.wide_value_label or value_col)
-        out["value"] = df[value_col].map(coerce_value)
-        out["budget"] = df[mapping.budget_col].map(coerce_value) if mapping.budget_col else None
-        out["quantity"] = df[mapping.quantity_col].map(coerce_value) if mapping.quantity_col else None
-        out["price"] = df[mapping.price_col].map(coerce_value) if mapping.price_col else None
-        out["budget_quantity"] = (
-            df[mapping.budget_quantity_col].map(coerce_value) if mapping.budget_quantity_col else None
-        )
-        out["budget_price"] = (
-            df[mapping.budget_price_col].map(coerce_value) if mapping.budget_price_col else None
-        )
-        if mapping.dimension_cols:
-            for c in mapping.dimension_cols:
-                _check_col(df, c, "Dimension")
-            out["dimensions"] = df[mapping.dimension_cols].astype(str).apply(
-                lambda r: json.dumps(dict(zip(mapping.dimension_cols, r))), axis=1
+            value_col = mapping.value_col
+            _check_col(df, value_col, "Value")
+            _check_numeric(df, value_col, "Value")
+            out = pd.DataFrame()
+            out["period"] = df[period_col].map(parse_period)
+            if mapping.metric_col:
+                _check_col(df, mapping.metric_col, "Metric")
+                out["metric"] = df[mapping.metric_col].map(sanitize_label)
+            else:
+                out["metric"] = sanitize_label(mapping.wide_value_label or value_col)
+            out["value"] = df[value_col].map(coerce_value)
+            out["budget"] = df[mapping.budget_col].map(coerce_value) if mapping.budget_col else None
+            out["quantity"] = df[mapping.quantity_col].map(coerce_value) if mapping.quantity_col else None
+            out["price"] = df[mapping.price_col].map(coerce_value) if mapping.price_col else None
+            out["budget_quantity"] = (
+                df[mapping.budget_quantity_col].map(coerce_value) if mapping.budget_quantity_col else None
             )
-        else:
-            out["dimensions"] = None
+            out["budget_price"] = (
+                df[mapping.budget_price_col].map(coerce_value) if mapping.budget_price_col else None
+            )
+            if mapping.dimension_cols:
+                for c in mapping.dimension_cols:
+                    _check_col(df, c, "Dimension")
+                out["dimensions"] = df[mapping.dimension_cols].astype(str).apply(
+                    lambda r: json.dumps(dict(zip(mapping.dimension_cols, r))), axis=1
+                )
+            else:
+                out["dimensions"] = None
 
     else:  # wide
         if not mapping.wide_period_cols:
@@ -183,6 +263,10 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
             raise MappingError(
                 "wide_budget_cols must be the same length/order as wide_period_cols"
             )
+        if mapping.id_col:
+            _check_col(df, mapping.id_col, "Id")
+        df = _drop_total_rows(df, mapping.wide_metric_col, mapping.id_col)
+
         id_vars = []
         if mapping.wide_metric_col:
             _check_col(df, mapping.wide_metric_col, "Metric")
@@ -227,9 +311,16 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
         else:
             out["dimensions"] = None
 
+    # Capture the full metric set BEFORE dropping null-value rows: a metric
+    # that legitimately has data in zero periods (e.g. "<channel> Clicks" for
+    # every channel except the one actually tracked) must still exist as a
+    # metric with null facts — not silently vanish because every one of its
+    # rows happened to be empty. store_normalized reads this via out.attrs.
+    all_metrics = sorted(str(m) for m in out["metric"].dropna().unique())
     out = out[out["value"].notna()].reset_index(drop=True)
     if out.empty:
         raise MappingError("Mapping produced no valid rows — check the value column and layout")
+    out.attrs["all_metrics"] = all_metrics
     return out
 
 
@@ -247,9 +338,15 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
     from app.datasets import get_or_create_metric
 
     cur = conn.cursor()
+    # canonical["metric"].unique() only has metrics that survived the null-value
+    # drop in normalize(); attrs["all_metrics"] (when present) is the full set
+    # BEFORE that drop, so a metric with zero populated periods (e.g. one value
+    # column tracked for only one dimension value) still gets created rather
+    # than silently not existing.
+    metric_names = set(canonical.attrs.get("all_metrics", [])) | set(canonical["metric"].unique())
     metric_ids = {
         name: get_or_create_metric(conn, dataset_id, name)
-        for name in sorted(canonical["metric"].unique())
+        for name in sorted(metric_names)
     }
     conn.commit()
 
@@ -311,6 +408,6 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
     conn.commit()
     return {
         "rows_normalized": n_written,
-        "metrics": sorted(canonical["metric"].unique().tolist()),
+        "metrics": sorted(metric_names),
         "periods": sorted(canonical["period"].unique().tolist()),
     }
