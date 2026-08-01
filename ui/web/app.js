@@ -2014,13 +2014,15 @@ function updateMapHint(){
   const el=$("map-hint");if(!el||$("layout-sel").value!=="long")return el&&(el.style.display="none");
   const measures=[...document.querySelectorAll(".role")].filter(s=>s.value==="measure").map(s=>s.dataset.col);
   const metricCol=[...document.querySelectorAll(".role")].find(s=>s.value==="metric_label");
+  const periodLiteral=(profile&&profile.suggested_mapping&&profile.suggested_mapping.period_literal)||null;
+  const parts=[];
+  if(periodLiteral)parts.push(`<b>Period ${esc(periodLiteral)} comes from this sheet</b> — it reports one as-of date, so every row is filed under it and no period column is needed.`);
   if(measures.length>1){
-    el.style.display="";
     const names=metricCol?`"${metricCol.dataset.col} ${measures[0]}"`:`"${measures[0]}"`;
-    el.innerHTML=`<b>${measures.length} value columns selected</b> — each becomes its own metric${metricCol?`, crossed with <b>${esc(metricCol.dataset.col)}</b>`:""} (e.g. ${esc(names)}, …) instead of only the first being kept.`;
-  }else{
-    el.style.display="none";
+    parts.push(`<b>${measures.length} value columns selected</b> — each becomes its own metric${metricCol?`, crossed with <b>${esc(metricCol.dataset.col)}</b>`:""} (e.g. ${esc(names)}, …) instead of only the first being kept.`);
   }
+  if(parts.length){el.style.display="";el.innerHTML=parts.join("<br>");}
+  else{el.style.display="none";}
 }
 function buildMapping(){
   const layout=$("layout-sel").value,roleOf={};
@@ -2028,10 +2030,8 @@ function buildMapping(){
   const by=r=>Object.keys(roleOf).filter(c=>roleOf[c]===r);
   if(layout==="wide")return{layout:"wide",wide_period_cols:profile.wide_period_cols,wide_metric_col:by("metric_label")[0]||null,wide_value_label:by("metric_label").length?null:"Value",id_col:by("id")[0]||null,dimension_cols:by("dimension")};
   const measures=by("measure");
-  // Multiple measure columns cross with the metric column into one metric
-  // each ("<channel> Spend", "<channel> Clicks", ...) rather than silently
-  // keeping only the first and dropping the rest.
-  const base={layout:"long",period_col:by("period")[0]||null,metric_col:by("metric_label")[0]||null,budget_col:by("budget")[0]||null,id_col:by("id")[0]||null,dimension_cols:by("dimension")};
+  const periodLiteral=(profile.suggested_mapping&&profile.suggested_mapping.period_literal)||null;
+  const base={layout:"long",period_col:periodLiteral?null:(by("period")[0]||null),period_literal:periodLiteral,metric_col:by("metric_label")[0]||null,budget_col:by("budget")[0]||null,id_col:by("id")[0]||null,dimension_cols:by("dimension")};
   if(measures.length>1)return{...base,value_cols:measures};
   return{...base,value_col:measures[0]||null,quantity_col:by("quantity")[0]||null,price_col:by("price")[0]||null};
 }

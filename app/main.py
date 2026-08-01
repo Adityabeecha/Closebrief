@@ -69,7 +69,13 @@ from app.ingestion.mapping import MappingError, MappingSpec, match_budget_to_dat
 from app.ingestion.profiler import profile_columns, suggest_mapping
 from app.ingestion.templates import get_template as load_template
 from app.ingestion.templates import save_template as save_mapping_template
-from app.ingestion.upload import MAX_UPLOAD_BYTES, UploadError, create_upload, load_upload_frame
+from app.ingestion.upload import (
+    MAX_UPLOAD_BYTES,
+    UploadError,
+    create_upload,
+    load_upload_frame,
+    upload_sheet_period,
+)
 from app.kpis.library import KPI_LIBRARY, suggest_kpi
 from app.notifications.scheduler import deliver as notif_deliver
 from app.retrieval.retrieve import retrieve
@@ -1061,7 +1067,7 @@ def ingest_schema(upload_id: str, sheet: str | None = None, _: CurrentUser = Dep
         # user corrects, rather than building one from an empty form (or a
         # low-confidence guess dead-ending in a hard validation error before
         # they see anything).
-        suggestion = suggest_mapping(profile)
+        suggestion = suggest_mapping(profile, upload_sheet_period(conn, upload_id, sheet))
         return {**profile, "suggested_mapping": suggestion["mapping"],
                 "mapping_warnings": suggestion["warnings"], "mapping_confidence": suggestion["confidence"]}
     except UploadError as exc:

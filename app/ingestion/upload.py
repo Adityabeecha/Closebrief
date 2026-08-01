@@ -7,6 +7,7 @@ assumptions at this stage.
 
 import io
 import json
+import re
 import sqlite3
 import uuid
 from pathlib import Path
@@ -17,6 +18,13 @@ MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
 MAX_ROWS = 100_000  # hardening: cap rows so a huge file can't exhaust memory
 UPLOAD_DIR = Path("./data/uploads")
 _HEADER_SCAN_ROWS = 15  # real FP&A exports put the header within a handful of title rows
+
+_PERIOD_IN_TEXT = re.compile(
+    r"\d{1,2}[\s\-/](?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[\s\-/]\d{2,4}"
+    r"|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[\s\-/]\d{2,4}"
+    r"|\d{4}-\d{2}",
+    re.I,
+)
 
 
 class UploadError(Exception):
@@ -63,6 +71,32 @@ def detect_header_row(raw_df: pd.DataFrame) -> int:
     return 0
 
 
+def detect_sheet_period(sheet_name: str | None, title_rows: list[str]) -> str | None:
+    """Find the as-of period a snapshot sheet states once, outside the table —
+    in its name ("AR Jun-25") or a title row ("… as of 30-Jun-2025"). Snapshot
+    exports carry no period column; their date columns are transaction dates.
+    Returns canonical 'YYYY-MM', or None when nothing states a period."""
+    from app.ingestion.mapping import parse_period
+
+    for text in [t for t in title_rows if t] + ([sheet_name] if sheet_name else []):
+        for m in _PERIOD_IN_TEXT.finditer(str(text)):
+            try:
+                return parse_period(m.group(0))
+            except Exception:
+                continue
+    return None
+
+
+def sheet_title_rows(raw: bytes, filename: str, sheet: str | None, header_row: int) -> list[str]:
+    """The non-empty text cells above the header row — where a snapshot export
+    puts its report title and as-of date."""
+    if not filename.lower().endswith(".xlsx") or header_row <= 0:
+        return []
+    probe = pd.read_excel(io.BytesIO(raw), sheet_name=sheet or 0, header=None,
+                          dtype=str, engine="openpyxl", nrows=header_row)
+    return [str(v) for v in probe.stack().dropna().tolist()]
+
+
 def _read_frame(raw: bytes, filename: str, sheet: str | None = None,
                 header_row: int | None = None) -> pd.DataFrame:
     name = filename.lower()
@@ -105,6 +139,22 @@ def load_upload_frame(conn: sqlite3.Connection, upload_id: str, sheet: str | Non
     df = df.dropna(how="all").dropna(axis=1, how="all")
     df.columns = [str(c).strip() for c in df.columns]
     return df
+
+
+def upload_sheet_period(conn: sqlite3.Connection, upload_id: str, sheet: str | None = None) -> str | None:
+    """The as-of period stated by the chosen sheet's name/title rows, if any."""
+    row = conn.execute("SELECT * FROM uploads WHERE id = ?", (upload_id,)).fetchone()
+    if row is None:
+        raise UploadError(f"Upload {upload_id} not found")
+    filename = row["filename"]
+    if not filename.lower().endswith(".xlsx"):
+        return None
+    raw = Path(row["file_path"]).read_bytes()
+    chosen = sheet or row["chosen_sheet"]
+    probe = pd.read_excel(io.BytesIO(raw), sheet_name=chosen or 0, header=None,
+                          dtype=str, engine="openpyxl")
+    header_row = detect_header_row(probe)
+    return detect_sheet_period(chosen, sheet_title_rows(raw, filename, chosen, header_row))
 
 
 def column_signature(columns: list[str]) -> str:
