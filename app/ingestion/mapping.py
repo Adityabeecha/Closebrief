@@ -159,7 +159,11 @@ def sanitize_label(value) -> str:
     """Neutralize CSV/Excel formula injection in a text label that will be
     stored and may later be re-exported: strip a leading =/+/@ so the cell
     can't execute in a downstream spreadsheet (hardening, PRD US-J2)."""
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return ""
     s = str(value).strip()
+    if s.lower() in ("nan", "none", "nat"):
+        return ""
     while s and s[0] in _FORMULA_LEAD:
         s = s[1:].lstrip()
     return s
@@ -182,10 +186,13 @@ def _drop_total_rows(df: pd.DataFrame, metric_col: str | None, id_col: str | Non
             continue
         col_str = df[col].map(lambda v: "" if pd.isna(v) else str(v))
         is_total = is_total | col_str.map(lambda s: bool(_TOTAL_LABEL.match(s)))
-    if metric_col is not None and metric_col in df.columns and id_col and id_col in df.columns:
+    if metric_col is not None and metric_col in df.columns:
         label = df[metric_col]
-        id_blank = df[id_col].isna() | (df[id_col].astype(str).str.strip() == "")
-        is_total = is_total | (id_blank & label.notna() & (label.astype(str).str.strip() != ""))
+        label_blank = label.map(lambda v: sanitize_label(v) == "")
+        is_total = is_total | label_blank
+        if id_col and id_col in df.columns:
+            id_blank = df[id_col].isna() | (df[id_col].astype(str).str.strip() == "")
+            is_total = is_total | (id_blank & ~label_blank)
     return df[~is_total]
 
 
@@ -471,7 +478,10 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
     # BEFORE that drop, so a metric with zero populated periods (e.g. one value
     # column tracked for only one dimension value) still gets created rather
     # than silently not existing.
-    metric_names = set(canonical.attrs.get("all_metrics", [])) | set(canonical["metric"].unique())
+    metric_names = {
+        n for n in set(canonical.attrs.get("all_metrics", [])) | set(canonical["metric"].unique())
+        if n is not None and pd.notna(n) and str(n).strip()
+    }
     external_ids: dict = {}
     if "id" in canonical.columns:
         for name, group in canonical.groupby("metric")["id"]:

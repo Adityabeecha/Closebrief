@@ -60,7 +60,8 @@ def detect_header_row(raw_df: pd.DataFrame) -> int:
     if raw_df.empty:
         return 0
     scan = raw_df.head(_HEADER_SCAN_ROWS)
-    fill = scan.notna().sum(axis=1)
+    populated = scan.notna() & (scan.astype(str).apply(lambda c: c.str.strip()) != "")
+    fill = populated.sum(axis=1)
     max_fill = int(fill.max())
     if max_fill <= 1:
         return 0
