@@ -155,15 +155,23 @@ def delete_dataset(conn, dataset_id: int) -> bool:
     return True
 
 
-def get_or_create_metric(conn, dataset_id: int, name: str) -> int:
+def get_or_create_metric(conn, dataset_id: int, name: str, external_id: str | None = None) -> int:
     """Metric ids are per-dataset, so the same name in two datasets is two
-    distinct rows. Enforced in code AND by UNIQUE(dataset_id, name)."""
+    distinct rows. Enforced in code AND by UNIQUE(dataset_id, name).
+
+    external_id (a GL code, SKU, ...) is recorded on first creation and
+    backfilled onto an existing row that doesn't have one yet — it's never
+    overwritten once set, so a later upload with a different or missing id
+    can't clobber a value another upload already established."""
     row = conn.execute(
-        "SELECT id FROM metrics WHERE dataset_id = ? AND name = ?", (dataset_id, name)
+        "SELECT id, external_id FROM metrics WHERE dataset_id = ? AND name = ?", (dataset_id, name)
     ).fetchone()
     if row is not None:
+        if external_id and not row["external_id"]:
+            conn.execute("UPDATE metrics SET external_id = ? WHERE id = ?", (external_id, row["id"]))
         return int(row["id"])
     cur = conn.execute(
-        "INSERT INTO metrics (dataset_id, name) VALUES (?, ?)", (dataset_id, name)
+        "INSERT INTO metrics (dataset_id, name, external_id) VALUES (?, ?, ?)",
+        (dataset_id, name, external_id),
     )
     return int(cur.lastrowid)

@@ -62,6 +62,11 @@ CREATE TABLE IF NOT EXISTS metrics (
     category TEXT NOT NULL DEFAULT 'Uncategorized',
     unit TEXT NOT NULL DEFAULT 'USD',
     direction_good TEXT NOT NULL DEFAULT 'up',
+    -- A stable code from the source system (GL account code, SKU, ...),
+    -- captured from the mapping's id_col at ingest. Lets a later budget-only
+    -- upload join onto this metric by code, which doesn't drift the way a
+    -- text label can ("Content/Seo" vs "Content/SEO").
+    external_id TEXT,
     UNIQUE(dataset_id, name)
 );
 
@@ -348,6 +353,8 @@ _SQLITE_MIGRATIONS = [
     "ALTER TABLE generated_reports ADD COLUMN review_status TEXT",
     "ALTER TABLE generated_reports ADD COLUMN assigned_to TEXT",
     "ALTER TABLE generated_reports ADD COLUMN assigned_email TEXT",
+    # budget-join by external id (GL code / SKU) rather than label alone
+    "ALTER TABLE metrics ADD COLUMN external_id TEXT",
 ]
 
 PG_SCHEMA_PATH = Path(__file__).parent / "migrations" / "pg_schema.sql"

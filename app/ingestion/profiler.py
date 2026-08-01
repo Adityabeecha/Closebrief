@@ -29,6 +29,9 @@ _DIMENSION_NAME = re.compile(
 _PERIOD_NAME = re.compile(r"period|month|date|quarter|year|\bfy\b", re.I)
 _QTY_NAME = re.compile(r"quantit|volume|units|qty", re.I)
 _PRICE_NAME = re.compile(r"price|asp|rate per|unit cost", re.I)
+# A conversion/multiplier rate (FX rate, tax rate, discount rate, ...): not a
+# measure to sum across rows, even though it's numeric like one.
+_RATE_NAME = re.compile(r"\brate\b|fx[_ ]?rate|exchange[_ ]?rate", re.I)
 
 # Period-shaped column NAMES for wide-layout detection: Jan-25, 2025-03,
 # Q1 2025, FY24, Mar 2025, 01/2025 ...
@@ -137,6 +140,8 @@ def profile_columns(df: pd.DataFrame) -> dict:
             role = "quantity"
         elif dtype == "numeric" and _PRICE_NAME.search(name):
             role = "price"
+        elif dtype == "numeric" and _RATE_NAME.search(name):
+            role = "dimension"  # a conversion rate, not a value to sum
         elif dtype == "numeric":
             role = "measure"
         elif dtype == "text" and _METRIC_NAME.search(name):
@@ -181,6 +186,31 @@ def profile_columns(df: pd.DataFrame) -> dict:
         else:
             final[col] = role
 
+    # Two measure columns that move almost in lockstep are usually the same
+    # underlying figure reported twice (e.g. amount_local vs amount_usd on a
+    # file where most rows are already USD) — proposing both as separate
+    # metrics would double the KPI count with near-duplicates. Keep the first
+    # (stable column order) as the representative; the rest note who they
+    # duplicate so suggest_mapping can leave them out of value_cols.
+    # Prefer a USD-named column as the survivor of a redundant pair — it's the
+    # consolidated reporting currency in every FX-aware export we've seen.
+    def _rate_rank(c):
+        return 0 if re.search(r"(^|[\s_])usd([\s_]|$)", c, re.I) else 1
+    measure_cols = sorted((c for c, r in final.items() if r == "measure"), key=_rate_rank)
+    redundant_with: dict[str, str] = {}
+    for i, a in enumerate(measure_cols):
+        if a in redundant_with:
+            continue
+        for b in measure_cols[i + 1:]:
+            if b in redundant_with:
+                continue
+            try:
+                corr = pd.to_numeric(df[a], errors="coerce").corr(pd.to_numeric(df[b], errors="coerce"))
+            except Exception:  # noqa: BLE001 - correlation is a nice-to-have, never fatal
+                corr = None
+            if corr is not None and corr >= 0.995:
+                redundant_with[b] = a
+
     profiles = []
     for col in df.columns:
         non_null = df[col].dropna()
@@ -192,6 +222,7 @@ def profile_columns(df: pd.DataFrame) -> dict:
                 "distinct_count": distinct_counts[col],
                 "null_pct": round(float(df[col].isna().mean()) * 100, 1),
                 "guessed_role": final[col],
+                "redundant_with": redundant_with.get(str(col)),
             }
         )
 
@@ -200,3 +231,114 @@ def profile_columns(df: pd.DataFrame) -> dict:
         "layout_guess": layout_guess,
         "wide_period_cols": [str(c) for c in wide_period_cols],
     }
+
+
+def suggest_mapping(profile: dict) -> dict:
+    """Build a best-effort MappingSpec dict from profile_columns() output, plus
+    a `warnings` list naming anything uncertain enough that the user should
+    look before confirming — a low-confidence guess is still a starting point
+    to correct, never a dead end. This is what /ingest/{id}/schema returns
+    alongside the raw column profile, and what the mapping screen pre-fills
+    instead of the user (or a hand-rolled frontend default) having to build a
+    mapping from an empty form.
+
+    Never raises: a file this couldn't make sense of still gets *a* mapping —
+    layout stays "long" with nothing selected, and a warning says why — so the
+    caller always has something to render and edit rather than a hard error.
+    """
+    roles = {c["column_name"]: c["guessed_role"] for c in profile["columns"]}
+    distinct = {c["column_name"]: c["distinct_count"] for c in profile["columns"]}
+    layout = profile["layout_guess"]
+    warnings: list[str] = []
+
+    def cols(role: str) -> list[str]:
+        return [c for c, r in roles.items() if r == role]
+
+    if layout == "wide":
+        period_cols = profile["wide_period_cols"]
+        metric_candidates = cols("metric_label")
+        id_candidates = cols("id")
+        mapping = {
+            "layout": "wide",
+            "wide_period_cols": period_cols,
+            "wide_metric_col": metric_candidates[0] if metric_candidates else None,
+            "wide_value_label": None if metric_candidates else "Value",
+            "id_col": id_candidates[0] if id_candidates else None,
+            "dimension_cols": cols("dimension"),
+        }
+        if not period_cols:
+            warnings.append(
+                "No columns look like period labels (Jan-25, 2025-03, …) — "
+                "the file may need a different header row, or this may not "
+                "be a wide layout. Pick the period columns manually below."
+            )
+        if not metric_candidates:
+            warnings.append(
+                "No column looks like a metric name — every row will be "
+                "treated as the same metric. Choose the column that "
+                "identifies what's being measured (e.g. Account, Channel)."
+            )
+        elif len(metric_candidates) > 1:
+            warnings.append(
+                f"Multiple columns could name the metric ({', '.join(metric_candidates)}); "
+                f"picked \"{metric_candidates[0]}\" by how identity-like it looks — check this is right."
+            )
+    else:
+        period_candidates = cols("period")
+        metric_candidates = cols("metric_label")
+        redundant = {c["column_name"]: c["redundant_with"] for c in profile["columns"] if c.get("redundant_with")}
+        all_measures = cols("measure")
+        measure_candidates = [c for c in all_measures if c not in redundant]
+        dropped_dupes = [c for c in all_measures if c in redundant]
+        id_candidates = cols("id")
+        mapping = {
+            "layout": "long",
+            "period_col": period_candidates[0] if period_candidates else None,
+            "metric_col": metric_candidates[0] if metric_candidates else None,
+            "budget_col": (cols("budget") or [None])[0],
+            "id_col": id_candidates[0] if id_candidates else None,
+            "dimension_cols": cols("dimension") + dropped_dupes,
+        }
+        if dropped_dupes:
+            warnings.append(
+                f"{', '.join(dropped_dupes)} moved almost identically to "
+                f"{', '.join(sorted({redundant[c] for c in dropped_dupes}))} — treated as the same "
+                f"figure reported twice, so only one was kept as a value column."
+            )
+        if len(measure_candidates) > 1:
+            mapping["value_cols"] = measure_candidates
+            warnings.append(
+                f"{len(measure_candidates)} numeric columns look like measures "
+                f"({', '.join(measure_candidates)}) — each will become its own "
+                f"metric crossed with {mapping['metric_col'] or 'the metric column'}."
+            )
+        else:
+            mapping["value_col"] = measure_candidates[0] if measure_candidates else None
+        if not period_candidates:
+            warnings.append(
+                "No column looks like a period/date — pick the one that "
+                "identifies which month or quarter each row belongs to."
+            )
+        if not measure_candidates:
+            warnings.append(
+                "No numeric column looks like the value to track — pick the "
+                "column with the actual/spend/count you want as the metric's value."
+            )
+        if len(metric_candidates) > 1:
+            warnings.append(
+                f"Multiple columns could name the metric ({', '.join(metric_candidates)}); "
+                f"picked \"{metric_candidates[0]}\" by how identity-like it looks — check this is right."
+            )
+
+    # A metric-name column with very few distinct values relative to the
+    # row count under-detects: it's probably an attribute, not the metric
+    # identity, even though it won a name/cardinality tie-break upstream.
+    metric_col = mapping.get("metric_col") or mapping.get("wide_metric_col")
+    if metric_col and distinct.get(metric_col, 0) <= 1:
+        warnings.append(
+            f"\"{metric_col}\" has only {distinct.get(metric_col, 0)} distinct value(s) — "
+            f"that would collapse everything into a single metric. Double-check this is the right column."
+        )
+
+    confidence = "low" if warnings else "high"
+    return {"mapping": mapping, "warnings": warnings, "confidence": confidence}

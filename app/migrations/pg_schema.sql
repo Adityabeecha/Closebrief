@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS metrics (
     name TEXT UNIQUE NOT NULL,
     category TEXT NOT NULL DEFAULT 'Uncategorized',
     unit TEXT NOT NULL DEFAULT 'USD',
-    direction_good TEXT NOT NULL DEFAULT 'up'
+    direction_good TEXT NOT NULL DEFAULT 'up',
+    external_id TEXT
 );
 
 CREATE TABLE IF NOT EXISTS metric_values (

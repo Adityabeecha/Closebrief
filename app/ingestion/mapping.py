@@ -215,6 +215,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
                 part["price"] = None
                 part["budget_quantity"] = None
                 part["budget_price"] = None
+                part["id"] = None
                 if mapping.dimension_cols:
                     dims = [c for c in mapping.dimension_cols if c in df.columns]
                     part["dimensions"] = df[dims].astype(str).apply(
@@ -245,6 +246,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
             out["budget_price"] = (
                 df[mapping.budget_price_col].map(coerce_value) if mapping.budget_price_col else None
             )
+            out["id"] = df[mapping.id_col].map(sanitize_label) if mapping.id_col else None
             if mapping.dimension_cols:
                 for c in mapping.dimension_cols:
                     _check_col(df, c, "Dimension")
@@ -271,6 +273,8 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
         if mapping.wide_metric_col:
             _check_col(df, mapping.wide_metric_col, "Metric")
             id_vars.append(mapping.wide_metric_col)
+        if mapping.id_col and mapping.id_col not in id_vars:
+            id_vars.append(mapping.id_col)
         id_vars += [c for c in mapping.dimension_cols if c in df.columns]
 
         melted = df.melt(
@@ -303,6 +307,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
         out["price"] = None
         out["budget_quantity"] = None
         out["budget_price"] = None
+        out["id"] = melted[mapping.id_col].map(sanitize_label) if mapping.id_col else None
         if mapping.dimension_cols:
             dims = [c for c in mapping.dimension_cols if c in melted.columns]
             out["dimensions"] = melted[dims].map(sanitize_label).apply(
@@ -322,6 +327,110 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
         raise MappingError("Mapping produced no valid rows — check the value column and layout")
     out.attrs["all_metrics"] = all_metrics
     return out
+
+
+def _normalize_label(s: str) -> str:
+    """Fold a label to a comparison key: case, surrounding whitespace, and the
+    "/" vs " " / "-" vs " " punctuation that spreadsheet authors drift on
+    (Content/Seo vs Content/SEO, Paid Social - Linkedin vs ...LinkedIn) don't
+    change what the label means."""
+    s = str(s).strip().lower()
+    s = re.sub(r"[\s/_-]+", " ", s)
+    return s.strip()
+
+
+def match_budget_to_dataset(
+    conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_id: int,
+) -> dict:
+    """Join a budget-only canonical frame onto an EXISTING dataset's metrics,
+    by (metric identity, period) — never creates a new metric or a new
+    metric_values row. A budget file is a correction/addition to data that
+    already exists, not a new import.
+
+    Matching tries, in order: (1) external_id — a GL code or SKU carried in
+    the upload's `id` column against the metric's stored external_id, the
+    most reliable key because a code doesn't drift the way a text label can;
+    (2) exact metric name; (3) a normalized (case/punctuation-insensitive)
+    fallback so "Content/Seo" still finds "Content/SEO" without either file
+    having been fixed by hand. Returns a report — matched, near-miss (matched
+    only via id or normalization, so the caller can show what would be
+    linked and let the user confirm), and unmatched (no existing metric at
+    all, or a period this dataset has no actuals row for) — rather than
+    silently dropping any of the three cases.
+    """
+    rows = conn.execute(
+        "SELECT id, name, external_id FROM metrics WHERE dataset_id = ?", (dataset_id,)
+    ).fetchall()
+    by_exact = {r["name"]: r["id"] for r in rows}
+    by_external_id = {r["external_id"]: (r["name"], r["id"]) for r in rows if r["external_id"]}
+    by_normalized: dict[str, list[tuple[str, int]]] = {}
+    for r in rows:
+        by_normalized.setdefault(_normalize_label(r["name"]), []).append((r["name"], r["id"]))
+
+    has_id_col = "id" in canonical.columns
+
+    matched = 0
+    near_misses: list[dict] = []
+    unmatched_metric: set[str] = set()
+    unmatched_period: list[dict] = []
+    seen_near_miss: set[str] = set()
+
+    group_cols = ["metric", "period", "id"] if has_id_col else ["metric", "period"]
+    for key, group in canonical.groupby(group_cols, dropna=False):
+        metric, period = key[0], key[1]
+        upload_id = key[2] if has_id_col else None
+        budget = None
+        for v in group["value"]:
+            if v is not None and pd.notna(v):
+                budget = float(v) if budget is None else budget + float(v)
+        if budget is None:
+            continue
+
+        metric_id = None
+        matched_name = metric
+        via_id = False
+        if upload_id and pd.notna(upload_id) and str(upload_id).strip():
+            hit = by_external_id.get(str(upload_id).strip())
+            if hit:
+                matched_name, metric_id = hit
+                via_id = True
+        if metric_id is None:
+            metric_id = by_exact.get(metric)
+        if metric_id is None:
+            candidates = by_normalized.get(_normalize_label(metric), [])
+            if candidates:
+                matched_name, metric_id = candidates[0]
+        if metric_id is None:
+            unmatched_metric.add(metric)
+            continue
+        if not via_id and matched_name != metric and metric not in seen_near_miss:
+            near_misses.append({"upload_label": metric, "matched_metric": matched_name})
+            seen_near_miss.add(metric)
+
+        existing = conn.execute(
+            "SELECT id FROM metric_values WHERE metric_id = ? AND period = ?",
+            (metric_id, period),
+        ).fetchone()
+        if existing is None:
+            # No actuals row for this metric+period -> nowhere to attach a
+            # budget value. Reported, never inserted as a value-less row
+            # (metric_values.value is NOT NULL by design: every row is a real
+            # observation, and a budget-only fact has no observation yet).
+            unmatched_period.append({"metric": matched_name, "period": period})
+            continue
+
+        conn.execute(
+            "UPDATE metric_values SET budget = ? WHERE id = ?", (budget, existing["id"])
+        )
+        matched += 1
+
+    conn.commit()
+    return {
+        "matched": matched,
+        "near_misses": near_misses,
+        "unmatched_metrics": sorted(unmatched_metric),
+        "unmatched_periods": unmatched_period,
+    }
 
 
 def _num(v):
@@ -344,8 +453,14 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
     # column tracked for only one dimension value) still gets created rather
     # than silently not existing.
     metric_names = set(canonical.attrs.get("all_metrics", [])) | set(canonical["metric"].unique())
+    external_ids: dict = {}
+    if "id" in canonical.columns:
+        for name, group in canonical.groupby("metric")["id"]:
+            first = next((v for v in group if v is not None and pd.notna(v) and str(v).strip()), None)
+            if first is not None:
+                external_ids[name] = str(first)
     metric_ids = {
-        name: get_or_create_metric(conn, dataset_id, name)
+        name: get_or_create_metric(conn, dataset_id, name, external_id=external_ids.get(name))
         for name in sorted(metric_names)
     }
     conn.commit()

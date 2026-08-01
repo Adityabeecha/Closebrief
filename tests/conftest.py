@@ -23,3 +23,6 @@ def _auth_off_by_default(monkeypatch):
     monkeypatch.setattr(settings, "demo_mode", False, raising=False)
     monkeypatch.setattr(settings, "allow_guest", False, raising=False)
     monkeypatch.setattr(settings, "google_client_id", "", raising=False)
+
+    from app import main as main_module
+    main_module._RATE_BUCKETS.clear()
