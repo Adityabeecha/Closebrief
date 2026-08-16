@@ -425,8 +425,35 @@ function showTip(h,x,y){tip.innerHTML=h;tip.style.opacity=1;tip.style.left=Math.
 function hideTip(){tip.style.opacity=0;}
 
 /* ---------- nav ---------- */
-function toggleSidebar(){document.body.classList.toggle("sidebar-open");}
-function closeSidebar(){document.body.classList.remove("sidebar-open");}
+const sidebarMedia=window.matchMedia("(max-width: 900px)");
+function sidebarFocusable(){
+  return [...$("side-nav").querySelectorAll("button,[href],input,select,textarea,[tabindex]:not([tabindex='-1'])")]
+    .filter(el=>!el.disabled&&el.getClientRects().length);
+}
+function syncSidebarA11y(){
+  const mobile=sidebarMedia.matches;
+  if(!mobile)document.body.classList.remove("sidebar-open");
+  const open=mobile&&document.body.classList.contains("sidebar-open");
+  const trigger=$("mobile-menu-btn"),side=$("side-nav");
+  trigger.setAttribute("aria-expanded",String(open));
+  trigger.setAttribute("aria-label",open?"Close menu":"Open menu");
+  side.inert=mobile&&!open;
+  if(mobile)side.setAttribute("aria-hidden",String(!open));
+  else side.removeAttribute("aria-hidden");
+}
+function toggleSidebar(){
+  if(document.body.classList.contains("sidebar-open")){closeSidebar(true);return;}
+  document.body.classList.add("sidebar-open");
+  syncSidebarA11y();
+  (sidebarFocusable()[0]||$("side-nav")).focus();
+}
+function closeSidebar(restoreFocus=false){
+  const mobile=sidebarMedia.matches,side=$("side-nav"),trigger=$("mobile-menu-btn");
+  if(mobile&&(restoreFocus||side.contains(document.activeElement)))trigger.focus();
+  document.body.classList.remove("sidebar-open");syncSidebarA11y();
+}
+syncSidebarA11y();
+sidebarMedia.addEventListener?.("change",syncSidebarA11y);
 function toggleCollapse(){
   const c=document.body.classList.toggle("side-collapsed");
   try{localStorage.setItem("cb-side-collapsed",c?"1":"0");}catch{}
@@ -601,7 +628,7 @@ async function onGoogleCredential(resp){
 
 
 function showLogin(){$("login-gate").classList.add("show");$("app-root").style.display="none";}
-function hideLogin(){$("login-gate").classList.remove("show");$("app-root").style.display="flex";}
+function hideLogin(){$("login-gate").classList.remove("show");$("app-root").style.display="";}
 function toggleAuthMode(){
   authMode=authMode==="signin"?"signup":"signin";
   $("lg-title").textContent=authMode==="signin"?"Sign in":"Create your account";
@@ -1189,6 +1216,15 @@ document.addEventListener("keydown",e=>{
     if(e.key==="Escape")closeModal();
     else if(e.key==="Enter"&&(e.target.tagName||"").toLowerCase()==="input"){e.preventDefault();$("modal-ok").click();}
     return;
+  }
+  if(document.body.classList.contains("sidebar-open")&&sidebarMedia.matches){
+    if(e.key==="Escape"){e.preventDefault();closeSidebar(true);return;}
+    if(e.key==="Tab"){
+      const items=sidebarFocusable();if(!items.length)return;
+      const first=items[0],last=items[items.length-1];
+      if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+      else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+    }
   }
   // While the palette is open, route nav keys to it.
   if($("cmdk-back").classList.contains("open")){paletteKey(e);return;}

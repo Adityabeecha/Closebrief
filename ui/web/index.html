@@ -61,6 +61,7 @@
   /* Native controls (select dropdowns, date pickers, scrollbars) follow the theme. */
   :root[data-theme="dark"]{color-scheme:dark}
   :root[data-theme="dark"] select,:root[data-theme="dark"] option{background:var(--card);color:var(--ink)}
+  html,body{min-width:0;max-width:100%}
   body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;background:linear-gradient(180deg,var(--wash) 0%,var(--bg) 260px) fixed,var(--bg);color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased}
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
   button,input,select,textarea{font-family:inherit}
@@ -99,7 +100,7 @@
   .nbi-scroll::-webkit-scrollbar{width:10px}
   .nbi-scroll::-webkit-scrollbar-thumb{background:var(--b12);border-radius:6px;border:3px solid var(--bg)}
 
-  .app{display:flex;height:100vh;overflow:hidden}
+  .app{display:flex;height:100vh;height:100dvh;overflow:hidden}
 
   /* ---------------- SIDEBAR ---------------- */
   .side{width:250px;flex:none;background:var(--card);border-right:1px solid var(--b08);display:flex;flex-direction:column;height:100%}
@@ -152,6 +153,7 @@
   main{flex:1;min-width:0;height:100%;overflow-y:auto}
   .wrap{max-width:1200px;margin:0 auto;padding:26px 34px 64px}
   .head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:18px}
+  .head>*,.toolbar>*,.ctx-form>*,.detail-grid>*,.an-grid>*,.frow>*{min-width:0}
   /* Page titles set in the serif — the product is a written brief, and the type says so. */
   h1{font-family:var(--serif);font-size:29px;font-weight:600;letter-spacing:-.005em;line-height:1.15}
   .sub{font-size:13.5px;color:var(--mut);margin-top:3px}
@@ -295,6 +297,7 @@
   .btn.cta{padding:10px 18px;font-size:13.5px;flex-direction:column;line-height:1.3;align-items:center}
   .btn.cta small{font-weight:600;opacity:.85;font-size:10.5px}
   .chart-box{position:relative;width:100%;margin-top:6px}
+  .chart-box canvas{max-width:100%}
   /* export dropdown */
   .export{position:relative}
   .export-menu{position:absolute;top:calc(100% + 6px);right:0;background:var(--card);border:1px solid var(--b12);border-radius:11px;box-shadow:0 12px 34px rgba(15,23,42,.18);padding:6px;z-index:30;min-width:200px;display:none;animation:fade .12s ease}
@@ -329,6 +332,7 @@
   .qa-q{align-self:flex-end;max-width:85%;background:var(--accent);color:var(--on-accent);font-weight:600;font-size:13px;padding:8px 13px;border-radius:13px 13px 3px 13px}
   .qa-a{align-self:flex-start;max-width:92%;background:var(--bg2);border:1px solid var(--b08);padding:10px 14px;border-radius:13px 13px 13px 3px}
   details.tbl{margin-top:10px;font-size:12px}
+  details.tbl{max-width:100%;overflow-x:auto}
   details.tbl summary{cursor:pointer;color:var(--mut);font-weight:600;font-size:11.5px}
   details.tbl table{border-collapse:collapse;margin-top:8px;width:100%}
   details.tbl th,details.tbl td{text-align:right;padding:3px 10px;border-bottom:1px solid var(--bg3);font-variant-numeric:tabular-nums}
@@ -346,6 +350,8 @@
 
   /* ---------------- CONTEXT LIBRARY ---------------- */
   .ctx-form{background:var(--card);border:1px solid var(--b08);border-radius:15px;padding:20px;margin-bottom:18px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .ctx-form.import-summary-form{grid-template-columns:1.4fr 1fr}
+  .ctx-form.three-col-form{grid-template-columns:repeat(3,minmax(0,1fr));align-items:end}
   label.lbl{font-size:10.5px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px}
   .ctx-form input,.ctx-form select,.ctx-form textarea{width:100%;padding:9px 11px;border:1px solid var(--b12);border-radius:9px;font-size:13px}
   .ctx-form textarea{grid-column:1/-1;min-height:72px;resize:vertical}
@@ -379,6 +385,7 @@
   .kpi-grid{display:grid;grid-template-columns:1.3fr 1.3fr 1fr .8fr .9fr;gap:8px;align-items:center;background:var(--card);border:1px solid var(--b08);border-radius:10px;padding:10px 13px;margin-bottom:8px;font-size:12.5px}
   .kpi-grid.hdr{background:var(--bg2);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
   .kpi-grid select,.kpi-grid input{padding:6px 8px;border:1px solid var(--b12);border-radius:8px;width:100%;font-size:12px}
+  #imp-suffix{width:min(160px,100%)}
   .suggest{font-size:10px;color:var(--accent);font-weight:700}
 
   .empty-state{text-align:center;color:var(--mut);padding:60px 20px;font-weight:500}
@@ -497,7 +504,9 @@
   body.side-collapsed .side{display:none}
   body.side-collapsed .reopen-btn{display:flex}
   @media (max-width:900px){
-    .app{display:block;height:auto;min-height:100vh;overflow-x:hidden}
+    .app{display:block;height:auto;min-height:100vh;min-height:100dvh;overflow-x:hidden}
+    body.sidebar-open{overflow:hidden}
+    body.demo .app{height:auto;min-height:calc(100vh - 44px);min-height:calc(100dvh - 44px)}
     .mtop{display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:70;height:52px;padding:0 14px;background:var(--card);border-bottom:1px solid var(--b08)}
     body.demo .mtop{top:44px}
     .mtop .brand b{font-size:15px}
@@ -527,6 +536,7 @@
     .demo-bar span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
     .demo-bar button{white-space:nowrap;flex:none}
     table.ctx-table,table.map,table.admin-table{display:block;overflow-x:auto}
+    .an-grid{grid-template-columns:1fr}
     h1{font-size:20px}
   }
   @media (max-width:600px){
@@ -537,7 +547,19 @@
     .demo-bar-actions .primary{display:none}   /* keep just "Exit demo" on tiny screens */
     .cmdk,.cmdk-back .cmdk{width:94vw}
     .kpi-grid,.kpi-grid.hdr{grid-template-columns:1fr!important}
-    .an-grid{grid-template-columns:1fr}
+    .wrap{padding:16px 12px 48px}
+    .head-actions>.btn{max-width:100%;justify-content:center}
+    .toolbar,.tool-right{align-items:stretch}
+    .tool-right>*{max-width:100%}
+    .card,.panel,.ctx-form,.digest-item{padding:16px}
+    .card-value-row,.qa,.assign-row,.rq-item{align-items:stretch;flex-wrap:wrap}
+    .qa input,.assign-row .modal-field{flex:1 1 100%;max-width:none}
+    .steps{overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+    .step{white-space:nowrap}
+    .sc-grid{grid-template-columns:1fr;padding:14px}
+    .cmdk-back{padding:8vh 12px 12px}
+    .cmdk,.cmdk-back .cmdk{width:100%;max-height:84vh;overflow-y:auto}
+    .toast{left:12px;right:12px;bottom:12px;text-align:center}
   }
 
   /* ---------------- ADVANCED ANALYTICS (v5.0) ---------------- */
@@ -611,6 +633,25 @@
   .rc-fill{height:100%;border-radius:5px}
   .rc-fill.pos{background:var(--green)} .rc-fill.neg{background:var(--red)}
   .rc-drivers{font-size:12.5px;color:var(--mut)} .rc-drivers b{color:var(--ink2)}
+
+  /* Keep component rules declared later in this file from winning over the
+     responsive layout through source order. */
+  @media (max-width:900px){
+    .an-grid{grid-template-columns:1fr}
+    .ctx-form,.ctx-form.import-summary-form,.ctx-form.three-col-form{grid-template-columns:1fr}
+  }
+  @media (max-width:900px){
+    #login-gate{overflow-y:auto}
+    #login-gate.show{display:block}
+    .lg-left{display:none}
+    .lg-right{width:100%;min-height:100vh;min-height:100dvh;padding:32px clamp(20px,8vw,48px);border-left:none}
+  }
+  @media (max-width:380px){
+    .period-ctl{max-width:100%}
+    .period-ctl .seg button{padding-inline:8px}
+    .period-ctl .pnav{padding-inline:7px}
+    .lg-right{padding-inline:20px}
+  }
 </style>
 </head>
 <body>
@@ -662,13 +703,13 @@
 
   <!-- mobile top bar (shown < 900px) -->
   <div class="mtop">
-    <button class="hamb" onclick="toggleSidebar()" aria-label="Open menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    <button class="hamb" id="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Open menu" aria-controls="side-nav" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
     <div class="brand"><div class="mark"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 19v-6M12 19V9M19 19V6.5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg></div><b>Closebrief</b></div>
   </div>
-  <div class="side-backdrop" id="side-backdrop" onclick="closeSidebar()"></div>
+  <div class="side-backdrop" id="side-backdrop" onclick="closeSidebar(true)"></div>
 
   <!-- ============ SIDEBAR ============ -->
-  <aside class="side">
+  <aside class="side" id="side-nav">
     <div class="side-top">
       <div class="brand">
         <div class="mark"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M5 19v-6" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><path d="M12 19V9" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><path d="M19 19V6.5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/><path d="M17.3 3.6l.75 1.75 1.75.75-1.75.75-.75 1.75-.75-1.75-1.75-.75 1.75-.75z" fill="#fff"/></svg></div>
@@ -866,7 +907,7 @@
             <button class="btn primary sm" onclick="runForecast()">Project</button>
           </div>
           <div class="chart-box" id="box-c-forecast" style="height:220px"><canvas id="c-forecast"></canvas></div>
-          <div id="fc-meta" class="statrow" style="margin:14px 0 0;grid-template-columns:1fr 1fr"></div>
+          <div id="fc-meta" class="statrow" style="margin:14px 0 0"></div>
           <div id="fc-narr" style="margin-top:12px"></div>
           <button class="btn sm write-hide" id="fc-narr-btn" style="margin-top:10px;display:none" onclick="forecastNarrative()">Explain this forecast</button>
         </div>
@@ -972,7 +1013,7 @@
         <span class="step" id="st-3">3 · Pick KPIs</span>
       </div>
       <div id="imp-upload">
-        <div class="ctx-form" style="grid-template-columns:1fr 1fr;margin-bottom:16px" id="imp-mode-row">
+        <div class="ctx-form" id="imp-mode-row">
           <div><label class="lbl">Import as</label>
             <select id="imp-mode" class="pill-btn" onchange="onImportModeChange()">
               <option value="new">New dataset</option>
@@ -1008,7 +1049,7 @@
       <div id="imp-join-result" style="display:none"></div>
       <div id="imp-kpis" style="display:none">
         <div class="banner ok" id="norm-summary"></div>
-        <div class="ctx-form" style="grid-template-columns:1.4fr 1fr;margin-bottom:16px">
+        <div class="ctx-form import-summary-form">
           <div><label class="lbl">Dataset name</label><input id="imp-name" placeholder="e.g. FY2025 Actuals"></div>
           <div><label class="lbl">What kind of data is this?</label>
             <select id="imp-domain">
@@ -1053,7 +1094,7 @@
     <!-- ---------- NOTIFICATIONS ---------- -->
     <section id="v-notifications" class="wrap" style="display:none">
       <div class="head"><div><h1>Notifications</h1><div class="sub">Deliver digests and anomaly alerts to email, Slack, or a webhook</div></div></div>
-      <div class="ctx-form" style="grid-template-columns:1fr 1fr 1fr;align-items:end">
+      <div class="ctx-form three-col-form">
         <div><label class="lbl">Channel</label>
           <select id="nt-channel" onchange="ntChannelFields()">
             <option value="email">Email</option><option value="slack">Slack</option><option value="webhook">Webhook</option>
@@ -1073,7 +1114,7 @@
 
       <h1 style="font-size:19px;margin:30px 0 4px">Schedules</h1>
       <div class="sub" style="margin-bottom:14px">Run digests and anomaly scans automatically. An external cron calls the app with your scheduler token — see the setup note after adding one.</div>
-      <div class="ctx-form" style="grid-template-columns:1fr 1fr 1fr;align-items:end">
+      <div class="ctx-form three-col-form">
         <div><label class="lbl">Job</label>
           <select id="sch-kind" onchange="schKindFields()">
             <option value="digest">Scheduled digest</option>
