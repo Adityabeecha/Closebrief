@@ -46,12 +46,18 @@ frame.addEventListener('load', () => {{
     const gate = doc.getElementById('login-gate');
     const left = doc.querySelector('.lg-left');
     const right = doc.querySelector('.lg-right');
+    const leftRect = left.getBoundingClientRect();
+    const rightRect = right.getBoundingClientRect();
     result = {{
       viewportWidth: doc.documentElement.clientWidth,
       scrollWidth: doc.documentElement.scrollWidth,
       gateDisplay: win.getComputedStyle(gate).display,
       leftDisplay: win.getComputedStyle(left).display,
-      rightWidth: Math.ceil(right.getBoundingClientRect().width)
+      rightWidth: Math.ceil(rightRect.width),
+      introAboveForm: leftRect.bottom <= rightRect.top + 1,
+      introBesideForm: leftRect.right <= rightRect.left + 1,
+      headlineVisible: doc.querySelector('.lg-left h2').getClientRects().length > 0,
+      descriptionVisible: doc.querySelector('.lg-left p').getClientRects().length > 0
     }};
   }} else if ('{target}' === 'drawer') {{
     win.hideLogin();
@@ -255,15 +261,30 @@ def test_content_grids_stack_at_mobile_and_tablet_widths(width):
     assert all(columns == 1 for columns in layout["formColumns"])
 
 
-@pytest.mark.parametrize("width", [320, 375, 780, 900])
-def test_login_form_fits_phone_viewport(width):
-    """Catches the fixed-width desktop login split-screen clipping on phones."""
+@pytest.mark.parametrize("width", [320, 375, 768, 900])
+def test_login_introduction_stacks_above_form_on_compact_screens(width):
+    """Catches the product introduction disappearing or sitting beside a cramped form."""
     layout = _render_probe(width, "login")
 
     assert layout["scrollWidth"] <= layout["viewportWidth"]
     assert layout["gateDisplay"] in {"block", "flex"}
-    assert layout["leftDisplay"] == "none"
+    assert layout["leftDisplay"] != "none"
+    assert layout["headlineVisible"] is True
+    assert layout["descriptionVisible"] is True
+    assert layout["introAboveForm"] is True
     assert layout["rightWidth"] <= layout["viewportWidth"]
+
+
+@pytest.mark.parametrize("width", [901, 1024, 1440, 1920])
+def test_login_introduction_stays_beside_form_on_desktop(width):
+    """Catches compact login stacking leaking into desktop split-screen layouts."""
+    layout = _render_probe(width, "login")
+
+    assert layout["scrollWidth"] <= layout["viewportWidth"]
+    assert layout["leftDisplay"] == "flex"
+    assert layout["headlineVisible"] is True
+    assert layout["descriptionVisible"] is True
+    assert layout["introBesideForm"] is True
 
 
 def test_mobile_drawer_manages_accessibility_and_keyboard_focus():
