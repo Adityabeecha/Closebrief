@@ -16,11 +16,12 @@ import re
 
 from app.generation.guard import (
     _NUMBER_RE,
+    _check_multiplier_claims,
+    _context_values,
     _excluded_tokens,
     _is_date_or_duration,
     _matches_any,
     _normalize,
-    extract_numbers,
 )
 from app.schemas import ComputedFact, ContextSnippet
 
@@ -40,6 +41,10 @@ def _labeled_fact_values(fact: ComputedFact) -> list[tuple[str, float, bool]]:
     out: list[tuple[str, float, bool]] = [("current value", fact.value, False)]
     if fact.prior_value is not None:
         out.append(("prior-period value", fact.prior_value, False))
+    if (fact.unit or "").lower() in ("%", "percent"):
+        out.append(("current value", fact.value, True))
+        if fact.prior_value is not None:
+            out.append(("prior-period value", fact.prior_value, True))
     d = fact.deltas
     if d.budget_var_abs is not None:
         out.append(("budget variance (abs)", d.budget_var_abs, False))
@@ -91,7 +96,7 @@ def attribute(narrative: str, fact: ComputedFact,
     ctx = context or []
     ctx_tokens = [(c, _tokens((c.title or "") + " " + (c.body or ""))) for c in ctx]
     # Absolute magnitudes present in each context body — numbers the model may cite.
-    ctx_numbers = {abs(v) for c in ctx for v, _ in extract_numbers(c.body or "")}
+    ctx_magnitudes, ctx_percents = _context_values(ctx)
     excluded = _excluded_tokens(fact)   # period year/month digits aren't KPI figures
 
     sentences, unverified_all = [], []
@@ -104,7 +109,7 @@ def attribute(narrative: str, fact: ComputedFact,
             if norm is None:
                 continue
             value, is_percent = norm
-            if value in excluded or -value in excluded:
+            if not percent and not suffix and "$" not in raw and "." not in raw and value in excluded:
                 continue
             if _is_date_or_duration(m, text, raw, suffix, percent):
                 continue
@@ -113,9 +118,10 @@ def attribute(narrative: str, fact: ComputedFact,
                         if _matches_any(value, {v}, tolerance_pct)), None)
             if hit is not None:
                 cited_facts.append({"field": hit, "value": value, "is_percent": is_percent})
-            elif not _matches_any(value, ctx_numbers, tolerance_pct):
+            elif not _matches_any(value, ctx_percents if is_percent else ctx_magnitudes, tolerance_pct):
                 # Not a fact and not a number present in context → unverified.
                 unverified.append(value)
+        unverified.extend(_check_multiplier_claims(text, {v for _, v in percents}))
         # Causal attribution: which context docs this sentence draws on.
         s_tokens = _tokens(text)
         for c, c_tokens in ctx_tokens:

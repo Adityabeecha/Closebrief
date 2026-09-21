@@ -90,7 +90,8 @@ def test_sync_records_error_on_bad_source(client):
         res = connectors.sync_connector(conn, cid, None, fetch=_boom)
         assert res["status"] == "error"
         row = conn.execute("SELECT last_status, last_error FROM connectors WHERE id = ?", (cid,)).fetchone()
-        assert row["last_status"] == "error" and "unreachable" in row["last_error"]
+        assert row["last_status"] == "error" and row["last_error"] == res["error"]
+        assert "host unreachable" not in row["last_error"]  # upstream exception bodies stay private
     finally:
         conn.close()
 

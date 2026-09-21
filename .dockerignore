@@ -16,3 +16,12 @@ ui/mockup/
 tests/
 *.md
 !README.md
+
+# Local code-review tooling is not part of the production application
+.venv-typesafe/
+tools/typesafe_review/
+review_with_typesafe.py
+requirements-typesafe-review.txt
+typesafe_review_report.*
+typesafe_review_plan.*
+.typesafe-report-*.tmp

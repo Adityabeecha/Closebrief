@@ -117,7 +117,9 @@ def list_datasets(conn) -> list[dict]:
 def delete_dataset(conn, dataset_id: int) -> bool:
     """Remove a dataset and everything scoped to it (facts, values, reports,
     bridges, KPI configs, metrics). Reactivates the newest remaining dataset."""
-    row = conn.execute("SELECT id FROM datasets WHERE id = ?", (dataset_id,)).fetchone()
+    row = conn.execute(
+        f"SELECT id FROM datasets WHERE id = ? AND {_scope_pred()}", (dataset_id,)
+    ).fetchone()
     if row is None:
         return False
 

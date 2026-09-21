@@ -180,9 +180,22 @@ def find_or_create_user(email: str, google_sub: str) -> CurrentUser:
 
     conn = get_connection()
     try:
+        # Google's subject is stable even when the verified email changes.
+        # Prefer an existing Google identity before attempting email linking.
+        google_user_id = _uuid_for_google_sub(google_sub)
         row = conn.execute(
-            "SELECT user_id, role FROM app_roles WHERE lower(email) = ?", (email,)
+            "SELECT user_id, role FROM app_roles WHERE user_id = ?", (google_user_id,)
         ).fetchone()
+        if row is not None:
+            conn.execute(
+                "UPDATE app_roles SET email = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?",
+                (email, google_user_id),
+            )
+            conn.commit()
+        else:
+            row = conn.execute(
+                "SELECT user_id, role FROM app_roles WHERE lower(email) = ?", (email,)
+            ).fetchone()
         if row is not None:
             user_id, current_role = str(row["user_id"]), row["role"]
             # Raise-only: never lower an existing role.
@@ -198,7 +211,7 @@ def find_or_create_user(email: str, google_sub: str) -> CurrentUser:
 
         # New user. The id is Google's stable subject, namespaced into a UUID so
         # it fits the Postgres UUID attribution columns.
-        user_id = _uuid_for_google_sub(google_sub)
+        user_id = google_user_id
         conn.execute(
             "INSERT INTO app_roles (user_id, email, role) VALUES (?, ?, ?)",
             (user_id, email, target_role),

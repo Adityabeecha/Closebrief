@@ -73,6 +73,7 @@ from app.ingestion.upload import (
     MAX_UPLOAD_BYTES,
     UploadError,
     create_upload,
+    get_upload,
     load_upload_frame,
     upload_sheet_period,
 )
@@ -700,7 +701,7 @@ def rename_dataset(dataset_id: int, payload: dict, _: CurrentUser = Depends(requ
         raise HTTPException(status_code=422, detail=f"Unknown domain: {domain}")
     conn = get_connection()
     try:
-        if conn.execute("SELECT 1 FROM datasets WHERE id = ?", (dataset_id,)).fetchone() is None:
+        if conn.execute(f"SELECT 1 FROM datasets WHERE id = ? AND {_scope_pred()}", (dataset_id,)).fetchone() is None:
             raise HTTPException(status_code=404, detail=f"Dataset {dataset_id} not found")
         if name:
             conn.execute("UPDATE datasets SET name = ? WHERE id = ?", (name.strip()[:120], dataset_id))
@@ -1010,7 +1011,7 @@ def ingest(file: UploadFile, user: CurrentUser = Depends(require_write)) -> Inge
 
     Sync def (not async): the parse/compute below is blocking CPU/IO work, so
     FastAPI runs it in a threadpool instead of stalling the event loop."""
-    raw = file.file.read()
+    raw = file.file.read(MAX_UPLOAD_BYTES + 1)
     if len(raw) > MAX_UPLOAD_BYTES:
         raise HTTPException(
             status_code=413,
@@ -1040,7 +1041,7 @@ def ingest(file: UploadFile, user: CurrentUser = Depends(require_write)) -> Inge
 @app.post("/ingest/upload")
 def ingest_upload(file: UploadFile, _: CurrentUser = Depends(require_write)) -> dict:
     # Sync def: create_upload does blocking pandas work (size cap enforced there).
-    raw = file.file.read()
+    raw = file.file.read(MAX_UPLOAD_BYTES + 1)
     conn = get_connection()
     try:
         return create_upload(conn, raw, file.filename or "upload.csv")
@@ -1176,9 +1177,10 @@ def ingest_metrics(upload_id: str, _: CurrentUser = Depends(require_write)) -> l
     KPI-library suggestion for auto-filling category/unit/direction."""
     conn = get_connection()
     try:
-        row = conn.execute("SELECT mapping FROM uploads WHERE id = ?", (upload_id,)).fetchone()
-        if row is None:
-            raise HTTPException(status_code=404, detail=f"Upload {upload_id} not found")
+        try:
+            row = get_upload(conn, upload_id)
+        except UploadError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
         if not row["mapping"]:
             raise HTTPException(status_code=409, detail="Confirm a mapping first")
         mapping = MappingSpec(**json.loads(row["mapping"]))
@@ -1842,7 +1844,8 @@ def remove_schedule(job_id: int, _: CurrentUser = Depends(require_admin)) -> Non
 def digest_history(_: CurrentUser = Depends(require_read)) -> list[dict]:
     conn = get_connection()
     try:
-        return scheduling.list_digest_runs(conn, active_dataset_id(conn))
+        dataset_id = active_dataset_id(conn)
+        return scheduling.list_digest_runs(conn, dataset_id) if dataset_id is not None else []
     finally:
         conn.close()
 

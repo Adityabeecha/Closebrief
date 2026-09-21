@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from app.compute.formula import evaluate, referenced_metrics, validate
+from app.compute.formula import FormulaError, evaluate, referenced_metrics, validate
 from app.datasets import get_or_create_metric
 
 
@@ -24,8 +24,9 @@ def create_derived_metric(conn: sqlite3.Connection, dataset_id: int, name: str, 
     have = {r["name"] for r in conn.execute(
         "SELECT name FROM metrics WHERE dataset_id = ?", (dataset_id,)).fetchall()}
     missing = [r for r in refs if r not in have]
+    if name in have:
+        raise FormulaError("A metric with this name already exists")
     if missing:
-        from app.compute.formula import FormulaError
         raise FormulaError(f"Formula references unknown metric(s): {', '.join(missing)}")
 
     cur = conn.execute(
@@ -79,15 +80,29 @@ def materialize(conn: sqlite3.Connection, dataset_id: int) -> int:
            WHERE m.dataset_id = ?""",
         (dataset_id,),
     ).fetchall()
+    names = {d["name"] for d in derived}
+    ordered = []
+    pending = list(derived)
+    while pending:
+        ready = [d for d in pending if not (set(referenced_metrics(d["formula"])) & {p["name"] for p in pending})]
+        if not ready:
+            raise FormulaError("Circular derived metric dependencies")
+        ordered.extend(ready)
+        pending = [d for d in pending if d not in ready]
     by_metric: dict[str, dict[str, float]] = {}
     for f in facts:
+        if f["metric"] in names:
+            continue
         by_metric.setdefault(f["metric"], {})[f["period"]] = f["value"]
 
     all_periods = {p for series in by_metric.values() for p in series}
 
     written = 0
-    for d in derived:
+    for d in ordered:
         metric_id = get_or_create_metric(conn, dataset_id, d["name"])
+        conn.execute("DELETE FROM metric_values WHERE metric_id = ?", (metric_id,))
+        conn.execute("DELETE FROM computed_facts WHERE metric_id = ?", (metric_id,))
+        by_metric[d["name"]] = {}
         refs = referenced_metrics(d["formula"])
         if not refs:
             continue
@@ -101,12 +116,17 @@ def materialize(conn: sqlite3.Connection, dataset_id: int) -> int:
         if len(known) != len(refs):
             continue
         for period in sorted(all_periods):
+            # Missing base observations may represent closed accounts; undefined
+            # derived results must instead propagate as unknown.
+            if any(r in names and period not in by_metric[r] for r in refs):
+                continue
             if not any(period in by_metric[r] for r in refs):
                 continue
             vals = {r: by_metric[r].get(period, 0.0) for r in refs}
             v = evaluate(d["formula"], vals)
             if v is None:
                 continue
+            by_metric[d["name"]][period] = round(float(v), 4)
             conn.execute(
                 """INSERT INTO metric_values (metric_id, period, value)
                    VALUES (?, ?, ?)

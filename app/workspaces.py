@@ -20,7 +20,7 @@ def create_workspace(conn, name: str, owner_id: str, owner_email: str | None = N
     return ws_id
 
 
-def add_member(conn, ws_id: int, user_id: str, email: str | None, role: str = "analyst") -> None:
+def add_member(conn, ws_id: int, user_id: str, email: str | None, role: str = "analyst", *, commit: bool = True) -> None:
     if role not in WS_ROLES:
         role = "analyst"
     # Portable upsert: delete-then-insert keeps role current on re-invite.
@@ -31,7 +31,8 @@ def add_member(conn, ws_id: int, user_id: str, email: str | None, role: str = "a
         "INSERT INTO workspace_members (workspace_id, user_id, email, role) VALUES (?, ?, ?, ?)",
         (ws_id, user_id, email, role),
     )
-    conn.commit()
+    if commit:
+        conn.commit()
 
 
 def list_user_workspaces(conn, user_id: str) -> list[dict]:
@@ -108,12 +109,24 @@ def create_invite(conn, ws_id: int, role: str = "analyst", email: str | None = N
 
 def accept_invite(conn, token: str, user_id: str, email: str | None) -> int | None:
     row = conn.execute(
-        "SELECT workspace_id, role, accepted FROM workspace_invites WHERE token = ?", (token,)
+        "SELECT workspace_id, role, email, accepted FROM workspace_invites WHERE token = ?", (token,)
     ).fetchone()
     if row is None or row["accepted"]:
         return None
-    add_member(conn, int(row["workspace_id"]), user_id, email, row["role"])
-    # `true` works on SQLite (INTEGER) and Postgres (BOOLEAN); `= 1` errors on PG.
-    conn.execute("UPDATE workspace_invites SET accepted = true WHERE token = ?", (token,))
-    conn.commit()
+    if row["email"] and row["email"].strip().casefold() != (email or "").strip().casefold():
+        return None
+    try:
+        # Claim exactly once, in the same transaction as membership creation.
+        claimed = conn.execute(
+            "UPDATE workspace_invites SET accepted = true WHERE token = ? AND accepted = false RETURNING workspace_id",
+            (token,),
+        ).fetchone()
+        if claimed is None:
+            conn.rollback()
+            return None
+        add_member(conn, int(row["workspace_id"]), user_id, email, row["role"], commit=False)
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
     return int(row["workspace_id"])

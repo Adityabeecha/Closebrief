@@ -64,8 +64,9 @@ class ContextStore:
         return self.get(doc_id)
 
     def get(self, doc_id: int) -> ContextDoc | None:
+        from app.datasets import _scope_pred
         row = self._conn.execute(
-            "SELECT * FROM context_documents WHERE id = ?", (doc_id,)
+            f"SELECT * FROM context_documents WHERE id = ? AND {_scope_pred()}", (doc_id,)
         ).fetchone()
         return _row_to_doc(row) if row else None
 

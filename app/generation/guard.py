@@ -41,6 +41,7 @@ _MONTH_BEFORE = re.compile(
     r"november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\s*$",
     re.IGNORECASE,
 )
+_ISO_DATE = re.compile(r"(?<![\w$])\d{4}-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12]\d|3[01]))?(?![\d%])")
 
 
 def _normalize(raw: str, suffix: str, percent: str) -> tuple[float, bool] | None:
@@ -76,6 +77,9 @@ def _is_date_or_duration(match: re.Match, text: str, raw: str, suffix: str, perc
     digits = raw.replace(",", "").lstrip("-")
     if not digits.isdigit():
         return False
+    if any(date.start() <= match.start(1) and match.end(1) <= date.end()
+           for date in _ISO_DATE.finditer(text)):
+        return True
     after = text[match.end() : match.end() + 12]
     before = text[max(0, match.start() - 12) : match.start()]
     return bool(_DURATION_AFTER.match(after) or _MONTH_BEFORE.search(before))
@@ -108,14 +112,14 @@ def _allowed_values(fact: ComputedFact) -> tuple[set[float], set[float]]:
     return magnitudes, percents
 
 
-def _context_values(context: list[ContextSnippet] | None) -> set[float]:
-    """Absolute magnitudes of every number appearing in provided context bodies.
-    These are grounding the model is allowed to cite (PRD Section 11)."""
-    values: set[float] = set()
+def _context_values(context: list[ContextSnippet] | None) -> tuple[set[float], set[float]]:
+    """Keep context magnitudes and percentages in the same buckets as facts."""
+    magnitudes: set[float] = set()
+    percents: set[float] = set()
     for snippet in context or []:
-        for value, _is_percent in extract_numbers(snippet.body):
-            values.add(abs(value))
-    return values
+        for value, is_percent in extract_numbers(snippet.body):
+            (percents if is_percent else magnitudes).add(abs(value))
+    return magnitudes, percents
 
 
 def _excluded_tokens(fact: ComputedFact) -> set[float]:
@@ -126,7 +130,7 @@ def _excluded_tokens(fact: ComputedFact) -> set[float]:
     try:
         year_str, month_str = fact.period.split("-")
         year = int(year_str)
-        excluded.update({float(year), float(year - 1), float(int(month_str))})
+        excluded.update({float(year), float(year - 1)})
     except (ValueError, IndexError):
         pass
     return excluded
@@ -162,7 +166,8 @@ def _check_multiplier_claims(narrative: str, percents: set[float]) -> list[float
     unverified = []
     for word in _MULTIPLIER_RE.findall(narrative):
         implied = _MULTIPLIER_WORDS[word.lower()]
-        if not _matches_any(implied, percents, tolerance_pct=0.10):
+        if not any(abs(implied - value) <= max(0.5, abs(value) * 0.10)
+                   for value in percents):
             unverified.append(implied)
     return unverified
 
@@ -179,7 +184,7 @@ def check_faithfulness(
     """
     magnitudes, percents = _allowed_values(fact)
     excluded = _excluded_tokens(fact)
-    context_vals = _context_values(context)
+    context_magnitudes, context_percents = _context_values(context)
 
     unverified: list[float] = []
     for match in _NUMBER_RE.finditer(narrative):
@@ -189,7 +194,7 @@ def check_faithfulness(
             continue
         value, is_percent = norm
 
-        if value in excluded or -value in excluded:
+        if not percent and not suffix and "$" not in raw and "." not in raw and value in excluded:
             continue
         if _is_date_or_duration(match, narrative, raw, suffix, percent):
             continue
@@ -197,6 +202,7 @@ def check_faithfulness(
         allowed = percents if is_percent else magnitudes
         if _matches_any(value, allowed, tolerance_pct):
             continue
+        context_vals = context_percents if is_percent else context_magnitudes
         if _matches_any(value, context_vals, tolerance_pct):
             continue
         unverified.append(value)
