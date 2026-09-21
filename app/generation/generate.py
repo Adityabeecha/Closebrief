@@ -71,6 +71,9 @@ def generate_insight(
     except LLMGenerationError:
         raise GenerationFailedFactsOnly(_facts_only_output(fact))
 
+    prompt_tokens = usage.prompt_tokens
+    completion_tokens = usage.completion_tokens
+    cost_usd = usage.cost_usd
     passed, unverified = check_faithfulness(result.narrative, fact, context)
 
     if not passed:
@@ -85,6 +88,10 @@ def generate_insight(
             result, usage = llm_client.generate_narrative(system_prompt, stricter_user_prompt)
         except LLMGenerationError:
             raise GenerationFailedFactsOnly(_facts_only_output(fact))
+        prompt_tokens += usage.prompt_tokens
+        completion_tokens += usage.completion_tokens
+        cost_usd = (cost_usd + usage.cost_usd
+                    if cost_usd is not None and usage.cost_usd is not None else None)
         passed, unverified = check_faithfulness(result.narrative, fact, context)
 
     context_by_id = {c.id: c for c in context}
@@ -119,9 +126,9 @@ def generate_insight(
         sources=sources,
         confidence=confidence,
         faithfulness="passed" if passed else "failed",
-        prompt_tokens=usage.prompt_tokens,
-        completion_tokens=usage.completion_tokens,
-        cost_usd=usage.cost_usd,
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        cost_usd=cost_usd,
         latency_ms=latency_ms,
         prompt_version=PROMPT_VERSION,
         correlations=correlations or [],

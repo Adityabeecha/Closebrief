@@ -41,26 +41,33 @@ def retrieve(
     vector_store: VectorStore,
     k: int = 5,
 ) -> list[RetrievedChunk]:
+    if k <= 0:
+        return []
     query_vec = embedder.embed([build_query(metric, period)])
     if query_vec.shape[0] == 0:
         return []
 
-    # Over-fetch before filtering so post-filter we can still return up to k.
-    raw_hits = vector_store.search(query_vec[0], k=k * 4)
-
-    docs_by_id = {d.id: d for d in store.list()}
-    chunks: list[RetrievedChunk] = []
-    for doc_id, score in raw_hits:
-        doc = docs_by_id.get(doc_id)
-        if doc is None:
-            continue
-        if not _metric_ok(doc, metric) or not _effective_ok(doc, period):
-            continue
-        chunks.append(
-            RetrievedChunk(
-                id=doc.id, type=doc.type, title=doc.title, body=doc.body, score=score
+    docs_by_id = {d.id: d for d in store.list()
+                  if _metric_ok(d, metric) and _effective_ok(d, period)}
+    if not docs_by_id:
+        return []
+    # Other workspaces and ineligible documents can occupy the initial window.
+    # Widen until enough eligible hits are found or the index is exhausted.
+    fetch_k = k * 4
+    while True:
+        raw_hits = vector_store.search(query_vec[0], k=fetch_k)
+        chunks: list[RetrievedChunk] = []
+        for doc_id, score in raw_hits:
+            doc = docs_by_id.get(doc_id)
+            if doc is None:
+                continue
+            chunks.append(
+                RetrievedChunk(
+                    id=doc.id, type=doc.type, title=doc.title, body=doc.body, score=score
+                )
             )
-        )
-        if len(chunks) >= k:
-            break
-    return chunks
+            if len(chunks) >= k:
+                return chunks
+        if len(raw_hits) < fetch_k or len(chunks) == len(docs_by_id):
+            return chunks
+        fetch_k *= 2

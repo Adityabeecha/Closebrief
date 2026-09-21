@@ -48,6 +48,8 @@ class FaissVectorStore:
             return
         vectors = np.ascontiguousarray(vectors, dtype=np.float32)
         id_array = np.array(ids, dtype=np.int64)
+        if vectors.shape != (len(ids), self.dim):
+            raise ValueError("Vectors must have shape (number of ids, dimension)")
         # Idempotent upsert: drop any existing vectors for these ids first.
         self._index.remove_ids(id_array)
         self._index.add_with_ids(vectors, id_array)

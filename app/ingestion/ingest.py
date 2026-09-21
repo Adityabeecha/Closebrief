@@ -1,6 +1,7 @@
 import io
 import sqlite3
 
+import numpy as np
 import pandas as pd
 
 from app.schemas import IngestSummary
@@ -24,13 +25,19 @@ def parse_csv(raw_bytes: bytes) -> pd.DataFrame:
             f"CSV is missing required column(s): {', '.join(missing)}"
         )
 
+    if df["metric"].isna().any() or df["metric"].astype(str).str.strip().eq("").any():
+        raise IngestValidationError("Column 'metric' contains missing entries")
     df["period"] = df["period"].astype(str)
+    if not df["period"].str.fullmatch(r"\d{4}-(0[1-9]|1[0-2])").all():
+        raise IngestValidationError("Periods must be valid YYYY-MM months")
     df["metric"] = df["metric"].astype(str)
     df["value"] = pd.to_numeric(df["value"], errors="coerce")
     df["budget"] = pd.to_numeric(df["budget"], errors="coerce")
 
-    if df["value"].isna().any():
+    if not np.isfinite(df["value"]).all():
         raise IngestValidationError("Column 'value' contains non-numeric or missing entries")
+    if not np.isfinite(df["budget"].dropna()).all():
+        raise IngestValidationError("Column 'budget' contains non-finite entries")
 
     return df
 

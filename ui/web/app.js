@@ -53,6 +53,7 @@ function buildReportHTML(facts){
       <div class="rc-vrow"><span class="rc-val">${fmt(f.value,f.unit)}</span>${spark}</div>
       <div class="rc-deltas">${reportDelta("MoM",f.deltas.mom_pct,dg)}${reportDelta("vs plan",f.deltas.budget_var_pct,dg)}${f.is_anomaly?'<span class="rd" style="color:#b42e2c;background:#faeeed">ANOMALY</span>':""}</div>
       <div class="rc-narr">${f.narrative?esc(f.narrative):"<i>No narrative generated for this metric.</i>"}</div>
+      ${f.faithfulness==="failed"?'<div class="rd" style="color:#b42e2c">Numbers need review — unverified narrative</div>':""}
       ${src?`<div class="rc-src">${src}</div>`:""}
     </div>`;
   }).join("");
@@ -158,7 +159,7 @@ async function exportPPTX(){
       s.addText(fmt(f.value,f.unit),{x:0.6,y:1.4,w:5,h:0.9,fontSize:40,bold:true,color:INK,fontFace:"Segoe UI"});
       const mom=pct(f.deltas.mom_pct),bud=pct(f.deltas.budget_var_pct);
       s.addText(`MoM ${mom||"–"}    vs plan ${bud||"–"}`,{x:0.6,y:2.4,w:8.8,h:0.4,fontSize:13,bold:true,color:ACC,fontFace:"Segoe UI"});
-      s.addText(f.narrative||"No narrative generated.",{x:0.6,y:2.95,w:8.8,h:2.2,fontSize:13,color:INK,fontFace:"Segoe UI",valign:"top"});
+      s.addText((f.faithfulness==="failed"?"Numbers need review — unverified narrative\n\n":"")+(f.narrative||"No narrative generated."),{x:0.6,y:2.95,w:8.8,h:2.2,fontSize:13,color:INK,fontFace:"Segoe UI",valign:"top"});
       if(f.sources&&f.sources.length)s.addText("Sources: "+f.sources.map(x=>x.title||x.id).join(", "),{x:0.6,y:5.0,w:8.8,h:0.4,fontSize:10,italic:true,color:MUT,fontFace:"Segoe UI"});
     });
     await p.writeFile({fileName:`Closebrief_${(currentPeriod||"report").replace(/[^0-9A-Za-z_-]/g,"")}.pptx`});
@@ -368,7 +369,12 @@ async function api(path,opts,_retried){
     storeSessionToken(null);
     showLogin();throw new Error("Session expired — please sign in");
   }
-  if(!r.ok&&r.status!==503){let d=r.statusText;try{d=(await r.json()).detail||d;}catch{}throw new Error(d);}
+  if(!r.ok){
+    let data=null;try{data=await r.json();}catch{}
+    if(r.status===503&&path==="/generate-insight"&&data&&typeof data.metric==="string"&&
+      typeof data.period==="string"&&Number.isFinite(data.value)&&data.narrative===null&&data.faithfulness==="unchecked")return data;
+    throw new Error((data&&data.detail)||r.statusText||"Request failed");
+  }
   if(r.status===204)return null; return r.json();
 }
 const fmt=(v,unit)=>{
@@ -1292,6 +1298,7 @@ async function loadPeriods(){
   if(periods.length){sel.value=periods[periods.length-1];currentPeriod=sel.value;await loadFacts();}
   else{
     // Empty workspace: show a centered import CTA on the dashboard, don't jump away.
+    currentPeriod=null;currentFacts=[];shownFacts=[];detailFact=null;
     $("dash-sub").textContent="No data yet";$("statrow").innerHTML="";$("filter-pills").innerHTML="";$("cat-pills").innerHTML="";$("dash-title").textContent="Dashboard";
     $("cards").innerHTML=`<div class="empty-state" style="grid-column:1/-1;padding:70px 20px">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:52px;height:52px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>

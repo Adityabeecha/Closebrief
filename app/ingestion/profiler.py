@@ -224,7 +224,12 @@ def profile_columns(df: pd.DataFrame) -> dict:
             if b in redundant_with:
                 continue
             try:
-                corr = pd.to_numeric(df[a], errors="coerce").corr(pd.to_numeric(df[b], errors="coerce"))
+                pair = df[[a, b]].apply(pd.to_numeric, errors="coerce").dropna()
+                # Pearson correlation is undefined for fewer than two paired
+                # observations or either constant series. Keep both measures.
+                if len(pair) < 2 or (pair.nunique() < 2).any():
+                    continue
+                corr = pair[a].corr(pair[b])
             except Exception:  # noqa: BLE001 - correlation is a nice-to-have, never fatal
                 corr = None
             if corr is not None and corr >= 0.995:

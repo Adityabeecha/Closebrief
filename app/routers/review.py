@@ -2,6 +2,8 @@
 record approval, list version diffs, and the reviewer inbox. Assignment sends a
 best-effort email nudge with a deep link."""
 
+from html import escape
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from app import audit
@@ -33,12 +35,12 @@ def _email_review_nudge_async(to_email: str | None, metric: str, period: str,
             link = ""
             if base:
                 url = f"{base}/#metric={urllib.parse.quote(metric)}&period={urllib.parse.quote(period)}"
-                link = (f"<p><a href='{url}' style='display:inline-block;background:#1e6e50;color:#fff;"
+                link = (f"<p><a href='{escape(url, quote=True)}' style='display:inline-block;background:#1e6e50;color:#fff;"
                         f"padding:9px 16px;border-radius:8px;text-decoration:none;font-weight:600'>"
                         f"Review in Closebrief</a></p>")
             html = (
-                f"<p>{who} assigned you a narrative to review in Closebrief.</p>"
-                f"<p style='font-size:16px'><b>{metric}</b> — {period}</p>"
+                f"<p>{escape(who)} assigned you a narrative to review in Closebrief.</p>"
+                f"<p style='font-size:16px'><b>{escape(metric)}</b> — {escape(period)}</p>"
                 f"{link or '<p>Open Closebrief to approve it or request changes.</p>'}"
             )
             EmailChannel({"recipients": [to_email]})._send(subject, html)

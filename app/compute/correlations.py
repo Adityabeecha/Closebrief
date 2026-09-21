@@ -118,7 +118,7 @@ def detect_consecutive_trends(conn, metric_id: int, period: str, min_months: int
     ).fetchall()
     # Keep months at or before the target period (months_between(row, target) >= 0).
     hist = [(r["period"], float(r["mom_pct"])) for r in rows if _months_between(r["period"], period) >= 0]
-    if len(hist) < min_months:
+    if len(hist) < min_months or hist[-1][0] != period:
         return None
 
     def sign(v: float) -> int:
@@ -129,6 +129,8 @@ def detect_consecutive_trends(conn, metric_id: int, period: str, min_months: int
         return None
     streak = []
     for p, v in reversed(hist):
+        if streak and _months_between(p, streak[-1]) != 1:
+            break
         if sign(v) == last_sign:
             streak.append(p)
         else:

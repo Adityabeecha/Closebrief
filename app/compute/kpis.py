@@ -158,8 +158,12 @@ def compute_and_store(
     if df.empty:
         return df
 
-    facts = compute_kpis(df.drop(columns=["metric_id"]), anomaly_z_threshold)
-    metric_ids = {r["metric"]: r["metric_id"] for r in df.to_dict("records")}
+    groups = []
+    for metric_id, group in df.groupby("metric_id"):
+        computed = compute_kpis(group.drop(columns=["metric_id"]), anomaly_z_threshold)
+        computed["metric_id"] = metric_id
+        groups.append(computed)
+    facts = pd.concat(groups, ignore_index=True)
 
     cur = conn.cursor()
     for _, f in facts.iterrows():
@@ -176,7 +180,7 @@ def compute_and_store(
                 trend=excluded.trend, is_anomaly=excluded.is_anomaly
             """,
             (
-                metric_ids[f["metric"]],
+                int(f["metric_id"]),
                 f["period"],
                 f["value"],
                 f["prior_value"],
@@ -189,4 +193,4 @@ def compute_and_store(
             ),
         )
     conn.commit()
-    return facts
+    return facts.drop(columns=["metric_id"])

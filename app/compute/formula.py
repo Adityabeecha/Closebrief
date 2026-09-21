@@ -15,6 +15,7 @@ faithfulness guard exactly like any other computed fact.
 from __future__ import annotations
 
 import ast
+import math
 import re
 
 _BRACKET = re.compile(r"\[([^\]]+)\]")
@@ -51,7 +52,7 @@ _ALLOWED_BINOPS = (ast.Add, ast.Sub, ast.Mult, ast.Div)
 
 def evaluate(formula: str, values: dict[str, float]) -> float | None:
     """Evaluate `formula` with metric values. Missing reference → FormulaError;
-    division by zero → None."""
+    division by zero or non-finite arithmetic → None."""
     tokens: dict[str, str] = {}   # var token -> metric name
 
     def _sub(m: re.Match) -> str:
@@ -66,6 +67,13 @@ def evaluate(formula: str, values: dict[str, float]) -> float | None:
         raise FormulaError(f"Invalid formula syntax: {e.msg}") from e
 
     def _ev(node):
+        try:
+            value = _raw_ev(node)
+        except OverflowError:
+            return None
+        return value if value is not None and math.isfinite(value) else None
+
+    def _raw_ev(node):
         if isinstance(node, ast.Expression):
             return _ev(node.body)
         if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):

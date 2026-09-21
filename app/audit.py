@@ -49,13 +49,14 @@ def record(conn, action: str, entity_type: str, entity_id, *,
         ts = datetime.now(timezone.utc).isoformat()
         summary = summary or {}
         body = _canonical(action, entity_type, entity_id, actor_id, summary, ts)
-        row_hash = _row_hash(_last_hash(conn, ws), body)
+        prev_hash = _last_hash(conn, ws)
+        row_hash = _row_hash(prev_hash, body)
         conn.execute(
             """INSERT INTO audit_log (workspace_id, actor_id, actor_email, action,
                    entity_type, entity_id, summary, row_hash, prev_hash, created_at)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (ws, actor_id, actor_email, action, entity_type, str(entity_id),
-             json.dumps(summary), row_hash, _last_hash(conn, ws), ts),
+             json.dumps(summary), row_hash, prev_hash, ts),
         )
         conn.commit()
     except Exception:  # noqa: BLE001 - auditing must never break the audited action
@@ -83,17 +84,23 @@ def verify(conn, workspace_id: int | None) -> dict:
     """Walk the workspace's chain oldest→newest and recompute each hash. Returns
     {ok, checked, first_bad_id}. A broken link means a row was altered or removed."""
     rows = conn.execute(
-        """SELECT id, actor_id, action, entity_type, entity_id, summary, row_hash, created_at
+        """SELECT id, actor_id, action, entity_type, entity_id, summary, row_hash, prev_hash, created_at
            FROM audit_log WHERE (workspace_id IS ? OR workspace_id = ?) ORDER BY id ASC""",
         (workspace_id, workspace_id),
     ).fetchall()
     prev = ""
     for r in rows:
-        summary = json.loads(r["summary"]) if r["summary"] else {}
+        try:
+            summary = json.loads(r["summary"]) if r["summary"] else {}
+        except (ValueError, TypeError):
+            return {"ok": False, "checked": len(rows), "first_bad_id": r["id"]}
+        ts = r["created_at"]
+        if isinstance(ts, datetime):
+            ts = ts.astimezone(timezone.utc).isoformat()
         body = _canonical(r["action"], r["entity_type"], r["entity_id"],
-                          r["actor_id"], summary, str(r["created_at"]))
+                          r["actor_id"], summary, str(ts))
         expected = _row_hash(prev, body)
-        if expected != r["row_hash"]:
+        if expected != r["row_hash"] or r["prev_hash"] != prev:
             return {"ok": False, "checked": len(rows), "first_bad_id": r["id"]}
         prev = r["row_hash"]
     return {"ok": True, "checked": len(rows), "first_bad_id": None}

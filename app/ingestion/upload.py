@@ -11,8 +11,11 @@ import re
 import sqlite3
 import uuid
 from pathlib import Path
+from zipfile import BadZipFile
 
 import pandas as pd
+
+from app.datasets import current_workspace
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
 MAX_ROWS = 100_000  # hardening: cap rows so a huge file can't exhaust memory
@@ -100,19 +103,27 @@ def sheet_title_rows(raw: bytes, filename: str, sheet: str | None, header_row: i
 
 def _read_frame(raw: bytes, filename: str, sheet: str | None = None,
                 header_row: int | None = None) -> pd.DataFrame:
+    try:
+        return _parse_frame(raw, filename, sheet, header_row)
+    except (ValueError, OSError, BadZipFile, pd.errors.ParserError) as exc:
+        raise UploadError("Cannot parse the uploaded file or selected sheet") from exc
+
+
+def _parse_frame(raw: bytes, filename: str, sheet: str | None = None,
+                header_row: int | None = None) -> pd.DataFrame:
     name = filename.lower()
     if name.endswith(".csv"):
-        return pd.read_csv(io.BytesIO(raw), dtype=str, keep_default_na=True)
+        return pd.read_csv(io.BytesIO(raw), dtype=str, keep_default_na=True, nrows=MAX_ROWS + 1)
     if name.endswith(".xlsx"):
         if header_row is None:
             # Two-pass: read headerless to find the real header row, then
             # re-read with it applied. Small files (<10MB cap) — the extra
             # parse is cheap and keeps header detection out of every caller.
             probe = pd.read_excel(io.BytesIO(raw), sheet_name=sheet or 0, header=None,
-                                  dtype=str, engine="openpyxl")
+                                  dtype=str, engine="openpyxl", nrows=_HEADER_SCAN_ROWS)
             header_row = detect_header_row(probe)
         return pd.read_excel(io.BytesIO(raw), sheet_name=sheet or 0, header=header_row,
-                             dtype=str, engine="openpyxl")
+                             dtype=str, engine="openpyxl", nrows=MAX_ROWS + 1)
     if name.endswith(".xls"):
         # Legacy .xls needs xlrd, which isn't a dependency — fail clearly rather
         # than with an opaque engine error.
@@ -129,13 +140,28 @@ def list_sheets(raw: bytes, filename: str) -> list[str]:
     return []
 
 
-def load_upload_frame(conn: sqlite3.Connection, upload_id: str, sheet: str | None = None) -> pd.DataFrame:
-    row = conn.execute("SELECT * FROM uploads WHERE id = ?", (upload_id,)).fetchone()
+def get_upload(conn: sqlite3.Connection, upload_id: str):
+    ws = current_workspace()
+    scope = "workspace_id IS NULL" if ws is None else "workspace_id = ?"
+    params = (upload_id,) if ws is None else (upload_id, ws)
+    row = conn.execute(
+        f"SELECT * FROM uploads WHERE id = ? AND {scope}", params,
+    ).fetchone()
     if row is None:
         raise UploadError(f"Upload {upload_id} not found")
-    raw = Path(row["file_path"]).read_bytes()
+    return row
+
+
+def load_upload_frame(conn: sqlite3.Connection, upload_id: str, sheet: str | None = None) -> pd.DataFrame:
+    row = get_upload(conn, upload_id)
+    try:
+        raw = Path(row["file_path"]).read_bytes()
+    except OSError as exc:
+        raise UploadError("Uploaded file is unavailable; please upload it again") from exc
     chosen = sheet or row["chosen_sheet"]
     df = _read_frame(raw, row["filename"], chosen)
+    if len(df) > MAX_ROWS:
+        raise UploadError(f"Selected sheet exceeds the {MAX_ROWS:,} row limit")
     # Drop fully-empty rows/columns that Excel exports love to include.
     df = df.dropna(how="all").dropna(axis=1, how="all")
     df.columns = [str(c).strip() for c in df.columns]
@@ -144,9 +170,7 @@ def load_upload_frame(conn: sqlite3.Connection, upload_id: str, sheet: str | Non
 
 def upload_sheet_period(conn: sqlite3.Connection, upload_id: str, sheet: str | None = None) -> str | None:
     """The as-of period stated by the chosen sheet's name/title rows, if any."""
-    row = conn.execute("SELECT * FROM uploads WHERE id = ?", (upload_id,)).fetchone()
-    if row is None:
-        raise UploadError(f"Upload {upload_id} not found")
+    row = get_upload(conn, upload_id)
     filename = row["filename"]
     if not filename.lower().endswith(".xlsx"):
         return None
@@ -173,12 +197,12 @@ def create_upload(conn: sqlite3.Connection, raw: bytes, filename: str) -> dict:
         raise UploadError("Uploaded file is empty")
 
     upload_id = uuid.uuid4().hex[:12]
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     suffix = Path(filename).suffix or ".csv"
     file_path = UPLOAD_DIR / f"{upload_id}{suffix}"
-    file_path.write_bytes(raw)
-
-    sheets = list_sheets(raw, filename)
+    try:
+        sheets = list_sheets(raw, filename)
+    except (ValueError, OSError, BadZipFile) as exc:
+        raise UploadError("Cannot parse the uploaded workbook") from exc
     df = _read_frame(raw, filename, sheets[0] if sheets else None)
     df = df.dropna(how="all").dropna(axis=1, how="all")
     df.columns = [str(c).strip() for c in df.columns]
@@ -188,18 +212,32 @@ def create_upload(conn: sqlite3.Connection, raw: bytes, filename: str) -> dict:
         raise UploadError(f"File has {len(df):,} rows; the limit is {MAX_ROWS:,}")
 
     signature = column_signature(list(df.columns))
-    conn.execute(
-        """
-        INSERT INTO uploads (id, filename, file_path, sheets, chosen_sheet, column_signature)
-        VALUES (?, ?, ?, ?, ?, ?)
-        """,
-        (upload_id, filename, str(file_path), json.dumps(sheets), sheets[0] if sheets else None, signature),
-    )
-    conn.commit()
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    created = False
+    try:
+        # Do not overwrite another upload in the unlikely event of an ID collision.
+        with file_path.open("xb") as target:
+            created = True
+            target.write(raw)
+        conn.execute(
+            """
+            INSERT INTO uploads (id, filename, file_path, sheets, chosen_sheet, column_signature, workspace_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (upload_id, filename, str(file_path), json.dumps(sheets),
+             sheets[0] if sheets else None, signature, current_workspace()),
+        )
+        conn.commit()
+    except Exception:
+        try:
+            conn.rollback()
+        finally:
+            if created:
+                file_path.unlink(missing_ok=True)
+        raise
 
-    template = conn.execute(
-        "SELECT id FROM mapping_templates WHERE column_signature = ?", (signature,)
-    ).fetchone()
+    from app.ingestion.templates import match_template
+    template = match_template(conn, signature)
 
     preview = df.head(20).fillna("").astype(str)
     return {
