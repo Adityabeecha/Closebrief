@@ -1,6 +1,7 @@
 import hmac
 import json
 import logging
+import re
 import time
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
@@ -77,7 +78,7 @@ from app.ingestion.upload import (
     load_upload_frame,
     upload_sheet_period,
 )
-from app.kpis.library import KPI_LIBRARY, suggest_kpi
+from app.kpis.library import library_listing, suggest_import_defaults
 from app.notifications.scheduler import deliver as notif_deliver
 from app.retrieval.retrieve import retrieve
 from app.scheduling import record_digest_run
@@ -1171,6 +1172,32 @@ def ingest_join_budget(upload_id: str, payload: dict,
         conn.close()
 
 
+_GROUP_DIM = re.compile(r"account_?(group|type|class|section)|^(group|class|section|category)$", re.I)
+
+
+def _metric_ledger_hints(canonical) -> dict[str, tuple[str | None, str | None]]:
+    """metric -> (account group, account code) from the upload itself: the
+    most common value of an account-group-like dimension, and the first id.
+    These are the customer's own classification, so the KPI picker trusts
+    them over name keywords."""
+    hints: dict[str, tuple[str | None, str | None]] = {}
+    for metric, rows in canonical.groupby("metric", sort=False):
+        group = None
+        groups: list[str] = []
+        for raw in rows["dimensions"].dropna():
+            try:
+                dims = json.loads(raw)
+            except (TypeError, ValueError):
+                continue
+            groups += [str(v) for k, v in dims.items() if _GROUP_DIM.search(k) and v not in ("", "nan", "None")]
+        if groups:
+            group = max(set(groups), key=groups.count)
+        ids = rows["id"].dropna() if "id" in rows else []
+        code = str(ids.iloc[0]) if len(ids) else None
+        hints[metric] = (group, code)
+    return hints
+
+
 @app.get("/ingest/{upload_id}/metrics")
 def ingest_metrics(upload_id: str, _: CurrentUser = Depends(require_write)) -> list[dict]:
     """Distinct metric names in this upload's normalized data, each with a
@@ -1186,8 +1213,10 @@ def ingest_metrics(upload_id: str, _: CurrentUser = Depends(require_write)) -> l
         mapping = MappingSpec(**json.loads(row["mapping"]))
         df = load_upload_frame(conn, upload_id)
         canonical = normalize(df, mapping)
+        hints = _metric_ledger_hints(canonical)
         return [
-            {"source_metric": m, "suggestion": suggest_kpi(m)}
+            {"source_metric": m,
+             "suggestion": suggest_import_defaults(m, *hints.get(m, (None, None)))}
             for m in sorted(canonical["metric"].unique())
         ]
     finally:
@@ -1320,7 +1349,7 @@ def kpi_library(domain: str | None = None, _: CurrentUser = Depends(require_read
     """KPI suggestions. Defaults to FP&A; pass ?domain= for a domain's library."""
     if domain and registry.has(domain):
         return get_domain(domain).kpi_library
-    return [{k: v for k, v in kpi.items() if k != "match"} for kpi in KPI_LIBRARY]
+    return library_listing()
 
 
 @app.post("/compute")
