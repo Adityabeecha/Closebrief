@@ -78,6 +78,43 @@ def _load_facts_for_period(conn: sqlite3.Connection, period: str,
     ]
 
 
+def _fmt_amount(value: float | None, unit: str | None) -> str:
+    """Executive-readable magnitude: $271.3K / $2.59M for USD, 1,234 otherwise.
+    The guard's 2% tolerance verifies these against the raw fact."""
+    if value is None:
+        return "n/a"
+    sign = "-" if value < 0 else ""
+    v = abs(value)
+    if (unit or "").upper() == "USD":
+        if v >= 1e9:
+            return f"{sign}${v / 1e9:.2f}B"
+        if v >= 1e6:
+            return f"{sign}${v / 1e6:.2f}M"
+        if v >= 1e4:
+            return f"{sign}${v / 1e3:.1f}K"
+        return f"{sign}${v:,.0f}"
+    if (unit or "") == "%":
+        return f"{value:.1f}%"
+    return f"{sign}{v:,.0f}" if v >= 100 else f"{sign}{v:,.2f}".rstrip("0").rstrip(".")
+
+
+def _fmt_pct(value: float | None) -> str:
+    return "n/a" if value is None else f"{value:+.1f}%"
+
+
+def build_digest_prompt(fact: ComputedFact) -> str:
+    """Numbers are pre-rounded here: the system prompt forbids re-rounding, so
+    raw floats (1.1999997910746822) would otherwise be copied verbatim."""
+    return (
+        f"Metric: {fact.metric}\nPeriod: {fact.period}\n"
+        f"value: {_fmt_amount(fact.value, fact.unit)}\n"
+        f"month_over_month: {_fmt_pct(fact.deltas.mom_pct)}\n"
+        f"budget_variance: {_fmt_amount(fact.deltas.budget_var_abs, fact.unit)}\n"
+        f"budget_variance_pct: {_fmt_pct(fact.deltas.budget_var_pct)}\n"
+        "Quote these figures exactly as written.\n"
+    )
+
+
 def generate_digest(
     conn: sqlite3.Connection, period: str, llm_client: LLMClient, top_n: int = 5,
     dataset_id: int | None = None,
@@ -92,13 +129,7 @@ def generate_digest(
     items: list[DigestItem] = []
     total_cost = 0.0
     for fact in ranked:
-        user_prompt = (
-            f"Metric: {fact.metric}\nPeriod: {fact.period}\n"
-            f"value: {fact.value:,.2f} {fact.unit}\n"
-            f"mom_pct: {fact.deltas.mom_pct}\n"
-            f"budget_var_abs: {fact.deltas.budget_var_abs:,.2f} {fact.unit}\n"
-            f"budget_var_pct: {fact.deltas.budget_var_pct}\n"
-        )
+        user_prompt = build_digest_prompt(fact)
         t0 = time.perf_counter()
         result, usage = llm_client.generate_narrative(DIGEST_SYSTEM_PROMPT, user_prompt)
         latency_ms = round((time.perf_counter() - t0) * 1000, 1)

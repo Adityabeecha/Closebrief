@@ -107,6 +107,25 @@ def test_duration_and_calendar_day_not_flagged():
     assert passed, f"unexpected unverified numbers: {unverified}"
 
 
+def test_trend_streak_count_not_flagged():
+    # The streak length comes from our own trend detector and is fed to the
+    # prompt; "4 consecutive months" must not fail the narrative (QA P0 #3).
+    narrative = (
+        "Net revenue fell 12% to $4.2M and has declined for 4 consecutive months, "
+        "after 3 straight quarters of growth."
+    )
+    passed, unverified = check_faithfulness(narrative, make_fact())
+    assert passed, f"unexpected unverified numbers: {unverified}"
+
+
+def test_bare_count_still_flagged_without_duration_noun():
+    # Loosening the duration rule must not let a bare invented count through.
+    narrative = "Net revenue fell 12% to $4.2M across 4 consecutive regions."
+    passed, unverified = check_faithfulness(narrative, make_fact())
+    assert not passed
+    assert 4.0 in unverified
+
+
 def test_number_from_context_is_allowed():
     # A figure the model cites from provided context counts as grounded.
     context = [

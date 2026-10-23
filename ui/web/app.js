@@ -511,7 +511,8 @@ async function boot(){
   appCfg=cfg;
   initSentry(cfg);
   if(cfg.demo_enabled){const b=$("lg-demo");if(b)b.style.display="";const n=$("lg-demo-note");if(n)n.style.display="";}
-  if(!cfg.auth_enabled){startApp();return;}                    // local-dev bypass
+  // Local-dev bypass. #app-root ships display:none, so reveal it here too.
+  if(!cfg.auth_enabled){hideLogin();startApp();return;}
   // A Closebrief session (Google sign-in) survives reloads and needs no Supabase.
   const saved=savedSessionToken();
   if(saved){authToken=saved;hideLogin();appStarted=true;await startApp();return;}
@@ -2042,14 +2043,22 @@ async function loadSchema(){
   }else{wb.style.display="none";}
   renderMap();
 }
+// Initial role for a profiled column. A measure the profiler found to be the
+// same figure as another (amount_local vs amount_usd) starts as "ignore" —
+// the mapping warning already says only one is kept, and keeping both
+// doubles every metric and sums mixed currencies.
+function roleFor(c){
+  return c.redundant_with&&c.guessed_role==="measure"?"ignore":c.guessed_role;
+}
 const ROLES=["period","metric_label","measure","budget","id","quantity","price","dimension","ignore"];
 function renderMap(){
   if(!profile)return;const layout=$("layout-sel").value;
   $("map-holder").innerHTML=`<table class="map"><thead><tr><th>Column</th><th>Type</th><th>Sample</th><th>Role</th></tr></thead><tbody>`+
     profile.columns.map(c=>{const wp=profile.wide_period_cols.includes(c.column_name);
-      return`<tr><td><b>${esc(c.column_name)}</b>${layout==="wide"&&wp?' <span class="suggest">period col</span>':""}</td>
+      const role=roleFor(c);
+      return`<tr><td><b>${esc(c.column_name)}</b>${layout==="wide"&&wp?' <span class="suggest">period col</span>':""}${c.redundant_with&&role==="ignore"?` <span class="suggest">duplicate of ${esc(c.redundant_with)}</span>`:""}</td>
         <td>${esc(c.dtype)}</td><td class="samp">${c.sample_values.slice(0,3).map(esc).join(" · ")}</td>
-        <td>${layout==="wide"&&wp?'<span class="samp">melted</span>':`<select data-col="${esc(c.column_name)}" class="role" onchange="updateMapHint()">${ROLES.map(r=>`<option value="${r}" ${c.guessed_role===r?"selected":""}>${r.replace("_"," ")}</option>`).join("")}</select>`}</td></tr>`;
+        <td>${layout==="wide"&&wp?'<span class="samp">melted</span>':`<select data-col="${esc(c.column_name)}" class="role" onchange="updateMapHint()">${ROLES.map(r=>`<option value="${r}" ${role===r?"selected":""}>${r.replace("_"," ")}</option>`).join("")}</select>`}</td></tr>`;
     }).join("")+`</tbody></table>`;
   updateMapHint();
 }
@@ -2086,7 +2095,9 @@ async function confirmMapping(m){
     const res=await api(`/ingest/${upload.upload_id}/mapping?save_template=${$("save-tpl").checked}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(mapping)});
     $("imp-result").innerHTML="";
     $("norm-summary").innerHTML=`✓ Normalized ${plural(res.rows_normalized,"row")} · ${plural(res.metrics.length,"metric")} · ${plural(res.periods.length,"period")} · ${res.facts_computed} facts${res.template_id?" · template saved":""}`;
-    lastImport={rows:res.rows_normalized,metrics:res.metrics.length,periods:res.periods.length};
+    // dataset_id is the dataset THIS import created; activeDatasetId is still
+    // whatever was selected before (or null) until loadDatasets() runs.
+    lastImport={rows:res.rows_normalized,metrics:res.metrics.length,periods:res.periods.length,datasetId:res.dataset_id??null};
     // Default the dataset name to the uploaded filename without its extension.
     const fn=(upload&&upload.filename)||"";
     $("imp-name").value=fn.replace(/\.[^.]+$/,"")||"Imported dataset";
@@ -2129,10 +2140,14 @@ async function confirmKpis(){
   const kpis=[...document.querySelectorAll(".kpi-grid[data-src]")].map(r=>({source_metric:r.dataset.src,display_name:r.querySelector(".k-name").value,category:r.querySelector(".k-cat").value,unit:r.querySelector(".k-unit").value,direction_good:r.querySelector(".k-dir").value}));
   try{
   await api("/kpis",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kpis})});
-  // Apply the chosen display name + domain to the freshly-created dataset.
+  // Apply the chosen display name + domain to the freshly-created dataset —
+  // by the id the import returned, never activeDatasetId (that would rename
+  // the previously selected dataset).
   const name=($("imp-name").value||"").trim(),domain=$("imp-domain").value;
-  if(activeDatasetId!=null&&(name||domain)){
-    try{await api(`/datasets/${activeDatasetId}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name||undefined,domain})});}catch{}
+  const newId=lastImport&&lastImport.datasetId;
+  if(newId!=null&&(name||domain)){
+    try{await api(`/datasets/${newId}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name||undefined,domain})});}
+    catch(e){toast("Imported, but couldn't save the dataset name: "+e.message);}
   }
   resetImport();await loadPeriods();nav("dashboard");
   // Show a success banner on the dashboard with a one-click Generate action.

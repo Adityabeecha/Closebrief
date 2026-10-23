@@ -29,9 +29,11 @@ _MULTIPLIERS = {
 }
 
 # A bare integer immediately followed by one of these is a duration, not a KPI
-# figure ("12-month trend", "3 quarters").
+# figure ("12-month trend", "3 quarters"). Streak phrasing puts an adjective
+# in between ("4 consecutive months") — that count is ours, not the model's.
 _DURATION_AFTER = re.compile(
-    r"^\s*-?\s*(month|months|day|days|week|weeks|quarter|quarters|year|years|mo|yr)\b",
+    r"^\s*-?\s*(?:(?:consecutive|straight|successive|sequential|trailing|full)\s+)?"
+    r"(month|months|day|days|week|weeks|quarter|quarters|year|years|mo|yr)\b",
     re.IGNORECASE,
 )
 # A bare integer immediately preceded by a month name is a calendar day
@@ -80,7 +82,7 @@ def _is_date_or_duration(match: re.Match, text: str, raw: str, suffix: str, perc
     if any(date.start() <= match.start(1) and match.end(1) <= date.end()
            for date in _ISO_DATE.finditer(text)):
         return True
-    after = text[match.end() : match.end() + 12]
+    after = text[match.end() : match.end() + 32]
     before = text[max(0, match.start() - 12) : match.start()]
     return bool(_DURATION_AFTER.match(after) or _MONTH_BEFORE.search(before))
 
