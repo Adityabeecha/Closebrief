@@ -30,6 +30,7 @@ from app.compute.correlations import (
     compute_correlations,
     correlations_for_metric,
     detect_consecutive_trends,
+    streak_from_history,
 )
 from app.compute.formula import FormulaError
 from app.compute.funnel import compute_funnel
@@ -762,20 +763,20 @@ def _chart_data(conn, metric_id: int, metric_name: str, period: str) -> dict:
         """,
         (metric_id, period),
     ).fetchall()
+    current = trend_rows[0] if trend_rows and trend_rows[0]["period"] == period else None
+    return _chart_from_rows(trend_rows, current, _load_bridge(conn, metric_name, period))
+
+
+def _chart_from_rows(history_desc, current, vb: dict | None) -> dict:
+    """Build chart_data from a metric's metric_values rows (newest first) and its
+    already-resolved P/V/M bridge."""
     trend = [
         {"period": r["period"], "value": r["value"], "budget": r["budget"]}
-        for r in reversed(trend_rows)
+        for r in reversed(history_desc[:12])
     ]
-
-    current = conn.execute(
-        "SELECT value, budget FROM metric_values WHERE metric_id = ? AND period = ?",
-        (metric_id, period),
-    ).fetchone()
     budget_vs_actual = (
         {"actual": current["value"], "budget": current["budget"]} if current else None
     )
-
-    vb = _load_bridge(conn, metric_name, period)
     bridge = None
     if vb is not None:
         bridge = [
@@ -783,8 +784,48 @@ def _chart_data(conn, metric_id: int, metric_name: str, period: str) -> dict:
             {"component": "Price", "impact": vb["price"]},
             {"component": "Mix", "impact": vb["mix"]},
         ]
-
     return {"trend": trend, "budget_vs_actual": budget_vs_actual, "variance_bridge": bridge}
+
+
+def _prefetch_cards(conn, names_by_id: dict[int, str], period: str) -> dict[int, tuple[dict, dict | None]]:
+    """chart_data and trend streak for every dashboard card in three queries.
+    Per card this was ~7 round trips (trend, current, bridge x3, streak x2),
+    which on a remote Postgres made /facts take ~9 s for 7 KPIs."""
+    if not names_by_id:
+        return {}
+    ids = list(names_by_id)
+    ph = ",".join("?" * len(ids))
+    history: dict[int, list] = {}
+    for r in conn.execute(
+        f"""SELECT metric_id, period, value, budget, quantity, budget_quantity, price, budget_price
+            FROM metric_values WHERE metric_id IN ({ph}) AND period <= ?
+            ORDER BY metric_id, period DESC""",
+        (*ids, period),
+    ).fetchall():
+        history.setdefault(r["metric_id"], []).append(r)
+    pvm = {
+        r["metric_id"]: r
+        for r in conn.execute(
+            f"SELECT metric_id, volume, price, mix FROM pvm_bridges WHERE metric_id IN ({ph}) AND period = ?",
+            (*ids, period),
+        ).fetchall()
+    }
+    moms: dict[int, list] = {}
+    for r in conn.execute(
+        f"""SELECT metric_id, period, mom_pct FROM computed_facts
+            WHERE metric_id IN ({ph}) AND mom_pct IS NOT NULL ORDER BY metric_id, period""",
+        tuple(ids),
+    ).fetchall():
+        moms.setdefault(r["metric_id"], []).append((r["period"], r["mom_pct"]))
+    out = {}
+    for mid, name in names_by_id.items():
+        h = history.get(mid, [])
+        current = h[0] if h and h[0]["period"] == period else None
+        out[mid] = (
+            _chart_from_rows(h, current, _bridge_from_rows(pvm.get(mid), current)),
+            streak_from_history(moms.get(mid, []), period, name),
+        )
+    return out
 
 
 def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_charts: bool = True) -> list[dict]:
@@ -954,6 +995,11 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
                     if fr["user_email"] is not None:
                         reviewer_by_report[fr["report_id"]] = fr["user_email"]
 
+        card_data = _prefetch_cards(
+            conn,
+            {r["metric_id"]: r["metric"] for r in rows if r["metric_id"] is not None and r["value"] is not None},
+            period,
+        )
         out = []
         for r in rows:
             has_data = r["metric_id"] is not None and r["value"] is not None
@@ -990,14 +1036,8 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
                 "latency_ms": report["latency_ms"] if (report and sensitive) else None,
                 "generated_by": report["user_email"] if (report and sensitive) else None,
                 "reviewed_by": reviewer if (report and sensitive) else None,
-                "chart_data": (
-                    _chart_data(conn, r["metric_id"], r["metric"], period)
-                    if include_charts and has_data else None
-                ),
-                "trend_streak": (
-                    detect_consecutive_trends(conn, r["metric_id"], period)
-                    if has_data else None
-                ),
+                "chart_data": card_data[r["metric_id"]][0] if include_charts and has_data else None,
+                "trend_streak": card_data[r["metric_id"]][1] if has_data else None,
             })
         return out
     finally:
@@ -1391,8 +1431,7 @@ def _load_bridge(conn, metric: str, period: str) -> dict | None:
         (metric_id, period),
     ).fetchone()
     if row is not None:
-        return {"volume": row["volume"], "price": row["price"], "mix": row["mix"]}
-
+        return _bridge_from_rows(row, None)
     mv = conn.execute(
         """
         SELECT quantity, budget_quantity, price, budget_price
@@ -1400,9 +1439,17 @@ def _load_bridge(conn, metric: str, period: str) -> dict | None:
         """,
         (metric_id, period),
     ).fetchone()
-    if mv:
+    return _bridge_from_rows(None, mv)
+
+
+def _bridge_from_rows(pvm_row, mv_row) -> dict | None:
+    """Stored multi-item P/V/M bridge if there is one, else an on-the-fly
+    single-row bridge from the period's qty/price detail."""
+    if pvm_row is not None:
+        return {"volume": pvm_row["volume"], "price": pvm_row["price"], "mix": pvm_row["mix"]}
+    if mv_row:
         vb = bridge_for_metric_row(
-            mv["quantity"], mv["budget_quantity"], mv["price"], mv["budget_price"]
+            mv_row["quantity"], mv_row["budget_quantity"], mv_row["price"], mv_row["budget_price"]
         )
         if vb is not None:
             return {"volume": vb.volume, "price": vb.price, "mix": vb.mix}

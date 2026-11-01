@@ -116,8 +116,20 @@ def detect_consecutive_trends(conn, metric_id: int, period: str, min_months: int
         """,
         (metric_id,),
     ).fetchall()
+
+    def metric_name() -> str:
+        name_row = conn.execute("SELECT name FROM metrics WHERE id = ?", (metric_id,)).fetchone()
+        return name_row["name"] if name_row else str(metric_id)
+
+    return streak_from_history([(r["period"], r["mom_pct"]) for r in rows], period, metric_name, min_months)
+
+
+def streak_from_history(history, period: str, metric_name, min_months: int = 3) -> dict | None:
+    """The streak rule on already-loaded data, so callers can batch the query.
+    `history` is (period, mom_pct) pairs in ascending period order; `metric_name`
+    is the name or a zero-arg callable, resolved only when a streak exists."""
     # Keep months at or before the target period (months_between(row, target) >= 0).
-    hist = [(r["period"], float(r["mom_pct"])) for r in rows if _months_between(r["period"], period) >= 0]
+    hist = [(p, float(v)) for p, v in history if v is not None and _months_between(p, period) >= 0]
     if len(hist) < min_months or hist[-1][0] != period:
         return None
 
@@ -138,9 +150,8 @@ def detect_consecutive_trends(conn, metric_id: int, period: str, min_months: int
     if len(streak) < min_months:
         return None
     streak.reverse()
-    name_row = conn.execute("SELECT name FROM metrics WHERE id = ?", (metric_id,)).fetchone()
     return {
-        "metric": name_row["name"] if name_row else str(metric_id),
+        "metric": metric_name() if callable(metric_name) else metric_name,
         "direction": "growing" if last_sign > 0 else "declining",
         "months": len(streak),
         "start_period": streak[0],
