@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import json
 import shutil
 import subprocess
@@ -313,3 +314,133 @@ def test_mobile_drawer_manages_accessibility_and_keyboard_focus():
         "focusOutsideDrawer": True,
         "focusRestored": True,
     }
+
+
+def _import_probe_page(width, theme):
+    """Exercise the real UI and API, including cleanup, inside a sized frame."""
+    script = r"""
+const frame=document.getElementById('site');
+const wait=async test=>{for(let i=0;i<200;i++){if(test())return;await new Promise(r=>setTimeout(r,25));}throw Error('Timed out waiting for UI');};
+frame.onload=async()=>{
+  const w=frame.contentWindow,d=frame.contentDocument,$=id=>d.getElementById(id),check=(value,msg)=>{if(!value)throw Error(msg)};
+  try{
+    await wait(()=>w.eval('routerReady'));
+    d.documentElement.setAttribute('data-theme',THEME);w.nav('import');
+    const csv=await fetch('/sample').then(r=>r.text());
+    const importFile=async()=>{await w.uploadFile(new w.File([csv],'sample_fpa.csv',{type:'text/csv'}));await w.confirmMapping();};
+    await importFile();
+    check($('st-3').getAttribute('aria-current')==='step','Current step missing');
+    check($('st-1').textContent.includes('done')&&$('st-1').textContent.includes('✓'),'Completed step missing');
+    const rows=[...d.querySelectorAll('.kpi-grid[data-src]')];check(rows.length>2,'Sample KPI rows missing');
+    check(rows.every(r=>r.querySelector('.k-include').checked),'Include default');
+    check(rows.every(r=>[...r.querySelectorAll('input,select')].every(el=>el.getAttribute('aria-label')?.includes(r.dataset.src))),
+      'Row labels missing');
+    check(rows.every(r=>r.querySelector('.kpi-source').textContent.includes(r.dataset.src)),'Source names missing');
+    w.selectKpis(false);check($('imp-finish').disabled,'Empty selection allowed');
+    rows.slice(0,2).forEach(r=>{r.querySelector('.k-include').click();r.querySelector('.k-select').click();});
+    $('kpi-bulk-category').value='Operating costs';$('kpi-bulk-unit').value='count';$('kpi-bulk-direction').value='down';$('kpi-bulk-apply').click();
+    check(rows[0].querySelector('.k-cat').value==='Operating costs'&&rows[1].querySelector('.k-dir').value==='down','Bulk edit failed');
+    check(rows[2].querySelector('.k-cat').value!=='Operating costs','Bulk edit leaked');
+    const layout={viewport:d.documentElement.clientWidth,scroll:d.documentElement.scrollWidth,
+      columns:w.getComputedStyle(rows[0]).gridTemplateColumns.split(' ').length,
+      fieldLabels:[...rows[0].querySelectorAll('.kpi-field-label')].every(el=>el.getClientRects().length),
+      bulkTargetHeight:Math.min(...[...d.querySelectorAll('.kpi-bulk input,.kpi-bulk select')].map(el=>el.getBoundingClientRect().height)),
+      theme:d.documentElement.getAttribute('data-theme')};
+    $('imp-name').value='Sample finance';$('imp-finish').click();await wait(()=>w.location.hash==='#dashboard');
+    const configured=await w.api('/kpis');check(configured.selected.length===2,'Excluded KPIs were sent');
+    check(configured.selected.every(k=>k.category==='Operating costs'&&k.direction_good==='down'&&k.unit==='count'),'Bulk values not saved');
+    w.nav('import');await importFile();$('imp-name').value='Sample finance';
+    const pending=w.eval('lastImport.datasetId');
+    await w.api('/datasets/'+pending,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'Sample finance'})});
+    await w.loadDatasets();$('imp-mode').value='join';await w.onImportModeChange();
+    const options=[...$('imp-target').options];check(options.length===2,'Duplicate datasets missing');
+    check(options.every(o=>/KPIs? · imported/.test(o.textContent)),'Target metadata missing');
+    const choices=[...d.querySelectorAll('#ws-menu .ws-choice')];
+    check(choices.every(el=>/KPIs? · imported/.test(el.textContent)),'Picker metadata missing');
+    $('imp-mode').value='new';await w.onImportModeChange();
+    const leave=()=>w.requestImportView('dashboard');
+    let leaving=leave();await wait(()=>$('modal-back').classList.contains('open'));w.closeModal();await leaving;
+    check(w.location.hash==='#import'&&w.eval('lastImport.datasetId')===pending,'Cancel lost import');
+    leaving=leave();await wait(()=>$('modal-back').classList.contains('open'));$('modal-ok').click();await leaving;
+    check(w.location.hash==='#dashboard','Leave did not navigate');
+    const datasets=await w.api('/datasets');check(datasets.datasets.length===1,'Abandoned dataset not removed');
+    document.getElementById('result').textContent=JSON.stringify({...layout,kpis:configured.selected.length,cleaned:true});
+  }catch(e){document.getElementById('result').textContent=JSON.stringify({error:e.stack});}
+};
+""".replace("THEME", json.dumps(theme))
+    return (f'<!doctype html><meta charset="utf-8"><iframe id="site" src="/" '
+            f'style="width:{width}px;height:1000px;border:0"></iframe><pre id="result">waiting</pre>'
+            f'<script>{script}</script>').encode()
+
+
+@pytest.mark.parametrize("width", [375, 1280])
+@pytest.mark.parametrize("theme", ["light", "dark"])
+def test_sample_import_kpi_selection_and_abandonment_fit_viewport(width, theme, tmp_path, monkeypatch):
+    """Catch import payload, accessible controls, phone layout and cleanup regressions."""
+    from fastapi.testclient import TestClient
+
+    from app import main
+    from app.config import settings
+    from app.deps import shared_cache
+
+    browser = _chrome_path()
+    if not browser:
+        pytest.skip("Chrome is required for the import flow")
+    monkeypatch.setattr(settings, "database_url", "")
+    monkeypatch.setattr(settings, "db_path", str(tmp_path / "import.db"))
+    monkeypatch.setattr(settings, "auth_enabled", False)
+    monkeypatch.setattr(settings, "redis_url", "")
+    shared_cache.cache_clear()
+    main.init_db()
+
+    with TestClient(main.app) as client:
+        class Handler(SimpleHTTPRequestHandler):
+            def log_message(self, *_args):
+                pass
+
+            def do_GET(self):
+                if self.path == "/probe":
+                    return self.send_body(_import_probe_page(width, theme), "text/html; charset=utf-8")
+                if self.path == "/sample":
+                    return self.send_body((WEB_ROOT.parents[1] / "data/sample_fpa.csv").read_bytes(), "text/csv")
+                self.proxy()
+
+            def do_POST(self):
+                self.proxy()
+
+            do_PATCH = do_POST
+            do_DELETE = do_POST
+
+            def send_body(self, body, content_type, status=200):
+                self.send_response(status)
+                self.send_header("Content-Type", content_type)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def proxy(self):
+                body = self.rfile.read(int(self.headers.get("Content-Length", 0)))
+                response = client.request(self.command, self.path, content=body,
+                                          headers={"Content-Type": self.headers.get("Content-Type", "application/json")})
+                self.send_body(response.content, response.headers.get("content-type", "application/json"), response.status_code)
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        try:
+            proc = subprocess.run([browser, "--headless=new", "--disable-gpu", "--no-first-run",
+                                   f"--user-data-dir={tmp_path / 'chrome'}", "--virtual-time-budget=20000",
+                                   "--window-size=1400,1200", "--dump-dom", f"http://127.0.0.1:{server.server_port}/probe"],
+                                  capture_output=True, text=True, timeout=60, check=True)
+        finally:
+            server.shutdown()
+            thread.join()
+    shared_cache.cache_clear()
+    payload = html.unescape(proc.stdout.split('<pre id="result">', 1)[1].split("</pre>", 1)[0])
+    result = json.loads(payload)
+    assert "error" not in result, result
+    assert result["scroll"] <= result["viewport"]
+    assert result["columns"] == (1 if width == 375 else 5)
+    assert result["fieldLabels"] == (width == 375)
+    assert result["bulkTargetHeight"] >= 36
+    assert result["kpis"] == 2 and result["cleaned"]

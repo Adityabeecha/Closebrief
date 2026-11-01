@@ -20,11 +20,28 @@ _CONFIRM_KPIS_SETUP = """
   const els={'imp-name':{value:'Marketing Funnel QA'},'imp-domain':{value:'marketing'},
              'import-banner':{style:{},className:'',innerHTML:''}};
   const $=id=>(els[id]??={style:{},value:''});
-  const document={querySelectorAll:()=>[]};
+  const included={checked:true},fields={'.k-include':included,'.k-name':{value:'Revenue'},
+    '.k-cat':{value:'Sales'},'.k-unit':{value:'USD'},'.k-dir':{value:'up'}};
+  const rows=[{dataset:{src:'revenue_usd'},querySelector:s=>fields[s]}];
+  const document={querySelectorAll:()=>rows};
+  let kpiSaving=false,importLeaving=false;const updateKpiSelection=()=>{},esc=String;
   const api=async(path,opts={})=>{calls.push([opts.method||'GET',path,opts.body||null]);return {};};
   const resetImport=()=>{},loadPeriods=async()=>{},nav=()=>{},plural=(n,w)=>n+' '+w;
   const toasts=[];const toast=m=>toasts.push(m);
 """
+
+
+def test_finish_import_sends_only_included_kpis_and_rejects_empty_selection():
+    run_js("async function confirmKpis(", "// Entry point", _CONFIRM_KPIS_SETUP + """
+      let lastImport={rows:2,metrics:2,periods:1,datasetId:5};
+      rows.push({dataset:{src:'excluded'},querySelector:s=>s==='.k-include'?{checked:false}:fields[s]});
+    """, """
+      importLeaving=true;await confirmKpis();assert.deepEqual(calls,[]);importLeaving=false;
+      included.checked=false;await confirmKpis();assert.deepEqual(calls,[]);
+      included.checked=true;await confirmKpis();
+      assert.deepEqual(JSON.parse(calls.find(c=>c[1]==='/kpis')[2]).kpis,[{
+        source_metric:'revenue_usd',display_name:'Revenue',category:'Sales',unit:'USD',direction_good:'up'}]);
+    """)
 
 
 def test_finish_import_renames_the_new_dataset_not_the_previous_one():

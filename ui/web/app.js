@@ -183,7 +183,7 @@ function paletteActions(){
   ];
   const pageItems=pages.map(([v,l])=>({label:l,icon:CI.page,run:()=>requestImportView(v),group:"Pages"}));
   const metricItems=(currentFacts||[]).filter(f=>f.has_data).map(f=>({label:f.metric,sub:f.category||"",icon:CI.metric,
-    run:()=>requestImportAction(()=>{nav("dashboard");const i=shownFacts.indexOf(f);(i>=0)?openDetail(i):(currentFacts.includes(f)&&(searchQuery="",renderCards(),openDetail(shownFacts.indexOf(f))));}),group:"Metrics"}));
+    run:()=>requestImportAction(()=>{nav("dashboard");const fresh=currentFacts.find(x=>x.metric===f.metric);if(!fresh)return;const i=shownFacts.indexOf(fresh);(i>=0)?openDetail(i):(searchQuery="",renderCards(),openDetail(shownFacts.indexOf(fresh)));}),group:"Metrics"}));
   return[...acts,...pageItems,...metricItems];
 }
 function openPalette(){
@@ -1261,6 +1261,7 @@ async function switchWorkspace(id){
   await loadWorkspaces();await loadPeriods();
 }
 async function createWorkspaceUI(){
+  if(!await leaveImport())return;
   const name=await modalInput("New workspace",{label:"Workspace name",placeholder:"Acme Finance",okLabel:"Create",required:true});
   if(!name)return;
   try{const r=await api("/workspaces",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});
@@ -2089,16 +2090,18 @@ function hasUnfinishedImport(){return importStep===3&&lastImport?.datasetId!=nul
 async function leaveImport(){
   if(kpiSaving||importLeaving)return false;
   if(!hasUnfinishedImport())return true;
-  importLeaving=true;
+  importLeaving=true;updateKpiSelection();
   try{
     closeSidebar();
     const answer=modalConfirm("Leave import?","This dataset is unfinished. Delete it and leave, or cancel to keep choosing your KPIs.",{okLabel:"Delete and leave"});
     $("modal-ok").focus?.();
     if(!await answer)return false;
     await api(`/datasets/${lastImport.datasetId}`,{method:"DELETE"});
-    resetImport();await loadPeriods();toast("Unfinished import deleted");return true;
+    resetImport();
+    try{await loadPeriods();}catch(e){$("import-banner").style.display="";$("import-banner").className="banner err";$("import-banner").innerHTML=`Unfinished import deleted, but the dataset list could not refresh: ${esc(e.message)} <button class="btn sm" onclick="loadPeriods()">Retry</button>`;}
+    toast("Unfinished import deleted");return true;
   }catch(e){$("imp-result").innerHTML=`<div class="banner err">${esc(e.message)}. Your import is still open; try leaving again to retry.</div>`;return false;}
-  finally{importLeaving=false;}
+  finally{importLeaving=false;updateKpiSelection();if(hasUnfinishedImport())$("imp-name").focus?.();}
 }
 async function requestImportAction(action){if(await leaveImport())return action();}
 function requestImportView(view){if(view==="import"||(!hasUnfinishedImport()&&!kpiSaving))return nav(view);return requestImportAction(()=>nav(view));}
@@ -2259,9 +2262,9 @@ function selectKpis(include){kpiRows().forEach(r=>r.querySelector(".k-include").
 function selectKpiEdits(select){kpiRows().forEach(r=>r.querySelector(".k-select").checked=select);updateKpiSelection();}
 function updateKpiSelection(){
   const rows=kpiRows(),included=rows.filter(r=>r.querySelector(".k-include").checked).length,selected=rows.filter(r=>r.querySelector(".k-select").checked).length;
-  $("imp-finish").disabled=kpiLoading||kpiSaving||!included;
+  $("imp-finish").disabled=kpiLoading||kpiSaving||importLeaving||!included;
   $("kpi-selection").textContent=kpiSaving?"Finishing import…":kpiLoading?"Loading KPI choices…":included?plural(included,"KPI")+" included":"Include at least one KPI to finish.";
-  $("kpi-bulk-apply").disabled=kpiLoading||kpiSaving||!selected;
+  $("kpi-bulk-apply").disabled=kpiLoading||kpiSaving||importLeaving||!selected;
   $("kpi-bulk-selection").textContent=plural(selected,"row")+" selected for bulk edit";
 }
 function applyKpiBulk(){
@@ -2290,7 +2293,7 @@ async function loadKpiPicker(){
   finally{clearTimeout(slow);if(lastImport===current){kpiLoading=false;updateKpiSelection();}}
 }
 async function confirmKpis(){
-  if(kpiSaving)return;
+  if(kpiSaving||importLeaving)return;
   const kpis=[...document.querySelectorAll(".kpi-grid[data-src]")].filter(r=>r.querySelector(".k-include").checked).map(r=>({source_metric:r.dataset.src,display_name:r.querySelector(".k-name").value,category:r.querySelector(".k-cat").value,unit:r.querySelector(".k-unit").value,direction_good:r.querySelector(".k-dir").value}));
   if(!kpis.length){updateKpiSelection();return;}
   kpiSaving=true;updateKpiSelection();
