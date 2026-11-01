@@ -39,7 +39,7 @@
     --serif:'Newsreader',Georgia,'Times New Roman',serif;
     --mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
     --accent:#1e6e50; --accent-hi:#15573e; --accent-bg:#e9f3ee; --on-accent:#fff;
-    --ink:#16211b; --ink2:#33413a; --ink3:#48564e; --mut:#5c6a62; --mut2:#75837a;
+    --ink:#16211b; --ink2:#33413a; --ink3:#48564e; --mut:#5c6a62; --mut2:#616d66;
     --b08:rgba(22,33,27,.09); --b12:rgba(22,33,27,.14); --b24:rgba(22,33,27,.26);
     --bg:#f7f8f6; --bg2:#f1f3f0; --bg3:#e9ece8; --card:#fff;
     --green:#1e6e50; --green2:#25835f; --green-bg:#e9f3ee;
@@ -49,7 +49,7 @@
   }
   :root[data-theme="dark"]{
     --accent:#4fae83; --accent-hi:#6cc49b; --accent-bg:rgba(79,174,131,.15); --on-accent:#0d1411;
-    --ink:#e9eee9; --ink2:#d4dcd5; --ink3:#b4bfb6; --mut:#93a096; --mut2:#7d8a80;
+    --ink:#e9eee9; --ink2:#d4dcd5; --ink3:#b4bfb6; --mut:#93a096; --mut2:#859188;
     --b08:rgba(233,238,233,.07); --b12:rgba(233,238,233,.12); --b24:rgba(233,238,233,.22);
     --bg:#101613; --bg2:#161d19; --bg3:#212a24; --card:#171f1a;
     --green:#57b98c; --green2:#3fa877; --green-bg:rgba(87,185,140,.14);
@@ -146,7 +146,7 @@
   .nav-item.soon:hover{background:none}
   .soon-tag{margin-left:auto;font-size:9px;font-weight:700;color:var(--amber);background:var(--amber-bg);padding:2px 6px;border-radius:5px;letter-spacing:.05em}
   .side-foot{margin-top:auto;padding:12px 14px;border-top:1px solid var(--b08);display:flex;align-items:center;gap:10px}
-  .avatar{width:32px;height:32px;border-radius:50%;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;flex:none}
+  .avatar{width:32px;height:32px;border-radius:50%;background:var(--ink);color:var(--card);display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:700;flex:none}
   .side-foot b{font-size:12.5px;display:block;line-height:1.2}
   .side-foot span{font-size:11px;color:var(--mut)}
 
@@ -424,7 +424,7 @@
 
   /* ---------------- LOGIN GATE ---------------- */
   /* Login gate is always its own dark-left/light-right design, independent of app theme. */
-  #login-gate{position:fixed;inset:0;z-index:100;display:none;background:#101613;color:#fff;--ink:#e9eee9;--ink2:#d4dcd5;--ink3:#b4bfb6;--mut:#93a096;--mut2:#7d8a80;--b12:rgba(233,238,233,.14);--accent:#4fae83;--accent-hi:#6cc49b;--accent-bg:rgba(79,174,131,.15);--card:#171f1a;--red:#e57373;--red-bg:rgba(229,115,115,.13)}
+  #login-gate{position:fixed;inset:0;z-index:100;display:none;background:#101613;color:#fff;--ink:#e9eee9;--ink2:#d4dcd5;--ink3:#b4bfb6;--mut:#93a096;--mut2:#859188;--b12:rgba(233,238,233,.14);--accent:#4fae83;--accent-hi:#6cc49b;--accent-bg:rgba(79,174,131,.15);--on-accent:#0d1411;--card:#171f1a;--red:#e57373;--red-bg:rgba(229,115,115,.13)}
   #login-gate.show{display:flex}
   .lg-left{flex:1;padding:56px 60px;display:flex;flex-direction:column;justify-content:center;background:linear-gradient(160deg,#101613,#1a251e)}
   .lg-left .brand{margin-bottom:auto}
@@ -434,7 +434,7 @@
   .lg-left ul{list-style:none;margin-top:26px;display:flex;flex-direction:column;gap:12px}
   .lg-left li{display:flex;align-items:center;gap:10px;font-size:14px;color:#c8d2c8}
   .lg-left li svg{width:18px;height:18px;stroke:#4fae83;flex:none}
-  .lg-foot{margin-top:auto;color:#74816f;font-size:12px;padding-top:30px}
+  .lg-foot{margin-top:auto;color:var(--mut2);font-size:12px;padding-top:30px}
   .lg-right{width:460px;background:#151d18;color:var(--ink);display:flex;flex-direction:column;justify-content:center;padding:0 56px;border-left:1px solid rgba(233,238,233,.08)}
   .lg-right h3{font-size:22px;font-weight:800;letter-spacing:-.01em}
   .lg-right .psub{color:var(--mut);font-size:13.5px;margin:4px 0 26px}
@@ -443,7 +443,7 @@
   .lg-field input{width:100%;padding:11px 13px;border:1px solid var(--b12);border-radius:9px;font-size:14px;background:#101613;color:var(--ink)}
   .lg-field input::placeholder{color:var(--mut2)}
   .lg-field input:focus{outline:none;border-color:var(--accent)}
-  .lg-btn{width:100%;padding:12px;border-radius:9px;background:var(--accent);color:#fff;border:none;font-weight:700;font-size:14px;box-shadow:0 2px 6px rgba(30,110,80,.3)}
+  .lg-btn{width:100%;padding:12px;border-radius:9px;background:var(--accent);color:var(--on-accent);border:none;font-weight:700;font-size:14px;box-shadow:0 2px 6px rgba(30,110,80,.3)}
   .lg-btn:hover{background:var(--accent-hi)}
   .lg-toggle{margin-top:18px;text-align:center;font-size:13px;color:var(--mut)}
   .lg-toggle a{color:var(--accent);font-weight:700;cursor:pointer}
@@ -704,6 +704,26 @@
     .period-ctl .pnav{padding-inline:7px}
     .lg-right{padding-inline:20px}
   }
+
+  /* Tap targets: every control clears WCAG 2.5.8 (24px) everywhere, and ~40-44px
+     on touch screens and phones, where the card review actions were 14px tall. */
+  .txtact{min-height:24px;padding:0 2px}
+  .period-ctl .pnav{min-width:28px}
+  .banner .ico,.ico{min-width:28px;min-height:28px}
+  .fpill button{min-width:24px;min-height:24px}
+  @media (max-width:900px),(pointer:coarse){
+    .card-foot{gap:2px;margin-inline:-8px}
+    .txtact{min-height:40px;padding:0 8px;font-size:12.5px}
+    .period-ctl .pnav{min-width:40px}
+    .period-ctl .seg button{min-width:40px;min-height:40px}
+    .banner .ico,.ico{min-width:40px;min-height:40px}
+    .theme-btn{width:40px!important;height:40px!important}
+    .hamb{min-width:44px;min-height:44px}
+    .fpill button{min-width:36px;min-height:36px}
+    .chip,.fchip,.cpill,.tbtn{min-height:36px}
+    .ws-kebab>button{min-width:40px;min-height:40px}
+    .back{min-height:44px}
+  }
 </style>
 </head>
 <body>
@@ -724,8 +744,8 @@
     <h3 id="lg-title">Sign in</h3>
     <div class="psub" id="lg-psub">Welcome back. Sign in to your workspace.</div>
     <div class="lg-err" id="lg-err"></div>
-    <div class="lg-field"><label>Work email</label><input id="lg-email" type="email" placeholder="you@company.com" onkeydown="if(event.key==='Enter')submitAuth()"></div>
-    <div class="lg-field"><label>Password</label><input id="lg-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')submitAuth()"></div>
+    <div class="lg-field"><label for="lg-email">Work email</label><input id="lg-email" type="email" placeholder="you@company.com" onkeydown="if(event.key==='Enter')submitAuth()"></div>
+    <div class="lg-field"><label for="lg-pass">Password</label><input id="lg-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')submitAuth()"></div>
     <button class="lg-btn" id="lg-btn" onclick="submitAuth()">Sign in</button>
     <!-- Google Sign-In (optional). Hidden unless /auth/config says it's enabled;
          Google renders its own button inside #g-btn (their branding rules), and
@@ -956,7 +976,7 @@
         <div class="panel">
           <h3>Forecast</h3><div class="psub">Holt-Winters projection with a backtested error band (MAPE)</div>
           <div class="an-ctl">
-            <select id="fc-metric" class="pill-btn"></select>
+            <select id="fc-metric" aria-label="Metric to forecast" class="pill-btn"></select>
             <select id="fc-horizon" class="pill-btn" aria-label="Horizon">
               <option value="3">3 periods</option><option value="6">6 periods</option>
               <option value="9">9 periods</option><option value="12">12 periods</option>
@@ -972,18 +992,18 @@
         <!-- Scenario -->
         <div class="panel">
           <h3>What-if scenario</h3><div class="psub">Apply price / volume / mix levers to the latest actual — instant, deterministic</div>
-          <div class="an-ctl"><select id="scn-metric" class="pill-btn" onchange="runScenario()"></select></div>
+          <div class="an-ctl"><select id="scn-metric" aria-label="Metric for the scenario" class="pill-btn" onchange="runScenario()"></select></div>
           <div class="lever" data-lever="price">
             <div class="lever-top"><span>Price</span><span class="lever-val" id="scn-price-v">0%</span></div>
-            <input type="range" min="-50" max="50" value="0" step="1" oninput="onLever()" onchange="runScenario()" id="scn-price">
+            <input type="range" min="-50" max="50" value="0" step="1" oninput="onLever()" onchange="runScenario()" id="scn-price" aria-label="Price change, percent">
           </div>
           <div class="lever" data-lever="volume">
             <div class="lever-top"><span>Volume</span><span class="lever-val" id="scn-volume-v">0%</span></div>
-            <input type="range" min="-50" max="50" value="0" step="1" oninput="onLever()" onchange="runScenario()" id="scn-volume">
+            <input type="range" min="-50" max="50" value="0" step="1" oninput="onLever()" onchange="runScenario()" id="scn-volume" aria-label="Volume change, percent">
           </div>
           <div class="lever" data-lever="mix">
             <div class="lever-top"><span>Mix</span><span class="lever-val" id="scn-mix-v">0%</span></div>
-            <input type="range" min="-50" max="50" value="0" step="1" oninput="onLever()" onchange="runScenario()" id="scn-mix">
+            <input type="range" min="-50" max="50" value="0" step="1" oninput="onLever()" onchange="runScenario()" id="scn-mix" aria-label="Mix change, percent">
           </div>
           <div class="scn-out" id="scn-out"><div class="an-empty">Pick a metric and move a lever to project.</div></div>
         </div>
@@ -992,17 +1012,17 @@
         <div class="panel exec-hide">
           <h3>Custom KPI</h3><div class="psub">Define a metric by formula over existing metrics — it flows through compute, so it gets full trend, variance &amp; narrative support</div>
           <div class="fbuild">
-            <div><label class="lbl">Name</label><input id="kb-name" class="modal-field" placeholder="Gross Margin %"></div>
-            <div><label class="lbl">Formula</label><input id="kb-formula" class="modal-field" placeholder="([Net Revenue] - [COGS]) / [Net Revenue] * 100"></div>
+            <div><label for="kb-name" class="lbl">Name</label><input id="kb-name" class="modal-field" placeholder="Gross Margin %"></div>
+            <div><label for="kb-formula" class="lbl">Formula</label><input id="kb-formula" class="modal-field" placeholder="([Net Revenue] - [COGS]) / [Net Revenue] * 100"></div>
             <div>
               <label class="lbl">Insert a metric</label>
               <div class="fchips" id="kb-chips"></div>
             </div>
             <div class="frow">
-              <div><label class="lbl">Unit</label>
+              <div><label for="kb-unit" class="lbl">Unit</label>
                 <select id="kb-unit" class="modal-field"><option value="%">%</option><option value="USD">USD</option><option value="count">count</option></select></div>
-              <div><label class="lbl">Category</label><input id="kb-cat" class="modal-field" value="Derived"></div>
-              <div><label class="lbl">Good direction</label>
+              <div><label for="kb-cat" class="lbl">Category</label><input id="kb-cat" class="modal-field" value="Derived"></div>
+              <div><label for="kb-dir" class="lbl">Good direction</label>
                 <select id="kb-dir" class="modal-field"><option value="up">Higher is better</option><option value="down">Lower is better</option></select></div>
             </div>
             <div><button class="btn primary" id="kb-btn" onclick="createDerivedKpi()">Create KPI</button></div>
@@ -1045,16 +1065,16 @@
     <section id="v-context" class="wrap" style="display:none">
       <div class="head"><div><h1>Context Library</h1><div class="sub">Ground every narrative in your own business context</div></div></div>
       <form class="ctx-form exec-hide" onsubmit="addContext(event)">
-        <div><label class="lbl">Type</label>
+        <div><label for="c-type" class="lbl">Type</label>
           <select id="c-type">
             <option value="event_note">Event note</option><option value="definition">Definition</option>
             <option value="glossary">Glossary</option><option value="historical_commentary">Historical commentary</option>
             <option value="policy">Policy</option>
           </select></div>
-        <div><label class="lbl">Title</label><input id="c-title" required placeholder="March 2025 pricing change"></div>
-        <div class="ctx-full"><label class="lbl">Body</label><textarea id="c-body" required placeholder="What happened, when, and which metrics it affects…"></textarea></div>
-        <div><label class="lbl">Metric tags (comma-separated, empty = all)</label><input id="c-tags" placeholder="Net Revenue, Churned ARR"></div>
-        <div><label class="lbl">Effective date (YYYY-MM)</label><input id="c-date" placeholder="2025-03"></div>
+        <div><label for="c-title" class="lbl">Title</label><input id="c-title" required placeholder="March 2025 pricing change"></div>
+        <div class="ctx-full"><label for="c-body" class="lbl">Body</label><textarea id="c-body" required placeholder="What happened, when, and which metrics it affects…"></textarea></div>
+        <div><label for="c-tags" class="lbl">Metric tags (comma-separated, empty = all)</label><input id="c-tags" placeholder="Net Revenue, Churned ARR"></div>
+        <div><label for="c-date" class="lbl">Effective date (YYYY-MM)</label><input id="c-date" placeholder="2025-03"></div>
         <div class="ctx-full" style="text-align:right"><button class="btn primary" type="submit">Add to library</button></div>
       </form>
       <table class="ctx-table"><thead><tr><th>Type</th><th>Title &amp; body</th><th>Tags</th><th>Effective</th><th></th></tr></thead>
@@ -1071,7 +1091,7 @@
       </div>
       <div id="imp-upload">
         <div class="ctx-form" id="imp-mode-row">
-          <div><label class="lbl">Import as</label>
+          <div><label for="imp-mode" class="lbl">Import as</label>
             <select id="imp-mode" class="pill-btn" onchange="onImportModeChange()">
               <option value="new">New dataset</option>
               <option value="join">Add budget to an existing dataset</option>
@@ -1092,10 +1112,10 @@
         <div class="banner info" id="tpl-banner" style="display:none"></div>
         <div class="banner info" id="map-warnings" style="display:none"></div>
         <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap">
-          <div id="sheet-pick" style="display:none"><label class="lbl">Sheet</label><select class="pill-btn" id="sheet-sel" onchange="loadSchema()"></select></div>
-          <div><label class="lbl">Layout</label><select class="pill-btn" id="layout-sel" onchange="renderMap()">
+          <div id="sheet-pick" style="display:none"><label for="sheet-sel" class="lbl">Sheet</label><select class="pill-btn" id="sheet-sel" onchange="loadSchema()"></select></div>
+          <div><label for="layout-sel" class="lbl">Layout</label><select class="pill-btn" id="layout-sel" onchange="renderMap()">
             <option value="long">Long (one row per period)</option><option value="wide">Wide (months as columns)</option></select></div>
-          <div id="imp-suffix-wrap" style="display:none"><label class="lbl" title="If the target dataset's metrics are named '<name> spend_usd' rather than just '<name>', enter the suffix here so budgets attach to the right one.">Metric name suffix (optional)</label>
+          <div id="imp-suffix-wrap" style="display:none"><label for="imp-suffix" class="lbl" title="If the target dataset's metrics are named '<name> spend_usd' rather than just '<name>', enter the suffix here so budgets attach to the right one.">Metric name suffix (optional)</label>
             <input class="pill-btn" id="imp-suffix" placeholder="e.g. spend_usd" style="width:160px"></div>
           <div style="flex:1"></div>
           <button class="btn primary" id="imp-confirm-btn" onclick="confirmMapping()">Confirm &amp; normalize</button>
@@ -1164,13 +1184,13 @@
     <section id="v-notifications" class="wrap" style="display:none">
       <div class="head"><div><h1>Notifications</h1><div class="sub">Deliver digests and anomaly alerts to email, Slack, or a webhook</div></div></div>
       <div class="ctx-form three-col-form">
-        <div><label class="lbl">Channel</label>
+        <div><label for="nt-channel" class="lbl">Channel</label>
           <select id="nt-channel" onchange="ntChannelFields()">
             <option value="email">Email</option><option value="slack">Slack</option><option value="webhook">Webhook</option>
           </select></div>
-        <div id="nt-target-wrap"><label class="lbl" id="nt-target-lbl">Recipients (comma-separated)</label>
+        <div id="nt-target-wrap"><label for="nt-target" class="lbl" id="nt-target-lbl">Recipients (comma-separated)</label>
           <input id="nt-target" placeholder="cfo@company.com, fpa@company.com"></div>
-        <div><label class="lbl">Events</label>
+        <div><label for="nt-events" class="lbl">Events</label>
           <select id="nt-events">
             <option value="anomaly_detected,digest_generated">Anomalies + Digests</option>
             <option value="anomaly_detected">Anomalies only</option>
@@ -1184,19 +1204,19 @@
       <h1 style="font-size:19px;margin:30px 0 4px">Schedules</h1>
       <div class="sub" style="margin-bottom:14px">Run digests and anomaly scans automatically. An external cron calls the app with your scheduler token — see the setup note after adding one.</div>
       <div class="ctx-form three-col-form">
-        <div><label class="lbl">Job</label>
+        <div><label for="sch-kind" class="lbl">Job</label>
           <select id="sch-kind" onchange="schKindFields()">
             <option value="digest">Scheduled digest</option>
             <option value="anomaly_scan">Anomaly scan</option>
             <option value="board_pack">Board pack email</option>
           </select></div>
-        <div><label class="lbl">Cadence</label>
+        <div><label for="sch-cadence" class="lbl">Cadence</label>
           <select id="sch-cadence">
             <option value="daily">Daily</option><option value="weekly" selected>Weekly</option><option value="monthly">Monthly</option>
           </select></div>
-        <div id="sch-topn-wrap"><label class="lbl">Digest size (top N movers)</label>
+        <div id="sch-topn-wrap"><label for="sch-topn" class="lbl">Digest size (top N movers)</label>
           <input id="sch-topn" type="number" min="1" max="20" value="5"></div>
-        <div id="sch-recip-wrap" style="display:none"><label class="lbl">Email recipients (comma-separated)</label>
+        <div id="sch-recip-wrap" style="display:none"><label for="sch-recip" class="lbl">Email recipients (comma-separated)</label>
           <input id="sch-recip" type="text" placeholder="cfo@co.com, board@co.com"></div>
         <div class="ctx-full" style="text-align:right"><button class="btn primary" onclick="schCreate()">Add schedule</button></div>
       </div>
@@ -1231,7 +1251,7 @@
       <button class="ico" onclick="$('kpi-back').classList.remove('open')" aria-label="Close">✕</button></div>
     <div style="padding:14px 16px;max-height:56vh;overflow-y:auto" id="kpim-rows"></div>
     <div style="display:flex;gap:8px;align-items:center;padding:12px 16px;border-top:1px solid var(--b08)">
-      <select id="kpim-add" class="pill-btn" style="flex:1"></select>
+      <select id="kpim-add" aria-label="KPI to add" class="pill-btn" style="flex:1"></select>
       <button class="btn sm" onclick="kpimAdd()">Add to board</button>
       <button class="btn primary sm" style="margin-left:auto" onclick="kpimSave(this)">Save changes</button>
     </div>

@@ -844,7 +844,7 @@ async function loadAnalytics(){
   _fillMetricSelect("fc-metric");_fillMetricSelect("scn-metric");
   const chips=$("kb-chips");
   if(chips)chips.innerHTML=_anMetrics.length
-    ?_anMetrics.map((m,i)=>`<span class="fchip" onclick="insertMetricToken(${i})">${esc(m.name)}</span>`).join("")
+    ?_anMetrics.map((m,i)=>`<span class="fchip" role="button" tabindex="0" onclick="insertMetricToken(${i})">${esc(m.name)}</span>`).join("")
     :'<span class="an-empty">No metrics yet — import data first.</span>';
   onLever();
   $("scn-out").innerHTML='<div class="an-empty">Pick a metric and move a lever to project.</div>';
@@ -940,7 +940,7 @@ async function createDerivedKpi(){
     $("kb-name").value="";$("kb-formula").value="";
     await loadFacts();                 // recompute pulls the new derived metric onto the board
     _anMetrics=_metricList();_fillMetricSelect("fc-metric");_fillMetricSelect("scn-metric");
-    const chips=$("kb-chips");if(chips)chips.innerHTML=_anMetrics.map((m,i)=>`<span class="fchip" onclick="insertMetricToken(${i})">${esc(m.name)}</span>`).join("");
+    const chips=$("kb-chips");if(chips)chips.innerHTML=_anMetrics.map((m,i)=>`<span class="fchip" role="button" tabindex="0" onclick="insertMetricToken(${i})">${esc(m.name)}</span>`).join("");
   }catch(e){toast("Failed: "+errMsg(e));}
   finally{btn.disabled=false;}
 }
@@ -1029,7 +1029,7 @@ async function loadReview(){
   _reviewItems=items;updateReviewBadge(items.length);
   if(!box)return;
   if(!items.length){box.innerHTML='<div class="an-empty">Nothing awaiting your review. Narratives assigned to you across your datasets show up here.</div>';return;}
-  box.innerHTML=items.map((it,i)=>`<div class="rq-item" onclick="openReviewItem(${i})">
+  box.innerHTML=items.map((it,i)=>`<div class="rq-item" role="button" tabindex="0" onclick="openReviewItem(${i})">
     <div class="rq-main"><div class="rq-metric">${esc(it.metric)}</div>
     <div class="rq-preview">${esc(it.preview||"No preview")}</div>
     <div class="rq-meta">${esc(it.dataset_name||"")}</div></div>
@@ -1210,8 +1210,8 @@ async function loadDatasets(){
       <button class="ws-choice" onclick="activateDataset(${esc(ds.id)})">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${ds.is_active?'var(--accent)':'var(--mut2)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-5"/></svg>
       <span class="ws-info"><b>${esc(ds.name)}</b><span>${esc(datasetCaption(ds))}</span></span></button>
-      <span class="ws-kebab exec-hide" onclick="event.stopPropagation();toggleKebab(event,${ds.id})">
-        <button aria-label="Dataset options">⋯</button>
+      <span class="ws-kebab exec-hide">
+        <button aria-label="Options for ${esc(ds.name)}" aria-haspopup="true" aria-expanded="false" aria-controls="kmenu-${ds.id}" onclick="toggleKebab(event,${ds.id})">⋯</button>
         <div class="ws-kmenu" id="kmenu-${ds.id}">
           <button onclick="event.stopPropagation();renameDataset(${ds.id})">Rename</button>
           <button class="danger" onclick="event.stopPropagation();deleteDataset(${ds.id})">Delete</button>
@@ -1223,7 +1223,9 @@ async function loadDatasets(){
 function dsName(id){const d=(datasetsCache||[]).find(x=>x.id===id);return d?d.name:"this dataset";}
 function toggleKebab(e,id){e.stopPropagation();
   document.querySelectorAll(".ws-kmenu").forEach(m=>{if(m.id!=="kmenu-"+id)m.classList.remove("open");});
-  $("kmenu-"+id).classList.toggle("open");
+  const open=$("kmenu-"+id).classList.toggle("open");
+  document.querySelectorAll(".ws-kebab>button").forEach(b=>b.setAttribute("aria-expanded",String(open&&b.getAttribute("aria-controls")==="kmenu-"+id)));
+  if(open)$("kmenu-"+id).querySelector("button")?.focus();
 }
 async function renameDataset(id){
   const cur=dsName(id);
@@ -1625,6 +1627,12 @@ function renderPills(){
   if(searchQuery)pills.push(`Search: “${esc(searchQuery)}”<button onclick="clearSearch()" aria-label="Clear search">×</button>`);
   $("filter-pills").innerHTML=pills.map(p=>`<span class="fpill">${p}</span>`).join("");
 }
+// Enter/Space activates non-native controls marked role="button" (queue rows,
+// source and metric chips, grounded sentences), the same way a <button> would.
+document.addEventListener("keydown",e=>{
+  const t=e.target;
+  if((e.key==="Enter"||e.key===" ")&&t&&t.getAttribute&&t.getAttribute("role")==="button"&&!/^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(t.tagName)){e.preventDefault();t.click();}
+});
 // Cards act as links: Enter/Space opens, but only when the card itself has focus
 // (not one of its inner Accept/Edit/Generate buttons).
 function cardKey(e,i){if(e.target===e.currentTarget&&(e.key==="Enter"||e.key===" ")){e.preventDefault();openDetail(i);}}
@@ -1828,7 +1836,7 @@ function openDetail(i,{fromRoute=false}={}){
     $("d-narr").innerHTML=f.narrative?esc(f.narrative)+(f.edited&&f.original_narrative?`<details class="tbl" style="margin-top:8px"><summary>Show original (pre-edit)</summary><p style="margin-top:6px;color:var(--mut)">${esc(f.original_narrative)}</p></details>`:""):"No narrative yet — generate one from the dashboard card.";
   }
   $("d-narr-meta").textContent=narrMeta(f);
-  $("d-chips").innerHTML=(f.sources||[]).map(s=>`<span class="chip" title="Open source note" onclick="showSourceDoc('${esc(s.id)}')">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
+  $("d-chips").innerHTML=(f.sources||[]).map(s=>`<span class="chip" role="button" tabindex="0" title="Open source note" onclick="showSourceDoc('${esc(s.id)}')">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
   $("d-qa-answer").innerHTML="";$("d-qa").value="";qaThread=[];   // fresh conversation per metric
   loadCorrelations(f.metric);
 }
@@ -1844,7 +1852,7 @@ async function renderGroundedNarrative(reportId){
   catch{el.textContent=detailFact?detailFact.narrative||"":"";return;}
   const sents=(groundingData.sentences||[]);
   if(!sents.length){el.textContent=(detailFact&&detailFact.narrative)||"";return;}
-  el.innerHTML=sents.map(s=>`<span class="gsent ${s.kind}" data-i="${s.idx}" title="Click to see what grounds this sentence" onclick="showSentenceGrounding(${s.idx})">${esc(s.text)}</span>`).join(" ")
+  el.innerHTML=sents.map(s=>`<span class="gsent ${s.kind}" data-i="${s.idx}" role="button" tabindex="0" title="Show what supports this sentence" onclick="showSentenceGrounding(${s.idx})">${esc(s.text)}</span>`).join(" ")
     +`<div class="g-legend">
         <span><i style="border-color:var(--green2)"></i>traces to a figure</span>
         <span><i style="border-color:var(--accent)"></i>cites a source</span>
@@ -1864,7 +1872,7 @@ function showSentenceGrounding(idx){
       +s.facts.map(f=>`<div class="g-fact">${gCheck}<span>${esc(G_FIELD[f.field]||f.field)}</span> = <b>${gFmtVal(f.value,f.is_percent)}</b></div>`).join("");
   }
   if(s.context_ids&&s.context_ids.length){
-    const chips=s.context_ids.map(id=>`<span class="chip" onclick="showSourceDoc('${esc(id)}')">${DOCICON}${esc(id)}</span>`).join("");
+    const chips=s.context_ids.map(id=>`<span class="chip" role="button" tabindex="0" onclick="showSourceDoc('${esc(id)}')">${DOCICON}${esc(id)}</span>`).join("");
     html+=`<div class="g-lbl" style="margin-top:${s.facts&&s.facts.length?"11px":"0"}">Cited context</div><div class="chips">${chips}</div>`;
   }
   if(s.kind==="numeric-unverified")
@@ -1900,7 +1908,7 @@ function renderQAThread(pending){
   const el=$("d-qa-answer");if(!el)return;
   if(!qaThread.length&&!pending){el.innerHTML="";return;}
   const turns=qaThread.map(t=>{
-    const srcs=(t.sources||[]).map(s=>`<span class="chip" onclick="showSourceDoc('${esc(s.id)}')">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
+    const srcs=(t.sources||[]).map(s=>`<span class="chip" role="button" tabindex="0" onclick="showSourceDoc('${esc(s.id)}')">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
     return `<div class="qa-turn">
       <div class="qa-q">${esc(t.question)}</div>
       <div class="qa-a"><div class="narr" style="font-size:14.5px">${esc(t.answer)}</div>
