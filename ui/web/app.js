@@ -531,15 +531,27 @@ function initSentry(cfg){
     // Don't spam Sentry with expected auth failures.
     ignoreErrors:["Session expired","Missing bearer token"]});}catch(e){}
 }
-let demoSession=false, appCfg={};
+let demoSession=false, guestSession=false, appCfg={};
+function showReadOnlyBar(text,exitLabel,signupLabel){
+  const b=$("demo-bar");if(!b)return;
+  b.style.display="flex";$("demo-bar-text").innerHTML=text;
+  $("demo-bar-exit").textContent=exitLabel;$("demo-bar-signup").textContent=signupLabel;
+}
 function enterDemo(){
-  demoSession=true;authToken=null;appStarted=false;
+  demoSession=true;guestSession=false;authToken=null;appStarted=false;
   document.body.classList.add("demo");
-  const b=$("demo-bar");if(b)b.style.display="flex";
+  showReadOnlyBar("You're exploring the <b>demo</b> — sample data, read-only.","Exit demo","Sign up to use your data");
+  hideLogin();startApp();
+}
+// Guests get the server's read-only viewer role (no token, ALLOW_GUEST=true).
+function enterGuest(){
+  guestSession=true;demoSession=false;authToken=null;appStarted=false;
+  document.body.classList.add("demo");
+  showReadOnlyBar("You're browsing as a <b>guest</b>. Read-only.","Sign in","Create an account");
   hideLogin();startApp();
 }
 function exitDemo(signup){
-  demoSession=false;document.body.classList.remove("demo");
+  demoSession=false;guestSession=false;document.body.classList.remove("demo");
   const b=$("demo-bar");if(b)b.style.display="none";
   appStarted=false;location.hash="";showLogin();
   $("app-root").style.display="none";
@@ -552,6 +564,7 @@ async function boot(){
   appCfg=cfg;
   initSentry(cfg);
   if(cfg.demo_enabled){const b=$("lg-demo");if(b)b.style.display="";const n=$("lg-demo-note");if(n)n.style.display="";}
+  if(cfg.allow_guest){const g=$("lg-guest");if(g)g.style.display="";const n=$("lg-guest-note");if(n)n.style.display="";}
   // Local-dev bypass. #app-root ships display:none, so reveal it here too.
   if(!cfg.auth_enabled){hideLogin();startApp();return;}
   // A Closebrief session (Google sign-in) survives reloads and needs no Supabase.
@@ -679,25 +692,61 @@ function showLogin(){routerReady=false;$("login-gate").classList.add("show");$("
 function hideLogin(){$("login-gate").classList.remove("show");$("app-root").style.display="";}
 function toggleAuthMode(){
   authMode=authMode==="signin"?"signup":"signin";
-  $("lg-title").textContent=authMode==="signin"?"Sign in":"Create your account";
-  $("lg-psub").textContent=authMode==="signin"?"Welcome back. Sign in to your workspace.":"The first account becomes the workspace admin.";
-  $("lg-btn").textContent=authMode==="signin"?"Sign in":"Sign up";
-  $("lg-toggle").innerHTML=authMode==="signin"?'Need an account? <a onclick="toggleAuthMode()">Sign up</a>':'Have an account? <a onclick="toggleAuthMode()">Sign in</a>';
+  const up=authMode==="signup";
+  $("lg-title").textContent=up?"Create your account":"Sign in";
+  $("lg-psub").textContent=up?"The first account becomes the workspace admin.":"Welcome back. Sign in to your workspace.";
+  $("lg-btn").textContent=up?"Create account":"Sign in";
+  // Password managers offer to generate a password only for new-password.
+  $("lg-pass").setAttribute("autocomplete",up?"new-password":"current-password");
+  $("lg-toggle").innerHTML=up?'Have an account? <button type="button" onclick="toggleAuthMode()">Sign in</button>'
+    :'Need an account? <button type="button" onclick="toggleAuthMode()">Sign up</button>';
+  showAuthErrors({});
+}
+// Field problems, in words that say how to fix them. {} when the form is fine.
+function validateAuth(email,pass,mode){
+  const errs={};
+  if(!email)errs.email="Enter your work email.";
+  else if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))errs.email="That email looks incomplete. Check it has an @ and a domain, like you@company.com.";
+  if(!pass)errs.pass="Enter your password.";
+  else if(mode==="signup"&&pass.length<6)errs.pass="Use at least 6 characters.";
+  return errs;
+}
+// Supabase errors -> what the user can do about them.
+function authErrorMessage(e){
+  const m=String((e&&e.message)||"");
+  if(/invalid login credentials/i.test(m))return "That email and password don't match. Check both and try again.";
+  if(/email not confirmed/i.test(m))return "Confirm your email first. Open the link we sent to your inbox, then sign in.";
+  if(/already registered|already exists/i.test(m))return "There's already an account for this email. Sign in instead.";
+  if(/rate limit|too many/i.test(m))return "Too many attempts. Wait a minute, then try again.";
+  if(/network|fetch/i.test(m))return "Couldn't reach the sign-in service. Check your connection and try again.";
+  return m||"Sign-in didn't work. Try again.";
+}
+function showAuthErrors(errs){
+  for(const [k,id] of [["email","lg-email"],["pass","lg-pass"]]){
+    $(id+"-err").textContent=errs[k]||"";
+    if(errs[k])$(id).setAttribute("aria-invalid","true");else $(id).removeAttribute("aria-invalid");
+  }
+}
+function setAuthBusy(busy){
+  const b=$("lg-btn");b.disabled=busy;b.setAttribute("aria-busy",String(busy));
+  b.textContent=busy?(authMode==="signin"?"Signing in…":"Creating account…"):(authMode==="signin"?"Sign in":"Create account");
 }
 async function submitAuth(){
   const email=$("lg-email").value.trim(), pass=$("lg-pass").value, err=$("lg-err");
   err.style.display="none";
-  if(!sb){err.textContent="Auth client not initialized — the auth library failed to load. Hard-refresh (Ctrl+Shift+R) and check the browser console.";err.style.display="block";return;}
-  if(!email||!pass){err.textContent="Enter email and password.";err.style.display="block";return;}
-  $("lg-btn").disabled=true;$("lg-btn").textContent="…";
+  if($("lg-btn").disabled)return;   // a second Enter while the first request runs
+  const errs=validateAuth(email,pass,authMode);showAuthErrors(errs);
+  if(errs.email||errs.pass){$(errs.email?"lg-email":"lg-pass").focus();return;}
+  if(!sb){err.textContent="Sign-in isn't available: the auth library didn't load. Refresh the page (Ctrl+Shift+R).";err.style.display="block";return;}
+  setAuthBusy(true);
   try{
     const fn=authMode==="signin"?sb.auth.signInWithPassword({email,password:pass}):sb.auth.signUp({email,password:pass});
     const {data,error}=await fn;
     if(error)throw error;
     if(data.session)onSession(data.session);
-    else{err.textContent="Check your email to confirm your account, then sign in.";err.style.display="block";toggleAuthMode();}
-  }catch(e){err.textContent=e.message||"Authentication failed.";err.style.display="block";}
-  finally{$("lg-btn").disabled=false;$("lg-btn").textContent=authMode==="signin"?"Sign in":"Sign up";}
+    else{err.textContent="Check your email to confirm your account, then sign in.";err.style.display="block";setAuthBusy(false);toggleAuthMode();return;}
+  }catch(e){err.textContent=authErrorMessage(e);err.style.display="block";}
+  setAuthBusy(false);
 }
 async function onSession(session){
   authToken=session.access_token;
@@ -721,6 +770,7 @@ async function startApp(){
     try{activeWorkspaceId=+localStorage.getItem("cb-ws")||null;}catch{}
     await loadWorkspaces();   // resolve tenant scope before loading any data
   }else if(demoSession){currentUser={email:"demo@closebrief.app",role:"viewer"};applyRole(currentUser);}
+  else if(guestSession){currentUser={email:"Guest",role:"viewer"};applyRole(currentUser);}
   else{applyRole({email:"local@dev",role:"admin"});}
   loadPeriods().then(()=>{const h=location.hash.slice(1);routerReady=true;
     if(VIEWS.includes(h)||h.startsWith("metric"))route();

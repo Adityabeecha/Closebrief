@@ -446,7 +446,14 @@
   .lg-btn{width:100%;padding:12px;border-radius:9px;background:var(--accent);color:var(--on-accent);border:none;font-weight:700;font-size:14px;box-shadow:0 2px 6px rgba(30,110,80,.3)}
   .lg-btn:hover{background:var(--accent-hi)}
   .lg-toggle{margin-top:18px;text-align:center;font-size:13px;color:var(--mut)}
-  .lg-toggle a{color:var(--accent);font-weight:700;cursor:pointer}
+  .lg-toggle button{border:none;background:none;color:var(--accent);font-weight:700;font-size:inherit;padding:4px 2px;min-height:24px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+  .lg-ferr{font-size:12.5px;font-weight:600;color:var(--red);margin-top:6px;min-height:0}
+  .lg-ferr:empty{display:none}
+  .lg-field input[aria-invalid="true"]{border-color:var(--red)}
+  .lg-field input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .lg-btn:disabled{opacity:.7;cursor:progress}
+  .lg-guest{margin-top:10px;width:100%;padding:11px;border-radius:10px;border:1px solid var(--b12);background:none;color:var(--ink2);font-weight:700;font-size:13.5px}
+  .lg-guest:hover{border-color:var(--accent);color:var(--accent)}
   .lg-err{background:var(--red-bg);color:var(--red);border:1px solid rgba(229,115,115,.4);border-radius:9px;padding:10px 12px;font-size:12.5px;font-weight:600;margin-bottom:16px;display:none}
   /* Google sign-in: "or" rule, and a slot that reserves the iframe's height so
      the form doesn't jump when Google paints its button. */
@@ -723,6 +730,7 @@
     .chip,.fchip,.cpill,.tbtn{min-height:36px}
     .ws-kebab>button{min-width:40px;min-height:40px}
     .back{min-height:44px}
+    .lg-toggle button{min-height:40px;padding-inline:8px}
   }
   /* Secondary screens share the ledger tokens and readable state messages. */
   .screen-state{padding:26px 20px;border:1px solid var(--b12);border-radius:12px;background:var(--card);color:var(--ink2);margin:12px 0;overflow-wrap:anywhere;text-align:left}
@@ -754,10 +762,17 @@
   <div class="lg-right">
     <h3 id="lg-title">Sign in</h3>
     <div class="psub" id="lg-psub">Welcome back. Sign in to your workspace.</div>
-    <div class="lg-err" id="lg-err"></div>
-    <div class="lg-field"><label for="lg-email">Work email</label><input id="lg-email" type="email" placeholder="you@company.com" onkeydown="if(event.key==='Enter')submitAuth()"></div>
-    <div class="lg-field"><label for="lg-pass">Password</label><input id="lg-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')submitAuth()"></div>
-    <button class="lg-btn" id="lg-btn" onclick="submitAuth()">Sign in</button>
+    <div class="lg-err" id="lg-err" role="alert"></div>
+    <!-- A real form: Enter submits and password managers can fill it. -->
+    <form id="lg-form" novalidate onsubmit="event.preventDefault();submitAuth()">
+      <div class="lg-field"><label for="lg-email">Work email</label>
+        <input id="lg-email" type="email" name="email" autocomplete="email" inputmode="email" placeholder="you@company.com" aria-describedby="lg-email-err">
+        <div class="lg-ferr" id="lg-email-err" aria-live="polite"></div></div>
+      <div class="lg-field"><label for="lg-pass">Password</label>
+        <input id="lg-pass" type="password" name="password" autocomplete="current-password" aria-describedby="lg-pass-err">
+        <div class="lg-ferr" id="lg-pass-err" aria-live="polite"></div></div>
+      <button type="submit" class="lg-btn" id="lg-btn">Sign in</button>
+    </form>
     <!-- Google Sign-In (optional). Hidden unless /auth/config says it's enabled;
          Google renders its own button inside #g-btn (their branding rules), and
          the wrapper reserves its height so the form doesn't jump as it paints. -->
@@ -768,8 +783,10 @@
         Google sign-in couldn’t load (an ad blocker may be blocking it). Use your email and password above.
       </div>
     </div>
-    <div class="lg-toggle" id="lg-toggle">Need an account? <a onclick="toggleAuthMode()">Sign up</a></div>
+    <div class="lg-toggle" id="lg-toggle">Need an account? <button type="button" onclick="toggleAuthMode()">Sign up</button></div>
     <button id="lg-demo" style="display:none;margin-top:14px;width:100%;padding:11px;border-radius:10px;border:1.5px dashed var(--accent);background:var(--accent-bg);color:var(--accent);font-weight:700;font-size:13.5px" onclick="enterDemo()">Demo</button>
+    <button type="button" class="lg-guest" id="lg-guest" style="display:none" onclick="enterGuest()">Continue as guest</button>
+    <div class="lg-note" id="lg-guest-note" style="display:none;text-align:center">Read-only. Sign in to generate, edit or approve commentary.</div>
     <div id="lg-demo-note" style="display:none;margin-top:8px;text-align:center;font-size:12px;color:var(--mut);line-height:1.5">Explore sample data — no account needed. Sign up to add your own.</div>
   </div>
 </div>
@@ -777,10 +794,10 @@
 <!-- Focus moves to <main> without touching the hash (the hash is the route). -->
 <a href="#main" class="skip-link" onclick="event.preventDefault();document.getElementById('main').focus()">Skip to content</a>
 <div class="demo-bar" id="demo-bar" style="display:none">
-  <span>You're exploring the <b>demo</b> — sample data, read-only.</span>
+  <span id="demo-bar-text">You're exploring the <b>demo</b> — sample data, read-only.</span>
   <div class="demo-bar-actions">
-    <button onclick="exitDemo()">Exit demo</button>
-    <button class="primary" onclick="exitDemo(true)">Sign up to use your data</button>
+    <button id="demo-bar-exit" onclick="exitDemo()">Exit demo</button>
+    <button class="primary" id="demo-bar-signup" onclick="exitDemo(true)">Sign up to use your data</button>
   </div>
 </div>
 <div class="app" id="app-root" style="display:none">
