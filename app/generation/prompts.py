@@ -2,6 +2,9 @@
 prompt versions over time (PRD Section 11).
 """
 
+import math
+from decimal import ROUND_HALF_UP, Decimal, localcontext
+
 from app.schemas import (
     ComputedFact,
     ContextSnippet,
@@ -10,7 +13,13 @@ from app.schemas import (
     TrendStreak,
 )
 
-PROMPT_VERSION = "v2"
+PROMPT_VERSION = "v3-number-format"
+
+FIGURE_RULES = """Copy the figures exactly as given, including currency symbols, signs, \
+suffixes, decimal places and thousands separators. Do not expand compact amounts \
+or add precision. When no context explains the move, omit an unexplained-period \
+closing sentence. Instead, state one available trend streak, year-over-year change \
+or anomaly flag in a plain sentence; if none is available, stop after the movement."""
 
 SYSTEM_PROMPT = """You are a financial narrative writer for an FP&A team. \
 You explain KPI movements to executives in plain English.
@@ -19,11 +28,14 @@ Hard rules, no exceptions:
 1. Use ONLY the numbers given to you in the "Computed facts" block. Never invent, \
 estimate, round differently, or introduce any number not explicitly present there.
 2. Attribute causes ONLY to the provided context snippets. If no context snippet \
-plausibly explains the movement, say the movement is unexplained this period — do \
-not guess a cause.
+plausibly explains the movement, do not guess a cause or add a boilerplate closing \
+sentence; use an available streak, year-over-year change or anomaly flag instead.
 3. Write 2-4 sentences of plain, executive-ready prose. No bullet points, no headers.
 4. Return your answer as the narrative plus the list of context snippet ids you \
 actually relied on (empty list if none were used or none were relevant)."""
+
+
+SYSTEM_PROMPT += "\n\n" + FIGURE_RULES
 
 
 # A concise variant for A/B testing against the baseline. Same hard rules
@@ -35,9 +47,13 @@ Hard rules, no exceptions:
 1. Use ONLY the numbers in the "Computed facts" block. Never invent, estimate, or \
 re-round a number that is not present there.
 2. Attribute a cause ONLY to a provided context snippet. If none explains the move, \
-say it is unexplained this period.
+use an available streak, year-over-year change or anomaly flag instead of a \
+boilerplate closing sentence; otherwise stop after the movement.
 3. Write exactly 1-2 tight sentences. Lead with the movement and its magnitude.
 4. Return the narrative plus the ids of the context snippets you relied on (empty if none)."""
+
+
+SYSTEM_PROMPT_CONCISE += "\n\n" + FIGURE_RULES
 
 
 # Named prompt variants the A/B harness compares. Prompts are code (git-reviewed);
@@ -60,6 +76,9 @@ that" — do not guess.
 3. Answer in 1-3 sentences of plain prose, directly addressing the question.
 4. Return the answer plus the ids of any context snippets you relied on (empty \
 list if none)."""
+
+
+QA_SYSTEM_PROMPT += "\n\nCopy all figures exactly as given; do not expand compact amounts or add precision."
 
 
 def build_qa_prompt(fact: ComputedFact, context: list[ContextSnippet], question: str,
@@ -96,6 +115,9 @@ whether that conversion improved or worsened versus the prior period.
 4. Return the narrative and an empty list of source ids (this summary is computed, not retrieved)."""
 
 
+FUNNEL_SYSTEM_PROMPT += "\n\nCopy all figures exactly as given; do not expand compact amounts or add precision."
+
+
 def build_funnel_prompt(funnel: dict) -> str:
     """Deterministic funnel facts (from app/compute/funnel) rendered for the LLM to
     phrase — the model never recomputes conversions."""
@@ -105,18 +127,18 @@ def build_funnel_prompt(funnel: dict) -> str:
     lines.append("")
     lines.append("Funnel (the ONLY numbers you may use):")
     for s in funnel.get("stages", []):
-        parts = [f"  - {s['name']}: {s['value']:,.0f}"]
+        parts = [f"  - {s['name']}: {_fmt(s['value'], 'count')}"]
         if s.get("conversion_from_prev") is not None:
-            parts.append(f"{s['conversion_from_prev']}% conversion from previous stage")
+            parts.append(f"{_fmt(s['conversion_from_prev'], '%')} conversion from previous stage")
         if s.get("conversion_mom_pp") is not None:
-            parts.append(f"({s['conversion_mom_pp']:+.2f}pp vs prior period)")
+            parts.append(f"({_fmt(s['conversion_mom_pp'], '%')[:-1]}pp vs prior period)")
         if s.get("drop_off") is not None:
-            parts.append(f"drop-off {s['drop_off']:,.0f}")
+            parts.append(f"drop-off {_fmt(s['drop_off'], 'count')}")
         lines.append(", ".join(parts))
     if funnel.get("biggest_dropoff_stage"):
         lines.append(f"\nBiggest leak: conversion into {funnel['biggest_dropoff_stage']}.")
     if funnel.get("overall_conversion") is not None:
-        lines.append(f"Overall conversion (last/first): {funnel['overall_conversion']}%.")
+        lines.append(f"Overall conversion (last/first): {_fmt(funnel['overall_conversion'], '%')}.")
     lines.append("\nWrite the funnel summary under the rules above.")
     return "\n".join(lines)
 
@@ -133,20 +155,23 @@ error (MAPE) if given, and whether the projection is above or below budget.
 4. Return the narrative and an empty list of source ids (this outlook is computed)."""
 
 
+FORECAST_SYSTEM_PROMPT += "\n\nCopy all figures exactly as given; do not expand compact amounts or add precision."
+
+
 def build_forecast_prompt(metric: str, unit: str, history_tail: list[dict],
                           projections: list[dict], mape: float | None) -> str:
     lines = [f"Metric: {metric}", "", "Recent actuals:"]
     for h in history_tail[-4:]:
-        lines.append(f"  - {h['period']}: {_fmt(h['value'])}")
+        lines.append(f"  - {h['period']}: {_fmt(h['value'], unit)}")
     lines.append("")
     lines.append("Forecast (the ONLY numbers you may use — model projections):")
     for p in projections:
-        line = f"  - {p['period']}: projected {_fmt(p['value'])}"
+        line = f"  - {p['period']}: projected {_fmt(p['value'], unit)}"
         if p.get("budget") is not None:
-            line += f" vs budget {_fmt(p['budget'])} ({'above' if p['value'] >= p['budget'] else 'below'} plan)"
+            line += f" vs budget {_fmt(p['budget'], unit)} ({'above' if p['value'] >= p['budget'] else 'below'} plan)"
         lines.append(line)
     if mape is not None:
-        lines.append(f"\nBacktest error (MAPE): {mape}%")
+        lines.append(f"\nBacktest error (MAPE): {_fmt(mape, '%')}")
     lines.append("\nWrite the outlook under the rules above.")
     return "\n".join(lines)
 
@@ -166,24 +191,28 @@ recent baseline. Treat correlated movers as context, not proven causation.
 5. Return the narrative and an empty list of source ids (this explanation is computed)."""
 
 
+ROOT_CAUSE_SYSTEM_PROMPT += "\n\nCopy all figures exactly as given; do not expand compact amounts or add precision."
+
+
 def build_root_cause_prompt(rc: dict) -> str:
-    lines = [f"Metric: {rc['metric']} ({rc['period']})", f"Value: {_fmt(rc.get('value'))}"]
+    unit = rc.get("unit", "USD")
+    lines = [f"Metric: {rc['metric']} ({rc['period']})", f"Value: {_fmt(rc.get('value'), unit)}"]
     if rc.get("prior_value") is not None:
-        lines.append(f"Prior period: {_fmt(rc['prior_value'])}")
+        lines.append(f"Prior period: {_fmt(rc['prior_value'], unit)}")
     if rc.get("mom_pct") is not None:
-        lines.append(f"Month-over-month: {rc['mom_pct']:+.1f}%")
+        lines.append(f"Month-over-month: {_fmt(rc['mom_pct'], '%')}")
     if rc.get("budget_var_pct") is not None:
-        lines.append(f"Vs plan: {rc['budget_var_pct']:+.1f}% ({_fmt(rc.get('budget_var_abs'))})")
+        lines.append(f"Vs plan: {_fmt(rc['budget_var_pct'], '%')} ({_fmt(rc.get('budget_var_abs'), _delta_unit(unit))})")
     if rc.get("z_score") is not None:
         lines.append(
-            f"Baseline: mean {_fmt(rc.get('baseline_mean'))}; this period is "
+            f"Baseline: mean {_fmt(rc.get('baseline_mean'), unit)}; this period is "
             f"{rc['z_score']} std devs from it"
             + (" (flagged as an anomaly)" if rc.get("is_anomaly") else ""))
     lines += ["", "Decomposition (the ONLY numbers you may use):"]
     if rc.get("pvm"):
         lines.append("  Price/Volume/Mix split of the variance:")
         for c in rc["pvm"]:
-            lines.append(f"    - {c['component']}: {_fmt(c['impact'])} ({c['share_pct']:g}% of the swing)")
+            lines.append(f"    - {c['component']}: {_fmt(c['impact'], _delta_unit(unit))} ({_fmt(c['share_pct'], '%')} of the swing)")
     if rc.get("trend"):
         t = rc["trend"]
         lines.append(f"  Trend: {t.get('months')} consecutive months {t.get('direction')}")
@@ -196,8 +225,36 @@ def build_root_cause_prompt(rc: dict) -> str:
     return "\n".join(lines)
 
 
-def _fmt(value: float | None, suffix: str = "") -> str:
-    return "n/a" if value is None else f"{value:,.2f}{suffix}"
+def _fixed(value: float, places: int) -> str:
+    """Match JavaScript toFixed: half ties away from zero, using the input float."""
+    with localcontext() as ctx:
+        ctx.prec = max(28, len(str(int(abs(value)))) + places + 2)
+        rounded = Decimal.from_float(float(value)).quantize(Decimal(1).scaleb(-places), rounding=ROUND_HALF_UP)
+    return f"{rounded:.{places}f}"
+
+
+def _fmt(value: float | None, unit: str = "USD") -> str:
+    """Card-style amounts, signed percentages and whole counts for model input."""
+    if value is None or not math.isfinite(value):
+        return "n/a"
+    if unit.lower() == "count":
+        count = math.floor(value + 0.5)   # JavaScript Math.round also rounds negative ties upwards.
+        return ("\u2212" if count < 0 else "") + f"{abs(count):,}"
+    sign = "\u2212" if value < 0 else ""
+    amount = abs(value)
+    if unit.lower() in ("%", "percent", "pp"):
+        suffix = "pp" if unit.lower() == "pp" else "%"
+        return (sign or ("+" if value > 0 else "")) + _fixed(amount, 1) + suffix
+    if amount >= 1e6:
+        return sign + "$" + _fixed(amount / 1e6, 2) + "M"
+    if amount >= 1e3:
+        return sign + "$" + _fixed(amount / 1e3, 0) + "K"
+    return sign + "$" + _fixed(amount, 2)
+
+
+def _delta_unit(unit: str) -> str:
+    """An absolute difference between rates is in percentage points, not percent."""
+    return "pp" if unit.lower() in ("%", "percent") else unit
 
 
 def build_correlation_context(correlations: list[CorrelationPair], metric: str) -> list[str]:
@@ -227,12 +284,12 @@ def build_trend_streak_context(streak: TrendStreak | None) -> list[str]:
     ]
 
 
-def build_comparison_context(comparison: PeriodComparison | None) -> list[str]:
+def build_comparison_context(comparison: PeriodComparison | None, unit: str = "USD") -> list[str]:
     if comparison is None:
         return []
     c = comparison
     line = (
-        f"Compared to {c.period_a}, {c.period_b} changed by {_fmt(c.abs_change)} "
+        f"Compared to {c.period_a}, {c.period_b} changed by {_fmt(c.abs_change, _delta_unit(unit))} "
         f"({_fmt(c.pct_change, '%')})"
     )
     if c.momentum:
@@ -253,11 +310,11 @@ def build_user_prompt(
         f"Metric: {fact.metric}",
         f"Period: {fact.period}",
         "Computed facts (the ONLY numbers you may use):",
-        f"  - value: {_fmt(fact.value)} {fact.unit}",
-        f"  - prior_period_value: {_fmt(fact.prior_value)} {fact.unit}",
+        f"  - value: {_fmt(fact.value, fact.unit)}",
+        f"  - prior_period_value: {_fmt(fact.prior_value, fact.unit)}",
         f"  - month_over_month_change: {_fmt(fact.deltas.mom_pct, '%')}",
         f"  - year_over_year_change: {_fmt(fact.deltas.yoy_pct, '%')}",
-        f"  - budget_variance_absolute: {_fmt(fact.deltas.budget_var_abs)} {fact.unit}",
+        f"  - budget_variance_absolute: {_fmt(fact.deltas.budget_var_abs, _delta_unit(fact.unit))}",
         f"  - budget_variance_percent: {_fmt(fact.deltas.budget_var_pct, '%')}",
         f"  - trend_12mo: {fact.trend or 'n/a'}",
         f"  - is_anomaly: {fact.is_anomaly}",
@@ -265,14 +322,14 @@ def build_user_prompt(
     if fact.variance_bridge:
         lines.append("  - variance decomposition (deterministic):")
         for component, impact in fact.variance_bridge.items():
-            lines.append(f"      - {component}_effect: {_fmt(impact)} {fact.unit}")
+            lines.append(f"      - {component}_effect: {_fmt(impact, _delta_unit(fact.unit))}")
     else:
         lines.append(
             "  - variance decomposition: not available — do NOT attribute the "
             "movement to price, volume, or mix effects."
         )
     lines += build_trend_streak_context(trend_streak)
-    lines += build_comparison_context(comparison)
+    lines += build_comparison_context(comparison, fact.unit)
     lines += build_correlation_context(correlations or [], fact.metric)
     lines.append("")
     if context:
