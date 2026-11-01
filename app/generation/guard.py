@@ -10,12 +10,13 @@ durations and dates ("12-month trend", "March 1") are not treated as KPI
 figures.
 """
 
+import math
 import re
 
 from app.schemas import ComputedFact, ContextSnippet
 
 _NUMBER_RE = re.compile(
-    r"(?<![A-Za-z0-9])(-?\$?\d(?:[\d,]*\d)?(?:\.\d+)?)\s*(million|billion|thousand|[mbk](?![A-Za-z]))?\s*(%)?",
+    r"(?<![A-Za-z0-9])([+\-\u2212]?\$?\d(?:[\d,]*\d)?(?:\.\d+)?)\s*(million|billion|thousand|[mbk](?![A-Za-z]))?\s*(%)?",
     re.IGNORECASE,
 )
 
@@ -46,17 +47,24 @@ _MONTH_BEFORE = re.compile(
 _ISO_DATE = re.compile(r"(?<![\w$])\d{4}-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12]\d|3[01]))?(?![\d%])")
 
 
+class _CompactAmount(float):
+    """Keep a whole-$K token's rounding precision through shared numeric attribution."""
+
+
 def _normalize(raw: str, suffix: str, percent: str) -> tuple[float, bool] | None:
     suffix = suffix or ""
     percent = percent or ""
-    cleaned = raw.replace("$", "").replace(",", "")
+    cleaned = raw.replace("$", "").replace(",", "").replace("\u2212", "-")
     try:
         base = float(cleaned)
     except ValueError:
         return None
     is_percent = bool(percent)
     multiplier = 1.0 if is_percent else _MULTIPLIERS.get(suffix.lower(), 1.0)
-    return base * multiplier, is_percent
+    value = base * multiplier
+    if not is_percent and "$" in raw and suffix.lower() in ("k", "thousand") and "." not in cleaned:
+        value = _CompactAmount(value)
+    return value, is_percent
 
 
 def extract_numbers(text: str) -> list[tuple[float, bool]]:
@@ -76,7 +84,7 @@ def _is_date_or_duration(match: re.Match, text: str, raw: str, suffix: str, perc
     calendar day, rather than a KPI figure."""
     if percent or suffix or "$" in raw or "." in raw:
         return False
-    digits = raw.replace(",", "").lstrip("-")
+    digits = raw.replace(",", "").lstrip("+-\u2212")
     if not digits.isdigit():
         return False
     if any(date.start() <= match.start(1) and match.end(1) <= date.end()
@@ -143,6 +151,12 @@ def _matches_any(candidate: float, allowed: set[float], tolerance_pct: float) ->
         tolerance = max(0.5, abs(value) * tolerance_pct)
         if abs(abs(candidate) - abs(value)) <= tolerance:
             return True
+        # Only the UI's whole-thousand currency form gets this extra match.
+        # Do not widen the tolerance for bare counts, percentages or coarse $M.
+        if isinstance(candidate, _CompactAmount) and 1e3 <= abs(value) < 1e6:
+            rounded = math.floor(abs(value) / 1e3 + 0.5) * 1e3
+            if abs(candidate) == rounded:
+                return True
     return False
 
 
