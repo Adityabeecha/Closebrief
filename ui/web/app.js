@@ -181,9 +181,9 @@ function paletteActions(){
     {label:"Export report (PowerPoint)",icon:CI.down,run:()=>exportPPTX(),group:"Actions"},
     {label:"Toggle dark mode",icon:CI.sun,run:()=>toggleTheme(),group:"Actions"},
   ];
-  const pageItems=pages.map(([v,l])=>({label:l,icon:CI.page,run:()=>nav(v),group:"Pages"}));
+  const pageItems=pages.map(([v,l])=>({label:l,icon:CI.page,run:()=>requestImportView(v),group:"Pages"}));
   const metricItems=(currentFacts||[]).filter(f=>f.has_data).map(f=>({label:f.metric,sub:f.category||"",icon:CI.metric,
-    run:()=>{nav("dashboard");const i=shownFacts.indexOf(f);(i>=0)?openDetail(i):(currentFacts.includes(f)&&(searchQuery="",renderCards(),openDetail(shownFacts.indexOf(f))));},group:"Metrics"}));
+    run:()=>requestImportAction(()=>{nav("dashboard");const i=shownFacts.indexOf(f);(i>=0)?openDetail(i):(currentFacts.includes(f)&&(searchQuery="",renderCards(),openDetail(shownFacts.indexOf(f))));}),group:"Metrics"}));
   return[...acts,...pageItems,...metricItems];
 }
 function openPalette(){
@@ -381,12 +381,13 @@ const fmt=(v,unit)=>{
   if(v===null||v===undefined)return"–";
   if(unit==="%")return(+v.toFixed(1))+"%";
   if(unit==="count")return Math.round(v).toLocaleString();
-  // Finance-style: sign BEFORE the currency symbol (-$1.20M / -$370K / -$12.50).
-  const a=Math.abs(v),sign=v<0?"-":"";let mag;
+  // Finance-style: sign BEFORE the currency symbol (−$1.20M / −$370K / −$12.50),
+  // with a real minus sign (U+2212) so it lines up with "+" in mono figures.
+  const a=Math.abs(v),sign=v<0?"−":"";let mag;
   if(a>=1e6)mag="$"+(a/1e6).toFixed(2)+"M"; else if(a>=1e3)mag="$"+(a/1e3).toFixed(0)+"K"; else mag="$"+(+a.toFixed(2)).toLocaleString();
   return sign+mag;
 };
-const pct=v=>v===null||v===undefined?null:(v>0?"+":"")+v.toFixed(1)+"%";
+const pct=v=>v===null||v===undefined?null:(v>0?"+":v<0?"−":"")+Math.abs(v).toFixed(1)+"%";
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const plural=(n,one,many)=>`${n} ${n===1?one:(many||one+"s")}`;
 const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -396,6 +397,23 @@ function fmtPeriodTitle(p){
   if(/^\d{4}-Q\d$/.test(p))return `Q${p.slice(6)} ${p.slice(0,4)} overview`;
   return `${p} overview`;
 }
+// People read periods as "Jun 2026"; ISO stays in values, URLs and API calls.
+// style: "short" (Jun 2026) | "long" (June 2026) | "axis" (Jun 26).
+function fmtPeriod(p,style="short"){
+  if(!p)return"—";
+  let m=/^(\d{4})-(\d{2})$/.exec(p);
+  if(m){const name=MONTHS[+m[2]-1];
+    return style==="long"?`${name} ${m[1]}`:style==="axis"?`${name.slice(0,3)} ${m[1].slice(2)}`:`${name.slice(0,3)} ${m[1]}`;}
+  m=/^(\d{4})-Q(\d)$/.exec(p);
+  if(m)return style==="axis"?`Q${m[2]} ${m[1].slice(2)}`:`Q${m[2]} ${m[1]}`;
+  return String(p);
+}
+// One date format everywhere: "01 Nov 2026".
+function fmtDate(iso){
+  const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso||"");
+  return m?`${m[3]} ${MONTHS[+m[2]-1].slice(0,3)} ${m[1]}`:"—";
+}
+function setDocTitle(t){document.title=t?`${t} — Closebrief`:"Closebrief — FP&A intelligence";}
 
 /* ---------- reusable modal (replaces native prompt/confirm) ---------- */
 let _modalResolve=null;
@@ -466,12 +484,35 @@ function toggleCollapse(){
 }
 // Restore collapsed state on load.
 try{if(localStorage.getItem("cb-side-collapsed")==="1")document.body.classList.add("side-collapsed");}catch{}
-function nav(v){
+const VIEWS=["dashboard","digest","context","analytics","review","import","costs","notifications","admin"];
+const VIEW_TITLES={digest:"Executive digest",context:"Context library",analytics:"Advanced analytics",
+  review:"Review queue",import:"Import",costs:"Cost & usage",notifications:"Notifications",admin:"User management"};
+// Every view is linkable: navigation pushes a history entry so Back works,
+// and popstate (Back/Forward, a pasted link) routes without pushing again.
+function pushRoute(h){if(location.hash!==h)history.pushState(null,"",h);}
+function route(){
+  const h=location.hash.slice(1);
+  if(h.startsWith("metric"))openMetricFromHash(h);
+  else nav(VIEWS.includes(h)?h:"dashboard",{fromRoute:true});
+}
+// Set once the app has loaded its periods (every boot path: auth, demo, local dev);
+// cleared when the login gate shows, so a hash reset on sign-out doesn't route.
+let routerReady=false;
+window.addEventListener("popstate",()=>importRouteChanged());
+window.addEventListener("hashchange",()=>importRouteChanged());
+function nav(v,{fromRoute=false}={}){
   closeSidebar();   // dismiss the mobile drawer on navigation
-  for(const s of["dashboard","detail","digest","context","analytics","review","import","costs","notifications","admin"])$("v-"+s).style.display=s===v?"":"none";
-  for(const s of["dashboard","digest","context","analytics","review","import","costs","notifications","admin"])
-    document.querySelector(`[data-view=${s}]`)?.classList.toggle("active",s===v||(v==="detail"&&s==="dashboard"));
-  if(v!=="detail"&&location.hash!=="#"+v)history.replaceState(null,"","#"+v);
+  for(const s of["detail",...VIEWS])$("v-"+s).style.display=s===v?"":"none";
+  for(const s of VIEWS){
+    const item=document.querySelector(`[data-view=${s}]`);if(!item)continue;
+    const on=s===v||(v==="detail"&&s==="dashboard");
+    item.classList.toggle("active",on);
+    if(on)item.setAttribute("aria-current","page");else item.removeAttribute("aria-current");
+  }
+  if(v!=="detail"){
+    if(!fromRoute)pushRoute("#"+v);
+    setDocTitle(v==="dashboard"?(currentPeriod?fmtPeriodTitle(currentPeriod):"Dashboard"):VIEW_TITLES[v]);
+  }
   if(v==="context")loadContext();
   if(v==="analytics")loadAnalytics();
   if(v==="review")loadReview();
@@ -634,7 +675,7 @@ async function onGoogleCredential(resp){
 }
 
 
-function showLogin(){$("login-gate").classList.add("show");$("app-root").style.display="none";}
+function showLogin(){routerReady=false;$("login-gate").classList.add("show");$("app-root").style.display="none";}
 function hideLogin(){$("login-gate").classList.remove("show");$("app-root").style.display="";}
 function toggleAuthMode(){
   authMode=authMode==="signin"?"signup":"signin";
@@ -681,9 +722,8 @@ async function startApp(){
     await loadWorkspaces();   // resolve tenant scope before loading any data
   }else if(demoSession){currentUser={email:"demo@closebrief.app",role:"viewer"};applyRole(currentUser);}
   else{applyRole({email:"local@dev",role:"admin"});}
-  loadPeriods().then(()=>{const h=location.hash.slice(1);
-    if(["dashboard","digest","context","analytics","review","import","costs","notifications","admin"].includes(h))nav(h);
-    else if(h.startsWith("metric"))openMetricFromHash(h);
+  loadPeriods().then(()=>{const h=location.hash.slice(1);routerReady=true;
+    if(VIEWS.includes(h)||h.startsWith("metric"))route();
   });
 }
 function applyRole(u){
@@ -709,9 +749,9 @@ function openMetricFromHash(h){
   const name=p.get("metric"),period=p.get("period");
   const go=()=>{
     const f=(currentFacts||[]).find(x=>x.metric===name&&x.has_data)||(currentFacts||[]).find(x=>x.has_data);
-    if(!f)return;
-    nav("dashboard");const i=shownFacts.indexOf(f);
-    if(i>=0)openDetail(i);else{searchQuery="";renderCards();openDetail(shownFacts.indexOf(f));}
+    if(!f){nav("dashboard",{fromRoute:true});return;}
+    nav("dashboard",{fromRoute:true});const i=shownFacts.indexOf(f);
+    if(i>=0)openDetail(i,{fromRoute:true});else{searchQuery="";renderCards();openDetail(shownFacts.indexOf(f),{fromRoute:true});}
   };
   const sel=$("period-select");
   if(period&&sel&&sel.value!==period&&[...sel.options].some(o=>o.value===period)){sel.value=period;loadFacts().then(go);}
@@ -766,6 +806,7 @@ async function rootCauseNarrative(){
 
 /* ---- Board pack export (v5.1) ---- */
 async function exportBoardPack(){
+  $("export-menu").classList.remove("open");
   if(!currentPeriod){toast("Import data first");return;}
   const btn=$("export-pack-btn");if(btn)btn.disabled=true;
   try{
@@ -919,13 +960,25 @@ async function loadCrossDomain(){
   }catch(e){box.innerHTML=`<div class="an-empty">${esc(errMsg(e))}</div>`;}
 }
 /* ---- Collaborative review (detail view) ---- */
+// Approval is a separate check from figure verification — see docs/ui-standard.md §3.
+const REVIEW_LABELS={none:"Not approved yet",pending:"Awaiting approval",approved:"Approved",changes_requested:"Changes requested"};
+// Figures check and explanation confidence, as two clearly separate statements.
+function narrMeta(f){
+  const bits=[];
+  if(f.faithfulness==="passed")bits.push("Figures verified");
+  else if(f.faithfulness==="failed")bits.push("Figures need review");
+  if(f.confidence)bits.push(`Explanation: ${f.confidence} confidence`);
+  if(f.edited)bits.push("edited by analyst");
+  if(f.cost_usd!=null)bits.push(`≈ $${(+f.cost_usd).toFixed(4)}`);
+  return bits.join(" · ");
+}
 function renderReviewStrip(f){
   const strip=$("d-rev-strip");if(!strip)return;
   if(!f||!f.report_id){strip.style.display="none";$("d-versions").style.display="none";$("d-assign-row").style.display="none";return;}
   strip.style.display="";
   const st=f.review_status||"none",badge=$("d-rev-badge");
   badge.className="rev-badge "+st;
-  badge.textContent=({pending:"Pending review",approved:"Approved",changes_requested:"Changes requested"})[st]||"Not reviewed";
+  badge.textContent=REVIEW_LABELS[st]||REVIEW_LABELS.none;
   $("d-assigned").textContent=f.assigned_email?("· "+f.assigned_email):"";
   $("d-assign-row").style.display="none";
   const vb=$("d-versions");vb.style.display="none";vb.innerHTML="";$("d-ver-btn").textContent="History";
@@ -1142,6 +1195,7 @@ async function setUserRole(uid,role){
 /* ---------- datasets ---------- */
 const DOMAIN_LABEL={fpa:"FP&A",marketing:"Marketing",ops:"Ops"};
 let activeDatasetObj=null, activeDomain=null;
+function datasetCaption(ds){return plural(ds.metric_count||0,"KPI")+" · imported "+fmtDate(ds.created_at);}
 async function loadDatasets(){
   const d=await api("/datasets");
   activeDatasetId=d.active_id;
@@ -1152,9 +1206,10 @@ async function loadDatasets(){
   try{activeDomain=await api("/domain");}catch{activeDomain=null;}
   $("ws-name").textContent=active?active.name:"No dataset";
   const rows=d.datasets.map(ds=>`
-    <div class="ws-item" onclick="activateDataset(${ds.id})">
+    <div class="ws-item">
+      <button class="ws-choice" onclick="activateDataset(${esc(ds.id)})">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${ds.is_active?'var(--accent)':'var(--mut2)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-5"/></svg>
-      <span class="ws-info"><b>${esc(ds.name)}</b><span>${plural(ds.metric_count,"metric")} · <span class="ws-dom">${DOMAIN_LABEL[ds.domain]||"FP&A"}</span></span></span>
+      <span class="ws-info"><b>${esc(ds.name)}</b><span>${esc(datasetCaption(ds))}</span></span></button>
       <span class="ws-kebab exec-hide" onclick="event.stopPropagation();toggleKebab(event,${ds.id})">
         <button aria-label="Dataset options">⋯</button>
         <div class="ws-kmenu" id="kmenu-${ds.id}">
@@ -1198,6 +1253,7 @@ async function loadWorkspaces(){
 }
 function toggleWsp(e){e.stopPropagation();$("wsp-menu").classList.toggle("open");}
 async function switchWorkspace(id){
+  if(!await leaveImport())return;
   $("wsp-menu").classList.remove("open");
   if(id===activeWorkspaceId)return;
   activeWorkspaceId=id;try{localStorage.setItem("cb-ws",String(id));}catch{}
@@ -1249,6 +1305,7 @@ document.addEventListener("keydown",e=>{
   else if(e.key==="e"){toggleExport(e);}
 });
 async function activateDataset(id){
+  if(!await leaveImport())return;
   closeSidebar();$("statrow").innerHTML="";$("cards").innerHTML=skeletonCards();  // brief loading state
   try{await api(`/datasets/${id}/activate`,{method:"POST"});toast("Switched dataset");await loadPeriods();}
   catch(e){toast("Couldn't switch dataset: "+e.message);}
@@ -1270,7 +1327,7 @@ async function deleteDataset(id){
 let granularity="month";
 function setGranularity(g){
   if(g===granularity)return;granularity=g;
-  document.querySelectorAll("#gran-seg button").forEach(b=>b.classList.toggle("active",b.dataset.g===g));
+  document.querySelectorAll("#gran-seg button").forEach(b=>{b.classList.toggle("active",b.dataset.g===g);b.setAttribute("aria-pressed",String(b.dataset.g===g));});
   loadPeriods();
 }
 function stepPeriod(dir){
@@ -1287,15 +1344,15 @@ function syncStepButtons(){
 }
 function groupPeriodsByYear(periods){
   // Build <optgroup> by year for quarter/year; flat for month.
-  if(granularity==="year")return periods.map(p=>`<option>${p}</option>`).join("");
+  if(granularity==="year")return periods.map(periodOption).join("");
   const byYear={};periods.forEach(p=>{const y=p.slice(0,4);(byYear[y]=byYear[y]||[]).push(p);});
-  return Object.keys(byYear).sort().map(y=>`<optgroup label="${y}">${byYear[y].map(p=>`<option>${p}</option>`).join("")}</optgroup>`).join("");
+  return Object.keys(byYear).sort().map(y=>`<optgroup label="${y}">${byYear[y].map(periodOption).join("")}</optgroup>`).join("");
 }
 async function loadPeriods(){
   await loadDatasets();
   const periods=await api(`/periods?granularity=${granularity}`);
   const sel=$("period-select");
-  sel.innerHTML=granularity==="month"?periods.map(p=>`<option>${p}</option>`).join(""):groupPeriodsByYear(periods);
+  sel.innerHTML=granularity==="month"?periods.map(periodOption).join(""):groupPeriodsByYear(periods);
   if(periods.length){sel.value=periods[periods.length-1];currentPeriod=sel.value;await loadFacts();}
   else{
     // Empty workspace: show a centered import CTA on the dashboard, don't jump away.
@@ -1309,6 +1366,8 @@ async function loadPeriods(){
     </div>`;
   }
 }
+// Value stays ISO (used by the API and the URL); the label is what people read.
+function periodOption(p){return `<option value="${esc(p)}">${esc(fmtPeriod(p))}</option>`;}
 function skeletonCards(n=6){
   const one=`<div class="sk-card"><div class="sk sk-line" style="width:45%"></div>
     <div class="sk" style="height:30px;width:60%"></div>
@@ -1316,17 +1375,27 @@ function skeletonCards(n=6){
     <div class="sk sk-line" style="width:100%"></div><div class="sk sk-line" style="width:92%"></div><div class="sk sk-line" style="width:70%"></div></div>`;
   return Array(n).fill(one).join("");
 }
+let _factsSlowT=null;
 async function loadFacts(){
   currentPeriod=$("period-select").value;syncStepButtons();
   $("dash-loading").style.display="none";$("statrow").innerHTML="";$("cards").innerHTML=skeletonCards();
+  // Say what is happening; large datasets compute for a while on first load.
+  $("dash-title").textContent=fmtPeriodTitle(currentPeriod);
+  $("dash-sub").textContent=`Loading KPIs for ${fmtPeriod(currentPeriod,"long")}…`;$("dash-fresh").textContent="";
+  clearTimeout(_factsSlowT);
+  const slowFor=currentPeriod;
+  _factsSlowT=setTimeout(()=>{if(currentPeriod===slowFor&&$("dash-sub").textContent.startsWith("Loading"))
+    $("dash-sub").textContent="Still computing KPIs — the first load of a large dataset can take up to a minute.";},4000);
   try{
     currentFacts=await api(`/facts?period=${encodeURIComponent(currentPeriod)}&granularity=${granularity}`);
+    clearTimeout(_factsSlowT);
     const cats=[...new Set(currentFacts.map(f=>f.category||"Uncategorized"))].sort();
     assignCatSlots(cats);
     renderCatPills(cats);
     renderCards();
     const anom=currentFacts.filter(f=>f.is_anomaly).map(f=>f.metric);
     $("dash-title").textContent=fmtPeriodTitle(currentPeriod);
+    if($("v-dashboard").style.display!=="none")setDocTitle(fmtPeriodTitle(currentPeriod));
     const aggNote=granularity==="month"?"":" · narratives are written monthly";
     $("dash-sub").innerHTML=`${currentFacts.length} ${currentFacts.length===1?"KPI":"KPIs"} · <b>${anom.length?plural(anom.length,"anomaly","anomalies"):"no anomalies"}</b>${aggNote}`;
     const anomKey=`anomaly:${currentPeriod}`;
@@ -1337,6 +1406,7 @@ async function loadFacts(){
     updateGenButton();maybePromptGenerate();setFreshness();
     loadConflicts();renderFunnel();
   }catch(e){
+    clearTimeout(_factsSlowT);
     $("statrow").innerHTML="";$("dash-sub").textContent="Couldn't load data";
     $("cards").innerHTML=`<div class="empty-state" style="grid-column:1/-1;padding:56px 20px">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:40px;height:40px"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
@@ -1348,22 +1418,22 @@ async function loadFacts(){
 function setFreshness(){
   const el=$("dash-fresh");if(!el)return;
   const sel=$("period-select"),latest=sel&&sel.options.length?sel.options[sel.options.length-1].value:currentPeriod;
-  const imported=activeDatasetObj&&activeDatasetObj.created_at?activeDatasetObj.created_at.slice(0,10):null;
+  const imported=activeDatasetObj&&activeDatasetObj.created_at?fmtDate(activeDatasetObj.created_at):null;
   const narr=currentFacts.filter(f=>f.has_data&&f.narrative).length,tot=currentFacts.filter(f=>f.has_data).length;
-  const bits=[`Data through ${esc(latest||"—")}`];
-  if(imported)bits.push(`imported ${esc(imported)}`);
+  const bits=[`Data through ${fmtPeriod(latest)}`];
+  if(imported)bits.push(`imported ${imported}`);
   if(tot)bits.push(narr===tot?"narratives current":`${narr}/${tot} narratives generated`);
   el.textContent=bits.join(" · ");
 }
 function maybePromptGenerate(){
   // Offer (never force) generation when a month period has data but no narratives.
-  const el=$("import-banner");if(!el||demoSession||granularity!=="month")return;
-  const withData=currentFacts.filter(f=>f.has_data),none=withData.length&&withData.every(f=>!f.narrative);
+  const el=$("import-banner");if(!el||demoSession)return;
+  const withData=currentFacts.filter(f=>f.has_data),none=granularity==="month"&&withData.length&&withData.every(f=>!f.narrative);
   if(!none){if(el.classList.contains("info"))el.style.display="none";return;}
   if(el.style.display==="none"){
     el.style.display="";el.className="banner info";
     el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>
-      <span>No narratives for ${esc(currentPeriod)} yet.</span>
+      <span>No narratives for ${esc(fmtPeriod(currentPeriod,"long"))} yet.</span>
       <button class="btn sm primary exec-hide" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Generate narratives</button>
       <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">✕</button>`;
   }
@@ -1431,7 +1501,7 @@ async function explainFunnel(btn){
 /* The signature mark: the auditor's tick. One seal wherever numbers are verified. */
 const TICK='<svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
 const seal=ok=>ok
-  ?`<span class="seal" title="Every figure checked against computed facts">${TICK}Verified</span>`
+  ?`<span class="seal" title="Every figure checked against computed facts">${TICK}Figures verified</span>`
   :`<span class="seal failed" title="A figure couldn't be verified — review before sharing"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Needs review</span>`;
 const DOCICON='<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
 /* Icon registry for JS-rendered markup. The bell mirrors the static sidebar-nav
@@ -1554,6 +1624,9 @@ function renderPills(){
   if(searchQuery)pills.push(`Search: “${esc(searchQuery)}”<button onclick="clearSearch()" aria-label="Clear search">×</button>`);
   $("filter-pills").innerHTML=pills.map(p=>`<span class="fpill">${p}</span>`).join("");
 }
+// Cards act as links: Enter/Space opens, but only when the card itself has focus
+// (not one of its inner Accept/Edit/Generate buttons).
+function cardKey(e,i){if(e.target===e.currentTarget&&(e.key==="Enter"||e.key===" ")){e.preventDefault();openDetail(i);}}
 function clearCatFilter(){setCat("");}
 function clearSearch(){searchQuery="";const s=$("search");if(s)s.value="";renderCards();}
 function renderCards(){
@@ -1581,7 +1654,7 @@ function renderCards(){
       :f.faithfulness==="failed"?seal(false)
       :f.faithfulness==="passed"?seal(true):"";
     const nsrc=(f.sources||[]).length;
-    return`<div class="card click ${rise}" ${delay} onclick="openDetail(${i})">
+    return`<div class="card click ${rise}" ${delay} onclick="openDetail(${i})" onkeydown="cardKey(event,${i})" tabindex="0" role="link" aria-label="${esc(f.metric)}: ${esc(fmt(f.value,f.unit))}. Open details">
       <div class="card-top">
         <span class="card-name" title="${esc(f.category||"Uncategorized")}"><span class="cat-dot"></span>${hl(f.metric,q)}</span>
         ${f.chart_data&&f.chart_data.trend?sparkline(f.chart_data.trend,f.direction_good,96,28,f.unit):""}
@@ -1642,7 +1715,7 @@ function chartTheme(){
 if(window.Chart){
   Chart.defaults.font.family="'Plus Jakarta Sans',system-ui,-apple-system,sans-serif";
   Chart.defaults.font.size=11;
-  Chart.defaults.animation.duration=600;
+  Chart.defaults.animation.duration=matchMedia("(prefers-reduced-motion: reduce)").matches?0:600;
   Chart.defaults.animation.easing="easeOutQuart";
 }
 function ensureCanvas(id){
@@ -1664,34 +1737,40 @@ function tooltipCfg(unit,labeler){
     callbacks:labeler||{label:c=>` ${c.dataset.label||""}: ${fmt(c.parsed.y,unit)}`}};
 }
 function renderTrendChart(trend,unit){
-  ensureCanvas("c-trend");const box=$("box-c-trend");
+  ensureCanvas("c-trend");const box=$("box-c-trend"),note=$("d-trend-axis");if(note)note.textContent="";
   const has=trend.some(t=>t.value!=null||t.budget!=null);
+  const months=trend.filter(t=>t.value!=null).length;
+  $("d-trend-title").textContent=months>1?`${months}-month trend`:"Trend";
   if(!has){if(chartReg["c-trend"]){chartReg["c-trend"].destroy();delete chartReg["c-trend"];}box.innerHTML='<div class="loading">No trend data.</div>';return;}
   const th=chartTheme();
+  // Straight segments, no area fill: smoothing invents values between months and
+  // a fill implies a zero baseline the axis may not have (docs/ui-standard.md §6).
   mkChart("c-trend",{type:"line",
-    data:{labels:trend.map(t=>t.period.slice(2)),datasets:[
-      {label:"Actual",data:trend.map(t=>t.value),borderColor:th.accent,borderWidth:2,tension:.35,
-        pointRadius:0,pointHoverRadius:4,pointBackgroundColor:th.accent,spanGaps:true,
-        fill:true,backgroundColor:ctx=>{const{chartArea,ctx:c}=ctx.chart;if(!chartArea)return"transparent";
-          const g=c.createLinearGradient(0,chartArea.top,0,chartArea.bottom);
-          g.addColorStop(0,th.accent+"33");g.addColorStop(1,th.accent+"03");return g;}},
+    data:{labels:trend.map(t=>fmtPeriod(t.period,"axis")),datasets:[
+      {label:"Actual",data:trend.map(t=>t.value),borderColor:th.accent,borderWidth:2,tension:0,
+        pointRadius:2,pointHoverRadius:4,pointBackgroundColor:th.accent,spanGaps:true,fill:false},
       {label:"Budget",data:trend.map(t=>t.budget),borderColor:th.mut,borderWidth:2,borderDash:[5,4],
-        tension:.35,pointRadius:0,pointHoverRadius:3,fill:false,spanGaps:true}]},
+        tension:0,pointRadius:0,pointHoverRadius:3,fill:false,spanGaps:true}]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
       plugins:{legend:{display:false},tooltip:tooltipCfg(unit)},
       scales:{y:{grid:{color:th.grid},ticks:{color:th.mut,maxTicksLimit:5,callback:v=>fmt(v,unit)},border:{display:false}},
         x:{grid:{display:false},ticks:{color:th.mut,maxRotation:0,autoSkip:true,maxTicksLimit:7},border:{color:th.grid}}}}});
+  const y=chartReg["c-trend"]&&chartReg["c-trend"].scales&&chartReg["c-trend"].scales.y;
+  if(note&&y&&y.min>0)note.textContent=`Axis starts at ${fmt(y.min,unit)}, not zero.`;
 }
 function renderBvaChart(bva,unit){
   ensureCanvas("c-bva");const box=$("box-c-bva");
-  if(!bva||bva.actual==null){if(chartReg["c-bva"]){chartReg["c-bva"].destroy();delete chartReg["c-bva"];}box.innerHTML='<div class="loading">No data.</div>';return;}
+  const drop=msg=>{if(chartReg["c-bva"]){chartReg["c-bva"].destroy();delete chartReg["c-bva"];}box.innerHTML=`<div class="loading">${msg}</div>`;};
+  if(!bva||bva.actual==null){drop("No data.");return;}
+  // Half a comparison reads as a broken chart — say what's missing instead.
+  if(bva.budget==null){drop(`No budget loaded for this metric. Actual: <b class="nbi-num">${fmt(bva.actual,unit)}</b>. Attach one from Import → Budget.`);return;}
   const th=chartTheme();
   mkChart("c-bva",{type:"bar",
-    data:{labels:["Actual","Budget"],datasets:[{label:"",data:[bva.actual,bva.budget],
+    data:{labels:[`Actual ${fmt(bva.actual,unit)}`,`Budget ${fmt(bva.budget,unit)}`],datasets:[{label:"",data:[bva.actual,bva.budget],
       backgroundColor:[th.accent,th.mut],borderRadius:5,borderSkipped:false,barThickness:22}]},
     options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:tooltipCfg(unit,{label:c=>` ${c.label}: ${fmt(c.parsed.x,unit)}`})},
-      scales:{x:{grid:{color:th.grid},ticks:{color:th.mut,maxTicksLimit:5,callback:v=>fmt(v,unit)},border:{display:false}},
+      plugins:{legend:{display:false},tooltip:tooltipCfg(unit,{label:c=>` ${fmt(c.parsed.x,unit)}`})},
+      scales:{x:{beginAtZero:true,grid:{color:th.grid},ticks:{color:th.mut,maxTicksLimit:5,callback:v=>fmt(v,unit)},border:{display:false}},
         y:{grid:{display:false},ticks:{color:th.ink,font:{weight:"600"}},border:{display:false}}}}});
 }
 function renderBridgeChart(bridge,total,unit){
@@ -1715,13 +1794,17 @@ function renderBridgeChart(bridge,total,unit){
       scales:{y:{grid:{color:th.grid},ticks:{color:th.mut,maxTicksLimit:5,callback:v=>fmt(v,unit)},border:{display:false}},
         x:{grid:{display:false},ticks:{color:th.ink,font:{weight:"600"}},border:{color:th.grid}}}}});
 }
-function trendTable(trend,unit){if(!trend.length)return"";return`<details class="tbl"><summary>Show data table</summary><table><thead><tr><th>Period</th><th>Actual</th><th>Budget</th></tr></thead><tbody>${trend.map(t=>`<tr><td>${esc(t.period)}</td><td>${fmt(t.value,unit)}</td><td>${fmt(t.budget,unit)}</td></tr>`).join("")}</tbody></table></details>`;}
+function trendTable(trend,unit){if(!trend.length)return"";return`<details class="tbl"><summary>Show data table</summary><table><thead><tr><th>Period</th><th>Actual</th><th>Budget</th></tr></thead><tbody>${trend.map(t=>`<tr><td>${esc(fmtPeriod(t.period))}</td><td class="nbi-num">${fmt(t.value,unit)}</td><td class="nbi-num">${fmt(t.budget,unit)}</td></tr>`).join("")}</tbody></table></details>`;}
 
 /* ---------- metric detail ---------- */
-function openDetail(i){
+function metricHash(metric,period){return "#"+new URLSearchParams({metric,period}).toString();}
+function openDetail(i,{fromRoute=false}={}){
   const f=shownFacts[i];if(!f||!f.has_data)return;detailFact=f;nav("detail");
+  if(!fromRoute)pushRoute(metricHash(f.metric,currentPeriod));
+  setDocTitle(`${f.metric} · ${fmtPeriod(currentPeriod)}`);
+  $("main").scrollTop=0;window.scrollTo(0,0);
   $("d-title").textContent=f.metric;const dg=f.direction_good==="down";
-  $("d-sub").innerHTML=`<span class="cat-dot" style="${catStyle(f.category)}"></span>${esc(f.category||"")} · ${esc(currentPeriod)} · ${fmt(f.value,f.unit)} `
+  $("d-sub").innerHTML=`<span class="cat-dot" style="${catStyle(f.category)}"></span>${esc(f.category||"")} · ${esc(fmtPeriod(currentPeriod,"long"))} · <span class="nbi-num">${fmt(f.value,f.unit)}</span> `
     +deltaChip("MoM",f.deltas.mom_pct,dg)+" "+deltaChip("vs plan",f.deltas.budget_var_pct,dg)
     +(f.is_anomaly?' <span class="anom">Anomaly</span>':"");
   const cd=f.chart_data||{};
@@ -1737,12 +1820,13 @@ function openDetail(i){
   {const rc=$("d-rootcause");if(rc){rc.style.display="none";rc.innerHTML="";}}
   $("d-grounding").style.display="none";groundingData=null;
   if(f.narrative&&f.report_id&&!f.edited){
-    // Drill-down: fetch per-sentence grounding and render clickable sentences.
+    // Show the text at once; per-sentence grounding replaces it when it arrives.
+    $("d-narr").textContent=f.narrative;
     renderGroundedNarrative(f.report_id);
   }else{
     $("d-narr").innerHTML=f.narrative?esc(f.narrative)+(f.edited&&f.original_narrative?`<details class="tbl" style="margin-top:8px"><summary>Show original (pre-edit)</summary><p style="margin-top:6px;color:var(--mut)">${esc(f.original_narrative)}</p></details>`:""):"No narrative yet — generate one from the dashboard card.";
   }
-  $("d-narr-meta").textContent=(f.confidence?`${f.confidence} confidence · numbers ${f.faithfulness}`:"")+(f.edited?" · edited by analyst":"")+(f.cost_usd!=null?` · ≈ $${(+f.cost_usd).toFixed(4)}`:"");
+  $("d-narr-meta").textContent=narrMeta(f);
   $("d-chips").innerHTML=(f.sources||[]).map(s=>`<span class="chip" title="Open source note" onclick="showSourceDoc('${esc(s.id)}')">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
   $("d-qa-answer").innerHTML="";$("d-qa").value="";qaThread=[];   // fresh conversation per metric
   loadCorrelations(f.metric);
@@ -1890,6 +1974,7 @@ async function generateAll(){
   const btn=$("gen-all");btn.disabled=true;
   const gp=currentPeriod,gg=granularity,gd=activeDatasetId,force=!targets.length,total=list.length;
   generatingSet=new Set(list.map(f=>f.metric));skipRise=true;renderCards();
+  {const b=$("import-banner");if(b&&b.classList.contains("info"))b.style.display="none";}
   let done=0;
   await runPool(list,3,async(f)=>{
     try{
@@ -1905,6 +1990,8 @@ async function generateAll(){
   });
   skipRise=false;btn.disabled=false;generatingSet.clear();updateGenButton();
   if(currentPeriod!==gp)return;
+  // Head, tiles, banner and cards must agree once generation finishes (QA #8).
+  setFreshness();maybePromptGenerate();renderCards();
   const failed=currentFacts.filter(f=>f.faithfulness==="failed").length;
   toast(failed?`Done — ${plural(failed,"narrative")} need review`:"All narratives generated ✓");
 }
@@ -1991,15 +2078,43 @@ async function delContext(id){
 
 /* ---------- import ---------- */
 let upload=null,profile=null,lastImport=null,importMode="new";
-function setStep(n){for(let i=1;i<=3;i++)$("st-"+i).className="step"+(i<n?" done":i===n?" active":"");
+let importStep=1,kpiLoading=false,kpiSaving=false,importLeaving=false;
+function setStep(n){importStep=n;for(let i=1;i<=3;i++){const el=$("st-"+i),done=i<n;
+    el.className="step"+(done?" done":i===n?" active":"");
+    if(i===n)el.setAttribute("aria-current","step");else el.removeAttribute("aria-current");
+    el.innerHTML=(done?'<span aria-hidden="true">✓</span><span class="visually-hidden">done · </span>':esc(i)+" · ")+esc(["Upload","Map columns","Pick KPIs"][i-1]);}
   $("imp-upload").style.display=n===1?"":"none";$("imp-map").style.display=n===2?"":"none";$("imp-kpis").style.display=n===3?"":"none";
   if(n!==2)$("imp-join-result").style.display="none";}
+function hasUnfinishedImport(){return importStep===3&&lastImport?.datasetId!=null;}
+async function leaveImport(){
+  if(kpiSaving||importLeaving)return false;
+  if(!hasUnfinishedImport())return true;
+  importLeaving=true;
+  try{
+    closeSidebar();
+    const answer=modalConfirm("Leave import?","This dataset is unfinished. Delete it and leave, or cancel to keep choosing your KPIs.",{okLabel:"Delete and leave"});
+    $("modal-ok").focus?.();
+    if(!await answer)return false;
+    await api(`/datasets/${lastImport.datasetId}`,{method:"DELETE"});
+    resetImport();await loadPeriods();toast("Unfinished import deleted");return true;
+  }catch(e){$("imp-result").innerHTML=`<div class="banner err">${esc(e.message)}. Your import is still open; try leaving again to retry.</div>`;return false;}
+  finally{importLeaving=false;}
+}
+async function requestImportAction(action){if(await leaveImport())return action();}
+function requestImportView(view){if(view==="import"||(!hasUnfinishedImport()&&!kpiSaving))return nav(view);return requestImportAction(()=>nav(view));}
+async function importRouteChanged(){
+  if(!routerReady)return;
+  if(!hasUnfinishedImport())return route();
+  const target=location.hash;if(target==="#import")return;
+  history.pushState(null,"","#import");
+  if(await leaveImport()){history.replaceState(null,"",target);route();}
+}
 function dropFile(e){e.preventDefault();$("drop").classList.remove("drag");const f=e.dataTransfer.files[0];if(f)uploadFile(f);}
 function resetImport(){
   // Lets the user land back on step 1 and pick a DIFFERENT file. A bare file
   // input never re-fires 'change' for the same filename, and stale upload/
   // profile state would otherwise carry into the next attempt.
-  upload=null;profile=null;
+  upload=null;profile=null;lastImport=null;kpiLoading=false;
   const input=$("file-in");if(input)input.value="";
   $("imp-result").innerHTML="";$("map-warnings").style.display="none";$("map-hint").style.display="none";
   $("sheet-pick").style.display="none";$("tpl-banner").style.display="none";
@@ -2014,7 +2129,7 @@ async function onImportModeChange(){
   if(importMode==="join"){
     try{
       const d=await api("/datasets");
-      $("imp-target").innerHTML=(d.datasets||[]).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join("")
+      $("imp-target").innerHTML=(d.datasets||[]).map(x=>`<option value="${esc(x.id)}">${esc(x.name)} · ${esc(datasetCaption(x))}</option>`).join("")
         ||'<option value="">No datasets yet — import actuals first</option>';
     }catch{}
   }
@@ -2121,23 +2236,64 @@ async function confirmJoinBudget(){
     if(um.length)html+=`<div class="banner warn" style="margin-top:10px"><b>No matching metric found</b> for: ${um.map(esc).join(", ")}</div>`;
     if(up_.length)html+=`<div class="banner warn" style="margin-top:10px"><b>${plural(up_.length,"period")} had no actuals to attach a budget to</b> — the metric exists, but not for that month yet.</div>`;
     $("imp-join-result").style.display="";$("imp-join-result").innerHTML=html
-      +`<div style="margin-top:16px"><button class="btn primary" onclick="resetImport();nav('dashboard')">Done — view dashboard</button>
+      +`<div style="margin-top:16px"><button class="btn primary" onclick="finishBudgetJoin(${Number(targetId)})">Done — view dashboard</button>
          <button class="btn" style="margin-left:8px" onclick="resetImport()">Import another file</button></div>`;
   }catch(e){$("imp-result").innerHTML=`<div class="banner err">${warnIcon()}${esc(e.message)}</div>`;}
 }
+// QA #9: the dashboard showed pre-join facts ("vs plan –") until a full reload.
+async function finishBudgetJoin(targetId){
+  resetImport();
+  if(targetId&&targetId!==activeDatasetId)await activateDataset(targetId);
+  else await loadPeriods();
+  nav("dashboard");
+}
 async function applyTpl(id){const t=await api(`/templates/${id}`);await confirmMapping(t.mapping);toast("Saved mapping applied");}
+function humanizeKpiName(source){
+  const raw=String(source||"").trim(),acronyms={arr:"ARR",mrr:"MRR",mql:"MQL",mqls:"MQLs",sql:"SQL",sqls:"SQLs",cogs:"COGS",cac:"CAC",ltv:"LTV",ebitda:"EBITDA",roi:"ROI",roas:"ROAS",nps:"NPS",usd:"USD",eur:"EUR",gbp:"GBP"};
+  if(!raw.includes("_")&&raw!==raw.toLowerCase())return raw;
+  const words=raw.toLowerCase().replace(/_(usd|eur|gbp)$/," ").trim().replace(/closed_won/g,"closed-won").split(/[_\s]+/);
+  return words.map((w,i)=>acronyms[w]||(i===0?w.charAt(0).toUpperCase()+w.slice(1):w)).join(" ");
+}
+function kpiRows(){return [...document.querySelectorAll(".kpi-grid[data-src]")];}
+function selectKpis(include){kpiRows().forEach(r=>r.querySelector(".k-include").checked=include);updateKpiSelection();}
+function selectKpiEdits(select){kpiRows().forEach(r=>r.querySelector(".k-select").checked=select);updateKpiSelection();}
+function updateKpiSelection(){
+  const rows=kpiRows(),included=rows.filter(r=>r.querySelector(".k-include").checked).length,selected=rows.filter(r=>r.querySelector(".k-select").checked).length;
+  $("imp-finish").disabled=kpiLoading||kpiSaving||!included;
+  $("kpi-selection").textContent=kpiSaving?"Finishing import…":kpiLoading?"Loading KPI choices…":included?plural(included,"KPI")+" included":"Include at least one KPI to finish.";
+  $("kpi-bulk-apply").disabled=kpiLoading||kpiSaving||!selected;
+  $("kpi-bulk-selection").textContent=plural(selected,"row")+" selected for bulk edit";
+}
+function applyKpiBulk(){
+  const selected=kpiRows().filter(r=>r.querySelector(".k-select").checked);
+  if(!selected.length)return;
+  const fields=[["kpi-bulk-category",".k-cat"],["kpi-bulk-unit",".k-unit"],["kpi-bulk-direction",".k-dir"]],changes=fields.filter(([id])=>$(id).value.trim());
+  if(!changes.length){toast("Choose a category, unit or direction to apply");return;}
+  selected.forEach(r=>changes.forEach(([id,field])=>r.querySelector(field).value=$(id).value.trim()));
+  toast("Updated "+plural(selected.length,"KPI"));
+}
 async function loadKpiPicker(){
-  const metrics=await api(`/ingest/${upload.upload_id}/metrics`);
-  $("kpi-rows").innerHTML=`<div class="kpi-grid hdr"><span>Source metric</span><span>Display name</span><span>Category</span><span>Unit</span><span>Direction</span></div>`+
-    metrics.map(m=>{const s=m.suggestion||{};return`<div class="kpi-grid" data-src="${esc(m.source_metric)}">
-      <span><b>${esc(m.source_metric)}</b>${s.name?`<br><span class="suggest">→ ${esc(s.name)}</span>`:""}</span>
-      <input class="k-name" value="${esc(m.source_metric)}">
-      <input class="k-cat" value="${esc(s.category||"Uncategorized")}">
-      <select class="k-unit">${["USD","%","count"].map(u=>`<option ${u===(s.unit||"USD")?"selected":""}>${u}</option>`).join("")}</select>
-      <select class="k-dir"><option value="up" ${(s.direction_good||"up")==="up"?"selected":""}>↑ good</option><option value="down" ${s.direction_good==="down"?"selected":""}>↓ good</option></select></div>`;}).join("");
+  const current=lastImport;kpiLoading=true;updateKpiSelection();
+  $("kpi-rows").innerHTML='<div class="loading"><span class="spin"></span> Loading KPI choices…</div><div class="kpi-skeleton" aria-hidden="true"></div>';
+  const slow=setTimeout(()=>{if(kpiLoading&&lastImport===current)$("kpi-selection").textContent="Still loading KPI choices…";},4000);
+  try{
+    const metrics=await api(`/ingest/${upload.upload_id}/metrics`);if(lastImport!==current)return;
+    $("kpi-rows").innerHTML=metrics.length?`<div class="kpi-grid hdr"><span>Include / edit</span><span>Display name / source</span><span>Category</span><span>Unit</span><span>Direction</span></div>`+
+      metrics.map(m=>{const s=m.suggestion||{},row=esc(m.source_metric);return`<div class="kpi-grid" data-src="${row}">
+        <div class="kpi-checks"><label><input type="checkbox" class="k-include" checked aria-label="Include ${row}" onchange="updateKpiSelection()"> Include</label><label><input type="checkbox" class="k-select" aria-label="Select ${row} for bulk edit" onchange="updateKpiSelection()"> Bulk edit</label></div>
+        <label class="kpi-field"><span class="kpi-field-label">Display name</span><input class="k-name" aria-label="Display name for ${row}" value="${esc(humanizeKpiName(m.source_metric))}"><small class="kpi-source">Source: ${row}</small></label>
+        <label class="kpi-field"><span class="kpi-field-label">Category</span><input class="k-cat" aria-label="Category for ${row}" value="${esc(s.category||"Uncategorized")}"></label>
+        <label class="kpi-field"><span class="kpi-field-label">Unit</span><select class="k-unit" aria-label="Unit for ${row}">${["USD","%","count"].map(u=>`<option ${u===(s.unit||"USD")?"selected":""}>${esc(u)}</option>`).join("")}</select></label>
+        <label class="kpi-field"><span class="kpi-field-label">Direction</span><select class="k-dir" aria-label="Direction for ${row}"><option value="up" ${(s.direction_good||"up")==="up"?"selected":""}>↑ good</option><option value="down" ${s.direction_good==="down"?"selected":""}>↓ good</option></select></label></div>`;}).join(""):
+      '<div class="banner info">No KPIs were found. Leave this import to delete the unfinished dataset, then upload a file with metric values.</div>';
+  }catch(e){if(lastImport===current)$("kpi-rows").innerHTML=`<div class="banner err">${esc(e.message)} <button class="btn sm" onclick="loadKpiPicker()">Retry</button></div>`;}
+  finally{clearTimeout(slow);if(lastImport===current){kpiLoading=false;updateKpiSelection();}}
 }
 async function confirmKpis(){
-  const kpis=[...document.querySelectorAll(".kpi-grid[data-src]")].map(r=>({source_metric:r.dataset.src,display_name:r.querySelector(".k-name").value,category:r.querySelector(".k-cat").value,unit:r.querySelector(".k-unit").value,direction_good:r.querySelector(".k-dir").value}));
+  if(kpiSaving)return;
+  const kpis=[...document.querySelectorAll(".kpi-grid[data-src]")].filter(r=>r.querySelector(".k-include").checked).map(r=>({source_metric:r.dataset.src,display_name:r.querySelector(".k-name").value,category:r.querySelector(".k-cat").value,unit:r.querySelector(".k-unit").value,direction_good:r.querySelector(".k-dir").value}));
+  if(!kpis.length){updateKpiSelection();return;}
+  kpiSaving=true;updateKpiSelection();
   try{
   await api("/kpis",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kpis})});
   // Apply the chosen display name + domain to the freshly-created dataset —
@@ -2149,9 +2305,8 @@ async function confirmKpis(){
     try{await api(`/datasets/${newId}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name||undefined,domain})});}
     catch(e){toast("Imported, but couldn't save the dataset name: "+e.message);}
   }
-  resetImport();await loadPeriods();nav("dashboard");
+  const li=lastImport||{};resetImport();await loadPeriods();nav("dashboard");
   // Show a success banner on the dashboard with a one-click Generate action.
-  const li=lastImport||{};
   const el=$("import-banner");
   if(el){el.style.display="";el.className="banner ok";
     el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
@@ -2159,7 +2314,8 @@ async function confirmKpis(){
       <button class="btn sm primary" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Generate narratives</button>
       <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">✕</button>`;
   }
-  }catch(e){toast("Import failed to finalize: "+e.message);}
+  }catch(e){$("imp-result").innerHTML=`<div class="banner err">Import failed to finalize: ${esc(e.message)} <button class="btn sm" onclick="confirmKpis()">Retry</button></div>`;}
+  finally{kpiSaving=false;updateKpiSelection();}
 }
 
 // Entry point: boot() handles auth (creates the Supabase client, checks the
