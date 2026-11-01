@@ -1,12 +1,13 @@
 """facts + context -> narrative. Orchestrates prompt build, LLM call, and the
 faithfulness guard. Never lets an unverified number leave the system."""
 
+import re
 import time
 
 from app.generation.guard import check_faithfulness
 from app.generation.llm_client import LLMClient, LLMGenerationError
-from app.generation.prompts import PROMPT_VERSION, SYSTEM_PROMPT, build_user_prompt
-from app.schemas import ComputedFact, ContextSnippet, InsightOutput, SourceRef
+from app.generation.prompts import FIGURE_RULES, PROMPT_VERSION, SYSTEM_PROMPT, _fmt, build_user_prompt
+from app.schemas import ComputedFact, ContextSnippet, InsightOutput, SourceRef, TrendStreak
 
 
 class GenerationFailedFactsOnly(Exception):
@@ -51,6 +52,35 @@ def _facts_only_output(fact: ComputedFact) -> InsightOutput:
     )
 
 
+_NO_CONTEXT_CLOSING = re.compile(
+    r"\bunexplained\b|\bno (?:relevant )?context\b|\bcontext\b.*\b(?:does not|doesn't|cannot|can't) explain\b",
+    re.I,
+)
+
+
+def _without_context_closing(narrative: str, fact: ComputedFact, streak: TrendStreak | None) -> str:
+    """Replace an empty limitation with one available, deterministic observation."""
+    sentences = re.split(r"(?<=[.!?])\s+", narrative.strip())
+    while sentences and _NO_CONTEXT_CLOSING.search(sentences[-1]):
+        sentences.pop()
+    text = " ".join(sentences)
+    if not text:
+        text = f"{fact.metric} was {_fmt(fact.value, fact.unit)}."
+    if streak:
+        word = "grown" if streak.direction == "growing" else "declined"
+        observation = f"It has {word} for {_fmt(streak.months, 'count')} consecutive months."
+        present = r"\b(?:consecutive|straight|successive) months\b"
+    elif fact.deltas.yoy_pct is not None:
+        observation = f"It is {_fmt(fact.deltas.yoy_pct, '%')} year over year."
+        present = r"\byear[- ]over[- ]year\b|\byoy\b|\b(?:last|previous) year\b"
+    elif fact.is_anomaly:
+        observation = "This period is flagged as an anomaly."
+        present = r"\banomal(?:y|ous)\b"
+    else:
+        return text
+    return text if re.search(present, text, re.I) else text.rstrip() + " " + observation
+
+
 def generate_insight(
     fact: ComputedFact,
     context: list[ContextSnippet],
@@ -63,6 +93,8 @@ def generate_insight(
     system_prompt: str | None = None,
 ) -> InsightOutput:
     system_prompt = system_prompt or SYSTEM_PROMPT
+    if FIGURE_RULES not in system_prompt:
+        system_prompt += "\n\n" + FIGURE_RULES
     user_prompt = build_user_prompt(fact, context, correlations, trend_streak, comparison)
 
     t0 = time.perf_counter()
@@ -80,9 +112,8 @@ def generate_insight(
         # Regenerate once with a stricter reminder before giving up (PRD 6.4).
         stricter_user_prompt = (
             user_prompt
-            + "\n\nYour previous attempt used unverifiable number(s): "
-            + ", ".join(str(v) for v in unverified)
-            + ". Rewrite using ONLY the numbers listed in Computed facts above."
+            + "\n\nYour previous attempt used an unverifiable figure. Rewrite using ONLY "
+              "the numbers listed in Computed facts above, copying each figure exactly as given."
         )
         try:
             result, usage = llm_client.generate_narrative(system_prompt, stricter_user_prompt)
@@ -100,6 +131,11 @@ def generate_insight(
         for cid in result.sources_used
         if cid in context_by_id
     ]
+
+    narrative = result.narrative
+    if not sources:
+        narrative = _without_context_closing(narrative, fact, trend_streak)
+    passed, unverified = check_faithfulness(narrative, fact, context)
 
     confidence = (
         "Low" if not passed else _confidence_from_context(context, retrieval_scores)
@@ -122,7 +158,7 @@ def generate_insight(
         unit=fact.unit,
         deltas=fact.deltas,
         is_anomaly=fact.is_anomaly,
-        narrative=result.narrative,
+        narrative=narrative,
         sources=sources,
         confidence=confidence,
         faithfulness="passed" if passed else "failed",
