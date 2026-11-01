@@ -38,11 +38,24 @@ def _probe_page(width: int, target: str) -> bytes:
 <pre id="result">waiting</pre>
 <script>
 const frame = document.getElementById('site');
-frame.addEventListener('load', () => {{
+frame.addEventListener('load', async () => {{
   const doc = frame.contentDocument;
   const win = frame.contentWindow;
   let result;
-  if ('{target}' === 'login') {{
+  if ('{target}' === 'notification-channels') {{
+    win.hideLogin();
+    win.api = async path => path === '/notifications/configs'
+      ? [{{id:1,channel:'email',enabled:true,config:{{recipients:['finance.operations@example.com','chief.finance@example.com']}}}}]
+      : [{{id:1,kind:'digest',cadence:'weekly',enabled:true,config:{{top_n:5}},last_status:'error',last_error:'HTTP 429'}}];
+    doc.querySelectorAll('main .wrap').forEach(el => el.style.display = el.id === 'v-notifications' ? 'block' : 'none');
+    await win.loadNotifications();
+    result = {{
+      viewportWidth: doc.documentElement.clientWidth,
+      scrollWidth: doc.documentElement.scrollWidth,
+      bodies: [...doc.querySelectorAll('#nt-list .card>div,#sch-list .card>div')]
+        .map(el => Math.round(el.getBoundingClientRect().width))
+    }};
+  }} else if ('{target}' === 'login') {{
     win.showLogin();
     const gate = doc.getElementById('login-gate');
     const left = doc.querySelector('.lg-left');
@@ -444,3 +457,11 @@ def test_sample_import_kpi_selection_and_abandonment_fit_viewport(width, theme, 
     assert result["fieldLabels"] == (width == 375)
     assert result["bulkTargetHeight"] >= 36
     assert result["kpis"] == 2 and result["cleaned"]
+
+
+@pytest.mark.parametrize("width", [375, 1280])
+def test_real_notification_and_schedule_rows_leave_room_for_readable_details(width):
+    layout = _render_probe(width, "notification-channels")
+    assert layout["scrollWidth"] <= layout["viewportWidth"]
+    assert len(layout["bodies"]) == 2
+    assert all(body >= 200 for body in layout["bodies"]), layout

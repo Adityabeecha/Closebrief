@@ -274,7 +274,7 @@
   #d-narr{font-size:16.5px;line-height:1.6;margin-top:10px}
   #d-rev-strip{margin-top:14px}
   .panel{background:var(--card);border:1px solid var(--b08);border-radius:15px;padding:20px}
-  .panel h3{font-size:13px;font-weight:700}
+  .panel h2,.panel h3{font-size:13px;font-weight:700}
   .panel .psub{font-size:11.5px;color:var(--mut);margin:3px 0 14px}
   .detail-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:16px}
   .full{grid-column:1/-1}
@@ -724,6 +724,17 @@
     .ws-kebab>button{min-width:40px;min-height:40px}
     .back{min-height:44px}
   }
+  /* Secondary screens share the ledger tokens and readable state messages. */
+  .screen-state{padding:26px 20px;border:1px solid var(--b12);border-radius:12px;background:var(--card);color:var(--ink2);margin:12px 0;overflow-wrap:anywhere;text-align:left}
+  .screen-state h2{font-family:var(--serif);font-size:20px;font-weight:600;color:var(--ink);margin:0 0 8px}
+  .screen-state p{font-size:13px;line-height:1.6;margin:8px 0 16px;color:var(--mut)}
+  .screen-state.error{border-color:var(--red);background:var(--red-bg)}
+  .screen-state .sk-line{max-width:280px;margin-bottom:14px}
+  .screen-state .screen-wait{margin-bottom:0}
+  .digest-saved h2,.digest-history-title{font-family:var(--serif);font-size:20px;font-weight:600;margin-bottom:10px}
+  .digest-saved p{color:var(--mut);font-size:12px;margin-bottom:16px}
+  #nt-list .card,#sch-list .card{flex-wrap:wrap}
+  @media(max-width:899px){.screen-state{padding:20px 16px}.screen-state .btn{width:100%;min-height:40px}#nt-list .card>div,#sch-list .card>div{flex-basis:calc(100% - 60px)!important}}
 </style>
 </head>
 <body>
@@ -970,11 +981,12 @@
           <div class="sub">Deterministic forecasting, what-if scenarios, custom KPIs &amp; cross-dataset signals — numbers computed exactly, never by the model.</div>
         </div>
       </div>
-      <div class="an-grid">
+      <div id="analytics-state"></div>
+      <div class="an-grid" id="analytics-tools" style="display:none">
 
         <!-- Forecast -->
         <div class="panel">
-          <h3>Forecast</h3><div class="psub">Holt-Winters projection with a backtested error band (MAPE)</div>
+          <h2>Forecast</h2><div class="psub">Holt-Winters projection with a backtested error band (MAPE)</div>
           <div class="an-ctl">
             <select id="fc-metric" aria-label="Metric to forecast" class="pill-btn"></select>
             <select id="fc-horizon" class="pill-btn" aria-label="Horizon">
@@ -991,7 +1003,7 @@
 
         <!-- Scenario -->
         <div class="panel">
-          <h3>What-if scenario</h3><div class="psub">Apply price / volume / mix levers to the latest actual — instant, deterministic</div>
+          <h2>What-if scenario</h2><div class="psub">Apply price / volume / mix levers to the latest actual — instant, deterministic</div>
           <div class="an-ctl"><select id="scn-metric" aria-label="Metric for the scenario" class="pill-btn" onchange="runScenario()"></select></div>
           <div class="lever" data-lever="price">
             <div class="lever-top"><span>Price</span><span class="lever-val" id="scn-price-v">0%</span></div>
@@ -1010,7 +1022,7 @@
 
         <!-- Custom KPI builder (create needs analyst/admin — hidden for executives & viewers) -->
         <div class="panel exec-hide">
-          <h3>Custom KPI</h3><div class="psub">Define a metric by formula over existing metrics — it flows through compute, so it gets full trend, variance &amp; narrative support</div>
+          <h2>Custom KPI</h2><div class="psub">Define a metric by formula over existing metrics — it flows through compute, so it gets full trend, variance &amp; narrative support</div>
           <div class="fbuild">
             <div><label for="kb-name" class="lbl">Name</label><input id="kb-name" class="modal-field" placeholder="Gross Margin %"></div>
             <div><label for="kb-formula" class="lbl">Formula</label><input id="kb-formula" class="modal-field" placeholder="([Net Revenue] - [COGS]) / [Net Revenue] * 100"></div>
@@ -1031,7 +1043,7 @@
 
         <!-- Cross-domain signals -->
         <div class="panel">
-          <h3>Cross-dataset signals</h3><div class="psub">Strongest correlations between metrics in different datasets, with the best lead/lag</div>
+          <h2>Cross-dataset signals</h2><div class="psub">Strongest correlations between metrics in different datasets, with the best lead/lag</div>
           <div id="xd-list"><div class="an-empty">Loading…</div></div>
         </div>
 
@@ -1053,11 +1065,11 @@
     <!-- ---------- DIGEST ---------- -->
     <section id="v-digest" class="wrap" style="display:none">
       <div class="head">
-        <div><h1>Executive Digest</h1><div class="sub">Top movers this period, ranked by budget variance</div></div>
-        <div class="head-actions"><button class="btn primary" onclick="loadDigest(true)">Generate digest</button></div>
+        <div><h1>Executive Digest</h1><div class="sub">Most recent saved digest, ranked by budget variance</div></div>
+        <div class="head-actions"><button class="btn primary" id="digest-generate" onclick="loadDigest(true)">Generate a new digest</button></div>
       </div>
+      <div id="digest-status"></div>
       <div class="digest-wrap" id="digest-list"></div>
-      <div class="loading" id="digest-loading" style="display:none"><span class="spin"></span> Writing your digest…</div>
       <div class="digest-wrap" id="digest-history" style="margin-top:26px"></div>
     </section>
 
@@ -1162,22 +1174,24 @@
       <div class="head"><div><h1>Cost &amp; Usage</h1><div class="sub">LLM spend, request latency, and cache efficiency</div></div>
         <div class="head-actions"><button class="btn" onclick="loadCosts()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></svg>Refresh</button></div>
       </div>
+      <div id="costs-state"></div>
+      <div id="costs-content" style="display:none">
       <div class="statrow" id="costs-stats"></div>
       <div class="detail-grid">
         <div class="panel">
-          <h3>Spend by day</h3><div class="psub">Daily LLM cost (USD)</div>
+          <h2>Spend by day</h2><div class="psub">Daily LLM cost (USD)</div>
           <div class="chart-box" id="box-c-spend" style="height:230px"><canvas id="c-spend"></canvas></div>
         </div>
         <div class="panel">
-          <h3>Request latency</h3><div class="psub">p50 / p95 milliseconds per endpoint</div>
+          <h2>Request latency</h2><div class="psub">p50 / p95 milliseconds per endpoint</div>
           <div id="costs-latency"></div>
         </div>
         <div class="panel full">
-          <h3>Spend by endpoint</h3><div class="psub">Calls, tokens, and cost grouped by day &amp; endpoint</div>
+          <h2>Spend by endpoint</h2><div class="psub">Calls, tokens, and cost grouped by day &amp; endpoint</div>
           <div id="costs-table" style="overflow-x:auto"></div>
         </div>
       </div>
-      <div class="loading" id="costs-loading" style="display:none"><span class="spin"></span> Loading usage…</div>
+      </div>
     </section>
 
     <!-- ---------- NOTIFICATIONS ---------- -->
@@ -1199,9 +1213,8 @@
         <div class="ctx-full" style="text-align:right"><button class="btn primary" onclick="ntCreate()">Add channel</button></div>
       </div>
       <div id="nt-list"></div>
-      <div class="loading" id="nt-loading" style="display:none"><span class="spin"></span> Loading…</div>
 
-      <h1 style="font-size:19px;margin:30px 0 4px">Schedules</h1>
+      <h2 style="font-size:19px;margin:30px 0 4px">Schedules</h2>
       <div class="sub" style="margin-bottom:14px">Run digests and anomaly scans automatically. An external cron calls the app with your scheduler token — see the setup note after adding one.</div>
       <div class="ctx-form three-col-form">
         <div><label for="sch-kind" class="lbl">Job</label>

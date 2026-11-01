@@ -826,9 +826,34 @@ async function exportBoardPack(){
   finally{if(btn)btn.disabled=false;}
 }
 
+/* ---------- secondary screen states ---------- */
+const screenLoads=new Map();
+function screenState(title,body,action,label,kind="empty"){
+  return `<div class="screen-state ${esc(kind)}" role="${kind==="error"?"alert":"status"}"><h2>${esc(title)}</h2><p>${esc(body)}</p>${action?`<button class="btn primary" onclick="${esc(action)}">${esc(label)}</button>`:""}</div>`;
+}
+function screenRow(html,cols){return cols?`<tr><td colspan="${esc(cols)}">${html}</td></tr>`:html;}
+function screenLoading(id,message,cols=0){
+  const el=$(id),previous=screenLoads.get(id);if(previous)clearTimeout(previous.timer);
+  const state={};screenLoads.set(id,state);
+  el.innerHTML=screenRow(`<div class="screen-state" role="status"><div class="sk sk-line" aria-hidden="true"></div><p>${esc(message)}</p><p class="screen-wait" hidden>Still working — this is taking longer than usual.</p></div>`,cols);
+  el.setAttribute("aria-busy","true");
+  state.timer=setTimeout(()=>{if(screenLoads.get(id)===state){const line=el.querySelector(".screen-wait");if(line)line.hidden=false;}},4000);
+  return ()=>{if(screenLoads.get(id)!==state)return false;clearTimeout(state.timer);el.removeAttribute("aria-busy");return true;};
+}
+function screenError(e,retry){
+  const m=(e&&e.message)||"";
+  const reason=/403|forbidden|admin|not allowed|insufficient.*role/i.test(m)?"You need admin access to see this."
+    :/401|session expired|unauthori[sz]ed/i.test(m)?"Your session expired. Sign in again, then retry."
+    :/fetch|network|offline|connection/i.test(m)?"We couldn't reach Closebrief. Check your connection and try again."
+    :/no active dataset/i.test(m)?"There is no active dataset. Import data from the dashboard, then retry."
+    :/budget/i.test(m)?"The monthly AI budget has been reached. Ask an admin to raise the limit or wait for the next cycle."
+    :"We couldn't load this information. Please try again.";
+  return screenState("Couldn't finish loading",reason,retry,"Retry","error");
+}
+
 /* ================= ADVANCED ANALYTICS (v5.0) ================= */
 let _anMetrics=[], _lastForecast=null, _scnT=null;
-function _metricList(){return (currentFacts||[]).filter(f=>f.has_data).map(f=>({name:f.metric,unit:f.unit}));}
+function _metricList(){return (currentFacts||[]).filter(f=>f.has_data).slice().sort((a,b)=>Math.abs(b.value??0)-Math.abs(a.value??0)).map(f=>({name:f.metric,unit:f.unit}));}
 function _fillMetricSelect(id){
   const sel=$(id);if(!sel)return;const prev=sel.value;
   sel.innerHTML=_anMetrics.length?_anMetrics.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join("")
@@ -836,19 +861,20 @@ function _fillMetricSelect(id){
   if(prev&&_anMetrics.some(m=>m.name===prev))sel.value=prev;
 }
 async function loadAnalytics(){
-  // currentFacts is normally populated by the dashboard; on a deep-link, fetch it.
-  if(!(currentFacts&&currentFacts.length)&&currentPeriod){
-    try{currentFacts=await api(`/facts?period=${encodeURIComponent(currentPeriod)}&granularity=${granularity}`);}catch{}
-  }
-  _anMetrics=_metricList();
-  _fillMetricSelect("fc-metric");_fillMetricSelect("scn-metric");
-  const chips=$("kb-chips");
-  if(chips)chips.innerHTML=_anMetrics.length
-    ?_anMetrics.map((m,i)=>`<span class="fchip" role="button" tabindex="0" onclick="insertMetricToken(${i})">${esc(m.name)}</span>`).join("")
-    :'<span class="an-empty">No metrics yet — import data first.</span>';
-  onLever();
-  $("scn-out").innerHTML='<div class="an-empty">Pick a metric and move a lever to project.</div>';
-  loadCrossDomain();
+  const done=screenLoading("analytics-state","Loading advanced analytics…");$("analytics-tools").style.display="none";
+  try{
+    // On a deep link, facts may not have arrived from the dashboard yet.
+    if(!(currentFacts&&currentFacts.length)&&currentPeriod)currentFacts=await api(`/facts?period=${encodeURIComponent(currentPeriod)}&granularity=${granularity}`);
+    if(!done())return;
+    _anMetrics=_metricList();_fillMetricSelect("fc-metric");_fillMetricSelect("scn-metric");
+    if(!_anMetrics.length){$("analytics-state").innerHTML=currentFacts.length
+      ?screenState("No metrics for "+fmtPeriod(currentPeriod),"Choose a period with actual values on the dashboard to forecast results and explore scenarios.","nav('dashboard')","Open the dashboard")
+      :screenState("No metrics to analyse yet","Import metrics to forecast results, explore scenarios and compare datasets.","nav('import')","Import data");return;}
+    $("analytics-state").innerHTML="";$("analytics-tools").style.display="";
+    $("kb-chips").innerHTML=_anMetrics.map((m,i)=>`<span class="fchip" role="button" tabindex="0" onclick="insertMetricToken(${esc(i)})">${esc(m.name)}</span>`).join("");
+    onLever();$("scn-out").innerHTML='<div class="an-empty">Pick a metric and move a lever to project.</div>';
+    await loadCrossDomain();
+  }catch(e){if(done())$("analytics-state").innerHTML=screenError(e,"loadAnalytics()");}
 }
 /* ---- Forecast ---- */
 async function runForecast(){
@@ -946,10 +972,10 @@ async function createDerivedKpi(){
 }
 /* ---- Cross-dataset signals ---- */
 async function loadCrossDomain(){
-  const box=$("xd-list");if(!box)return;box.innerHTML='<div class="an-empty">Loading…</div>';
+  const box=$("xd-list");if(!box)return;const done=screenLoading("xd-list","Loading cross-dataset signals…");
   try{
-    const rows=await api("/insights/cross-domain");
-    if(!rows.length){box.innerHTML='<div class="an-empty">Need at least two datasets with overlapping periods to surface cross-dataset signals.</div>';return;}
+    const rows=await api("/insights/cross-domain");if(!done())return;
+    if(!rows.length){box.innerHTML=screenState("No cross-dataset signals yet","Compare at least two datasets with overlapping periods to find related movements.","nav('import')","Import another dataset");return;}
     box.innerHTML=rows.slice(0,12).map(p=>{
       const cls=p.direction==="positive"?"pos":"neg";
       const lag=p.lag?`${Math.abs(p.lag)}-period ${p.lag>0?"lead":"lag"}`:"same period";
@@ -957,7 +983,7 @@ async function loadCrossDomain(){
         <div class="xd-body"><div class="xd-pair">${esc(p.metric_a)} <span class="xd-arrow">↔</span> ${esc(p.metric_b)}</div>
         <div class="xd-meta">${esc(p.dataset_a)} → ${esc(p.dataset_b)} · ${lag} · ${p.months} mo overlap</div></div></div>`;
     }).join("");
-  }catch(e){box.innerHTML=`<div class="an-empty">${esc(errMsg(e))}</div>`;}
+  }catch(e){if(done())box.innerHTML=screenError(e,"loadCrossDomain()");}
 }
 /* ---- Collaborative review (detail view) ---- */
 // Approval is a separate check from figure verification — see docs/ui-standard.md §3.
@@ -1022,18 +1048,19 @@ async function assignReviewer(){
 }
 let _reviewItems=[];
 async function loadReview(){
-  const box=$("rq-list");if(box)box.innerHTML='<div class="an-empty">Loading…</div>';
+  const box=$("rq-list");if(!box)return;const done=screenLoading("rq-list","Loading the review queue…");
   let items=[];
   try{items=await api("/reports/review-queue?all_datasets=true");}
-  catch(e){if(box)box.innerHTML=`<div class="an-empty">${esc(errMsg(e))}</div>`;return;}
+  catch(e){if(done())box.innerHTML=screenError(e,"loadReview()");return;}
+  if(!done())return;
   _reviewItems=items;updateReviewBadge(items.length);
   if(!box)return;
-  if(!items.length){box.innerHTML='<div class="an-empty">Nothing awaiting your review. Narratives assigned to you across your datasets show up here.</div>';return;}
-  box.innerHTML=items.map((it,i)=>`<div class="rq-item" role="button" tabindex="0" onclick="openReviewItem(${i})">
+  if(!items.length){box.innerHTML=screenState("Nothing waiting for approval","Narratives assigned to you across your datasets appear here for approval.","nav('dashboard')","Open the dashboard");return;}
+  box.innerHTML=items.map((it,i)=>`<div class="rq-item" role="button" tabindex="0" onclick="openReviewItem(${esc(i)})">
     <div class="rq-main"><div class="rq-metric">${esc(it.metric)}</div>
     <div class="rq-preview">${esc(it.preview||"No preview")}</div>
     <div class="rq-meta">${esc(it.dataset_name||"")}</div></div>
-    <span class="rq-period">${esc(it.period)}</span>
+    <span class="rq-period">${esc(fmtPeriod(it.period))}</span>
     <svg class="rq-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>`).join("");
 }
 async function openReviewItem(i){
@@ -1077,9 +1104,9 @@ async function toggleVersions(){
 }
 
 async function loadNotifications(){
-  $("nt-loading").style.display="";
+  const done=screenLoading("nt-list","Loading notification channels…");const schedules=loadSchedules();
   try{
-    const cfgs=await api("/notifications/configs");
+    const cfgs=await api("/notifications/configs");if(!done())return;
     const icon={email:ICON_PATHS.mail,slack:ICON_PATHS.chat,webhook:ICON_PATHS.link};
     $("nt-list").innerHTML=cfgs.length?cfgs.map(c=>{
       const cf=c.config||{},target=cf.recipients?cf.recipients.join(", "):(cf.webhook_url||cf.url||"—");
@@ -1092,33 +1119,34 @@ async function loadNotifications(){
           <div style="font-size:11px;color:var(--mut2);margin-top:2px">Events: ${esc(events)}</div>
         </div>
         <label style="font-size:12px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px">
-          <input type="checkbox" ${c.enabled?"checked":""} onchange="ntToggle(${c.id},this.checked)"> Enabled</label>
-        <button class="btn sm" onclick="ntTest(${c.id},this)">Send test</button>
-        <button class="ico" title="Delete channel" aria-label="Delete channel" onclick="ntDelete(${c.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">${ICON_PATHS.trash}</svg></button>
+          <input type="checkbox" ${c.enabled?"checked":""} onchange="ntToggle(${esc(c.id)},this.checked)"> Enabled</label>
+        <button class="btn sm" onclick="ntTest(${esc(c.id)},this)">Send test</button>
+        <button class="ico" title="Delete channel" aria-label="Delete channel" onclick="ntDelete(${esc(c.id)})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">${ICON_PATHS.trash}</svg></button>
       </div>`;
-    }).join(""):'<div class="empty-state">No channels configured yet. Add one above to receive alerts.</div>';
-  }catch(e){toast(e.message);}
-  finally{$("nt-loading").style.display="none";}
-  loadSchedules();
+    }).join(""):screenState("No notification channels yet","Send digests and anomaly alerts to email, Slack or a webhook.","$('nt-target').focus()","Add a channel");
+  }catch(e){if(done())$("nt-list").innerHTML=screenError(e,"loadNotifications()");}
+  await schedules;
 }
 /* ---------- schedules (Phase 2+4) ---------- */
 function schKindFields(){const k=$("sch-kind").value;$("sch-topn-wrap").style.display=k==="digest"?"":"none";$("sch-recip-wrap").style.display=k==="board_pack"?"":"none";}
 const CADENCE_LABEL={daily:"Daily",weekly:"Weekly",monthly:"Monthly"};
 async function loadSchedules(){
-  let jobs;try{jobs=await api("/schedules");}catch{return;}   // admin-only; ignore if forbidden
+  const done=screenLoading("sch-list","Loading schedules…");
+  let jobs;try{jobs=await api("/schedules");}catch(e){if(done())$("sch-list").innerHTML=screenError(e,"loadSchedules()");return;}
+  if(!done())return;
   const kindLabel={digest:"Scheduled digest",anomaly_scan:"Anomaly scan",board_pack:"Board pack email"};
   $("sch-list").innerHTML=jobs.length?jobs.map(j=>`
     <div class="card" style="margin-top:12px;flex-direction:row;align-items:center;gap:14px">
       <span class="nt-ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${j.kind==="digest"?'<path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/>':'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>'}</svg></span>
       <div style="flex:1;min-width:0">
         <b>${esc(kindLabel[j.kind]||j.kind)}</b>
-        <div style="font-size:12px;color:var(--mut)">${esc(CADENCE_LABEL[j.cadence]||j.cadence)}${j.kind==="digest"&&j.config&&j.config.top_n?` · top ${j.config.top_n}`:""}${j.next_run_at?` · next ${esc(String(j.next_run_at).slice(0,16).replace("T"," "))}`:""}</div>
-        ${j.last_status?`<div style="font-size:11px;margin-top:2px;color:${j.last_status==="error"?"var(--red)":j.last_status==="ok"?"var(--green)":"var(--mut2)"}">last run: ${esc(j.last_status)}${j.fail_count?` · ${j.fail_count} consecutive failures`:""}${j.last_status==="error"&&j.last_error?` — ${esc(String(j.last_error).slice(0,80))}`:""}</div>`:""}
+        <div style="font-size:12px;color:var(--mut)">${esc(CADENCE_LABEL[j.cadence]||j.cadence)}${j.kind==="digest"&&j.config&&j.config.top_n?` · top ${esc(j.config.top_n)}`:""}${j.next_run_at?` · next ${esc(fmtDate(j.next_run_at))}`:""}</div>
+        ${j.last_status?`<div style="font-size:11px;margin-top:2px;color:${j.last_status==="error"?"var(--red)":j.last_status==="ok"?"var(--green)":"var(--mut2)"}">last run: ${esc(j.last_status)}${j.fail_count?` · ${esc(j.fail_count)} consecutive failures`:""}${j.last_status==="error"&&j.last_error?` — ${esc("The scheduled run failed. Check the channel and job configuration before the next run.")}`:""}</div>`:""}
       </div>
       <label style="font-size:12px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px">
-        <input type="checkbox" ${j.enabled?"checked":""} onchange="schToggle(${j.id},this.checked)"> Enabled</label>
-      <button class="ico" title="Delete schedule" aria-label="Delete schedule" onclick="schDelete(${j.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">${ICON_PATHS.trash}</svg></button>
-    </div>`).join(""):'<div class="empty-state" style="padding:26px">No schedules yet. Add one above to run digests or anomaly scans automatically.</div>';
+        <input type="checkbox" ${j.enabled?"checked":""} onchange="schToggle(${esc(j.id)},this.checked)"> Enabled</label>
+      <button class="ico" title="Delete schedule" aria-label="Delete schedule" onclick="schDelete(${esc(j.id)})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">${ICON_PATHS.trash}</svg></button>
+    </div>`).join(""):screenState("No schedules yet","Schedule digests, anomaly scans or board pack emails to run automatically.","$('sch-kind').focus()","Add a schedule");
 }
 async function schCreate(){
   const kind=$("sch-kind").value,cadence=$("sch-cadence").value;
@@ -1176,16 +1204,17 @@ function inviteUser(){
     getValue:()=>{const el=$("invite-url");el.select();try{navigator.clipboard.writeText(el.value);}catch{}toast("Invite link copied");return true;}});
 }
 async function loadAdmin(){
+  const done=screenLoading("admin-rows","Loading user management…",4);
   try{
-    const users=await api("/admin/users");
+    const users=await api("/admin/users");if(!done())return;
     $("admin-rows").innerHTML=users.map(u=>`<tr>
       <td><b>${esc(u.email)}</b></td>
       <td style="color:var(--mut2);font-family:ui-monospace,Menlo,monospace;font-size:11px">${esc(u.user_id).slice(0,18)}…</td>
-      <td><select onchange="setUserRole('${esc(u.user_id)}',this.value)">
+      <td><select aria-label="Role for ${esc(u.email)}" onchange="setUserRole('${esc(u.user_id)}',this.value)">
         ${["analyst","executive","admin"].map(r=>`<option ${u.role===r?"selected":""}>${r}</option>`).join("")}</select></td>
-      <td style="color:var(--mut);white-space:nowrap">${esc((u.created_at||"").slice(0,10))}</td></tr>`).join("")
-      ||'<tr><td colspan="4" class="loading">No users yet.</td></tr>';
-  }catch(e){toast("Admin: "+e.message);}
+      <td style="color:var(--mut);white-space:nowrap">${esc(fmtDate(u.created_at))}</td></tr>`).join("")
+      ||screenRow(screenState("No users yet","People who sign in appear here so you can manage their access.","inviteUser()","Invite a user"),4);
+  }catch(e){if(done())$("admin-rows").innerHTML=screenRow(screenError(e,"loadAdmin()"),4);}
 }
 async function setUserRole(uid,role){
   try{await api(`/admin/users/${uid}/role?role=${role}`,{method:"PUT"});toast("Role updated");}
@@ -1517,24 +1546,27 @@ const ICON_PATHS={
   trash:'<path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>'};
 
 /* ---------- cost & usage ---------- */
-const usd=v=>{v=+v||0;return "$"+(v<1?v.toFixed(4):v.toFixed(2));};
 let costsData=null;
 async function loadCosts(){
-  $("costs-loading").style.display="";
+  const done=screenLoading("costs-state","Loading cost and usage…");$("costs-content").style.display="none";
   try{
-    const c=await api("/costs");costsData=c;
+    const c=await api("/costs");if(!done())return;costsData=c;
+    if(!(c.total_llm_calls||c.total_cost_usd||(c.by_day||[]).length||Object.keys(c.latency||{}).length||(c.cache||{}).hits||(c.cache||{}).misses||(c.alert_latency||{}).n)){
+      $("costs-state").innerHTML=screenState("No usage recorded yet","Track AI spend, request latency and cache efficiency as your team uses Closebrief.","nav('dashboard')","Open the dashboard");return;
+    }
+    $("costs-state").innerHTML="";$("costs-content").style.display="";
     // Stat tiles
     const cache=c.cache||{},hr=cache.hit_rate;
     const lat=c.latency||{},p95s=Object.values(lat).map(x=>x.p95_ms).filter(v=>v!=null);
     const worstP95=p95s.length?Math.max(...p95s):null;
     const al=c.alert_latency||{};
     const svg=p=>`<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
-    const tile=(lbl,path,col,val,hint)=>`<div class="stat rise" style="--sc:${col}"><span class="stat-lbl">${svg(path)}${lbl}</span><span class="stat-val nbi-num">${val}</span><span class="stat-hint">${hint}</span></div>`;
+    const tile=(lbl,path,col,val,hint)=>`<div class="stat rise" style="--sc:${esc(col)}"><span class="stat-lbl">${svg(path)}${esc(lbl)}</span><span class="stat-val nbi-num">${esc(val)}</span><span class="stat-hint">${esc(hint)}</span></div>`;
     $("costs-stats").innerHTML=[
-      tile("Total spend",'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',"#008300",usd(c.total_cost_usd),"across all LLM calls"),
-      tile("LLM calls",'<path d="M13 2 3 14h7l-1 8 10-12h-7z"/>',"#4a3aa7",c.total_llm_calls||0,"generations + digests"),
-      tile("Cache hit rate",'<path d="M21 12a9 9 0 1 1-6.2-8.5"/><path d="M21 3v6h-6"/>',hr>=0.5?"var(--green)":"#eda100",hr==null?"—":Math.round(hr*100)+"%",`${cache.hits||0} hits · ${cache.misses||0} misses`),
-      tile("Worst p95 latency",'<path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/>',worstP95>2000?"var(--red)":"#2a78d6",worstP95==null?"—":Math.round(worstP95)+" ms","slowest endpoint"),
+      tile("Total spend",'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',"var(--green)",fmt(c.total_cost_usd,"USD"),"across all LLM calls"),
+      tile("LLM calls",'<path d="M13 2 3 14h7l-1 8 10-12h-7z"/>',"var(--accent)",c.total_llm_calls||0,"generations + digests"),
+      tile("Cache hit rate",'<path d="M21 12a9 9 0 1 1-6.2-8.5"/><path d="M21 3v6h-6"/>',hr>=0.5?"var(--green)":"var(--amber)",hr==null?"—":Math.round(hr*100)+"%",`${cache.hits||0} hits · ${cache.misses||0} misses`),
+      tile("Worst p95 latency",'<path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/>',worstP95>2000?"var(--red)":"var(--accent)",worstP95==null?"—":Math.round(worstP95)+" ms","slowest endpoint"),
       tile("Alert latency p95",'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',al.within_30s===false?"var(--red)":"var(--green)",al.p95_ms==null?"—":(al.p95_ms/1000).toFixed(1)+" s",al.n?`${al.n} alerts · target < 30s`:"no alerts yet"),
     ].join("");
     // Spend-by-day chart (aggregate endpoints per day)
@@ -1544,20 +1576,19 @@ async function loadCosts(){
     if(!days.length){if(chartReg["c-spend"]){chartReg["c-spend"].destroy();delete chartReg["c-spend"];}box.innerHTML='<div class="loading">No LLM spend recorded yet.</div>';}
     else{const th=chartTheme();
       mkChart("c-spend",{type:"bar",
-        data:{labels:days.map(d=>d.slice(5)),datasets:[{label:"Spend",data:days.map(d=>byDay[d]),backgroundColor:th.accent,borderRadius:5,borderSkipped:false,maxBarThickness:40}]},
+        data:{labels:days.map(d=>fmtDate(d)),datasets:[{label:"Spend",data:days.map(d=>byDay[d]),backgroundColor:th.accent,borderRadius:5,borderSkipped:false,maxBarThickness:40}]},
         options:{responsive:true,maintainAspectRatio:false,
-          plugins:{legend:{display:false},tooltip:tooltipCfg("USD",{label:c=>" "+usd(c.parsed.y)})},
-          scales:{y:{grid:{color:th.grid},ticks:{color:th.mut,maxTicksLimit:5,callback:v=>usd(v)},border:{display:false}},
+          plugins:{legend:{display:false},tooltip:tooltipCfg("USD",{label:c=>" "+fmt(c.parsed.y,"USD")})},
+          scales:{y:{grid:{color:th.grid},ticks:{color:th.mut,maxTicksLimit:5,callback:v=>fmt(v,"USD")},border:{display:false}},
             x:{grid:{display:false},ticks:{color:th.mut,maxRotation:0,autoSkip:true,maxTicksLimit:8},border:{color:th.grid}}}}});
     }
     // Latency table
     const lrows=Object.entries(lat);
-    $("costs-latency").innerHTML=lrows.length?`<table class="ctx-table" style="margin-top:8px"><thead><tr><th>Endpoint</th><th style="text-align:right">p50</th><th style="text-align:right">p95</th><th style="text-align:right">n</th></tr></thead><tbody>${lrows.map(([k,v])=>`<tr><td style="font-family:ui-monospace,monospace;font-size:12px">${esc(k)}</td><td style="text-align:right" class="nbi-num">${Math.round(v.p50_ms)} ms</td><td style="text-align:right" class="nbi-num">${Math.round(v.p95_ms)} ms</td><td style="text-align:right" class="nbi-num">${v.n}</td></tr>`).join("")}</tbody></table>`:'<div class="loading">No latency samples yet this session.</div>';
+    $("costs-latency").innerHTML=lrows.length?`<table class="ctx-table" style="margin-top:8px"><thead><tr><th>Endpoint</th><th style="text-align:right">p50</th><th style="text-align:right">p95</th><th style="text-align:right">n</th></tr></thead><tbody>${lrows.map(([k,v])=>`<tr><td style="font-family:ui-monospace,monospace;font-size:12px">${esc(k)}</td><td style="text-align:right" class="nbi-num">${esc(Math.round(v.p50_ms))} ms</td><td style="text-align:right" class="nbi-num">${esc(Math.round(v.p95_ms))} ms</td><td style="text-align:right" class="nbi-num">${esc(v.n)}</td></tr>`).join("")}</tbody></table>`:'<div class="loading">No latency samples yet this session.</div>';
     // Endpoint spend table
     const rows=c.by_day||[];
-    $("costs-table").innerHTML=rows.length?`<table class="ctx-table"><thead><tr><th>Day</th><th>Endpoint</th><th style="text-align:right">Calls</th><th style="text-align:right">Prompt tok</th><th style="text-align:right">Completion tok</th><th style="text-align:right">Cost</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.day)}</td><td style="font-family:ui-monospace,monospace;font-size:12px">${esc(r.endpoint)}</td><td style="text-align:right" class="nbi-num">${r.calls}</td><td style="text-align:right" class="nbi-num">${r.prompt_tokens||0}</td><td style="text-align:right" class="nbi-num">${r.completion_tokens||0}</td><td style="text-align:right" class="nbi-num">${usd(r.cost_usd)}</td></tr>`).join("")}</tbody></table>`:'<div class="loading">No spend recorded yet.</div>';
-  }catch(e){toast(e.message||"Could not load costs");}
-  finally{$("costs-loading").style.display="none";}
+    $("costs-table").innerHTML=rows.length?`<table class="ctx-table"><thead><tr><th>Day</th><th>Endpoint</th><th style="text-align:right">Calls</th><th style="text-align:right">Prompt tok</th><th style="text-align:right">Completion tok</th><th style="text-align:right">Cost</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(fmtDate(r.day))}</td><td style="font-family:ui-monospace,monospace;font-size:12px">${esc(r.endpoint)}</td><td style="text-align:right" class="nbi-num">${esc(r.calls)}</td><td style="text-align:right" class="nbi-num">${esc(r.prompt_tokens||0)}</td><td style="text-align:right" class="nbi-num">${esc(r.completion_tokens||0)}</td><td style="text-align:right" class="nbi-num">${esc(fmt(r.cost_usd,"USD"))}</td></tr>`).join("")}</tbody></table>`:'<div class="loading">No spend recorded yet.</div>';
+  }catch(e){if(done())$("costs-state").innerHTML=screenError(e,"loadCosts()");}
 }
 
 function deltaChip(label,v,downGood){
@@ -2025,53 +2056,71 @@ async function editNarr(id){
 }
 
 /* ---------- digest ---------- */
+let digestGenerating=false;
+let digestRevision=0;
+function renderDigest(d){
+  const items=d.items||[];
+  const heading=`<div class="digest-saved"><h2>${esc(fmtPeriod(d.period))} digest</h2><p>${d.created_at?`Saved ${esc(fmtDate(d.created_at))}`:"Generated just now"}${d.cost_usd!=null?` · ${esc(fmt(d.cost_usd,"USD"))} this run`:""}</p></div>`;
+  return heading+(items.map((it,i)=>`<div class="digest-item">
+    <span class="rank"><span class="rank-n${i<3?" top":""}">#${esc(i+1)}</span>${esc(it.metric)}</span><h3>${esc(it.headline)}</h3>
+    ${it.detail?`<p>${esc(it.detail)}</p>`:""}
+    <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      ${it.budget_var_abs!=null?`<span class="delta ${it.budget_var_abs<0?"bad":"good"}">${esc(fmt(it.budget_var_abs,"USD"))} vs budget (${esc(pct(it.budget_var_pct)||"–")})</span>`:""}
+      ${it.faithfulness==="passed"?seal(true):it.faithfulness==="failed"?seal(false):""}
+      ${it.report_id?`<button class="txtact" style="margin-left:auto" onclick="feedback(${esc(it.report_id)},'accepted',this)">Accept</button><button class="txtact bad" onclick="rejectNarr(${esc(it.report_id)},this)">Reject</button>`:""}
+    </div></div>`).join("")||screenState("No movers with budget data","This saved digest has no budget comparisons. Add budget data to explain the largest movements.","nav('import')","Import budget data"));
+}
 async function loadDigest(force){
-  $("digest-loading").style.display="";$("digest-list").innerHTML="";
+  if(digestGenerating)return;
+  if(!force)return loadDigestHistory();
+  digestGenerating=true;const btn=$("digest-generate");if(btn)btn.disabled=true;
+  let done;
   try{
-    // The digest is written monthly; at quarter/year granularity use the latest month.
+    const estimate=fmt(5*EST_COST_PER_NARR,"USD");
+    if(!await modalConfirm("Generate a new digest?",`The estimated AI cost is ${estimate} for up to five movers. The actual cost may vary.`,{okLabel:"Generate digest",danger:false}))return;
+    done=screenLoading("digest-status","Writing a new executive digest…");
+    // Digests use monthly facts even when the dashboard shows a quarter or year.
     let dp=currentPeriod;
     if(granularity!=="month"){const months=await api("/periods?granularity=month");dp=months[months.length-1]||currentPeriod;}
-    const d=await api(`/digest?period=${encodeURIComponent(dp)}&top_n=5&force=${!!force}`,{method:"POST"});
-    $("digest-list").innerHTML=d.items.map((it,i)=>`<div class="digest-item">
-      <span class="rank"><span class="rank-n${i<3?" top":""}">#${i+1}</span>${esc(it.metric)}</span><h3>${esc(it.headline)}</h3>
-      ${it.detail?`<p>${esc(it.detail)}</p>`:""}
-      <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <span class="delta ${it.budget_var_abs<0?"bad":"good"}">${fmt(it.budget_var_abs,"USD")} vs budget (${pct(it.budget_var_pct)||"–"})</span>
-        ${seal(it.faithfulness==="passed")}
-        ${it.report_id?`<button class="txtact" style="margin-left:auto" onclick="feedback(${it.report_id},'accepted',this)">Accept</button><button class="txtact bad" onclick="rejectNarr(${it.report_id},this)">Reject</button>`:""}
-      </div></div>`).join("")||'<div class="empty-state">No movers with budget data for this period.</div>';
-    if(d.cost_usd!=null||d.cached)$("digest-list").insertAdjacentHTML("beforeend",`<div class="cost" style="margin-top:8px">${d.cached?"served from cache (no LLM cost)":"≈ $"+(+d.cost_usd).toFixed(4)+" this run"}</div>`);
-  }catch(e){toast("Digest failed: "+e.message);}finally{$("digest-loading").style.display="none";loadDigestHistory();}
+    if(!dp){done();$("digest-status").innerHTML=screenState("No monthly data yet","Import monthly metrics and budgets to explain the largest movements.","nav('import')","Import data");return;}
+    const d=await api(`/digest?period=${encodeURIComponent(dp)}&top_n=5&force=true`,{method:"POST"});
+    if(!done())return;
+    digestRevision++;$("digest-status").innerHTML="";$("digest-list").innerHTML=renderDigest(d);toast("Digest generated");
+    // Refresh saved history without discarding the digest if that refresh fails.
+    await loadDigestHistory(true);
+  }catch(e){if(!done||done())$("digest-status").innerHTML=screenError(e,"loadDigest(true)");}
+  finally{digestGenerating=false;if(btn)btn.disabled=false;}
 }
-// Period-over-period: past digests (manual + scheduled), newest first (Phase 4).
-async function loadDigestHistory(){
-  const el=$("digest-history");if(!el)return;
-  let runs;try{runs=await api("/digests/history");}catch{el.innerHTML="";return;}
-  if(!runs||runs.length<2){el.innerHTML="";return;}   // need history to compare
-  el.innerHTML=`<h3 style="font-family:var(--serif);font-size:17px;font-weight:600;margin-bottom:10px">Digest history</h3>`
-    +runs.map(r=>{
-      const when=r.created_at?String(r.created_at).slice(0,10):"";
-      const top=(r.items||[]).slice(0,3).map(it=>esc(it.metric)).join(", ");
-      return `<div class="digest-item" style="padding:13px 18px">
-        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
-          <b style="font-size:14px">${esc(r.period)}</b>
-          <span class="fh-sub" style="font-size:11.5px;color:var(--mut2)">${esc(r.trigger)} · ${esc(when)}${r.cost_usd!=null?" · ≈ $"+(+r.cost_usd).toFixed(4):""}</span>
-        </div>
-        ${top?`<div style="font-size:12.5px;color:var(--mut);margin-top:4px">Top movers: ${top}</div>`:""}
-      </div>`;
-    }).join("");
+// History is newest first and scoped to the active dataset by the server.
+async function loadDigestHistory(keepCurrent=false){
+  const revision=digestRevision;
+  const id=keepCurrent?"digest-history":"digest-list",done=screenLoading(id,"Loading saved executive digests…");
+  if(!keepCurrent){$("digest-history").innerHTML="";$("digest-status").innerHTML="";}
+  try{
+    const runs=await api("/digests/history");if(!done()||revision!==digestRevision)return;
+    if(!keepCurrent)$("digest-list").innerHTML=runs.length?renderDigest(runs[0]):screenState("No saved digest yet","An executive digest explains the largest budget movements in your monthly results.","loadDigest(true)","Generate a new digest");
+    const past=runs.slice(1);
+    $("digest-history").innerHTML=past.length?'<h2 class="digest-history-title">Digest history</h2>'+past.map(r=>`<div class="digest-item">
+      <b>${esc(fmtPeriod(r.period))}</b><p>${esc(fmtDate(r.created_at))} · ${esc(r.trigger)}${r.cost_usd!=null?` · ${esc(fmt(r.cost_usd,"USD"))}`:""}</p>
+      <p>${esc((r.items||[]).slice(0,3).map(it=>it.metric).join(", "))}</p></div>`).join(""):"";
+  }catch(e){if(done()&&revision===digestRevision)$(id).innerHTML=screenError(e,keepCurrent?"loadDigestHistory(true)":"loadDigest()");}
 }
+
 
 /* ---------- context ---------- */
 async function loadContext(){
-  let docs;try{docs=await api("/context");}catch(e){$("ctx-rows").innerHTML=`<tr><td colspan="5" class="loading">Couldn't load context — <a onclick="loadContext()" style="color:var(--accent);cursor:pointer;font-weight:700">retry</a></td></tr>`;return;}
+  const done=screenLoading("ctx-rows","Loading the context library…",5);
+  let docs;try{docs=await api("/context");}catch(e){if(done())$("ctx-rows").innerHTML=screenRow(screenError(e,"loadContext()"),5);return;}
+  if(!done())return;
   $("ctx-rows").innerHTML=docs.map(d=>`<tr>
     <td><span class="ctx-type">${esc(d.type.replace("_"," "))}</span></td>
     <td><div style="font-weight:700;font-size:13px;margin-bottom:3px">${esc(d.title)}</div><div style="color:var(--mut);line-height:1.45">${esc(d.body)}</div></td>
     <td>${d.metric_tags.length?d.metric_tags.map(t=>`<span class="ctx-tag">${esc(t)}</span>`).join(""):'<span style="color:var(--mut2)">all</span>'}</td>
-    <td style="color:var(--mut);white-space:nowrap">${d.effective_date?esc(d.effective_date):"—"}</td>
-    <td><button class="row-del exec-hide" onclick="delContext(${d.id})">✕</button></td></tr>`).join("")
-    ||`<tr><td colspan="5" class="loading">Library is empty. Add your first context document above.</td></tr>`;
+    <td style="color:var(--mut);white-space:nowrap">${d.effective_date?esc(/^\d{4}-\d{2}$/.test(d.effective_date)?fmtPeriod(d.effective_date):fmtDate(d.effective_date)):"—"}</td>
+    <td><button class="row-del exec-hide" aria-label="Delete ${esc(d.title)}" onclick="delContext(${esc(d.id)})">✕</button></td></tr>`).join("")
+    ||screenRow(currentUser&&["executive","viewer"].includes(currentUser.role)
+      ?screenState("No context notes yet","Business events, definitions and policies help explain metric movements. Ask an analyst to add a note.","nav('dashboard')","Open the dashboard")
+      :screenState("No context notes yet","Add business events, definitions and policies to ground the explanations of your metrics.","$('c-title').focus()","Add a context note"),5);
 }
 async function addContext(e){
   e.preventDefault();
