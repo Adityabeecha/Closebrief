@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app import audit, scheduling
 from app.api import CurrentUser, require_read
+from app.compute.availability import has_usable_value
 from app.context.store import _row_to_doc
 from app.datasets import _scope_pred, active_dataset_id, current_workspace
 from app.db import get_connection
@@ -29,12 +30,16 @@ def _summaries(conn, ds):
     """
     if ds is None:
         return []
-    rows = conn.execute('''SELECT cf.period, cf.metric_id, m.name, cf.is_anomaly,
+    rows = conn.execute('''SELECT cf.period, cf.metric_id, cf.value, m.name, cf.is_anomaly,
         cf.budget_var_pct, gr.id AS report_id, gr.review_status, gr.faithfulness
         FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
         LEFT JOIN generated_reports gr ON gr.id = (SELECT MAX(g.id) FROM generated_reports g
-            WHERE g.metric_id = cf.metric_id AND g.period = cf.period)
-        WHERE m.dataset_id = ? ORDER BY cf.period DESC''', (ds,)).fetchall()
+            WHERE g.metric_id = cf.metric_id AND g.period = cf.period
+              AND (g.prompt_version IS NULL OR g.prompt_version NOT LIKE '%-digest'))
+        WHERE m.dataset_id = ?
+          AND (NOT EXISTS (SELECT 1 FROM kpi_configs k WHERE k.dataset_id=m.dataset_id)
+               OR EXISTS (SELECT 1 FROM kpi_configs k WHERE k.dataset_id=m.dataset_id AND k.source_metric=m.name))
+        ORDER BY cf.period DESC''', (ds,)).fetchall()
     docs = [_row_to_doc(r) for r in conn.execute(
         f'SELECT * FROM context_documents WHERE {_scope_pred()}').fetchall()]
     runs = scheduling.list_digest_runs(conn, ds, limit=2147483647)
@@ -46,6 +51,8 @@ def _summaries(conn, ds):
         shared.setdefault(run['period'], timestamp.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z'))
     groups = {}
     for row in rows:
+        if not has_usable_value(row['metric_id'], row['value']):
+            continue
         period = row['period']
         if not re.fullmatch(r'\d{4}-(0[1-9]|1[0-2])', period) or period.startswith('0000'):
             continue
