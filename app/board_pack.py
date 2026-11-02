@@ -13,8 +13,17 @@ from __future__ import annotations
 import html
 import base64
 import calendar
+import re
 from pathlib import Path
 from datetime import datetime, timezone
+
+
+def dataset_display_name(name: str) -> str:
+    """Present filenames as names while preserving deliberately named datasets."""
+    if not re.search(r"\.(csv|xlsx)$", name, re.IGNORECASE):
+        return name
+    words = re.sub(r"[_-]+", " ", re.sub(r"\.(csv|xlsx)$", "", name, flags=re.IGNORECASE)).strip()
+    return words.lower().capitalize()
 
 
 def _fmt(v: float | None, unit: str | None) -> str:
@@ -189,7 +198,7 @@ def build_board_pack_html(facts: list[dict], period: str, meta: dict | None = No
     top_txt = (f"{e(top['metric'])} {_pct((top['deltas'] or {}).get('budget_var_pct'))} vs plan"
                if top else "–")
 
-    ds_name = e(str(meta.get("dataset_name") or "Dataset"))
+    ds_name = e(dataset_display_name(str(meta.get("dataset_name") or "Dataset")))
     ws_name = meta.get("workspace_name")
     generated = datetime.now(timezone.utc).strftime("%d %b %Y %H:%M UTC")
 

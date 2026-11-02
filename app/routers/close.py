@@ -129,13 +129,20 @@ def status(period: str, _: CurrentUser = Depends(require_read)):
         def step(id, title, detail, state, count, tab):
             return {'id': id, 'title': title, 'detail': detail, 'state': state, 'count': count,
                     'target': f'#month={period}&tab={tab}'}
+        unchecked = s['kpis'] - s['checked']
         steps = [
-            step('import', 'Import actuals and budget', f"{n(s['kpis'], 'figure')} imported", 'done', s['kpis'], 'data'),
-            step('review', 'Review the biggest movers', f"{s['checked']} of {n(s['kpis'], 'figure')} checked", 'done' if s['checked'] == s['kpis'] else 'todo', s['checked'], 'kpis'),
+            step('import', 'Import actuals and budget', f"{n(s['kpis'], 'KPI', 'KPIs')} imported · open Data to check coverage", 'done', s['kpis'], 'data'),
+            step('review', 'Review the biggest movers',
+                 f"{n(unchecked, 'draft needs', 'drafts need')} a check · open KPIs" if unchecked else 'Figures checked · open KPIs to review movers',
+                 'todo' if unchecked else 'done', unchecked, 'kpis'),
             step('reasons', f"Add reasons for {n(s['needs_reason'], 'variance')}" if s['needs_reason'] else 'Every variance has a reason',
-                 f"{n(s['needs_reason'], 'variance needs', 'variances need')} context" if s['needs_reason'] else 'No large variance is missing a context note', 'done' if not s['needs_reason'] else 'todo', s['needs_reason'], 'context'),
-            step('approve', f"Approve {n(pending_drafts, 'draft')}" if pending_drafts else 'Approve the drafts', f"{s['approved']} of {s['kpis']} approved", 'done' if not remaining else 'todo' if pending_drafts else 'blocked', pending_drafts, 'kpis'),
-            step('share', 'Send the digest', 'Digest sent' if s['status'] == 'shared' else 'Digest not sent', 'done' if s['status'] == 'shared' else 'todo' if not remaining else 'blocked', int(s['status'] == 'shared'), 'digest'),
+                 f"{n(s['needs_reason'], 'variance needs', 'variances need')} a reason · open Context" if s['needs_reason'] else 'Reasons recorded · open Context to review notes',
+                 'todo' if s['needs_reason'] else 'done', s['needs_reason'], 'context'),
+            step('approve', f"Approve {n(pending_drafts, 'draft')}" if pending_drafts else 'Approve the drafts',
+                 f"{n(pending_drafts, 'draft needs', 'drafts need')} approval · open KPIs" if pending_drafts else 'Draft commentary on KPIs before approving' if remaining else 'Drafts approved · open KPIs to read commentary',
+                 'done' if not remaining else 'todo' if pending_drafts else 'blocked', pending_drafts, 'kpis'),
+            step('share', 'Send the digest', 'Digest sent · open Digest to read it' if s['status'] == 'shared' else 'Open Digest to prepare the leadership summary' if not remaining else 'Approve the drafts on KPIs before sharing',
+                 'done' if s['status'] == 'shared' else 'todo' if not remaining else 'blocked', int(s['status'] == 'shared'), 'digest'),
         ]
         return {'period': period, 'label': s['label'], 'steps': steps, 'activity': _activity(conn, ds, period)}
     finally:
