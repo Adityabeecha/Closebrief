@@ -81,12 +81,13 @@ def test_import_steps_expose_current_and_completed_status():
 
 def test_import_history_navigation_keeps_import_open_until_cleanup_succeeds():
     run_js("async function importRouteChanged(", "function dropFile(", """
-      const routerReady=true,location={hash:'#dashboard'},visits=[];let allow=false;
+      const routerReady=true,location={hash:'#month=2026-06&tab=kpis'},visits=[];let allow=false;
+      const currentPlace={tab:'data'},currentPeriod='2026-06',routeHash=r=>`#month=${r.period}&tab=${r.tab}`;
       const hasUnfinishedImport=()=>true,leaveImport=async()=>allow,route=()=>visits.push(location.hash);
       const history={pushState(a,b,h){location.hash=h},replaceState(a,b,h){location.hash=h}};
     """, """
-      await importRouteChanged();assert.equal(location.hash,'#import');assert.deepEqual(visits,[]);
-      location.hash='#digest';allow=true;await importRouteChanged();assert.deepEqual(visits,['#digest']);
+      await importRouteChanged();assert.equal(location.hash,'#month=2026-06&tab=data');assert.deepEqual(visits,[]);
+      location.hash='#month=2026-06&tab=digest';allow=true;await importRouteChanged();assert.deepEqual(visits,['#month=2026-06&tab=digest']);
     """)
 
 
@@ -114,6 +115,8 @@ def test_workspace_creation_cannot_change_import_scope_when_leave_is_cancelled()
 def test_palette_metric_resolves_refreshed_facts_after_import_cleanup():
     run_js("function paletteActions(", "function openPalette(", """
       const currentUser={role:'analyst'},CI={};let currentFacts=[{metric:'Revenue',has_data:true}],shownFacts=currentFacts;
+      const MONTH_TABS=[['kpis','KPIs','dashboard']],PLACES=[['analyze','analytics','#analyze','Analyze']],allPeriods=['2026-06'];
+      const currentPeriod='2026-06',canReview=()=>true,fmtPeriod=p=>p,fmtPeriodTitle=p=>p,selectClose=()=>{};
       let opened=null;const nav=()=>{},generateAll=()=>{},exportPDF=()=>{},exportPPTX=()=>{},toggleTheme=()=>{},requestImportView=()=>{};
       const requestImportAction=async action=>{currentFacts=[{metric:'Revenue',has_data:true}];shownFacts=currentFacts;return action()};
       const openDetail=i=>opened=shownFacts[i].metric;
@@ -167,6 +170,7 @@ def test_empty_dataset_clears_old_client_facts():
     run_js("async function loadPeriods(", "function skeletonCards", """
       let currentPeriod='2025-01',currentFacts=[{metric:'Old'}],shownFacts=[{metric:'Old'}],detailFact={metric:'Old'};
       const granularity='month',loadDatasets=async()=>{},api=async()=>[];
+      let allPeriods=null,overviewFor='x',boardPackFor='x';const renderCloses=()=>{},renderMonthHead=()=>{};
       const elements={}; const $=id=>(elements[id]??={style:{},classList:{remove(){}}});
     """, """
       await loadPeriods(); assert.equal(currentPeriod,null); assert.deepEqual(currentFacts,[]);

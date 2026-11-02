@@ -21,6 +21,7 @@ const ICON_PATHS={},updateReviewBadge=n=>{$('review-badge').textContent=n},onLev
 const ensureCanvas=()=>{},chartReg={},chartTheme=()=>({}),mkChart=()=>{},tooltipCfg=()=>({});
 let currentPeriod='2026-06',granularity='month',currentFacts=[],currentUser={role:'admin'},costsData=null;
 let _anMetrics=[],_reviewItems=[],modalAnswer=false,modalCalls=[];
+const document={querySelectorAll:()=>[]},window={dispatchEvent(){}};
 const EST_COST_PER_NARR=0.006,modalConfirm=async(...args)=>{modalCalls.push(args);return modalAnswer};
 """
 
@@ -28,7 +29,7 @@ LOADERS = [
     ("loadDigest", "digest-list", "async function loadDigest(", "/* ---------- context", "No saved digest", "Generate a new digest"),
     ("loadContext", "ctx-rows", "async function loadContext(", "async function addContext(", "No context", "Add a context note"),
     ("loadAnalytics", "analytics-state", "function _metricList(", "/* ---- Forecast", "No metrics", "Import data"),
-    ("loadReview", "rq-list", "async function loadReview(", "async function openReviewItem(", "Nothing waiting for approval", "Open the dashboard"),
+    ("loadReview", "rq-list", "async function loadReview(", "async function openReviewItem(", "Nothing assigned to you", "Open KPIs"),
     ("loadCosts", "costs-state", "async function loadCosts(", "function deltaChip(", "No usage", "Open the dashboard"),
     ("loadNotifications", "nt-list", "async function loadNotifications(", "async function schCreate(", "No notification channels", "Add a channel"),
     ("loadSchedules", "sch-list", "function schKindFields(", "async function schCreate(", "No schedules", "Add a schedule"),
@@ -209,7 +210,7 @@ def test_a_newer_review_request_wins_and_clears_old_loading_timer():
 def test_read_only_context_empty_state_offers_a_reachable_action():
     run_screen(LOADERS[1], r"""
       currentUser.role='executive';await loadContext();assert.match($('ctx-rows').innerHTML,/Ask an analyst/);
-      assert.match($('ctx-rows').innerHTML,/Open the dashboard/);assert.doesNotMatch($('ctx-rows').innerHTML,/c-title/);
+      assert.match($('ctx-rows').innerHTML,/Open KPIs/);assert.doesNotMatch($('ctx-rows').innerHTML,/c-title/);
     """)
 
 

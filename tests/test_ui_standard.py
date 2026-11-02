@@ -46,15 +46,20 @@ def test_figure_check_and_confidence_are_separate_statements():
 _NAV_SETUP = """
   const pushed=[];let hash='';
   const location={get hash(){return hash;}};
-  const history={pushState:(_s,_t,h)=>{pushed.push(h);hash=h;}};
+  const history={pushState:(_s,_t,h)=>{pushed.push(h);hash=h;},replaceState:(_s,_t,h)=>{hash=h;}};
   const window={addEventListener(){}};
-  const document={title:'',querySelector:()=>null};
-  const els={};const $=id=>(els[id]??={style:{},classList:{toggle(){}}});
-  let detailFact=null;
+  const document={title:'',querySelector:()=>null,querySelectorAll:()=>[],body:{classList:{toggle(){}}}};
+  const els={};const $=id=>(els[id]??={style:{},classList:{toggle(){}},setAttribute(){},removeAttribute(){},textContent:''});
+  let detailFact=null,currentFacts=[],currentUser={role:'admin'},demoSession=false,activeDatasetObj=null,activeDatasetId=1;
   const closeSidebar=()=>{},loadContext=()=>{},loadAnalytics=()=>{},loadReview=()=>{},
         loadDigest=()=>{},loadCosts=()=>{},loadNotifications=()=>{},loadAdmin=()=>{};
+  const api=async()=>{throw new Error('offline')};
   let currentPeriod='2026-06';
+  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
   const fmtPeriodTitle=p=>'June 2026 close';
+  const fmtPeriod=p=>'Jun 2026';
+  const plural=(n,one,many)=>`${n} ${n===1?one:(many||one+'s')}`;
+  const esc=s=>String(s);
   function setDocTitle(t){document.title=t;}
 """
 
@@ -62,27 +67,85 @@ _NAV_SETUP = """
 def test_navigation_pushes_history_so_back_works():
     # P1 #16: views used replaceState, so browser Back left the app.
     run_js("const VIEWS=", "/* ---------- auth", _NAV_SETUP, """
-      nav('review');
-      assert.deepEqual(pushed,['#review']);
-      assert.equal(document.title,'Review queue');
-      nav('dashboard');
-      assert.deepEqual(pushed,['#review','#dashboard']);
+      nav('analyze');
+      assert.deepEqual(pushed,['#analyze']);
+      assert.equal(document.title,'Analyze');
+      nav('kpis');
+      assert.deepEqual(pushed,['#analyze','#month=2026-06&tab=kpis']);
+      assert.equal(document.title,'KPIs · June 2026 close');
+      nav('overview');
       assert.equal(document.title,'June 2026 close');
+      // Older view names still navigate, to their new home.
+      nav('dashboard');
+      assert.equal(pushed.at(-1),'#month=2026-06&tab=kpis');
+      nav('costs');
+      assert.equal(pushed.at(-1),'#settings=costs');
       // Routing from Back/Forward must not push a new entry.
+      const n=pushed.length;
       nav('digest',{fromRoute:true});
-      assert.equal(pushed.length,2);
+      assert.equal(pushed.length,n);
       // The detail view gets its own hash from openDetail, not from nav.
       nav('detail');
-      assert.equal(pushed.length,2);
+      assert.equal(pushed.length,n);
+    """)
+
+
+def test_routes_parse_new_and_legacy_links():
+    run_js("const VIEWS=", "/* ---------- auth", _NAV_SETUP, """
+      assert.deepEqual(parseRoute('#month=2026-06&tab=digest'),{tab:'digest',period:'2026-06',metric:null});
+      assert.deepEqual(parseRoute('#month=2026-06&tab=kpis&metric=COGS%20%E2%80%93%20Dairy'),{tab:'kpis',period:'2026-06',metric:'COGS – Dairy'});
+      // Links already sent in Slack and email keep working.
+      assert.deepEqual(parseRoute('#metric=Net%20Revenue&period=2025-03'),{tab:'kpis',period:'2025-03',metric:'Net Revenue'});
+      assert.deepEqual(parseRoute('#dashboard'),{tab:'kpis'});
+      assert.deepEqual(parseRoute('#review'),{tab:'overview'});
+      assert.deepEqual(parseRoute('#import'),{tab:'data'});
+      assert.deepEqual(parseRoute('#analytics'),{place:'analyze'});
+      assert.deepEqual(parseRoute('#settings=users'),{place:'admin'});
+      assert.deepEqual(parseRoute('#data'),{place:'datahub'});
+      assert.equal(parseRoute(''),null);
+      assert.equal(parseRoute('#nonsense'),null);
+      assert.deepEqual(parseRoute('#month=2026-06&tab=bogus'),{tab:'overview',period:'2026-06',metric:null});
+      for(const r of [{tab:'boardpack',period:'2026-Q2'},{place:'library'},{tab:'kpis',period:'2026-06',metric:'A & B'}])
+        assert.deepEqual(parseRoute(routeHash(r)),r.place?r:{metric:null,...r});
+      assert.equal(landingTab('executive'),'digest');
+      assert.equal(landingTab('analyst'),'overview');
+    """)
+
+
+def test_close_progress_and_next_step():
+    run_js("const VIEWS=", "/* ---------- auth", _NAV_SETUP, """
+      const f=(o)=>({has_data:true,narrative:'x',review_status:null,faithfulness:'passed',is_anomaly:false,...o});
+      let s=closeProgress([],false);
+      assert.equal(s.status,'empty');
+      assert.deepEqual(closeNextStep(s),{label:'Import data',run:"nav('data')"});
+      s=closeProgress([f({narrative:null}),f({}),f({has_data:false})],false);
+      assert.equal(s.n,2);assert.equal(s.status,'in_progress');
+      assert.equal(closeNextStep(s).label,'Draft 1 commentary');
+      s=closeProgress([f({faithfulness:'failed'}),f({})],false);
+      assert.equal(closeNextStep(s).label,'Check 1 flagged KPI');
+      assert.equal(s.exceptions,1);
+      s=closeProgress([f({review_status:'approved'}),f({})],false);
+      assert.equal(closeNextStep(s).label,'Approve 1 draft');
+      s=closeProgress([f({review_status:'approved'})],false);
+      assert.equal(s.status,'ready');assert.equal(closeNextStep(s).label,'Send the digest');
+      s=closeProgress([f({review_status:'approved'})],true);
+      assert.equal(s.status,'shared');assert.equal(s.progress,1);assert.equal(closeNextStep(s),null);
+      const steps=overviewSteps(closeProgress([f({narrative:null})],false),null);
+      assert.deepEqual(steps.map(x=>x.id),['import','review','draft','approve','share']);
+      assert.deepEqual(steps.map(x=>x.state),['done','done','todo','blocked','blocked']);
+      assert.equal(steps[2].target,'#month=2026-06&tab=kpis');
+      // The server's checklist wins when it has one.
+      assert.deepEqual(overviewSteps(s,{steps:[{id:'x'}]}),[{id:'x'}]);
     """)
 
 
 def test_metric_hash_round_trips_names_with_spaces_and_symbols():
-    run_js("function metricHash(", "function openDetail(", "", """
+    run_js("const VIEWS=", "/* ---------- auth", _NAV_SETUP + "function metricHash(metric,period){return routeHash({tab:'kpis',period,metric});}", """
       const h=metricHash('COGS – Dairy & Packaging','2026-06');
       const p=new URLSearchParams(h.slice(1));
       assert.equal(p.get('metric'),'COGS – Dairy & Packaging');
-      assert.equal(p.get('period'),'2026-06');
+      assert.equal(p.get('month'),'2026-06');
+      assert.equal(p.get('tab'),'kpis');
     """)
 
 
