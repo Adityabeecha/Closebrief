@@ -62,22 +62,18 @@ function buildReportHTML(facts){
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     :root{--green2:${BRAND.green};--red:${BRAND.red};--mut2:#8a948c}
-    body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,Segoe UI,sans-serif;color:#16211b;padding:28px 32px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    @font-face{font-family:'Plus Jakarta Sans';font-weight:400;src:url(/vendor/fonts/pjs-400.woff2) format('woff2')}
-    @font-face{font-family:'Plus Jakarta Sans';font-weight:600;src:url(/vendor/fonts/pjs-600.woff2) format('woff2')}
-    @font-face{font-family:'Plus Jakarta Sans';font-weight:700;src:url(/vendor/fonts/pjs-700.woff2) format('woff2')}
-    @font-face{font-family:'Plus Jakarta Sans';font-weight:800;src:url(/vendor/fonts/pjs-800.woff2) format('woff2')}
-    @font-face{font-family:'Newsreader';font-weight:400 700;src:url(/vendor/fonts/newsreader.woff2) format('woff2')}
-    @font-face{font-family:'IBM Plex Mono';font-weight:500;src:url(/vendor/fonts/plexmono-500.woff2) format('woff2')}
+    body{font-family:'Schibsted Grotesk',system-ui,-apple-system,Segoe UI,sans-serif;color:#16211b;padding:28px 32px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    @font-face{font-family:'Schibsted Grotesk';font-weight:400 900;src:url(/vendor/fonts/schibsted-grotesk.woff2) format('woff2')}
+    @font-face{font-family:'Red Hat Mono';font-weight:400 700;src:url(/vendor/fonts/redhat-mono.woff2) format('woff2')}
     .rhead{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid ${BRAND.green};padding-bottom:14px;margin-bottom:18px}
     .rhead .mark{display:inline-flex;align-items:center;gap:9px}
     .rhead .mk{width:26px;height:26px;border-radius:7px;background:${BRAND.green};display:inline-flex;align-items:center;justify-content:center}
-    .rhead h1{font-family:'Newsreader',Georgia,serif;font-size:20px;font-weight:600;letter-spacing:-.005em}
+    .rhead h1{font-family:'Schibsted Grotesk',system-ui,sans-serif;font-size:20px;font-weight:600;letter-spacing:-.005em}
     .rhead .sub{font-size:12px;color:#5c6a62;margin-top:2px}
     .rhead .r{text-align:right;font-size:11.5px;color:#5c6a62;line-height:1.6}
     .rsummary{display:flex;gap:26px;background:#f4f7f4;border:1px solid #e2e8e2;border-radius:10px;padding:13px 18px;margin-bottom:20px}
     .rsummary div{font-size:11.5px;color:#5c6a62;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
-    .rsummary b{display:block;font-family:'IBM Plex Mono',Menlo,monospace;font-size:19px;color:#16211b;font-weight:500;margin-top:3px;text-transform:none;letter-spacing:0}
+    .rsummary b{display:block;font-family:'Red Hat Mono',Menlo,monospace;font-size:19px;color:#16211b;font-weight:500;margin-top:3px;text-transform:none;letter-spacing:0}
     .rgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
     .rcard{border:1px solid #e2e8e2;border-radius:11px;padding:15px 16px;break-inside:avoid}
     .rc-top{display:flex;align-items:center;gap:7px;margin-bottom:8px}
@@ -85,11 +81,11 @@ function buildReportHTML(facts){
     .rc-name{font-weight:700;font-size:14px}
     .rc-cat{margin-left:auto;font-size:10px;color:#8a948c;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
     .rc-vrow{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:9px}
-    .rc-val{font-family:'IBM Plex Mono',Menlo,monospace;font-size:23px;font-weight:500;letter-spacing:-.02em}
+    .rc-val{font-family:'Red Hat Mono',Menlo,monospace;font-size:23px;font-weight:500;letter-spacing:-.02em}
     .rc-deltas{display:flex;gap:7px;margin-bottom:9px}
     .rd{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px}
     .rd.flat{color:#5c6a62;background:#f1f3f0}
-    .rc-narr{font-family:'Newsreader',Georgia,serif;font-size:13.5px;line-height:1.6;color:#33413a}
+    .rc-narr{font-family:'Schibsted Grotesk',system-ui,sans-serif;font-size:13.5px;line-height:1.6;color:#33413a}
     .rc-src{margin-top:9px;display:flex;flex-wrap:wrap;gap:5px}
     .src{font-size:9.5px;font-weight:700;color:${BRAND.green};background:#e9f3ee;border:1px solid #c6ddd1;padding:2px 7px;border-radius:5px}
     .rfoot{margin-top:22px;padding-top:12px;border-top:1px solid #e2e8e2;font-size:10.5px;color:#8a948c;text-align:center}
@@ -236,7 +232,7 @@ function renderKpim(){
       <input value="${esc(k.unit)}" data-f="unit">
       <select data-f="direction_good">${dirOpt(k.direction_good)}</select>
       <select data-f="aggregation_type" title="flow=sum · balance=last month · ratio=not aggregated">${aggOpt(k.aggregation_type)}</select>
-      <button class="row-del" title="Remove from board" onclick="kpimRemove(${i})">✕</button>
+      <button class="row-del" title="Remove from board" onclick="kpimRemove(${i})">${XICON}</button>
     </div>`).join("")
     :'<div class="empty-state" style="padding:26px">No KPIs selected — add one below.</div>';
   $("kpim-add").innerHTML='<option value="">Add a metric to the board…</option>'
@@ -565,6 +561,10 @@ async function boot(){
   initSentry(cfg);
   if(cfg.demo_enabled){const b=$("lg-demo");if(b)b.style.display="";const n=$("lg-demo-note");if(n)n.style.display="";}
   if(cfg.allow_guest){const g=$("lg-guest");if(g)g.style.display="";const n=$("lg-guest-note");if(n)n.style.display="";}
+  // The home page's "Open the demo close" lands on /app?demo=1: go straight in.
+  if(cfg.demo_enabled&&new URLSearchParams(location.search).get("demo")==="1"){
+    history.replaceState(null,"",location.pathname+location.hash);enterDemo();return;
+  }
   // Local-dev bypass. #app-root ships display:none, so reveal it here too.
   if(!cfg.auth_enabled){hideLogin();startApp();return;}
   // A Closebrief session (Google sign-in) survives reloads and needs no Supabase.
@@ -1517,12 +1517,12 @@ function maybePromptGenerate(){
     el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>
       <span>No narratives for ${esc(fmtPeriod(currentPeriod,"long"))} yet.</span>
       <button class="btn sm primary exec-hide" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Generate narratives</button>
-      <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">✕</button>`;
+      <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">${XICON}</button>`;
   }
 }
 function dismissKey(type){return `cb-dismiss:${(currentUser&&currentUser.email)||"anon"}:${activeDatasetId}:${type}`;}
 function bannerDismissed(type){try{return localStorage.getItem(dismissKey(type))==="1";}catch{return false;}}
-function dismissX(type,elId){return `<button class="ico" style="border:none;margin-left:auto" aria-label="Dismiss" onclick="try{localStorage.setItem('${dismissKey(type)}','1')}catch{};$('${elId}').style.display='none'">✕</button>`;}
+function dismissX(type,elId){return `<button class="ico" style="border:none;margin-left:auto" aria-label="Dismiss" onclick="try{localStorage.setItem('${dismissKey(type)}','1')}catch{};$('${elId}').style.display='none'">${XICON}</button>`;}
 async function loadConflicts(){
   try{
     const cf=await api("/context/conflicts");const el=$("conflict-banner");
@@ -1581,7 +1581,9 @@ async function explainFunnel(btn){
 }
 
 /* The signature mark: the auditor's tick. One seal wherever numbers are verified. */
-const TICK='<svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+const XICON='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+// The pencil tick from the home page's legend: figures computed in code.
+const TICK='<svg viewBox="0 0 26 22" fill="none" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12.2c1.9 1.4 3.6 3.3 5.2 5.6C12.4 11 16.8 6.2 22.6 3.4"/></svg>';
 const seal=ok=>ok
   ?`<span class="seal" title="Every figure checked against computed facts">${TICK}Figures verified</span>`
   :`<span class="seal failed" title="A figure couldn't be verified — review before sharing"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Needs review</span>`;
@@ -1651,7 +1653,8 @@ function narrativeBlock(f,q,i){
   if(generatingSet.has(f.metric))
     return `<div class="narr"><div class="sk sk-line" style="width:100%;margin-bottom:5px"></div><div class="sk sk-line" style="width:94%;margin-bottom:5px"></div><div class="sk sk-line" style="width:72%"></div></div>`;
   if(f.aggregated)return "";   // one note in the page sub-line, not repeated per card
-  let html=`<div class="narr ${f.narrative?"":"muted"}">${f.narrative?hl(f.narrative,q):"No narrative yet — generate one to explain this movement."}</div>`;
+  const narrState=!f.narrative?"muted":f.review_status==="approved"?"approved":"draft";
+  let html=`<div class="narr ${narrState}">${f.narrative?hl(f.narrative,q):"No narrative yet — generate one to explain this movement."}</div>`;
   if(f.faithfulness==="failed")
     // The guard caught an unverifiable number. Surface it — do NOT hide it.
     html+=`<div class="banner err" style="margin:8px 0 0;font-size:11.5px;padding:8px 10px">${warnIcon()}<span>Numbers couldn't be verified — review manually.</span><button class="btn sm exec-hide" style="margin-left:auto;padding:3px 9px" onclick="event.stopPropagation();retryCard(${i})">Retry</button></div>`;
@@ -1704,8 +1707,8 @@ function renderStatrow(facts){
 let shownFacts=[];
 function renderPills(){
   const cat=catFilter,pills=[];
-  if(cat)pills.push(`Category: ${esc(cat)}<button onclick="clearCatFilter()" aria-label="Clear category filter">×</button>`);
-  if(searchQuery)pills.push(`Search: “${esc(searchQuery)}”<button onclick="clearSearch()" aria-label="Clear search">×</button>`);
+  if(cat)pills.push(`Category: ${esc(cat)}<button onclick="clearCatFilter()" aria-label="Clear category filter">${XICON}</button>`);
+  if(searchQuery)pills.push(`Search: “${esc(searchQuery)}”<button onclick="clearSearch()" aria-label="Clear search">${XICON}</button>`);
   $("filter-pills").innerHTML=pills.map(p=>`<span class="fpill">${p}</span>`).join("");
 }
 // Enter/Space activates non-native controls marked role="button" (queue rows,
@@ -1714,6 +1717,14 @@ document.addEventListener("keydown",e=>{
   const t=e.target;
   if((e.key==="Enter"||e.key===" ")&&t&&t.getAttribute&&t.getAttribute("role")==="button"&&!/^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(t.tagName)){e.preventDefault();t.click();}
 });
+// The working-paper tick box: empty until a person approves the commentary,
+// so unreviewed work stays visibly open (docs/ui-standard.md §3).
+function reviewTick(f){
+  if(!f.report_id||f.aggregated)return "";
+  return f.review_status==="approved"
+    ?`<span class="rev-tick ok" role="img" aria-label="Approved" title="Approved"><svg viewBox="0 0 26 22"><path d="M3.5 12.2c1.9 1.4 3.6 3.3 5.2 5.6C12.4 11 16.8 6.2 22.6 3.4"/></svg></span>`
+    :`<span class="rev-tick" role="img" aria-label="Not approved yet" title="Not approved yet"></span>`;
+}
 // Cards act as links: Enter/Space opens, but only when the card itself has focus
 // (not one of its inner Accept/Edit/Generate buttons).
 function cardKey(e,i){if(e.target===e.currentTarget&&(e.key==="Enter"||e.key===" ")){e.preventDefault();openDetail(i);}}
@@ -1747,7 +1758,7 @@ function renderCards(){
     return`<div class="card click ${rise}" ${delay} onclick="openDetail(${i})" onkeydown="cardKey(event,${i})" tabindex="0" role="link" aria-label="${esc(f.metric)}: ${esc(fmt(f.value,f.unit))}. Open details">
       <div class="card-top">
         <span class="card-name" title="${esc(f.category||"Uncategorized")}"><span class="cat-dot"></span>${hl(f.metric,q)}</span>
-        ${f.chart_data&&f.chart_data.trend?sparkline(f.chart_data.trend,f.direction_good,96,28,f.unit):""}
+        <span style="display:flex;align-items:center">${f.chart_data&&f.chart_data.trend?sparkline(f.chart_data.trend,f.direction_good,96,28,f.unit):""}${reviewTick(f)}</span>
       </div>
       <div class="card-value-row">
         <span style="display:flex;align-items:center;gap:9px"><span class="card-value nbi-num" ${f.unavailable?'title="Ratios/percentages aren\'t aggregated across months — view at Month granularity"':""}>${f.unavailable?"—":fmt(f.value,f.unit)}</span>${status}${f.edited?'<span class="badge edited">edited</span>':""}</span>
@@ -1803,7 +1814,7 @@ function chartTheme(){
     green:cssv("--green2")||"#25835f",red:cssv("--red")||"#b42e2c",card:cssv("--card")||"#fff"};
 }
 if(window.Chart){
-  Chart.defaults.font.family="'Plus Jakarta Sans',system-ui,-apple-system,sans-serif";
+  Chart.defaults.font.family="'Schibsted Grotesk',system-ui,-apple-system,sans-serif";
   Chart.defaults.font.size=11;
   Chart.defaults.animation.duration=matchMedia("(prefers-reduced-motion: reduce)").matches?0:600;
   Chart.defaults.animation.easing="easeOutQuart";
@@ -2167,7 +2178,7 @@ async function loadContext(){
     <td><div style="font-weight:700;font-size:13px;margin-bottom:3px">${esc(d.title)}</div><div style="color:var(--mut);line-height:1.45">${esc(d.body)}</div></td>
     <td>${d.metric_tags.length?d.metric_tags.map(t=>`<span class="ctx-tag">${esc(t)}</span>`).join(""):'<span style="color:var(--mut2)">all</span>'}</td>
     <td style="color:var(--mut);white-space:nowrap">${d.effective_date?esc(/^\d{4}-\d{2}$/.test(d.effective_date)?fmtPeriod(d.effective_date):fmtDate(d.effective_date)):"—"}</td>
-    <td><button class="row-del exec-hide" aria-label="Delete ${esc(d.title)}" onclick="delContext(${esc(d.id)})">✕</button></td></tr>`).join("")
+    <td><button class="row-del exec-hide" aria-label="Delete ${esc(d.title)}" onclick="delContext(${esc(d.id)})">${XICON}</button></td></tr>`).join("")
     ||screenRow(currentUser&&["executive","viewer"].includes(currentUser.role)
       ?screenState("No context notes yet","Business events, definitions and policies help explain metric movements. Ask an analyst to add a note.","nav('dashboard')","Open the dashboard")
       :screenState("No context notes yet","Add business events, definitions and policies to ground the explanations of your metrics.","$('c-title').focus()","Add a context note"),5);
@@ -2422,7 +2433,7 @@ async function confirmKpis(){
     el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
       <span>Imported · ${plural(li.rows||0,"row")} · ${plural(kpis.length,"KPI")} · ${plural(li.periods||0,"period")}.</span>
       <button class="btn sm primary" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Generate narratives</button>
-      <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">✕</button>`;
+      <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">${XICON}</button>`;
   }
   }catch(e){$("imp-result").innerHTML=`<div class="banner err">Import failed to finalize: ${esc(e.message)} <button class="btn sm" onclick="confirmKpis()">Retry</button></div>`;}
   finally{kpiSaving=false;updateKpiSelection();}

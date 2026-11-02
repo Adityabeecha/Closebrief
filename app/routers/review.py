@@ -34,7 +34,7 @@ def _email_review_nudge_async(to_email: str | None, metric: str, period: str,
             base = (settings.app_base_url or "").rstrip("/")
             link = ""
             if base:
-                url = f"{base}/#metric={urllib.parse.quote(metric)}&period={urllib.parse.quote(period)}"
+                url = f"{base}/app#metric={urllib.parse.quote(metric)}&period={urllib.parse.quote(period)}"
                 link = (f"<p><a href='{escape(url, quote=True)}' style='display:inline-block;background:#1e6e50;color:#fff;"
                         f"padding:9px 16px;border-radius:8px;text-decoration:none;font-weight:600'>"
                         f"Review in Closebrief</a></p>")

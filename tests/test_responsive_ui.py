@@ -381,7 +381,7 @@ frame.onload=async()=>{
   }catch(e){document.getElementById('result').textContent=JSON.stringify({error:e.stack});}
 };
 """.replace("THEME", json.dumps(theme))
-    return (f'<!doctype html><meta charset="utf-8"><iframe id="site" src="/" '
+    return (f'<!doctype html><meta charset="utf-8"><iframe id="site" src="/app" '
             f'style="width:{width}px;height:1000px;border:0"></iframe><pre id="result">waiting</pre>'
             f'<script>{script}</script>').encode()
 
