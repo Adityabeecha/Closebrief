@@ -299,7 +299,10 @@ def _seed_close_history(conn, ds: int, docs: list) -> None:
         items = [{"metric": r["name"], "headline": r["narrative"].split('. ', 1)[0] + '.',
                   "detail": r["narrative"], "budget_var_abs": r["budget_var_abs"],
                   "budget_var_pct": r["budget_var_pct"], "faithfulness": "passed", "report_id": r["id"]} for r in movers]
-        record_digest_run(conn, ds, period, 3, items, 0, 'scheduled')
+        run_id = record_digest_run(conn, ds, period, 3, items, None, 'scheduled')
+        y, m = int(period[:4]), int(period[5:7])
+        sent = f"{y + (m == 12)}-{m % 12 + 1:02d}-03 09:00:00"   # the digest goes out early the next month
+        conn.execute("UPDATE digest_runs SET created_at=? WHERE id=?", (sent, run_id))
     # Deterministic minority approved; the rest still need the analyst's decision.
     conn.execute("""UPDATE generated_reports SET review_status='approved' WHERE id IN (
         SELECT gr.id FROM generated_reports gr JOIN metrics m ON m.id=gr.metric_id

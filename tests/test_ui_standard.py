@@ -132,7 +132,7 @@ def test_close_progress_and_next_step():
       assert.equal(s.status,'shared');assert.equal(s.progress,1);assert.equal(closeNextStep(s),null);
       const steps=overviewSteps(closeProgress([f({narrative:null})],false),null);
       assert.deepEqual(steps.map(x=>x.id),['import','review','reasons','approve','share']);
-      assert.deepEqual(steps.map(x=>x.state),['done','done','done','blocked','blocked']);
+      assert.deepEqual(steps.map(x=>x.state),['done','todo','done','blocked','blocked']);
       assert.equal(steps[2].target,'#month=2026-06&tab=context');
       // The server's checklist wins when it has one.
       assert.deepEqual(overviewSteps(s,{steps:[{id:'x'}]}),[{id:'x'}]);
