@@ -24,3 +24,5 @@ graphify-out/
 eval/ab_results.json
 
 .pytest-review-*/
+
+artifacts/

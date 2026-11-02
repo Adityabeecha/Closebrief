@@ -26,7 +26,7 @@
   a{color:inherit}
   .num,.fig,td.n{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
   .wrap{max-width:1240px;margin:0 auto;padding:0 40px}
-  :focus-visible{outline:2px solid var(--select);outline-offset:3px;border-radius:6px}
+  :focus-visible{outline:2px solid var(--select);outline-offset:3px;border-radius:8px}
   .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .skip{position:absolute;left:16px;top:-60px;background:var(--accent);color:var(--on-accent);padding:10px 16px;font-weight:700;border-radius:var(--r-sm);z-index:10}
   .skip:focus{top:12px}
@@ -36,7 +36,7 @@
   .bar{position:relative;z-index:2}
   .bar .wrap{display:flex;align-items:center;gap:8px;min-height:72px}
   .brand{display:flex;align-items:center;gap:10px;text-decoration:none;margin-right:22px}
-  .brand b{font-size:21px;font-weight:800;letter-spacing:-.03em}
+  .brand b{font-size:22px;font-weight:800;letter-spacing:-.03em}
   .logo-mark{width:30px;height:30px;flex:none;display:block}
   .wordmark{font-weight:800;letter-spacing:-.035em}
   .wordmark span{font-weight:500}
@@ -61,39 +61,39 @@
   h1 em{font-style:normal;color:var(--accent)}
   .lede{font-size:clamp(17px,1.5vw,20px);color:var(--text-2);max-width:54em;margin:16px auto 0;text-wrap:balance}
   .ctas{display:flex;gap:12px;justify-content:center;align-items:center;margin-top:24px;flex-wrap:wrap}
-  .promise{display:inline-flex;align-items:center;gap:8px;margin-left:10px;font-size:14.5px;color:var(--text-3)}
+  .promise{display:inline-flex;align-items:center;gap:8px;margin-left:10px;font-size:15px;color:var(--text-3)}
   .promise svg{color:var(--verified)}
 
   /* ---- the live workspace preview ---- */
   .stage{margin:24px auto 0;max-width:1180px}
   .ws{display:grid;grid-template-columns:200px minmax(0,1fr);text-align:left;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow);overflow:hidden;font-size:13px}
   .month-side{background:var(--surface-2);border-right:1px solid var(--line);padding:18px 12px}
-  .month-side h3{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin:0 10px 12px}
+  .month-side .side-h{font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin:0 10px 12px}
   .close-month{display:grid;grid-template-columns:1fr auto;gap:5px 6px;align-items:center;padding:11px 10px;border-radius:8px;text-decoration:none;margin-bottom:5px;min-height:60px}
   .close-month.selected{background:var(--surface);outline:1px solid var(--line)}
-  .close-month b{font-size:13px;white-space:nowrap}.close-month small{grid-column:1/-1;color:var(--text-3);font-size:11px}
+  .close-month b{font-size:13px;white-space:nowrap}.close-month small{grid-column:1/-1;color:var(--text-3);font-size:12px}
   .progress{grid-column:1/-1;height:4px;background:var(--surface-3);border-radius:4px;overflow:hidden;margin-top:3px}.progress i{display:block;width:64%;height:100%;background:var(--accent)}
   .month-side .across{margin-top:24px}.month-side .across a{display:flex;align-items:center;min-height:40px;padding:6px 10px;color:var(--text-2);text-decoration:none}
   .month-main{min-width:0}.month-head{padding:17px 22px 0;border-bottom:1px solid var(--line)}
   .month-title{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.month-title h2{font-size:24px;line-height:1.15;letter-spacing:-.03em;max-width:none}.month-title .next-step{margin-left:auto;color:var(--accent);font-size:12px;font-weight:700;min-height:40px;display:flex;align-items:center;text-decoration:none}
-  .sample-caption{color:var(--text-3);font-size:11px;margin:6px 0 8px}
+  .sample-caption{color:var(--text-3);font-size:12px;margin:6px 0 8px}
   .month-tabs{display:flex;gap:16px;flex-wrap:wrap}.month-tabs a{display:flex;gap:5px;align-items:center;min-height:40px;text-decoration:none;color:var(--text-2);font-weight:600;border-bottom:2px solid transparent;white-space:nowrap}
-  .month-tabs .active{color:var(--text);border-color:var(--accent)}.month-tabs .num{color:var(--text-3);font-size:11px}
+  .month-tabs .active{color:var(--text);border-color:var(--accent)}.month-tabs .num{color:var(--text-3);font-size:12px}
   .overview-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px;padding:16px 22px 20px;background:var(--bg)}
   .overview-card{padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);min-width:0}
   .overview-card h3{font-size:14px;letter-spacing:-.015em;margin-bottom:8px}.overview-right{display:grid;gap:12px}
   .checklist{list-style:none}.checklist li+li{border-top:1px solid var(--line)}
   .checklist a{display:grid;grid-template-columns:17px minmax(0,1fr) auto;gap:9px;align-items:center;min-height:54px;padding:8px 0;text-decoration:none}
-  .checklist b{font-weight:600;font-size:12px}.checklist small{display:block;font-size:10.5px;color:var(--text-3);margin-top:2px}
+  .checklist b{font-weight:600;font-size:12px}.checklist small{display:block;font-size:12px;color:var(--text-3);margin-top:2px}
   .check-box{width:16px;height:16px;border:1px solid var(--line-strong);border-radius:4px;display:grid;place-items:center}.check-box.done{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}.check-box svg{width:12px;height:12px}
-  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;border-radius:var(--r-pill);padding:2px 8px;white-space:nowrap}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;border-radius:var(--r-pill);padding:2px 8px;white-space:nowrap}
   .p-ok{color:var(--verified);background:var(--verified-wash)}.p-rev{color:var(--review);background:var(--review-wash)}.p-exc{color:var(--exception);background:var(--exception-wash)}.pill svg{width:13px;height:13px}
   .c-ok{color:var(--verified)}.c-exc{color:var(--exception)}
-  .glance{margin:0}.glance div{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--line);font-size:11px}.glance div:first-child{border:0}.glance dt{color:var(--text-2)}.glance dd{text-align:right;white-space:nowrap;font-family:var(--font-mono);font-size:11px;font-weight:600}.glance dd span{margin-left:5px}
-  .activity{list-style:none;color:var(--text-2);font-size:10.5px}.activity li{padding:6px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}.activity li:first-child{border:0}.activity time{font-family:var(--font-mono);color:var(--text-3);margin-right:5px}
-  mark.f{background:var(--verified-wash);color:var(--text);font-family:var(--font-mono);font-size:.93em;font-weight:600;border-radius:5px;padding:1px 5px}
+  .glance{margin:0}.glance div{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--line);font-size:12px}.glance div:first-child{border:0}.glance dt{color:var(--text-2)}.glance dd{text-align:right;white-space:nowrap;font-family:var(--font-mono);font-size:12px;font-weight:600}.glance dd span{margin-left:5px}
+  .activity{list-style:none;color:var(--text-2);font-size:12px}.activity li{padding:6px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}.activity li:first-child{border:0}.activity time{font-family:var(--font-mono);color:var(--text-3);margin-right:5px}
+  mark.f{background:var(--verified-wash);color:var(--text);font-family:var(--font-mono);font-size:.93em;font-weight:600;border-radius:4px;padding:1px 5px}
   @media(max-width:1100px){.ws{grid-template-columns:190px minmax(0,1fr)}.month-head{padding:14px 16px 0}.overview-grid{padding:14px 16px;gap:12px}.overview-card{padding:12px}.month-tabs{gap:12px}.month-title h2{font-size:22px}.checklist a{grid-template-columns:16px minmax(0,1fr)}.checklist .pill{display:none}.month-title .next-step{display:none}}
-  @media(max-width:720px){.ws{grid-template-columns:minmax(0,1fr)}.month-side{border-right:0;border-bottom:1px solid var(--line);padding:12px}.month-side h3,.month-side .across,.close-month:not(.selected){display:none}.close-month{margin:0;min-height:0}.close-month.selected{outline:0;background:transparent}.month-head{padding:16px 14px 0}.month-title{gap:8px}.month-title h2{font-size:23px}.month-title>.pill{display:none}.month-tabs{column-gap:17px;row-gap:0}.month-tabs a{font-size:12px;min-height:40px}.overview-grid{grid-template-columns:minmax(0,1fr);padding:14px;gap:14px}.overview-card{padding:14px}.overview-card h3{font-size:16px}.checklist b{font-size:13px}.checklist small{font-size:12px}.checklist a{min-height:62px}.glance div,.glance dd{font-size:12px}.activity{font-size:12px}.close-month b{font-size:14px}.close-month small{font-size:12px}.bar .brand{min-height:40px}footer a{min-height:40px;display:inline-flex;align-items:center}.panel header{flex-wrap:wrap}}
+  @media(max-width:720px){.ws{grid-template-columns:minmax(0,1fr)}.month-side{border-right:0;border-bottom:1px solid var(--line);padding:12px}.month-side .side-h,.month-side .across,.close-month:not(.selected){display:none}.close-month{margin:0;min-height:0}.close-month.selected{outline:0;background:transparent}.month-head{padding:16px 14px 0}.month-title{gap:8px}.month-title h2{font-size:24px}.month-title>.pill{display:none}.month-tabs{column-gap:17px;row-gap:0}.month-tabs a{font-size:12px;min-height:40px}.overview-grid{grid-template-columns:minmax(0,1fr);padding:14px;gap:14px}.overview-card{padding:14px}.overview-card h3{font-size:16px}.checklist b{font-size:13px}.checklist small{font-size:12px}.checklist a{min-height:62px}.glance div,.glance dd{font-size:12px}.activity{font-size:12px}.close-month b{font-size:14px}.close-month small{font-size:12px}.bar .brand{min-height:40px}footer a{min-height:40px;display:inline-flex;align-items:center}.panel header{flex-wrap:wrap}}
   @media(pointer:coarse){a.link,.btn{min-height:40px}}
 
   /* ---- sections ---- */
@@ -109,7 +109,7 @@
   .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
   .panel header{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--surface-2);font-size:14px;font-weight:700}
   .panel header span{font-weight:500;color:var(--text-3)}
-  .draft{padding:22px 20px 6px;font-size:19px;line-height:1.75}
+  .draft{padding:22px 20px 6px;font-size:20px;line-height:1.75}
   .draft s{color:var(--exception);text-decoration-thickness:2px}
   .checks{padding:4px 20px 18px}
   .ck{display:grid;grid-template-columns:86px 22px 1fr;gap:10px;align-items:baseline;padding:11px 0;border-top:1px solid var(--line);font-size:15px;color:var(--text-2)}
@@ -123,7 +123,7 @@
   .flow li.you:before{background:var(--accent)}
   .flow b{display:block;font-size:18px;letter-spacing:-.01em}
   .flow span{display:block;color:var(--text-2);font-size:15px;margin-top:6px}
-  .flow em{display:block;font-style:normal;color:var(--text-3);font-size:13.5px;margin-top:10px}
+  .flow em{display:block;font-style:normal;color:var(--text-3);font-size:14px;margin-top:10px}
 
   table.ctl{width:100%;border-collapse:collapse}
   table.ctl th{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);text-align:left;padding:13px 20px;border-bottom:1px solid var(--line);background:var(--surface-2)}
@@ -134,7 +134,7 @@
   table.ctl td.res{font-family:var(--font-mono);font-size:22px;font-weight:600;color:var(--text);white-space:nowrap}
   table.ctl td.res .pill{margin-left:10px;vertical-align:3px;font-family:var(--font-sans)}
   .note{margin-top:16px;font-size:15px;color:var(--text-3)}
-  .note code{font-family:var(--font-mono);font-size:14px;color:var(--text);background:var(--surface-3);padding:2px 6px;border-radius:5px;white-space:nowrap}
+  .note code{font-family:var(--font-mono);font-size:14px;color:var(--text);background:var(--surface-3);padding:2px 6px;border-radius:4px;white-space:nowrap}
 
   .close{padding:104px 0 0;text-align:center}
   .close h2{margin:0 auto;max-width:18ch}
@@ -216,11 +216,11 @@
       <div class="stage">
         <div class="ws" role="group" aria-label="Month Workspace preview — sample data">
           <aside class="month-side" aria-label="Sample closes">
-            <h3>Closes</h3>
+            <p class="side-h">Closes</p>
             <a class="close-month selected" href="/app?demo=1#month=2026-06&tab=overview"><b>June <span class="num">2026</span></b><span class="pill p-rev">Day <span class="num">3</span></span><small><span class="num">9 of 14</span> KPIs approved</small><span class="progress" role="progressbar" aria-label="June close progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="64"><i></i></span></a>
             <a class="close-month" href="/app?demo=1#month=2026-05&tab=overview"><b>May <span class="num">2026</span></b><span class="pill p-ok">Shared</span><small>Digest sent <span class="num">2</span> Jun</small></a>
             <a class="close-month" href="/app?demo=1#month=2026-04&tab=overview"><b>April <span class="num">2026</span></b><span class="pill p-ok">Shared</span><small>Board pack <span class="num">5</span> May</small></a>
-            <div class="across"><h3>Across months</h3><a href="/app?demo=1#analyze">Analyze trends</a><a href="/app?demo=1#library">Context library</a><a href="/app?demo=1#data">Data and imports</a></div>
+            <div class="across"><p class="side-h">Across months</p><a href="/app?demo=1#analyze">Analyze trends</a><a href="/app?demo=1#library">Context library</a><a href="/app?demo=1#data">Data and imports</a></div>
           </aside>
           <div class="month-main">
             <div class="month-head">

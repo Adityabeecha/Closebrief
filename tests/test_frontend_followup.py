@@ -192,9 +192,10 @@ def test_pdf_export_keeps_failed_faithfulness_warning():
 
 def test_powerpoint_export_keeps_failed_faithfulness_warning():
     run_js("async function exportPPTX(", "/* ---------- command palette", """
-      const text=[],currentPeriod='2025-01',BRAND={green:'#123',greenDark:'#456'};
+      const text=[],currentPeriod='2025-01',BRAND={green:'#123456',greenDark:'#456',red:'#654321'},activeDatasetObj=null;
+      const fmtPeriodTitle=p=>p,fmtDate=d=>d,plural=(n,w)=>n+' '+w;
       const shownFacts=[{has_data:true,metric:'Revenue',value:100,deltas:{},narrative:'Some claim',faithfulness:'failed'}];
       const $=()=>({classList:{remove(){}}}),toast=()=>{},loadPptx=async()=>{},fmt=()=>'$100',pct=()=>'';
       const document={documentElement:{getAttribute:()=>null}};
-      class PptxGenJS{addSlide(){return {addText(value){text.push(value)}}} async writeFile(){}}
+      class PptxGenJS{constructor(){this.ShapeType={line:'line',rect:'rect'}}addSlide(){return {addText(value){text.push(value)},addShape(){},addTable(){}}} async writeFile(){}}
     """, "await exportPPTX(); assert.match(text.join(' '),/numbers need review/i);")

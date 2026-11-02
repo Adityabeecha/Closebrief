@@ -67,28 +67,28 @@ function buildReportHTML(facts){
     @font-face{font-family:'Red Hat Mono';font-weight:400 700;src:url(/vendor/fonts/redhat-mono.woff2) format('woff2')}
     .rhead{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid ${BRAND.green};padding-bottom:14px;margin-bottom:18px}
     .rhead .mark{display:inline-flex;align-items:center;gap:9px}
-    .rhead .mk{width:26px;height:26px;border-radius:7px;background:${BRAND.green};display:inline-flex;align-items:center;justify-content:center}
+    .rhead .mk{width:26px;height:26px;border-radius:8px;background:${BRAND.green};display:inline-flex;align-items:center;justify-content:center}
     .rhead h1{font-family:'Schibsted Grotesk',system-ui,sans-serif;font-size:20px;font-weight:600;letter-spacing:-.005em}
     .rhead .sub{font-size:12px;color:#5c6a62;margin-top:2px}
-    .rhead .r{text-align:right;font-size:11.5px;color:#5c6a62;line-height:1.6}
-    .rsummary{display:flex;gap:26px;background:#f4f7f4;border:1px solid #e2e8e2;border-radius:10px;padding:13px 18px;margin-bottom:20px}
-    .rsummary div{font-size:11.5px;color:#5c6a62;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
-    .rsummary b{display:block;font-family:'Red Hat Mono',Menlo,monospace;font-size:19px;color:#16211b;font-weight:500;margin-top:3px;text-transform:none;letter-spacing:0}
+    .rhead .r{text-align:right;font-size:12px;color:#5c6a62;line-height:1.6}
+    .rsummary{display:flex;gap:26px;background:#f4f7f4;border:1px solid #e2e8e2;border-radius:8px;padding:13px 18px;margin-bottom:20px}
+    .rsummary div{font-size:12px;color:#5c6a62;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+    .rsummary b{display:block;font-family:'Red Hat Mono',Menlo,monospace;font-size:20px;color:#16211b;font-weight:500;margin-top:3px;text-transform:none;letter-spacing:0}
     .rgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-    .rcard{border:1px solid #e2e8e2;border-radius:11px;padding:15px 16px;break-inside:avoid}
+    .rcard{border:1px solid #e2e8e2;border-radius:12px;padding:15px 16px;break-inside:avoid}
     .rc-top{display:flex;align-items:center;gap:7px;margin-bottom:8px}
     .rc-dot{width:8px;height:8px;border-radius:50%;flex:none}
     .rc-name{font-weight:700;font-size:14px}
-    .rc-cat{margin-left:auto;font-size:10px;color:#8a948c;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+    .rc-cat{margin-left:auto;font-size:12px;color:#8a948c;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
     .rc-vrow{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:9px}
-    .rc-val{font-family:'Red Hat Mono',Menlo,monospace;font-size:23px;font-weight:500;letter-spacing:-.02em}
+    .rc-val{font-family:'Red Hat Mono',Menlo,monospace;font-size:24px;font-weight:500;letter-spacing:-.02em}
     .rc-deltas{display:flex;gap:7px;margin-bottom:9px}
-    .rd{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px}
+    .rd{font-size:12px;font-weight:700;padding:3px 8px;border-radius:8px}
     .rd.flat{color:#5c6a62;background:#f1f3f0}
-    .rc-narr{font-family:'Schibsted Grotesk',system-ui,sans-serif;font-size:13.5px;line-height:1.6;color:#33413a}
+    .rc-narr{font-family:'Schibsted Grotesk',system-ui,sans-serif;font-size:14px;line-height:1.6;color:#33413a}
     .rc-src{margin-top:9px;display:flex;flex-wrap:wrap;gap:5px}
-    .src{font-size:9.5px;font-weight:700;color:${BRAND.green};background:#e9f3ee;border:1px solid #c6ddd1;padding:2px 7px;border-radius:5px}
-    .rfoot{margin-top:22px;padding-top:12px;border-top:1px solid #e2e8e2;font-size:10.5px;color:#8a948c;text-align:center}
+    .src{font-size:9.5px;font-weight:700;color:${BRAND.green};background:#e9f3ee;border:1px solid #c6ddd1;padding:2px 7px;border-radius:4px}
+    .rfoot{margin-top:22px;padding-top:12px;border-top:1px solid #e2e8e2;font-size:12px;color:#8a948c;text-align:center}
     @page{margin:14mm}
     @media print{.rcard{break-inside:avoid}}
   </style></head><body>
@@ -130,33 +130,51 @@ async function exportPPTX(){
     toast("Building PowerPoint…");
     await loadPptx();
     const facts=shownFacts.filter(f=>f.has_data);
-    const dark=document.documentElement.getAttribute("data-theme")==="dark";
-    const BG=dark?"171F1A":"FFFFFF",INK=dark?"E9EEE9":"16211B",MUT=dark?"93A096":"5C6A62",ACC=(dark?BRAND.greenDark:BRAND.green).slice(1).toUpperCase();
-    const p=new PptxGenJS();p.layout="LAYOUT_16x9";   // 10 x 5.63in default
-    const bg={color:BG};
+    // Decks are read on projectors and printed: always the light palette.
+    const INK="0B1220",TXT="344054",MUT="596579",LINE="E6E9EF",ACC=BRAND.green.slice(1).toUpperCase(),RED=BRAND.red.slice(1).toUpperCase(),OK="067647",AMB="A1450A";
+    const F="Segoe UI",M="Consolas";
+    const title=currentPeriod?fmtPeriodTitle(currentPeriod):"Close";
+    const p=new PptxGenJS();p.layout="LAYOUT_16x9";   // 10 x 5.63in
+    const foot=(s,n)=>{s.addShape(p.ShapeType.line,{x:0.6,y:5.15,w:8.8,h:0,line:{color:LINE,width:0.75}});
+      s.addText([{text:"close",options:{bold:true}},{text:"brief"}],{x:0.6,y:5.2,w:3,h:0.3,fontSize:10,color:INK,fontFace:F});
+      s.addText(`${title} · ${n}`,{x:5.4,y:5.2,w:4,h:0.3,fontSize:10,color:MUT,fontFace:F,align:"right"});};
     // Title slide
-    let s=p.addSlide();s.background=bg;
-    s.addText("FP&A Executive Report",{x:0.6,y:1.8,w:8.8,h:0.8,fontSize:34,bold:true,color:INK,fontFace:"Segoe UI"});
-    s.addText(`${currentPeriod||""}`,{x:0.6,y:2.7,w:8.8,h:0.5,fontSize:20,color:ACC,fontFace:"Segoe UI"});
-    s.addText(`Generated ${new Date().toLocaleDateString()} · Powered by Closebrief`,{x:0.6,y:4.7,w:8.8,h:0.4,fontSize:12,color:MUT,fontFace:"Segoe UI"});
-    // Summary slide
-    const anom=facts.filter(f=>f.is_anomaly).length;
-    const mover=facts.filter(f=>f.deltas&&f.deltas.budget_var_pct!=null).sort((a,b)=>Math.abs(b.deltas.budget_var_pct)-Math.abs(a.deltas.budget_var_pct))[0];
-    s=p.addSlide();s.background=bg;
-    s.addText("Summary",{x:0.6,y:0.4,w:8.8,h:0.6,fontSize:24,bold:true,color:INK,fontFace:"Segoe UI"});
-    const rows=[["KPIs tracked",String(facts.length)],["Anomalies flagged",String(anom)],["Top mover vs plan",mover?`${mover.metric} (${pct(mover.deltas.budget_var_pct)||"–"})`:"—"]];
-    rows.forEach((r,i)=>{s.addText(r[0],{x:0.8,y:1.4+i*0.9,w:4,h:0.6,fontSize:16,color:MUT,fontFace:"Segoe UI"});
-      s.addText(r[1],{x:4.8,y:1.4+i*0.9,w:4.6,h:0.6,fontSize:16,bold:true,color:INK,fontFace:"Segoe UI"});});
-    // One slide per metric
-    facts.forEach(f=>{
-      const s=p.addSlide();s.background=bg;const dg=f.direction_good==="down";
-      s.addText(f.metric,{x:0.6,y:0.4,w:8.8,h:0.6,fontSize:22,bold:true,color:INK,fontFace:"Segoe UI"});
-      s.addText(f.category||"",{x:0.6,y:0.95,w:8.8,h:0.35,fontSize:12,color:MUT,fontFace:"Segoe UI"});   // PPTX text is not HTML — no esc()
-      s.addText(fmt(f.value,f.unit),{x:0.6,y:1.4,w:5,h:0.9,fontSize:40,bold:true,color:INK,fontFace:"Segoe UI"});
-      const mom=pct(f.deltas.mom_pct),bud=pct(f.deltas.budget_var_pct);
-      s.addText(`MoM ${mom||"–"}    vs plan ${bud||"–"}`,{x:0.6,y:2.4,w:8.8,h:0.4,fontSize:13,bold:true,color:ACC,fontFace:"Segoe UI"});
-      s.addText((f.faithfulness==="failed"?"Numbers need review — unverified narrative\n\n":"")+(f.narrative||"No narrative generated."),{x:0.6,y:2.95,w:8.8,h:2.2,fontSize:13,color:INK,fontFace:"Segoe UI",valign:"top"});
-      if(f.sources&&f.sources.length)s.addText("Sources: "+f.sources.map(x=>x.title||x.id).join(", "),{x:0.6,y:5.0,w:8.8,h:0.4,fontSize:10,italic:true,color:MUT,fontFace:"Segoe UI"});
+    let s=p.addSlide();s.background={color:"FFFFFF"};
+    s.addShape(p.ShapeType.rect,{x:0.6,y:1.45,w:0.6,h:0.08,fill:{color:ACC},line:{color:ACC}});
+    s.addText(title,{x:0.6,y:1.65,w:8.8,h:0.9,fontSize:38,bold:true,color:INK,fontFace:F});
+    s.addText("Variance commentary. Every figure computed in code and checked against the source.",{x:0.6,y:2.55,w:8.8,h:0.5,fontSize:16,color:TXT,fontFace:F});
+    s.addText(`${activeDatasetObj&&activeDatasetObj.name?activeDatasetObj.name+" · ":""}Prepared ${fmtDate(new Date().toISOString())}`,{x:0.6,y:4.6,w:8.8,h:0.4,fontSize:12,color:MUT,fontFace:F});
+    s.addText([{text:"close",options:{bold:true}},{text:"brief"}],{x:0.6,y:0.5,w:3,h:0.4,fontSize:16,color:INK,fontFace:F});
+    // At a glance: the movers against plan, largest first
+    const anom=facts.filter(f=>f.is_anomaly).length,approved=facts.filter(f=>f.review_status==="approved").length;
+    const movers=facts.slice().sort((a,b)=>Math.abs((b.deltas&&b.deltas.budget_var_pct)||0)-Math.abs((a.deltas&&a.deltas.budget_var_pct)||0)).slice(0,8);
+    s=p.addSlide();s.background={color:"FFFFFF"};
+    s.addText("At a glance",{x:0.6,y:0.4,w:8.8,h:0.6,fontSize:24,bold:true,color:INK,fontFace:F});
+    s.addText(`${plural(facts.length,"KPI","KPIs")} · ${plural(anom,"anomaly","anomalies")} · ${approved} of ${facts.length} approved`,{x:0.6,y:0.95,w:8.8,h:0.35,fontSize:13,color:MUT,fontFace:F});
+    const head=["KPI","Actual","Vs plan","Vs prior","Status"].map(t=>({text:t,options:{bold:true,color:MUT,fontSize:11,fontFace:F}}));
+    const tone=(f,v)=>v==null||v===0?TXT:((f.direction_good==="down"?v<0:v>0)?OK:RED);
+    const body=movers.map(f=>[
+      {text:f.metric,options:{color:INK,fontSize:12,fontFace:F}},
+      {text:fmt(f.value,f.unit),options:{color:INK,fontSize:12,fontFace:M,align:"right"}},
+      {text:pct(f.deltas.budget_var_pct)||"–",options:{color:tone(f,f.deltas.budget_var_pct),fontSize:12,fontFace:M,align:"right"}},
+      {text:pct(f.deltas.mom_pct)||"–",options:{color:tone(f,f.deltas.mom_pct),fontSize:12,fontFace:M,align:"right"}},
+      {text:f.faithfulness==="failed"?"Needs review":f.review_status==="approved"?"Approved":f.narrative?"Draft":"Not drafted",options:{color:f.faithfulness==="failed"?AMB:MUT,fontSize:11,fontFace:F}}]);
+    s.addTable([head,...body],{x:0.6,y:1.45,w:8.8,colW:[3.4,1.5,1.2,1.2,1.5],border:{type:"solid",color:LINE,pt:0.75},rowH:0.36});
+    foot(s,2);
+    // One slide per KPI
+    facts.forEach((f,i)=>{
+      const s=p.addSlide();s.background={color:"FFFFFF"};
+      const state=f.faithfulness==="failed"?["Needs review",AMB]:f.review_status==="approved"?["Approved",OK]:f.narrative?["Draft",MUT]:["Not drafted",MUT];
+      s.addText(f.metric,{x:0.6,y:0.4,w:7,h:0.6,fontSize:22,bold:true,color:INK,fontFace:F});
+      s.addText(state[0],{x:7.6,y:0.48,w:1.8,h:0.4,fontSize:12,bold:true,color:state[1],fontFace:F,align:"right"});
+      s.addText(f.category||"",{x:0.6,y:0.95,w:8.8,h:0.35,fontSize:12,color:MUT,fontFace:F});   // PPTX text is not HTML — no esc()
+      s.addText(fmt(f.value,f.unit),{x:0.6,y:1.4,w:5,h:0.9,fontSize:40,bold:true,color:INK,fontFace:M});
+      const figs=[["Vs plan",f.deltas.budget_var_pct],["Vs prior period",f.deltas.mom_pct]];
+      figs.forEach(([l,v],k)=>{s.addText(l,{x:6.2,y:1.45+k*0.45,w:1.7,h:0.4,fontSize:12,color:MUT,fontFace:F});
+        s.addText(pct(v)||"–",{x:7.9,y:1.45+k*0.45,w:1.5,h:0.4,fontSize:13,bold:true,color:tone(f,v),fontFace:M,align:"right"});});
+      s.addText((f.faithfulness==="failed"?"Numbers need review — unverified narrative\n\n":"")+(f.narrative||"No narrative generated."),{x:0.6,y:2.55,w:8.8,h:2.3,fontSize:14,color:TXT,fontFace:F,valign:"top",paraSpaceAfter:6});
+      if(f.sources&&f.sources.length)s.addText("Sources: "+f.sources.map(x=>x.title||x.id).join(", "),{x:0.6,y:4.75,w:8.8,h:0.35,fontSize:10,italic:true,color:MUT,fontFace:F});
+      foot(s,i+3);
     });
     await p.writeFile({fileName:`Closebrief_${(currentPeriod||"report").replace(/[^0-9A-Za-z_-]/g,"")}.pptx`});
     toast("PowerPoint downloaded");
@@ -437,7 +455,7 @@ function modalInput(title,{label="",value="",textarea=false,placeholder="",okLab
 // Confirm modal → resolves true (confirmed) or null (cancel). `message` is plain text.
 function modalConfirm(title,message,{okLabel="Delete",danger=true}={}){
   return _openModalRaw({title,okLabel,danger,
-    body:`<div style="font-size:13.5px;line-height:1.55;color:var(--ink2)">${esc(message)}</div>`,getValue:()=>true});
+    body:`<div style="font-size:14px;line-height:1.55;color:var(--ink2)">${esc(message)}</div>`,getValue:()=>true});
 }
 
 /* tooltip */
@@ -583,6 +601,7 @@ function nav(t,{fromRoute=false}={}){
   if(v==="analytics")loadAnalytics();
   if(v==="digest")loadDigest(false);
   if(v==="boardpack")loadBoardPack();
+  if(v==="import")renderDataHealth();
   if(v==="costs")loadCosts();
   if(v==="notifications")loadNotifications();
   if(v==="admin")loadAdmin();
@@ -719,6 +738,32 @@ function paintOverview(){
     :`<p><span>Nothing has happened in this close yet.</span></p>`;
 }
 function openMetricByName(name){openMetricFromHash(new URLSearchParams({metric:name,period:currentPeriod||""}).toString());}
+
+/* ---------- data tab: what this close's data is missing, as fix items ---------- */
+function dataHealth(facts){
+  const all=facts||[],withData=all.filter(f=>f.has_data);
+  return {total:all.length,withData:withData.length,
+    noData:all.filter(f=>!f.has_data).map(f=>f.metric),
+    noBudget:withData.filter(f=>!f.aggregated&&(!f.deltas||f.deltas.budget_var_pct==null)).map(f=>f.metric)};
+}
+function renderDataHealth(){
+  const el=$("data-health");if(!el)return;
+  if(currentPlace.place||!currentPeriod){el.style.display="none";return;}
+  const h=dataHealth(currentFacts),P=fmtPeriod(currentPeriod,"long");
+  const names=a=>esc(a.slice(0,4).join(", ")+(a.length>4?` and ${a.length-4} more`:""));
+  const rows=[
+    {done:h.withData>0,title:h.withData?`${plural(h.withData,"KPI","KPIs")} computed for ${P}`:`No figures for ${P} yet`,
+      detail:activeDatasetObj?`${esc(activeDatasetObj.name||"Dataset")}${activeDatasetObj.created_at?` · imported ${esc(fmtDate(activeDatasetObj.created_at))}`:""}`:"",act:""},
+    {done:!h.noData.length,title:h.noData.length?`${plural(h.noData.length,"KPI has","KPIs have")} no data for ${P}`:"Every tracked KPI has data",
+      detail:h.noData.length?names(h.noData):"",act:h.noData.length?`<button class="btn" onclick="$('imp-mode').value='new';onImportModeChange();$('file-in').click()">Import the missing month</button>`:""},
+    {done:!h.noBudget.length,title:h.noBudget.length?`${plural(h.noBudget.length,"KPI has","KPIs have")} no budget`:"Every KPI has a budget to compare against",
+      detail:h.noBudget.length?names(h.noBudget)+" · commentary can't say how they did against plan":"",
+      act:h.noBudget.length?`<button class="btn" onclick="$('imp-mode').value='join';onImportModeChange();$('drop').scrollIntoView({block:'center'})">Add a budget file</button>`:""},
+  ];
+  el.style.display="";
+  el.innerHTML=`<h2>${esc(P)} data</h2><ol class="checklist">${rows.map(r=>`<li class="cl ${r.done?"done":"todo"}"><span class="box">${r.done?BOXTICK:""}</span>
+    <div><b>${r.title}</b>${r.detail?`<small>${r.detail}</small>`:""}</div>${r.done?`<span class="st done">OK</span>`:r.act}</li>`).join("")}</ol>`;
+}
 
 /* ---------- board pack tab: the print document, previewed in place ---------- */
 let boardPackFor=null;
@@ -1403,7 +1448,7 @@ async function loadNotifications(){
         <div style="flex:1;min-width:0">
           <b style="text-transform:capitalize">${esc(c.channel)}</b>
           <div style="font-size:12px;color:var(--mut);word-break:break-all">${esc(target)}</div>
-          <div style="font-size:11px;color:var(--mut2);margin-top:2px">Events: ${esc(events)}</div>
+          <div style="font-size:12px;color:var(--mut2);margin-top:2px">Events: ${esc(events)}</div>
         </div>
         <label style="font-size:12px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px">
           <input type="checkbox" ${c.enabled?"checked":""} onchange="ntToggle(${esc(c.id)},this.checked)"> Enabled</label>
@@ -1428,7 +1473,7 @@ async function loadSchedules(){
       <div style="flex:1;min-width:0">
         <b>${esc(kindLabel[j.kind]||j.kind)}</b>
         <div style="font-size:12px;color:var(--mut)">${esc(CADENCE_LABEL[j.cadence]||j.cadence)}${j.kind==="digest"&&j.config&&j.config.top_n?` · top ${esc(j.config.top_n)}`:""}${j.next_run_at?` · next ${esc(fmtDate(j.next_run_at))}`:""}</div>
-        ${j.last_status?`<div style="font-size:11px;margin-top:2px;color:${j.last_status==="error"?"var(--red)":j.last_status==="ok"?"var(--green)":"var(--mut2)"}">last run: ${esc(j.last_status)}${j.fail_count?` · ${esc(j.fail_count)} consecutive failures`:""}${j.last_status==="error"&&j.last_error?` — ${esc("The scheduled run failed. Check the channel and job configuration before the next run.")}`:""}</div>`:""}
+        ${j.last_status?`<div style="font-size:12px;margin-top:2px;color:${j.last_status==="error"?"var(--red)":j.last_status==="ok"?"var(--green)":"var(--mut2)"}">last run: ${esc(j.last_status)}${j.fail_count?` · ${esc(j.fail_count)} consecutive failures`:""}${j.last_status==="error"&&j.last_error?` — ${esc("The scheduled run failed. Check the channel and job configuration before the next run.")}`:""}</div>`:""}
       </div>
       <label style="font-size:12px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px">
         <input type="checkbox" ${j.enabled?"checked":""} onchange="schToggle(${esc(j.id)},this.checked)"> Enabled</label>
@@ -1448,7 +1493,7 @@ async function schCreate(){
     let seen=false;try{seen=localStorage.getItem("cb-sched-hint")==="1";}catch{}
     if(!seen){try{localStorage.setItem("cb-sched-hint","1");}catch{}
     _openModalRaw({title:"One more step to activate scheduling",okLabel:"Got it",
-      body:`<div style="font-size:13.5px;line-height:1.6;color:var(--ink2)">
+      body:`<div style="font-size:14px;line-height:1.6;color:var(--ink2)">
         <p style="margin-bottom:10px">Schedules run when an external cron calls Closebrief. Render's free tier has no built-in cron, so:</p>
         <ol style="margin:0 0 4px 18px;display:flex;flex-direction:column;gap:7px">
           <li>Set a <b>SCHEDULER_TOKEN</b> env var in Render (any long random secret).</li>
@@ -1480,13 +1525,13 @@ async function ntTest(id,btn){btn.disabled=true;btn.textContent="Sending…";
 function inviteUser(){
   const url=location.origin;
   _openModalRaw({title:"Add a user",okLabel:"Copy invite link",
-    body:`<div style="font-size:13.5px;line-height:1.6;color:var(--ink2)">
+    body:`<div style="font-size:14px;line-height:1.6;color:var(--ink2)">
       <p style="margin-bottom:10px">Closebrief uses Supabase sign-in. To add a teammate:</p>
       <ol style="margin:0 0 12px 18px;display:flex;flex-direction:column;gap:6px">
         <li>Send them this link — they create their own account:</li>
       </ol>
       <div style="display:flex;gap:8px;margin-bottom:12px"><input class="modal-field" id="invite-url" value="${esc(url)}" readonly></div>
-      <p style="color:var(--mut2);font-size:12.5px">New accounts join as <b>analyst</b> by default. Once they've signed in they appear in the table below, where you can change their role.</p>
+      <p style="color:var(--mut2);font-size:13px">New accounts join as <b>analyst</b> by default. Once they've signed in they appear in the table below, where you can change their role.</p>
     </div>`,
     getValue:()=>{const el=$("invite-url");el.select();try{navigator.clipboard.writeText(el.value);}catch{}toast("Invite link copied");return true;}});
 }
@@ -1496,7 +1541,7 @@ async function loadAdmin(){
     const users=await api("/admin/users");if(!done())return;
     $("admin-rows").innerHTML=users.map(u=>`<tr>
       <td><b>${esc(u.email)}</b></td>
-      <td style="color:var(--mut2);font-family:ui-monospace,Menlo,monospace;font-size:11px">${esc(u.user_id).slice(0,18)}…</td>
+      <td style="color:var(--mut2);font-family:ui-monospace,Menlo,monospace;font-size:12px">${esc(u.user_id).slice(0,18)}…</td>
       <td><select aria-label="Role for ${esc(u.email)}" onchange="setUserRole('${esc(u.user_id)}',this.value)">
         ${["analyst","executive","admin"].map(r=>`<option ${u.role===r?"selected":""}>${r}</option>`).join("")}</select></td>
       <td style="color:var(--mut);white-space:nowrap">${esc(fmtDate(u.created_at))}</td></tr>`).join("")
@@ -1736,7 +1781,7 @@ async function loadFacts(){
     $("cards").innerHTML=`<div class="empty-state" style="grid-column:1/-1;padding:56px 20px">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:40px;height:40px"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
       <div style="margin:12px 0 4px;font-weight:700;color:var(--ink2)">Couldn't load KPIs</div>
-      <div style="font-size:12.5px;margin-bottom:16px">${esc(e.message||"Something went wrong.")}</div>
+      <div style="font-size:13px;margin-bottom:16px">${esc(e.message||"Something went wrong.")}</div>
       <button class="btn primary" onclick="loadFacts()">Retry</button></div>`;
   }finally{$("dash-loading").style.display="none";refreshReviewBadge();}
 }
@@ -1899,7 +1944,7 @@ function narrativeBlock(f,q,i){
   let html=`<div class="narr ${narrState}">${f.narrative?hl(f.narrative,q):"No narrative yet — generate one to explain this movement."}</div>`;
   if(f.faithfulness==="failed")
     // The guard caught an unverifiable number. Surface it — do NOT hide it.
-    html+=`<div class="banner err" style="margin:8px 0 0;font-size:11.5px;padding:8px 10px">${warnIcon()}<span>Numbers couldn't be verified — review manually.</span><button class="btn sm exec-hide" style="margin-left:auto;padding:3px 9px" onclick="event.stopPropagation();retryCard(${i})">Retry</button></div>`;
+    html+=`<div class="banner err" style="margin:8px 0 0;font-size:12px;padding:8px 10px">${warnIcon()}<span>Numbers couldn't be verified — review manually.</span><button class="btn sm exec-hide" style="margin-left:auto;padding:3px 9px" onclick="event.stopPropagation();retryCard(${i})">Retry</button></div>`;
   return html;
 }
 // Index-based wrappers so no user string is interpolated into inline onclick.
@@ -2243,7 +2288,7 @@ function renderQAThread(pending){
     const srcs=(t.sources||[]).map(s=>`<span class="chip" role="button" tabindex="0" onclick="showSourceDoc('${esc(s.id)}')">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
     return `<div class="qa-turn">
       <div class="qa-q">${esc(t.question)}</div>
-      <div class="qa-a"><div class="narr" style="font-size:14.5px">${esc(t.answer)}</div>
+      <div class="qa-a"><div class="narr" style="font-size:15px">${esc(t.answer)}</div>
         ${(srcs||t.grounded)?`<div class="chips" style="margin-top:8px">${srcs}${t.grounded?seal(true):""}</div>`:""}</div>
     </div>`;
   }).join("");
@@ -2447,9 +2492,9 @@ function renderContextList(){
   if(ctxSel==null&&docs.length&&!ctxComposing)ctxSel=docs[0].id;
   $("ctx-rows").innerHTML=docs.map(d=>{
     const on=d.id===ctxSel;
-    return `<div class="ctx-item${on?" on":""}" role="button" tabindex="0" aria-pressed="${on}" onclick="ctxOpen(${esc(d.id)})">
-      <b>${esc(d.title)}</b><small>${esc(d.type.replace("_"," "))} · ${esc(ctxWhen(d))}</small>
-      <button class="row-del exec-hide" aria-label="Delete ${esc(d.title)}" onclick="event.stopPropagation();delContext(${esc(d.id)})">${XICON}</button></div>`;
+    return `<div class="ctx-item${on?" on":""}">
+      <button class="ctx-open" onclick="ctxOpen(${esc(d.id)})"${on?' aria-current="true"':""}><b>${esc(d.title)}</b><small>${esc(d.type.replace("_"," "))} · ${esc(ctxWhen(d))}</small></button>
+      <button class="row-del exec-hide" aria-label="Delete ${esc(d.title)}" onclick="delContext(${esc(d.id)})">${XICON}</button></div>`;
   }).join("")||`<p class="ctx-none">No notes dated in ${esc(fmtPeriod(currentPeriod))}. <button class="linkbtn" onclick="ctxScope='all';renderContextList()">Show all notes</button></p>`;
   paintContextDetail();
 }

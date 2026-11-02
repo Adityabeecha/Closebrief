@@ -71,7 +71,68 @@ typography:
     fontSize: "14px"
     fontWeight: 600
     fontFeature: "tnum"
+  ui-xs:
+    fontFamily: "Schibsted Grotesk, system-ui, sans-serif"
+    fontSize: "12px"
+    fontWeight: 600
+  ui-sm:
+    fontFamily: "Schibsted Grotesk, system-ui, sans-serif"
+    fontSize: "13px"
+    fontWeight: 500
+  ui:
+    fontFamily: "Schibsted Grotesk, system-ui, sans-serif"
+    fontSize: "14px"
+    fontWeight: 500
+  ui-md:
+    fontFamily: "Schibsted Grotesk, system-ui, sans-serif"
+    fontSize: "15px"
+    fontWeight: 600
+  ui-lg:
+    fontFamily: "Schibsted Grotesk, system-ui, sans-serif"
+    fontSize: "16px"
+    fontWeight: 600
+  lead:
+    fontFamily: "Schibsted Grotesk, system-ui, sans-serif"
+    fontSize: "18px"
+    fontWeight: 600
+  subhead:
+    fontFamily: "Schibsted Grotesk, system-ui, sans-serif"
+    fontSize: "20px"
+    fontWeight: 700
+  subhead-lg:
+    fontFamily: "Schibsted Grotesk, system-ui, sans-serif"
+    fontSize: "22px"
+    fontWeight: 700
+  heading-sm:
+    fontFamily: "Schibsted Grotesk, system-ui, sans-serif"
+    fontSize: "24px"
+    fontWeight: 750
+  heading:
+    fontFamily: "Schibsted Grotesk, system-ui, sans-serif"
+    fontSize: "28px"
+    fontWeight: 750
+  heading-lg:
+    fontFamily: "Schibsted Grotesk, system-ui, sans-serif"
+    fontSize: "30px"
+    fontWeight: 750
+  heading-xl:
+    fontFamily: "Schibsted Grotesk, system-ui, sans-serif"
+    fontSize: "34px"
+    fontWeight: 750
+  display-sm:
+    fontFamily: "Schibsted Grotesk, system-ui, sans-serif"
+    fontSize: "40px"
+    fontWeight: 750
+  display-md:
+    fontFamily: "Schibsted Grotesk, system-ui, sans-serif"
+    fontSize: "50px"
+    fontWeight: 750
+  display-lg:
+    fontFamily: "Schibsted Grotesk, system-ui, sans-serif"
+    fontSize: "64px"
+    fontWeight: 750
 rounded:
+  xs: "4px"
   sm: "8px"
   md: "12px"
   lg: "16px"
@@ -183,6 +244,7 @@ Restrained: calm neutrals, one action colour, and four state colours that always
 - **Body** (400, 17px, 1.55; commentary 18px, 1.75): copy and the commentary document; 36 to 40em measure.
 - **Label** (700, 12px, 0.06em, uppercase): queue group headings, pane headings, table headers.
 - **Figure** (Red Hat Mono 600, tabular): every number, including highlighted figures inside prose.
+- **UI steps** (12, 13, 14, 15, 16, 18, 20, 22, 24, 28, 30px): everything inside the app between label and title. No half-pixel sizes; nothing under 12px.
 
 ### Named Rules
 **The Mono Means Data Rule.** Mono is for figures and codes only; never for prose, buttons or headings.
@@ -191,9 +253,18 @@ Restrained: calm neutrals, one action colour, and four state colours that always
 
 ## Layout
 
-The app is a sidebar (global navigation) beside the workspace. The workspace header (title, period, share, generate) spans the top; below it a two-column split: a 340px sticky queue column and the document column, which itself splits into the commentary (fluid) and a 320px inspector. Below 1360px the inspector stacks under the commentary; below 900px the workspace shows one pane at a time: the queue at `#dashboard`, the open KPI at `#metric=…` with Back, and the dashboard header hides while a KPI is open. On wide screens the first KPI in review order opens automatically.
+The app is a **Month Workspace**. Each close (a month, quarter or year) is one workspace.
 
-The home page is a centred hero over a 1180px live preview of the workspace, then sections at 104px intervals (72px on phones) in a 1240px container with 40px gutters (16px on phones).
+- **Sidebar:** the closes list, newest first, each with its status pill, "N of M approved" and a 4px progress bar (data in 20%, drafted 30%, approved 40%, shared 10%); an M/Q/Y switch lists quarters or years instead. Below it, places across months: Analyze, Context library, Data and imports, and Settings (admins). Phones get a slide-in drawer.
+- **Month header** (sticky on desktop): the close's title and status, a Ctrl K jump button, and one primary button naming the next step ("Draft 1 commentary", "Approve 5 drafts", "Send the digest"). Under it the tabs: Overview, KPIs, Context, Digest, Board pack, Data.
+- **URLs:** `#month=YYYY-MM&tab=…[&metric=…]` inside a close; `#analyze`, `#library`, `#data`, `#settings=costs|notifications|users` across months. Every older hash redirects.
+- **Overview:** the close checklist (import, review, reasons, approve, share) beside "at a glance" movers and the activity feed; the review queue sits under it for people who approve. Executives and viewers land on Digest instead.
+- **KPIs:** the review instrument: a 340px sticky queue beside the document, which splits into commentary (fluid) and a 320px inspector. Below 1360px the inspector stacks; below 900px one pane at a time, and the KPI queue starts right under the tabs.
+- **Context:** notes list (380px) beside the open note or the new-note form; a "This close / All notes" filter inside a close.
+- **Digest:** one document per close beside a 300px column of earlier digests.
+- **Analyze:** a 260px tool list beside the one open tool.
+
+The home page is a centred hero over a 1180px live preview of the month workspace, then sections at 104px intervals (72px on phones) in a 1240px container with 40px gutters (16px on phones).
 
 ## Elevation & Depth
 
@@ -208,7 +279,7 @@ Depth comes from three surface tints and hairlines; shadows appear only on panes
 
 ## Shapes
 
-Softly rounded and consistent: 8px on buttons, inputs and queue rows; 12px on banners; 16px on panes and the preview; full pills for every status and filter chip. Status dots are 8px circles.
+Softly rounded and consistent: 4px on keycaps and tiny marks; 8px on buttons, inputs and queue rows; 12px on banners; 16px on panes and the preview; full pills for every status and filter chip. Status dots are 8px circles.
 
 ## Components
 
@@ -236,7 +307,12 @@ Softly rounded and consistent: 8px on buttons, inputs and queue rows; 12px on ba
 - **Error:** exception-rose border and a message under the field.
 
 ### Navigation
-- **Sidebar:** inset fill, 14px items, uppercase group labels (Close, Data, Admin); the active item is a pane-coloured tab with an emerald icon. Phones get a slide-in drawer.
+- **Closes list:** each close is a row button: name, status pill (In progress amber, Ready to share amber, Shared emerald), "N of M approved", and an emerald progress bar. The open close is a pane-coloured tab with a hairline ring.
+- **Places:** inset fill, 14px items, uppercase group labels; the active item is a pane-coloured tab with an emerald icon.
+- **Tabs:** 14px semibold, 2px emerald underline on the current tab, counts in mono beside the label; they scroll sideways on phones.
+
+### Close Checklist (signature)
+Five rows: a 20px box (emerald with a check when done, dashed when waiting on an earlier step), the step as an action ("Approve 5 drafts"), one line of detail, and either a "Done" pill, a "Waiting" pill or an Open button that goes to the exact fix. The same checklist appears on the home page preview and on the Data tab (data health: missing figures, missing budgets).
 
 ### KPI Queue (signature)
 Grouped in review order (Exceptions, Needs review, Approved, No data this period) with uppercase group labels and counts. Each row: an 8px state dot, the KPI name, the variance that matters in mono (vs plan, else period-on-period), and a one-line status in words ("$102K · MoM · Draft ready"). The selected row takes the blue wash and ring.
