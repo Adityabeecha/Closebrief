@@ -49,7 +49,8 @@ _NAV_SETUP = """
   const history={pushState:(_s,_t,h)=>{pushed.push(h);hash=h;}};
   const window={addEventListener(){}};
   const document={title:'',querySelector:()=>null};
-  const els={};const $=id=>(els[id]??={style:{}});
+  const els={};const $=id=>(els[id]??={style:{},classList:{toggle(){}}});
+  let detailFact=null;
   const closeSidebar=()=>{},loadContext=()=>{},loadAnalytics=()=>{},loadReview=()=>{},
         loadDigest=()=>{},loadCosts=()=>{},loadNotifications=()=>{},loadAdmin=()=>{};
   let currentPeriod='2026-06';
@@ -153,11 +154,30 @@ def test_cards_open_from_keyboard_but_not_from_inner_buttons():
     """)
 
 
-def test_unreviewed_commentary_keeps_an_open_tick_box():
-    # Working Papers: a KPI sheet's box stays empty until a person approves it.
-    run_js("function reviewTick(", "// Cards act as links:", "", """
-      assert.equal(reviewTick({report_id:null}),'');
-      assert.equal(reviewTick({report_id:3,aggregated:true}),'');
-      assert.match(reviewTick({report_id:3,review_status:'pending'}),/aria-label="Not approved yet"/);
-      assert.match(reviewTick({report_id:3,review_status:'approved'}),/rev-tick ok/);
+
+def test_queue_groups_kpis_in_review_order():
+    # The workspace queue: exceptions first, then drafts to review, then approved,
+    # then KPIs with no data for the period.
+    run_js("const QUEUE_GROUPS=", "function renderStatrow(", "", """
+      assert.equal(queueGroup({has_data:false}),'nodata');
+      assert.equal(queueGroup({has_data:true,is_anomaly:true,review_status:'approved'}),'exception');
+      assert.equal(queueGroup({has_data:true,faithfulness:'failed'}),'exception');
+      assert.equal(queueGroup({has_data:true,review_status:'approved'}),'approved');
+      assert.equal(queueGroup({has_data:true,narrative:null}),'review');
+      assert.deepEqual(QUEUE_GROUPS.map(g=>g[0]),['exception','review','approved','nodata']);
+    """)
+
+
+def test_queue_row_states_the_status_in_words():
+    run_js("function queueRow(", "function markQueueSelection(", """
+      const queueGroup=f=>!f.has_data?'nodata':f.is_anomaly?'exception':f.review_status==='approved'?'approved':'review';
+      const hl=t=>t,esc=String,fmt=v=>'$'+v,pct=v=>(v>0?'+':'')+v+'%',fmtPeriod=p=>p;
+      let detailFact=null,currentPeriod='2026-06',granularity='month';const generatingSet=new Set();
+    """, """
+      const row=queueRow({metric:'Bad debt',has_data:true,is_anomaly:true,value:212,direction_good:'down',deltas:{budget_var_pct:136}},0,'');
+      assert.match(row,/class="qi exception"/);assert.match(row,/Anomaly/);assert.match(row,/c-exc/);assert.match(row,/vs plan/);
+      const ok=queueRow({metric:'Revenue',has_data:true,value:10,narrative:'x',review_status:'approved',deltas:{budget_var_pct:3.1}},1,'');
+      assert.match(ok,/Approved/);assert.match(ok,/c-ok/);
+      detailFact={metric:'Revenue'};
+      assert.match(queueRow({metric:'Revenue',has_data:true,value:10,narrative:'x',deltas:{mom_pct:-2}},1,''),/aria-current="true"/);
     """)

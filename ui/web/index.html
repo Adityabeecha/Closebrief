@@ -13,7 +13,7 @@
 <meta name="twitter:title" content="Closebrief — Narrative BI for FP&A">
 <meta name="twitter:description" content="Audit-ready variance commentary on your KPIs — deterministic numbers, AI-written prose, every figure verified.">
 
-<link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="%231e6e50"/><path d="M8 17.5l5.2 5.3L24.5 9" fill="none" stroke="white" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'>
+<link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56"><rect width="56" height="56" rx="14" fill="%230b1220"/><path d="M44 24A17 17 0 1 1 36 13" fill="none" stroke="%2334d399" stroke-width="6" stroke-linecap="round"/><path d="M20 28.5l6 6L45 15" fill="none" stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>'>
 <!-- Above-the-fold fonts: preload so first paint doesn't swap from the fallback. -->
 <link rel="preload" as="font" type="font/woff2" href="/vendor/fonts/schibsted-grotesk.woff2" crossorigin>
 <link rel="preload" as="font" type="font/woff2" href="/vendor/fonts/redhat-mono.woff2" crossorigin>
@@ -30,10 +30,10 @@
   :root{
     --serif:var(--font-sans);   /* commentary is set like a reviewer's note */
     --mono:var(--font-mono);
-    --accent:var(--green); --accent-hi:var(--green-deep); --accent-bg:var(--green-wash); --on-accent:var(--on-green);
+    --accent-hi:var(--accent-hover); --accent-bg:var(--verified-wash);
     --ink2:var(--ink-2); --ink3:var(--ink-2); --mut:var(--ink-3); --mut2:var(--ink-3);
     --b08:var(--rule); --b12:var(--rule); --b24:var(--rule-strong);
-    --bg:var(--pad); --bg2:var(--pad-deep); --bg3:var(--pad-deep); --card:var(--sheet);
+    --bg2:var(--surface-3); --bg3:var(--surface-3); --card:var(--surface);
     --green2:var(--green); --green-bg:var(--green-wash);
     --red:var(--red-pencil); --red-bg:var(--red-wash);
     --amber-bg:var(--amber-wash); --amber-bd:color-mix(in srgb,var(--amber) 45%,transparent);
@@ -295,8 +295,8 @@
   .export-menu span{font-size:11px;color:var(--mut2)}
   #d-narr{font-size:16.5px;line-height:1.75;max-width:74ch}
   /* Narrative Drill-Down (v3.0): each sentence is a clickable, grounded span. */
-  .gsent{cursor:pointer;border-radius:4px;padding:0 1px;transition:background .12s;text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:3px}
-  .gsent.verified{text-decoration-color:var(--green2)}
+  .gsent{cursor:pointer;border-radius:4px;padding:0 1px;transition:background .12s;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:5px}
+  .gsent.verified{text-decoration-color:color-mix(in srgb,var(--verified) 55%,transparent)}
   .gsent.context{text-decoration-color:var(--accent)}
   .gsent.numeric-unverified{text-decoration-color:var(--amber);text-decoration-style:wavy}
   .gsent.general{text-decoration-color:var(--b24);text-decoration-style:dotted}
@@ -405,26 +405,26 @@
 
   /* ---------------- LOGIN GATE ---------------- */
   /* Login gate is always its own dark-left/light-right design, independent of app theme. */
-  #login-gate{position:fixed;inset:0;z-index:100;display:none;color:var(--ink);background-color:var(--pad);background-image:repeating-linear-gradient(90deg,transparent 0 119px,var(--rule) 119px 120px),repeating-linear-gradient(0deg,transparent 0 31px,var(--rule-faint) 31px 32px)}
+  #login-gate{position:fixed;inset:0;z-index:100;display:none;color:var(--text);background:radial-gradient(760px 420px at 20% 10%,var(--glow-a),transparent 62%),radial-gradient(620px 380px at 80% 90%,var(--glow-b),transparent 62%),var(--bg)}
   #login-gate.show{display:flex}
   .lg-left{flex:1;padding:56px 60px;display:flex;flex-direction:column;justify-content:center}
   .lg-left .brand{margin-bottom:auto}
   .lg-left .brand b{color:var(--ink);font-size:22px;font-weight:800;letter-spacing:-.025em}
-  .lg-left h2{font-family:var(--font-sans);font-size:clamp(36px,3.6vw,52px);font-weight:850;letter-spacing:-.035em;line-height:1;max-width:15ch;margin-bottom:18px}
+  .lg-left h2{font-family:var(--font-sans);font-size:clamp(34px,3.4vw,50px);font-weight:750;letter-spacing:-.04em;line-height:1.02;max-width:15ch;margin-bottom:18px}
   .lg-left p{color:var(--ink-2);font-size:16px;line-height:1.6;max-width:46ch}
   .lg-left ul{list-style:none;margin-top:26px;display:flex;flex-direction:column;gap:12px}
   .lg-left li{display:flex;align-items:center;gap:10px;font-size:15px;color:var(--ink-2)}
   .lg-left li svg{width:20px;height:20px;stroke:var(--green);flex:none}
   .lg-foot{margin-top:auto;color:var(--mut2);font-size:12px;padding-top:30px}
-  .lg-right{width:460px;background:var(--sheet);color:var(--ink);display:flex;flex-direction:column;justify-content:center;padding:0 52px;border-left:2px solid var(--rule-strong);box-shadow:var(--lift)}
+  .lg-right{width:460px;background:var(--surface);color:var(--text);display:flex;flex-direction:column;justify-content:center;padding:0 52px;border-left:1px solid var(--line);box-shadow:var(--shadow-lg)}
   .lg-right h3{font-size:28px;font-weight:850;letter-spacing:-.025em}
   .lg-right .psub{color:var(--mut);font-size:13.5px;margin:4px 0 26px}
   .lg-field{margin-bottom:16px}
-  .lg-field label{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--ink-3);text-transform:uppercase;letter-spacing:.1em;display:block;margin-bottom:6px}
-  .lg-field input{width:100%;padding:12px 13px;border:1px solid var(--ink-3);border-radius:var(--radius);font-size:15px;background:var(--pad);color:var(--ink);font-family:inherit}
+  .lg-field label{font-family:var(--font-sans);font-size:13px;font-weight:600;color:var(--text-2);display:block;margin-bottom:6px}
+  .lg-field input{width:100%;padding:12px 13px;border:1px solid var(--line-strong);border-radius:var(--r-sm);font-size:15px;background:var(--surface);color:var(--text);font-family:inherit}
   .lg-field input::placeholder{color:var(--mut2)}
   .lg-field input:focus{outline:none;border-color:var(--accent)}
-  .lg-btn{width:100%;padding:13px;border-radius:var(--radius);background:var(--green);color:var(--on-green);border:2px solid var(--green);font-weight:800;font-size:15px}
+  .lg-btn{width:100%;padding:13px;border-radius:var(--r-sm);background:var(--accent);color:var(--on-accent);border:1px solid var(--accent);font-weight:700;font-size:15px}
   .lg-btn:hover{background:var(--green-deep);border-color:var(--green-deep)}
   .lg-toggle{margin-top:18px;text-align:center;font-size:13px;color:var(--mut)}
   .lg-toggle button{border:none;background:none;color:var(--accent);font-weight:700;font-size:inherit;padding:4px 2px;min-height:24px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
@@ -433,9 +433,9 @@
   .lg-field input[aria-invalid="true"]{border-color:var(--red)}
   .lg-field input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .lg-btn:disabled{opacity:.7;cursor:progress}
-  .lg-guest{margin-top:10px;width:100%;padding:11px;border-radius:var(--radius);border:1px solid var(--ink-3);background:none;color:var(--ink);font-weight:700;font-size:14px}
+  .lg-guest{margin-top:10px;width:100%;padding:11px;border-radius:var(--r-sm);border:1px solid var(--line-strong);background:none;color:var(--text);font-weight:650;font-size:14px}
   .lg-guest:hover{border-color:var(--accent);color:var(--accent)}
-  .lg-err{background:var(--red-wash);color:var(--red-pencil);border:1px solid var(--red-pencil);border-radius:var(--radius);padding:10px 12px;font-size:13px;font-weight:600;margin-bottom:16px;display:none}
+  .lg-err{background:var(--exception-wash);color:var(--exception);border:1px solid var(--exception);border-radius:var(--r-sm);padding:10px 12px;font-size:13px;font-weight:600;margin-bottom:16px;display:none}
   /* Google sign-in: "or" rule, and a slot that reserves the iframe's height so
      the form doesn't jump when Google paints its button. */
   .lg-or{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--mut2);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
@@ -694,83 +694,118 @@
   }
 
 
-  /* ================= Working Papers: the app's component layer =================
-     Square sheets laid on the pad, heavy rules under headers, mono figures,
-     pencil ticks, the pressed green action. Red pencil only for exceptions. */
-  main{background-color:var(--pad);background-image:repeating-linear-gradient(0deg,transparent 0 31px,var(--rule-faint) 31px 32px)}
-  h1{font-family:var(--font-sans);font-size:clamp(26px,2.5vw,36px);font-weight:850;letter-spacing:-.035em;line-height:1.02}
-  .sub{color:var(--ink-3);font-size:14px}
-  .nbi-num{font-family:var(--font-mono);font-weight:500;letter-spacing:0}
+  /* ================= Precision / Night close: the app's component layer =================
+     A review instrument: panes on a calm ground, hairline structure, pill states
+     that always carry a word, mono figures. */
+  body,main{background:var(--bg)}
+  h1{font-family:var(--font-sans);font-size:clamp(24px,2.2vw,32px);font-weight:750;letter-spacing:-.03em;line-height:1.08}
+  .sub{color:var(--text-3);font-size:14px}
+  .nbi-num{font-family:var(--font-mono);font-weight:500;letter-spacing:0;font-variant-numeric:tabular-nums}
+  #v-dashboard.wrap{max-width:1600px;padding-top:22px}
 
-  /* sidebar: the binder spine */
-  .side{background:var(--pad-deep);border-right:2px solid var(--rule-strong)}
-  .brand .mark{border-radius:6px;box-shadow:none;color:var(--on-green);text-decoration:none}
-  .brand b{font-size:18px;font-weight:800;letter-spacing:-.025em}
-  .nav-label{font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.12em;color:var(--ink-3)}
-  .nav-item{border-radius:var(--radius);font-size:14px;font-weight:600;color:var(--ink-2)}
-  .nav-item:hover{background:var(--green-wash);color:var(--ink)}
-  .nav-item.active{background:var(--sheet);color:var(--green);font-weight:750;box-shadow:inset 0 0 0 1px var(--rule)}
-  .ws-btn{border-radius:var(--radius);background:var(--sheet);border-color:var(--ink-3)}
+  /* sidebar: global navigation */
+  .side{background:var(--surface-2);border-right:1px solid var(--line)}
+  .brand .mark{background:none;box-shadow:none;width:30px;height:30px;text-decoration:none}
+  .logo-mark{width:30px;height:30px;flex:none;display:block}
+  .wordmark{font-weight:800;letter-spacing:-.035em}
+  .wordmark span,.brand .wordmark span{font-weight:500;font-size:inherit;color:inherit;display:inline}
+  .brand .wordmark{display:inline;font-size:18px}
+  .brand b{font-size:18px;font-weight:800;letter-spacing:-.03em}
+  .nav-label{font-family:var(--font-sans);font-size:11px;font-weight:700;letter-spacing:.07em;color:var(--text-3)}
+  .nav-item{border-radius:var(--r-sm);font-size:14px;font-weight:600;color:var(--text-2)}
+  .nav-item:hover{background:var(--surface-3);color:var(--text)}
+  .nav-item.active{background:var(--surface);color:var(--text);box-shadow:0 0 0 1px var(--line),0 1px 2px rgba(16,24,40,.06)}
+  .nav-item.active svg{stroke:var(--accent)}
+  .ws-btn{border-radius:var(--r-sm);background:var(--surface);border-color:var(--line-strong)}
 
   /* actions */
-  .btn{border-radius:var(--radius);border:1px solid var(--ink-3);background:var(--sheet);color:var(--ink);font-weight:700;font-size:13.5px}
-  .btn:hover{background:var(--pad-deep);border-color:var(--ink)}
-  .btn.primary,.btn.primary:hover,:root[data-theme="dark"] .btn.primary:hover{background:var(--green);border-color:var(--green);color:var(--on-green);box-shadow:none;transition:background-color .15s var(--ease)}
-  .btn.primary:hover{background:var(--green-deep);border-color:var(--green-deep)}
+  .btn{border-radius:var(--r-sm);border:1px solid var(--line-strong);background:var(--surface);color:var(--text);font-weight:650;font-size:13.5px}
+  .btn:hover{background:var(--surface-3);border-color:var(--text-3)}
+  .btn.primary,.btn.primary:hover,:root[data-theme="dark"] .btn.primary:hover{background:var(--accent);border-color:var(--accent);color:var(--on-accent);box-shadow:none;transition:background-color .15s var(--ease)}
+  .btn.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
   .btn.primary:active{transform:translateY(1px)}
-  .btn.danger,.btn.danger:hover{background:var(--red-pencil);border-color:var(--red-pencil);color:var(--sheet)}
-  .tbtn,.cpill,.fpill,.fchip,.chip{border-radius:var(--radius)}
-  .cpill.on{background:var(--ink);border-color:var(--ink);color:var(--sheet)}
-  .period-ctl{border-radius:var(--radius);border-color:var(--ink-3)}
-  .period-ctl .seg button.active{background:var(--ink);color:var(--sheet)}
-  .search input{border-radius:var(--radius);border-color:var(--ink-3);background:var(--sheet)}
-  .search input:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--green-wash)}
+  .btn.danger,.btn.danger:hover{background:var(--exception);border-color:var(--exception);color:var(--surface)}
+  .linkbtn{border:none;background:none;color:var(--select);font-weight:700;cursor:pointer;padding:4px 2px;font-size:inherit}
+  .tbtn,.cpill,.fpill,.fchip{border-radius:var(--r-pill);border-color:var(--line-strong);background:var(--surface)}
+  .cpill.on{background:var(--text);border-color:var(--text);color:var(--surface)}
+  .period-ctl{border-radius:var(--r-sm);border-color:var(--line-strong);background:var(--surface)}
+  .period-ctl .seg button.active{background:var(--text);color:var(--surface)}
+  .search input{border-radius:var(--r-sm);border-color:var(--line-strong);background:var(--surface)}
+  .search input:focus{border-color:var(--select);box-shadow:0 0 0 3px var(--select-wash)}
+  .banner{border-radius:var(--r-md);font-size:13.5px}
 
-  /* notices */
-  .banner{border-radius:var(--radius);font-size:13.5px}
+  /* ---- the workspace: queue | document + inspector ---- */
+  .ws-split{display:grid;grid-template-columns:340px minmax(0,1fr);gap:22px;align-items:start;margin-top:4px}
+  .q-col{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 12px 12px;scrollbar-width:thin}
+  .q-col .toolbar{flex-direction:column;align-items:stretch;gap:10px;margin:12px 2px}
+  .q-col .search input,.q-col .search input:focus{width:100%}
+  .q-col .tool-right{margin-left:0}
+  .q-col .catbar{flex-wrap:wrap}
+  .statrow{display:flex;flex-wrap:wrap;gap:6px;margin:0 2px}
+  .qs{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--text-2);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-pill);padding:4px 10px}
+  .qs:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--line-strong)}
+  .qs.exc:before{background:var(--exception)}.qs.rev:before{background:var(--review)}.qs.ok:before{background:var(--verified)}
+  .qs.drafted{background:none;border-color:transparent;color:var(--text-3)}.qs.drafted:before{display:none}
+  .qs b{font-weight:600;color:var(--text)}
+  #cards.grid{display:flex;flex-direction:column;align-items:stretch;gap:2px}
+  .q-grp{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);padding:14px 10px 6px}
+  .q-grp span{font-weight:600;letter-spacing:0}
+  .qi{display:grid;grid-template-columns:10px minmax(0,1fr) auto;column-gap:10px;row-gap:2px;align-items:center;padding:10px 10px;border-radius:var(--r-sm);cursor:pointer;color:var(--text);transition:background-color .12s var(--ease)}
+  .qi:hover{background:var(--surface-3)}
+  .qi.on{background:var(--select-wash);box-shadow:0 0 0 1px var(--select)}
+  .qi:focus-visible{outline:2px solid var(--select);outline-offset:1px}
+  .qi .dot{width:8px;height:8px;border-radius:50%;background:var(--line-strong)}
+  .qi.exception .dot{background:var(--exception)}.qi.review .dot{background:var(--review)}.qi.approved .dot{background:var(--verified)}
+  .qi .qn{font-size:14.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .qi .qv{font-size:13px;font-weight:600}
+  .qi .qsub{grid-column:2/-1;font-size:12.5px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .qi.approved .qn{color:var(--text-2)}
+  .qi.nodata{cursor:default;opacity:.7}
+  .c-ok{color:var(--verified)}.c-exc{color:var(--exception)}.c-rev{color:var(--review)}
+  .q-col .empty-state{padding:28px 12px;font-size:14px}
+  .d-col{min-width:0}
+  .d-empty{border:1px dashed var(--line-strong);border-radius:var(--r-lg);padding:60px 24px;text-align:center;color:var(--text-3)}
 
-  /* stat tiles: a summary strip ruled like a schedule header */
-  .stat{border-radius:var(--radius);border:1px solid var(--rule);border-top:3px solid var(--rule-strong);box-shadow:var(--lift)}
-  .stat.alert{border-top-color:var(--red-pencil)}
-  .stat-lbl{font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:.12em;color:var(--ink-3)}
-  .stat-lbl svg{stroke:var(--ink-3)}
-  .stat-val{font-weight:850;letter-spacing:-.03em}
-  .stat-hint{font-size:12px;color:var(--ink-3)}
+  /* the document + inspector */
+  #v-detail.wrap{max-width:none;padding:0}
+  #v-detail .back{display:none}
+  #v-detail h1{font-size:clamp(26px,2.4vw,34px)}
+  .detail-grid{grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start}
+  .detail-grid>.panel.full{grid-column:1;grid-row:1/span 3}
+  .detail-grid>.insp{grid-column:2}
+  .panel{border-radius:var(--r-lg);border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow)}
+  .panel h2,.panel h3{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
+  .panel.full .panel-h{font-size:12px}
+  .insp .chart-box{height:170px!important}
+  #box-c-bva{height:100px!important}
+  .figs{display:flex;flex-direction:column;margin-top:8px}
+  .figs div{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+  .figs div:last-child{border-bottom:none}
+  .figs dt{color:var(--text-3)}.figs dd{color:var(--text);font-weight:600}
+  .narr{font-family:var(--font-sans);font-size:15px;line-height:1.65;color:var(--text-2)}
+  #d-narr{font-size:18px;line-height:1.75;color:var(--text)}
+  .narr.draft,.narr.approved{text-decoration:none}
+  .delta,.anom,.seal,.chip,.badge,.rev-badge{border-radius:var(--r-pill)}
+  .seal{font-family:var(--font-sans);font-size:12px;font-weight:700}
+  .seal svg{width:12px;height:12px}
+  .ctx-table th,.kpi-grid.hdr{font-family:var(--font-sans);font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--text-3);border-bottom:1px solid var(--line)}
+  .card{border-radius:var(--r-lg);border:1px solid var(--line);box-shadow:var(--shadow);background:var(--surface)}
+  .empty-state svg{stroke:var(--accent);background:var(--verified-wash);border-radius:var(--r-md)}
+  .modal,.cmdk{border-radius:var(--r-lg)}
 
-  /* KPI cards: loose working papers. The header band carries the reference;
-     the coloured edge is gone, the category keeps its dot. */
-  .card{border-radius:var(--radius);border:1px solid var(--rule);box-shadow:var(--lift);padding:18px;gap:12px}
-  .card-top{margin:-18px -18px 0;padding:11px 18px;border-bottom:1px solid var(--rule);background:color-mix(in srgb,var(--pad-deep) 55%,transparent)}
-  .card-name{font-size:14px;font-weight:700;color:var(--ink)}
-  /* Unreviewed commentary stays marked: an empty box until someone approves it. */
-  .rev-tick{flex:none;width:22px;height:22px;border:1.5px solid var(--ink-3);border-radius:3px;display:inline-grid;place-items:center;color:var(--green)}
-  .rev-tick svg{width:18px;height:16px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
-  .rev-tick.ok{border-color:var(--green);background:var(--green-wash)}
-  .card-top .rev-tick{margin-left:10px}
-  .card.click:hover{border-color:var(--green);box-shadow:0 1px 0 rgba(29,38,33,.06),0 16px 30px -18px rgba(29,38,33,.45);transform:translateY(-2px)}
-  .card.click:focus-visible{border-radius:var(--radius)}
-  .card.empty{border-style:dashed;box-shadow:none;background:transparent}
-  .card-value{font-size:30px;font-weight:600;letter-spacing:-.03em}
-  .card-foot{border-top:1px solid var(--rule)}
-  .delta{border-radius:3px;font-size:12px}
-  .anom{border-radius:3px;color:var(--red-pencil);background:var(--red-wash)}
-  .seal{border-radius:3px;font-family:var(--font-mono);font-size:11px;letter-spacing:0;border-color:color-mix(in srgb,var(--green) 40%,transparent)}
-  .seal svg{width:13px;height:13px;stroke-width:2.6}
-  .read-more{font-size:12px}
-
-  /* Commentary: draft prose is underlined dashed until a person approves it. */
-  .narr{font-family:var(--font-sans);font-size:15px;line-height:1.6;color:var(--ink-2)}
-  .narr.draft{text-decoration:underline dashed var(--rule-strong);text-decoration-thickness:1px;text-underline-offset:5px}
-  .narr.approved{text-decoration:underline solid var(--green);text-decoration-thickness:1px;text-underline-offset:5px}
-  #d-narr{font-size:17px}
-
-  /* panels and tables */
-  .panel{border-radius:var(--radius);border:1px solid var(--rule);box-shadow:var(--lift)}
-  .panel h2,.panel h3{font-size:15px;font-weight:800;letter-spacing:-.01em}
-  .panel-h{font-size:18px;font-weight:850;letter-spacing:-.02em}
-  .ctx-table th,.kpi-grid.hdr{font-family:var(--font-mono);font-size:11px;letter-spacing:.1em;color:var(--green);border-bottom:2px solid var(--rule-strong)}
-  .empty-state svg{stroke:var(--green);background:var(--green-wash);border-radius:var(--radius)}
-  .modal,.cmdk{border-radius:var(--radius)}
+  @media (max-width:1360px){
+    .detail-grid{grid-template-columns:1fr}
+    .detail-grid>.panel.full,.detail-grid>.insp{grid-column:1;grid-row:auto}
+  }
+  /* Phones and tablets: one pane at a time. The queue, then the open KPI with Back. */
+  @media (max-width:900px){
+    .ws-split{grid-template-columns:1fr}
+    .q-col{position:static;max-height:none}
+    .ws-split.has-detail .q-col{display:none}
+    .ws-split:not(.has-detail) .d-col{display:none}
+    #v-detail .back{display:inline-flex}
+    #v-dashboard.detail-open>.head,#v-dashboard.detail-open>.banner{display:none!important}
+  }
 
   /* Tap targets: every control clears WCAG 2.5.8 (24px) everywhere, and ~40-44px
      on touch screens and phones, where the card review actions were 14px tall. */
@@ -809,7 +844,7 @@
 <!-- ============ LOGIN GATE ============ -->
 <div id="login-gate">
   <div class="lg-left">
-    <a class="brand" href="/" style="text-decoration:none;color:inherit"><span class="mark"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 13l4.5 4.6L19.5 6.5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></span><b>Closebrief</b></a>
+    <a class="brand" href="/" style="text-decoration:none;color:inherit" aria-label="Closebrief home page"><svg class="logo-mark" viewBox="0 0 56 56" aria-hidden="true"><path d="M47 22.5A20 20 0 1 1 37.5 10" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round"/><path d="M19 28.5l7 7L48 13" fill="none" stroke="var(--text)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg><b class="wordmark">close<span>brief</span></b></a>
     <h2>Executive commentary on your KPIs, the moment the books close.</h2>
     <p>Closebrief reads your financials and explains the why — grounded in your own business context, and audit-ready on every number.</p>
     <ul>
@@ -865,7 +900,7 @@
   <!-- mobile top bar (shown < 900px) -->
   <div class="mtop">
     <button class="hamb" id="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Open menu" aria-controls="side-nav" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
-    <div class="brand"><div class="mark"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 13l4.5 4.6L19.5 6.5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></div><b>Closebrief</b></div>
+    <a class="brand" href="/" aria-label="Closebrief home page" style="text-decoration:none;color:inherit"><svg class="logo-mark" viewBox="0 0 56 56" aria-hidden="true"><path d="M47 22.5A20 20 0 1 1 37.5 10" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round"/><path d="M19 28.5l7 7L48 13" fill="none" stroke="var(--text)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg><b class="wordmark">close<span>brief</span></b></a>
   </div>
   <div class="side-backdrop" id="side-backdrop" onclick="closeSidebar(true)"></div>
 
@@ -873,8 +908,8 @@
   <aside class="side" id="side-nav">
     <div class="side-top">
       <div class="brand">
-        <a class="mark" href="/" title="Closebrief home page" aria-label="Closebrief home page"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 13l4.5 4.6L19.5 6.5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
-        <div style="flex:1"><b>Closebrief</b><span>FP&amp;A intelligence</span></div>
+        <a class="mark" href="/" title="Closebrief home page" aria-label="Closebrief home page"><svg class="logo-mark" viewBox="0 0 56 56" aria-hidden="true"><path d="M47 22.5A20 20 0 1 1 37.5 10" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round"/><path d="M19 28.5l7 7L48 13" fill="none" stroke="var(--text)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <div style="flex:1"><b class="wordmark">close<span>brief</span></b><span>FP&amp;A intelligence</span></div>
         <button class="theme-btn" id="theme-btn" title="Toggle dark mode (d)" aria-label="Toggle dark mode" onclick="toggleTheme()" style="width:28px;height:28px"></button>
         <button class="collapse-btn" onclick="toggleCollapse()" title="Collapse sidebar" aria-label="Collapse sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
       </div>
@@ -968,7 +1003,16 @@
           <button class="btn primary exec-hide cta" id="gen-all" onclick="generateAll()">Generate narratives</button>
         </div>
       </div>
-      <div class="toolbar">
+      <div class="banner ok" id="import-banner" style="display:none" role="status"></div>
+      <div class="banner warn" id="anomaly-banner" style="display:none"></div>
+      <div class="banner warn" id="conflict-banner" style="display:none"></div>
+      <div id="funnel-panel" style="display:none"></div>
+      <!-- The workspace: the KPI queue on the left, the selected KPI's
+           commentary (document) and inspector on the right. -->
+      <div class="ws-split" id="ws-split">
+        <div class="q-col" aria-label="KPI queue">
+          <div class="statrow" id="statrow"></div>
+        <div class="toolbar">
         <div class="search">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
           <input id="search" type="search" placeholder="Search metrics…" aria-label="Search metrics" oninput="onSearch(this.value)">
@@ -978,17 +1022,14 @@
           <button class="tbtn exec-hide" onclick="openKpiManager()" title="Choose which KPIs appear on the dashboard">Manage KPIs</button>
         </div>
       </div>
-      <div class="banner ok" id="import-banner" style="display:none" role="status"></div>
-      <div class="banner warn" id="anomaly-banner" style="display:none"></div>
-      <div class="banner warn" id="conflict-banner" style="display:none"></div>
-      <div class="statrow" id="statrow"></div>
-      <div id="funnel-panel" style="display:none"></div>
-      <div class="filter-pills" id="filter-pills"></div>
-      <div class="grid" id="cards"></div>
-      <div class="loading" id="dash-loading" style="display:none"><span class="spin"></span> Loading…</div>
-    </section>
+          <div class="filter-pills" id="filter-pills"></div>
+          <div class="grid" id="cards"></div>
+          <div class="loading" id="dash-loading" style="display:none"><span class="spin"></span> Loading…</div>
+        </div>
+        <div class="d-col">
+          <div class="d-empty" id="d-empty">Pick a KPI from the queue to read its commentary and check its figures.</div>
 
-    <!-- ---------- METRIC DETAIL ---------- -->
+    <!-- ---------- METRIC DETAIL (the document + inspector) ---------- -->
     <section id="v-detail" class="wrap" style="display:none">
       <button class="back" onclick="requestImportView('dashboard')">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Back to dashboard</button>
@@ -1028,7 +1069,11 @@
           <div id="d-rootcause" style="display:none;margin-top:14px"></div>
           <div id="d-correlations" style="margin-top:12px"></div>
         </div>
-        <div class="panel">
+        <div class="panel insp">
+          <h3>Figures</h3>
+          <dl class="figs" id="d-figs"></dl>
+        </div>
+        <div class="panel insp">
           <h3 id="d-trend-title">Trend</h3><div class="psub">Actual vs budget, by month</div>
           <div class="legend">
             <span><span class="k" style="border-color:var(--accent)"></span>Actual</span>
@@ -1038,7 +1083,7 @@
           <div class="axis-note" id="d-trend-axis"></div>
           <div id="d-trend"></div>
         </div>
-        <div class="panel">
+        <div class="panel insp">
           <h3>Budget vs actual</h3><div class="psub" id="d-bva-sub"></div>
           <div class="chart-box" id="box-c-bva" style="height:110px"><canvas id="c-bva" role="img" aria-label="Actual compared with budget"></canvas></div>
           <div id="bridge-sec">
@@ -1046,6 +1091,9 @@
             <div class="chart-box" id="box-c-bridge" style="height:210px"><canvas id="c-bridge" role="img" aria-label="Variance bridge"></canvas></div>
           </div>
           <div id="bridge-hint" style="display:none;font-size:12px;color:var(--mut2);margin-top:14px">Price/volume/mix needs quantity + price columns in the import — this metric has value + budget only.</div>
+        </div>
+      </div>
+    </section>
         </div>
       </div>
     </section>
