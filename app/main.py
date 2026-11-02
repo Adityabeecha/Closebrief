@@ -2224,8 +2224,10 @@ from app.routers import admin as _admin_router  # noqa: E402
 from app.routers import insights as _insights_router  # noqa: E402
 from app.routers import notifications as _notif_router  # noqa: E402
 from app.routers import review as _review_router  # noqa: E402
+from app.routers import close as _close_router  # noqa: E402
 
 app.include_router(_admin_router.router)
 app.include_router(_notif_router.router)
 app.include_router(_review_router.router)
+app.include_router(_close_router.router)
 app.include_router(_insights_router.router)
