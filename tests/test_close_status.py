@@ -110,3 +110,21 @@ def test_close_counts_use_only_selected_kpis_with_usable_values(seeded):
     steps = seeded.get('/close/status?period=2026-06').json()['steps']
     assert steps[0]['count'] == 2
     assert steps[1]['state'] == 'done'  # both usable KPIs passed the check
+
+
+
+def test_fallback_checklist_matches_server_actions(seeded):
+    import json
+    from test_frontend_followup import run_js
+    from app.db import get_connection
+    from app.routers.close import _summaries
+    conn=get_connection()
+    summary=_summaries(conn,conn.execute("SELECT id FROM datasets WHERE name='Close test'").fetchone()['id'])[0]
+    conn.close()
+    state={**summary,'n':summary['kpis'],'shared':summary['status']=='shared'}
+    expected=seeded.get('/close/status?period=2026-06').json()['steps']
+    run_js('function overviewSteps(', 'let overviewStatus=',
+           "let currentPeriod='2026-06',closeMonths={},currentFacts=[];" +
+           "const plural=(n,one,many)=>`${n} ${n===1?one:many||one+'s'}`;" +
+           "const routeHash=({tab,period})=>`#month=${period}&tab=${tab}`;",
+           f"assert.deepEqual(overviewSteps({json.dumps(state)},null),{json.dumps(expected)});")

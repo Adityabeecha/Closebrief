@@ -9,9 +9,11 @@ visitors get a read-only "demo" session (see the auth middleware).
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 from app.compute.kpis import compute_and_store
+from app.generation.prompts import _fixed
 from app.datasets import create_dataset
 from app.domains.marketing import MARKETING
 from app.ingestion.ingest import ingest_dataframe, parse_csv
@@ -32,7 +34,7 @@ _DEMO_CONTEXT = [
      "body": "On March 1 2025 we raised enterprise plan prices by 15%. Expect Net Revenue "
              "uplift of roughly $600K/month from March onward with some churn risk in SMB.",
      "metric_tags": ["Net Revenue"], "effective_date": "2025-03"},
-    {"type": "campaign", "title": "Q1 brand campaign",
+    {"type": "event_note", "title": "Q1 brand campaign",
      "body": "Brand awareness campaign ran January through March 2025 with a $450K budget, "
              "concentrated in February. Expect elevated Marketing Spend in Q1.",
      "metric_tags": ["Marketing Spend"], "effective_date": "2025-02"},
@@ -44,7 +46,7 @@ _DEMO_CONTEXT = [
 
 # Notes that explain the marketing funnel's moves (Feb push, April CTR dip).
 _MARKETING_CONTEXT = [
-    {"type": "campaign", "title": "February paid brand push",
+    {"type": "event_note", "title": "February paid brand push",
      "body": "A concentrated paid brand campaign ran in February 2025, lifting Impressions "
              "roughly 55% and pulling Conversions up with them.",
      "metric_tags": ["Impressions", "Conversions"], "effective_date": "2025-02"},
@@ -162,6 +164,42 @@ def _latest_period(conn, ds: int) -> str | None:
     return row["p"] if row and row["p"] else None
 
 
+def format_figure(value: float | None, unit: str = "USD", *, signed: bool = False) -> str:
+    """Mirror the Figures panel's fmt/pct, including JavaScript rounding."""
+    if value is None or not math.isfinite(value):
+        return "–"
+    sign = "−" if value < 0 else "+" if signed and value > 0 else ""
+    amount = abs(value)
+    if unit == "%":
+        return sign + _fixed(amount, 1) + "%"
+    if unit == "count":
+        rounded = math.floor(value + 0.5)
+        return ("−" if rounded < 0 else "") + f"{abs(rounded):,}"
+    if amount >= 1e6:
+        return sign + "$" + _fixed(amount / 1e6, 2) + "M"
+    if amount >= 1e3:
+        return sign + "$" + _fixed(amount / 1e3, 0) + "K"
+    return sign + "$" + _fixed(amount, 2).rstrip("0").rstrip(".")
+
+
+def _demo_reason(doc, period: str, mom: float | None) -> str | None:
+    """Only curated, period-relevant notes may supply a reason; no new figures."""
+    if doc is None or (doc.effective_date and doc.effective_date[:7] > period):
+        return None
+    title = doc.title
+    if title == "March 2025 enterprise pricing change" and mom is not None and mom > 0:
+        return f'The note "{title}" records the enterprise price increase behind the uplift.'
+    if title == "Q1 brand campaign" and period <= "2025-03":
+        return f'The note "{title}" records the campaign behind elevated marketing spend.'
+    if title == "Churn analysis memo" and period <= "2025-03":
+        return f'The note "{title}" attributes churn to SMB logo losses.'
+    if title == "February paid brand push" and period == "2025-02" and mom is not None and mom > 0:
+        return f'The note "{title}" records the campaign that lifted impressions and conversions.'
+    if title == "April creative fatigue" and period == "2025-04" and mom is not None and mom < 0:
+        return f'The note "{title}" attributes the decline in clicks to fatigued ad creative.'
+    return None
+
+
 def _seed_narratives(conn, ds: int, docs: list, period: str | None = None) -> None:
     """Deterministic, grounded narratives from each metric's real computed fact
     plus a matching context note — persisted like any generated report."""
@@ -183,38 +221,26 @@ def _seed_narratives(conn, ds: int, docs: list, period: str | None = None) -> No
         (ds, period),
     ).fetchall()
 
-    def fmt_val(v, unit):
-        v = float(v or 0)
-        u = (unit or "USD").lower()
-        if u in ("%", "percent"):
-            return f"{v:.1f}%"
-        if u in ("count", "customers", "logos"):
-            return f"{v:,.0f}"
-        return f"${v/1e6:.2f}M" if abs(v) >= 1e6 else f"${v/1e3:.0f}K"
-
     for f in facts:
         if conn.execute("SELECT 1 FROM generated_reports WHERE metric_id=? AND period=?", (f["metric_id"], period)).fetchone():
             continue
-        mom = f["mom_pct"]
-        bud = f["budget_var_pct"]
-        doc = None
-        for kw, d in tag_to_doc.items():
-            if kw in f["metric"].lower():
-                doc = d
-                break
-        move = "rose" if (mom or 0) > 0 else "declined" if (mom or 0) < 0 else "held flat"
-        vs_plan = ("ahead of" if (bud or 0) > 0 else "behind") + " plan"
-        val = fmt_val(f["value"], f["unit"])
-        narr = (
-            f"{f['metric']} came in at {val} for {period}, {move} "
-            f"{abs(mom):.1f}% month-over-month and {abs(bud or 0):.1f}% {vs_plan}."
-            if mom is not None else
-            f"{f['metric']} came in at {val} for {period}, {abs(bud or 0):.1f}% {vs_plan}."
-        )
-        if doc is not None:
-            narr += f" This aligns with the note “{doc.title}.”"
+        bud, mom = f["budget_var_pct"], f["mom_pct"]
+        val = format_figure(f["value"], f["unit"])
+        if bud is not None:
+            narr = f"{f['metric']} reached {val}, {format_figure(bud, '%', signed=True)} vs plan."
+        elif mom is not None:
+            narr = f"{f['metric']} reached {val}, {format_figure(mom, '%', signed=True)} vs last month. No budget comparison is available."
+        else:
+            narr = f"{f['metric']} reached {val}. No budget or last-month comparison is available."
+        doc = tag_to_doc.get(f["metric"].lower())
+        reason = _demo_reason(doc, period, mom)
+        if reason:
+            narr += " " + reason
+        else:
+            doc = None
+            narr += " No reason recorded yet."
         if f["is_anomaly"]:
-            narr += " The move is flagged as anomalous versus its recent trend and warrants a closer look."
+            narr += " Watch next month for a repeat of this unusual movement."
         sources = (
             [{"id": f"ctx_{doc.id:03d}", "type": doc.type, "title": doc.title}] if doc is not None else []
         )

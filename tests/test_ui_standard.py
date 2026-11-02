@@ -131,9 +131,9 @@ def test_close_progress_and_next_step():
       s=closeProgress([f({review_status:'approved'})],true);
       assert.equal(s.status,'shared');assert.equal(s.progress,1);assert.equal(closeNextStep(s),null);
       const steps=overviewSteps(closeProgress([f({narrative:null})],false),null);
-      assert.deepEqual(steps.map(x=>x.id),['import','review','draft','approve','share']);
-      assert.deepEqual(steps.map(x=>x.state),['done','done','todo','blocked','blocked']);
-      assert.equal(steps[2].target,'#month=2026-06&tab=kpis');
+      assert.deepEqual(steps.map(x=>x.id),['import','review','reasons','approve','share']);
+      assert.deepEqual(steps.map(x=>x.state),['done','done','done','blocked','blocked']);
+      assert.equal(steps[2].target,'#month=2026-06&tab=context');
       // The server's checklist wins when it has one.
       assert.deepEqual(overviewSteps(s,{steps:[{id:'x'}]}),[{id:'x'}]);
     """)
@@ -236,6 +236,7 @@ def test_queue_row_states_the_status_in_words():
       const queueGroup=f=>!f.has_data?'nodata':f.is_anomaly?'exception':f.review_status==='approved'?'approved':'review';
       const hl=t=>t,esc=String,fmt=v=>'$'+v,pct=v=>(v>0?'+':'')+v+'%',fmtPeriod=p=>p;
       let detailFact=null,currentPeriod='2026-06',granularity='month';const generatingSet=new Set();
+      const priorPeriodLabel=()=>'vs last month';
     """, """
       const row=queueRow({metric:'Bad debt',has_data:true,is_anomaly:true,value:212,direction_good:'down',deltas:{budget_var_pct:136}},0,'');
       assert.match(row,/class="qi exception"/);assert.match(row,/Anomaly/);assert.match(row,/c-exc/);assert.match(row,/vs plan/);
@@ -261,3 +262,27 @@ def test_detail_read_only_approval_explains_permissions_and_demo_signup():
       assert.match($('d-readonly-approval').innerHTML,/Only analysts and admins can approve/);
       role='admin';renderReviewStrip({report_id:1});assert.equal($('d-readonly-approval').style.display,'none');
     """)
+
+
+
+def test_dataset_display_name_only_normalizes_filenames():
+    run_js(*_FORMATS, "", """
+      assert.equal(datasetDisplayName('store_channel_pl_monthly.csv'),'Store channel pl monthly');
+      assert.equal(datasetDisplayName('FY-2026_ACTUALS.XLSX'),'Fy 2026 actuals');
+      assert.equal(datasetDisplayName('FP&A Actuals'),'FP&A Actuals');
+      assert.equal(fmt(5,'%'),'5.0%');assert.equal(fmt(-5.64,'%'),'−5.6%');
+    """)
+
+
+
+def test_overview_no_budget_guidance_links_only_for_writers():
+    run_js("const VIEWS=", "/* ---------- auth", _NAV_SETUP+"const fmt=v=>String(v),pct=v=>String(v);", """
+      currentFacts=[{metric:'Revenue',has_data:true,value:102000,unit:'USD',deltas:{mom_pct:-5.6},sources:[]}];
+      paintOverview();let html=$('ov-glance').innerHTML;
+      assert.match(html,/No budget loaded for this close: figures compare with last month/);
+      assert.match(html,/href="#month=2026-06&tab=data"/);
+      currentUser.role='viewer';paintOverview();html=$('ov-glance').innerHTML;
+      assert.match(html,/Add a budget on the Data tab/);assert.doesNotMatch(html,/href=/);
+      currentFacts[0].deltas.budget_var_pct=2;paintOverview();
+      assert.doesNotMatch($('ov-glance').innerHTML,/No budget loaded/);
+    """,)
