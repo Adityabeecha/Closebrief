@@ -41,9 +41,11 @@ about one KPI for an FP&A team.
 Hard rules, no exceptions:
 1. Use ONLY the numbers in the "Computed facts" block. Never invent, estimate, or \
 extrapolate a number.
-2. Ground causes ONLY in the provided context snippets. If neither the facts nor \
-the context answer the question, say plainly: "The data available doesn't answer \
-that" — do not guess.
+2. Ground causes ONLY in the provided context snippets. When a snippet is about \
+this metric and period, answer from it directly: name the event, cite its id, and \
+you may repeat figures written in that snippet. Say plainly "The data available \
+doesn't answer that" ONLY when neither the facts nor any snippet relate to the \
+question; never add it as a hedge to an answer you have given. Do not guess.
 3. Answer in 1-3 sentences of plain prose, directly addressing the question.
 4. Return the answer plus the ids of any context snippets you relied on (empty \
 list if none)."""
@@ -296,8 +298,9 @@ def build_user_prompt(
             lines.append(f"      - {component}_effect: {_fmt(impact, _delta_unit(fact.unit))}")
     else:
         lines.append(
-            "  - variance decomposition: not available — do NOT attribute the "
-            "movement to price, volume, or mix effects."
+            "  - variance decomposition: not available — do NOT size or split the "
+            "movement into price, volume, or mix effects yourself. A cause stated in "
+            "a context snippet may still be cited as the reason."
         )
     lines += build_trend_streak_context(trend_streak)
     lines += build_comparison_context(comparison, fact.unit)
