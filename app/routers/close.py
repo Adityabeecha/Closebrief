@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app import audit, scheduling
 from app.api import CurrentUser, require_read
+from app.compute.availability import has_usable_value
 from app.context.store import _row_to_doc
 from app.datasets import _scope_pred, active_dataset_id, current_workspace
 from app.db import get_connection
@@ -29,12 +30,16 @@ def _summaries(conn, ds):
     """
     if ds is None:
         return []
-    rows = conn.execute('''SELECT cf.period, cf.metric_id, m.name, cf.is_anomaly,
+    rows = conn.execute('''SELECT cf.period, cf.metric_id, cf.value, m.name, cf.is_anomaly,
         cf.budget_var_pct, gr.id AS report_id, gr.review_status, gr.faithfulness
         FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
         LEFT JOIN generated_reports gr ON gr.id = (SELECT MAX(g.id) FROM generated_reports g
-            WHERE g.metric_id = cf.metric_id AND g.period = cf.period)
-        WHERE m.dataset_id = ? ORDER BY cf.period DESC''', (ds,)).fetchall()
+            WHERE g.metric_id = cf.metric_id AND g.period = cf.period
+              AND (g.prompt_version IS NULL OR g.prompt_version NOT LIKE '%-digest'))
+        WHERE m.dataset_id = ?
+          AND (NOT EXISTS (SELECT 1 FROM kpi_configs k WHERE k.dataset_id=m.dataset_id)
+               OR EXISTS (SELECT 1 FROM kpi_configs k WHERE k.dataset_id=m.dataset_id AND k.source_metric=m.name))
+        ORDER BY cf.period DESC''', (ds,)).fetchall()
     docs = [_row_to_doc(r) for r in conn.execute(
         f'SELECT * FROM context_documents WHERE {_scope_pred()}').fetchall()]
     runs = scheduling.list_digest_runs(conn, ds, limit=2147483647)
@@ -46,6 +51,8 @@ def _summaries(conn, ds):
         shared.setdefault(run['period'], timestamp.astimezone(timezone.utc).isoformat().replace('+00:00', 'Z'))
     groups = {}
     for row in rows:
+        if not has_usable_value(row['metric_id'], row['value']):
+            continue
         period = row['period']
         if not re.fullmatch(r'\d{4}-(0[1-9]|1[0-2])', period) or period.startswith('0000'):
             continue
@@ -122,13 +129,20 @@ def status(period: str, _: CurrentUser = Depends(require_read)):
         def step(id, title, detail, state, count, tab):
             return {'id': id, 'title': title, 'detail': detail, 'state': state, 'count': count,
                     'target': f'#month={period}&tab={tab}'}
+        unchecked = s['kpis'] - s['checked']
         steps = [
-            step('import', 'Import actuals and budget', f"{n(s['kpis'], 'figure')} imported", 'done', s['kpis'], 'data'),
-            step('review', 'Review the biggest movers', f"{s['checked']} of {n(s['kpis'], 'figure')} checked", 'done' if s['checked'] == s['kpis'] else 'todo', s['checked'], 'kpis'),
+            step('import', 'Import actuals and budget', f"{n(s['kpis'], 'KPI', 'KPIs')} imported · open Data to check coverage", 'done', s['kpis'], 'data'),
+            step('review', 'Review the biggest movers',
+                 f"{n(unchecked, 'draft needs', 'drafts need')} a check · open KPIs" if unchecked else 'Figures checked · open KPIs to review movers',
+                 'todo' if unchecked else 'done', unchecked, 'kpis'),
             step('reasons', f"Add reasons for {n(s['needs_reason'], 'variance')}" if s['needs_reason'] else 'Every variance has a reason',
-                 f"{n(s['needs_reason'], 'variance needs', 'variances need')} context" if s['needs_reason'] else 'No large variance is missing a context note', 'done' if not s['needs_reason'] else 'todo', s['needs_reason'], 'context'),
-            step('approve', f"Approve {n(pending_drafts, 'draft')}" if pending_drafts else 'Approve the drafts', f"{s['approved']} of {s['kpis']} approved", 'done' if not remaining else 'todo' if pending_drafts else 'blocked', pending_drafts, 'kpis'),
-            step('share', 'Send the digest', 'Digest sent' if s['status'] == 'shared' else 'Digest not sent', 'done' if s['status'] == 'shared' else 'todo' if not remaining else 'blocked', int(s['status'] == 'shared'), 'digest'),
+                 f"{n(s['needs_reason'], 'variance needs', 'variances need')} a reason · open Context" if s['needs_reason'] else 'Reasons recorded · open Context to review notes',
+                 'todo' if s['needs_reason'] else 'done', s['needs_reason'], 'context'),
+            step('approve', f"Approve {n(pending_drafts, 'draft')}" if pending_drafts else 'Approve the drafts',
+                 f"{n(pending_drafts, 'draft needs', 'drafts need')} approval · open KPIs" if pending_drafts else 'Draft commentary on KPIs before approving' if remaining else 'Drafts approved · open KPIs to read commentary',
+                 'done' if not remaining else 'todo' if pending_drafts else 'blocked', pending_drafts, 'kpis'),
+            step('share', 'Send the digest', 'Digest sent · open Digest to read it' if s['status'] == 'shared' else 'Open Digest to prepare the leadership summary' if not remaining else 'Approve the drafts on KPIs before sharing',
+                 'done' if s['status'] == 'shared' else 'todo' if not remaining else 'blocked', int(s['status'] == 'shared'), 'digest'),
         ]
         return {'period': period, 'label': s['label'], 'steps': steps, 'activity': _activity(conn, ds, period)}
     finally:

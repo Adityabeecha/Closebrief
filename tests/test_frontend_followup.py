@@ -181,6 +181,7 @@ def test_empty_dataset_clears_old_client_facts():
 def test_pdf_export_keeps_failed_faithfulness_warning():
     run_js("function buildReportHTML(", "function exportPDF", """
       const currentPeriod='2025-01',BRAND={green:'#123',red:'#456'};
+      const priorPeriodLabel=()=>'vs last month';
       const catColor=()=>'',esc=s=>String(s),fmt=()=>'$100',reportDelta=()=>'',pct=()=>'';
     """, """
       const result=buildReportHTML([{has_data:true,metric:'Revenue',value:100,unit:'USD',
@@ -193,6 +194,7 @@ def test_pdf_export_keeps_failed_faithfulness_warning():
 def test_powerpoint_export_keeps_failed_faithfulness_warning():
     run_js("async function exportPPTX(", "/* ---------- command palette", """
       const text=[],currentPeriod='2025-01',BRAND={green:'#123456',greenDark:'#456',red:'#654321'},activeDatasetObj=null;
+      const priorPeriodLabel=()=>'vs last month';
       const fmtPeriodTitle=p=>p,fmtDate=d=>d,plural=(n,w)=>n+' '+w;
       const shownFacts=[{has_data:true,metric:'Revenue',value:100,deltas:{},narrative:'Some claim',faithfulness:'failed'}];
       const $=()=>({classList:{remove(){}}}),toast=()=>{},loadPptx=async()=>{},fmt=()=>'$100',pct=()=>'';

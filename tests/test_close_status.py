@@ -82,3 +82,49 @@ def test_activity_scoped_and_shared_step(seeded):
     assert data['activity'] == [{'at': data['activity'][0]['at'], 'text': 'Approved Revenue for 2026-06', 'actor': 'reviewer@example.com'}]
     may = seeded.get('/close/status?period=2026-05').json()
     assert may['steps'][-1]['state'] == 'done'
+
+
+
+@pytest.mark.sqlite_only
+def test_close_counts_use_only_selected_kpis_with_usable_values(seeded):
+    from app.db import get_connection
+    conn = get_connection()
+    ds = conn.execute("SELECT id FROM datasets WHERE name='Close test'").fetchone()['id']
+    # Simulate a legacy nullable fact row. Current ingestion rejects NULL, but
+    # /facts explicitly supports it and close counts must follow that contract.
+    conn.execute("CREATE TABLE nullable_facts AS SELECT * FROM computed_facts")
+    conn.execute("DROP TABLE computed_facts")
+    conn.execute("ALTER TABLE nullable_facts RENAME TO computed_facts")
+    mid = conn.execute("INSERT INTO metrics (dataset_id,name) VALUES (?, 'Empty')", (ds,)).lastrowid
+    conn.execute("INSERT INTO computed_facts (metric_id,period,value,is_anomaly,budget_var_pct) VALUES (?, '2026-06', NULL, 1, -90)", (mid,))
+    conn.execute("INSERT INTO generated_reports (metric_id,period,confidence,faithfulness,review_status) VALUES (?, '2026-06', 'High','passed','approved')", (mid,))
+    # Match /facts' curated set: an unselected Cash row must not inflate counts.
+    for name in ('Revenue', 'Cost', 'Empty'):
+        conn.execute("INSERT INTO kpi_configs (dataset_id,source_metric,display_name) VALUES (?,?,?)", (ds,name,name))
+    conn.commit()
+    conn.close()
+    facts = seeded.get('/facts?period=2026-06').json()
+    summary = seeded.get('/close/months').json()[0]
+    assert summary['kpis'] == sum(f['has_data'] for f in facts) == 2
+    assert (summary['drafted'],summary['approved'],summary['needs_reason'],summary['exceptions']) == (2,0,1,1)
+    steps = seeded.get('/close/status?period=2026-06').json()['steps']
+    assert steps[0]['count'] == 2
+    assert steps[1]['state'] == 'done'  # both usable KPIs passed the check
+
+
+
+def test_fallback_checklist_matches_server_actions(seeded):
+    import json
+    from test_frontend_followup import run_js
+    from app.db import get_connection
+    from app.routers.close import _summaries
+    conn=get_connection()
+    summary=_summaries(conn,conn.execute("SELECT id FROM datasets WHERE name='Close test'").fetchone()['id'])[0]
+    conn.close()
+    state={**summary,'n':summary['kpis'],'shared':summary['status']=='shared'}
+    expected=seeded.get('/close/status?period=2026-06').json()['steps']
+    run_js('function overviewSteps(', 'let overviewStatus=',
+           "let currentPeriod='2026-06',closeMonths={},currentFacts=[];" +
+           "const plural=(n,one,many)=>`${n} ${n===1?one:many||one+'s'}`;" +
+           "const routeHash=({tab,period})=>`#month=${period}&tab=${tab}`;",
+           f"assert.deepEqual(overviewSteps({json.dumps(state)},null),{json.dumps(expected)});")

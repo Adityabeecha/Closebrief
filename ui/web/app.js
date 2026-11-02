@@ -51,7 +51,7 @@ function buildReportHTML(facts){
       <div class="rc-top"><span class="rc-dot" style="background:${col}"></span><span class="rc-name">${esc(f.metric)}</span>
         <span class="rc-cat">${esc(f.category||"")}</span></div>
       <div class="rc-vrow"><span class="rc-val">${fmt(f.value,f.unit)}</span>${spark}</div>
-      <div class="rc-deltas">${reportDelta("MoM",f.deltas.mom_pct,dg)}${reportDelta("vs plan",f.deltas.budget_var_pct,dg)}${f.is_anomaly?'<span class="rd" style="color:#b42e2c;background:#faeeed">ANOMALY</span>':""}</div>
+      <div class="rc-deltas">${reportDelta(priorPeriodLabel(),f.deltas.mom_pct,dg)}${reportDelta("vs plan",f.deltas.budget_var_pct,dg)}${f.is_anomaly?'<span class="rd" style="color:#b42e2c;background:#faeeed">ANOMALY</span>':""}</div>
       <div class="rc-narr">${f.narrative?esc(f.narrative):"<i>No narrative generated for this metric.</i>"}</div>
       ${f.faithfulness==="failed"?'<div class="rd" style="color:#b42e2c">Numbers need review — unverified narrative</div>':""}
       ${src?`<div class="rc-src">${src}</div>`:""}
@@ -143,7 +143,7 @@ async function exportPPTX(){
     s.addShape(p.ShapeType.rect,{x:0.6,y:1.45,w:0.6,h:0.08,fill:{color:ACC},line:{color:ACC}});
     s.addText(title,{x:0.6,y:1.65,w:8.8,h:0.9,fontSize:38,bold:true,color:INK,fontFace:F});
     s.addText("Variance commentary. Every figure computed in code and checked against the source.",{x:0.6,y:2.55,w:8.8,h:0.5,fontSize:16,color:TXT,fontFace:F});
-    s.addText(`${activeDatasetObj&&activeDatasetObj.name?activeDatasetObj.name+" · ":""}Prepared ${fmtDate(new Date().toISOString())}`,{x:0.6,y:4.6,w:8.8,h:0.4,fontSize:12,color:MUT,fontFace:F});
+    s.addText(`${activeDatasetObj&&activeDatasetObj.name?datasetDisplayName(activeDatasetObj.name)+" · ":""}Prepared ${fmtDate(new Date().toISOString())}`,{x:0.6,y:4.6,w:8.8,h:0.4,fontSize:12,color:MUT,fontFace:F});
     s.addText([{text:"close",options:{bold:true}},{text:"brief"}],{x:0.6,y:0.5,w:3,h:0.4,fontSize:16,color:INK,fontFace:F});
     // At a glance: the movers against plan, largest first
     const anom=facts.filter(f=>f.is_anomaly).length,approved=facts.filter(f=>f.review_status==="approved").length;
@@ -151,7 +151,7 @@ async function exportPPTX(){
     s=p.addSlide();s.background={color:"FFFFFF"};
     s.addText("At a glance",{x:0.6,y:0.4,w:8.8,h:0.6,fontSize:24,bold:true,color:INK,fontFace:F});
     s.addText(`${plural(facts.length,"KPI","KPIs")} · ${plural(anom,"anomaly","anomalies")} · ${approved} of ${facts.length} approved`,{x:0.6,y:0.95,w:8.8,h:0.35,fontSize:13,color:MUT,fontFace:F});
-    const head=["KPI","Actual","Vs plan","Vs prior","Status"].map(t=>({text:t,options:{bold:true,color:MUT,fontSize:11,fontFace:F}}));
+    const head=["KPI","Actual","Vs plan",priorPeriodLabel(),"Status"].map(t=>({text:t,options:{bold:true,color:MUT,fontSize:11,fontFace:F}}));
     const tone=(f,v)=>v==null||v===0?TXT:((f.direction_good==="down"?v<0:v>0)?OK:RED);
     const body=movers.map(f=>[
       {text:f.metric,options:{color:INK,fontSize:12,fontFace:F}},
@@ -169,7 +169,7 @@ async function exportPPTX(){
       s.addText(state[0],{x:7.6,y:0.48,w:1.8,h:0.4,fontSize:12,bold:true,color:state[1],fontFace:F,align:"right"});
       s.addText(f.category||"",{x:0.6,y:0.95,w:8.8,h:0.35,fontSize:12,color:MUT,fontFace:F});   // PPTX text is not HTML — no esc()
       s.addText(fmt(f.value,f.unit),{x:0.6,y:1.4,w:5,h:0.9,fontSize:40,bold:true,color:INK,fontFace:M});
-      const figs=[["Vs plan",f.deltas.budget_var_pct],["Vs prior period",f.deltas.mom_pct]];
+      const figs=[["Vs plan",f.deltas.budget_var_pct],[priorPeriodLabel(),f.deltas.mom_pct]];
       figs.forEach(([l,v],k)=>{s.addText(l,{x:6.2,y:1.45+k*0.45,w:1.7,h:0.4,fontSize:12,color:MUT,fontFace:F});
         s.addText(pct(v)||"–",{x:7.9,y:1.45+k*0.45,w:1.5,h:0.4,fontSize:13,bold:true,color:tone(f,v),fontFace:M,align:"right"});});
       s.addText((f.faithfulness==="failed"?"Numbers need review — unverified narrative\n\n":"")+(f.narrative||"No narrative generated."),{x:0.6,y:2.55,w:8.8,h:2.3,fontSize:14,color:TXT,fontFace:F,valign:"top",paraSpaceAfter:6});
@@ -251,7 +251,7 @@ function renderKpim(){
       <input value="${esc(k.unit)}" data-f="unit">
       <select data-f="direction_good">${dirOpt(k.direction_good)}</select>
       <select data-f="aggregation_type" title="flow=sum · balance=last month · ratio=not aggregated">${aggOpt(k.aggregation_type)}</select>
-      <button class="row-del" title="Remove from board" onclick="kpimRemove(${i})">${XICON}</button>
+      <button class="write-only row-del" title="Remove from board" onclick="kpimRemove(${i})">${XICON}</button>
     </div>`).join("")
     :'<div class="empty-state" style="padding:26px">No KPIs selected — add one below.</div>';
   $("kpim-add").innerHTML='<option value="">Add a metric to the board…</option>'
@@ -394,8 +394,8 @@ async function api(path,opts,_retried){
 }
 const fmt=(v,unit)=>{
   if(v===null||v===undefined)return"–";
-  if(unit==="%")return(+v.toFixed(1))+"%";
-  if(unit==="count")return Math.round(v).toLocaleString();
+  if(unit==="%")return(v<0?"−":"")+Math.abs(v).toFixed(1)+"%";
+  if(unit==="count"){const n=Math.round(v);return(n<0?"−":"")+Math.abs(n).toLocaleString();}
   // Finance-style: sign BEFORE the currency symbol (−$1.20M / −$370K / −$12.50),
   // with a real minus sign (U+2212) so it lines up with "+" in mono figures.
   const a=Math.abs(v),sign=v<0?"−":"";let mag;
@@ -403,6 +403,13 @@ const fmt=(v,unit)=>{
   return sign+mag;
 };
 const pct=v=>v===null||v===undefined?null:(v>0?"+":v<0?"−":"")+Math.abs(v).toFixed(1)+"%";
+function datasetDisplayName(name){
+  const stored=String(name||"");
+  if(!/\.(csv|xlsx)$/i.test(stored))return stored;
+  const words=stored.replace(/\.(csv|xlsx)$/i,"").replace(/[_-]+/g," ").trim().toLowerCase();
+  return words.charAt(0).toUpperCase()+words.slice(1);
+}
+function priorPeriodLabel(){return granularity==="year"?"vs last year":granularity==="quarter"?"vs last quarter":"vs last month";}
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const plural=(n,one,many)=>`${n} ${n===1?one:(many||one+"s")}`;
 const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -619,7 +626,7 @@ function closeProgress(facts,shared){
   const exceptions=withData.filter(f=>(f.is_anomaly||f.faithfulness==="failed")&&f.review_status!=="approved").length;
   const progress=n?Math.round((0.2+0.3*drafted/n+0.4*approved/n+(shared?0.1:0))*100)/100:0;
   const status=!n?"empty":approved===n&&shared?"shared":approved===n?"ready":drafted||approved?"in_progress":"not_started";
-  return {n,drafted,approved,failed,exceptions,shared:!!shared,progress,status};
+  return {n,drafted,approved,failed,exceptions,checked:withData.filter(f=>f.faithfulness==="passed").length,shared:!!shared,progress,status};
 }
 const CLOSE_STATUS={empty:["No data",""],not_started:["Not started",""],in_progress:["In progress","prog"],ready:["Ready to share","prog"],shared:["Shared","done"]};
 // The server's summary wins when it has one, so every close in the list is scored the same way.
@@ -679,7 +686,7 @@ function renderMonthHead(){
   $("mh-title").textContent=fmtPeriodTitle(currentPeriod);
   const [word,cls]=CLOSE_STATUS[(closeStateFor(currentPeriod)||s).status]||CLOSE_STATUS[s.status];
   const pill=$("mh-pill");pill.textContent=word;pill.className="mh-pill "+cls;
-  const ds=activeDatasetObj&&activeDatasetObj.name;
+  const ds=activeDatasetObj&&datasetDisplayName(activeDatasetObj.name);
   $("mh-sub").textContent=[ds,s.n?`${plural(s.n,"KPI","KPIs")} computed in code`:null,s.n?`${s.approved} of ${s.n} approved`:null].filter(Boolean).join(" · ");
   const next=canReview()?closeNextStep(s):null,btn=$("mh-next");
   btn.style.display=next?"":"none";
@@ -695,18 +702,20 @@ const BOXTICK='<svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-line
 // The close checklist: the server's steps when it has them, otherwise derived from the facts.
 function overviewSteps(s,server){
   if(server&&server.steps&&server.steps.length)return server.steps;
-  const P=currentPeriod;
+  const P=currentPeriod,m=closeMonths[P]||{},unchecked=s.n-s.checked,remaining=s.n-s.approved,pending=s.drafted-s.approved;
+  const needs=m.needs_reason??s.needs_reason??(currentFacts||[]).filter(f=>f.has_data&&(f.is_anomaly||Math.abs(f.deltas?.budget_var_pct||0)>10)&&!f.sources?.length).length;
+  const step=(id,title,detail,state,count,tab)=>({id,title,detail,state,count,target:routeHash({tab,period:P})});
   return [
-    {id:"import",title:"Import actuals and budget",detail:s.n?`${plural(s.n,"KPI","KPIs")} computed from your file`:"No data for this close yet",state:s.n?"done":"todo",target:"#"+new URLSearchParams({month:P,tab:"data"})},
-    {id:"review",title:s.exceptions?`Review ${plural(s.exceptions,"flagged KPI","flagged KPIs")}`:"Review the biggest movers",detail:s.exceptions?"Anomalies and figures the guard couldn't trace":"No anomalies or untraced figures left",state:s.exceptions?"todo":"done",target:routeHash({tab:"kpis",period:P})},
-    {id:"draft",title:s.drafted<s.n?`Draft ${plural(s.n-s.drafted,"commentary","commentaries")}`:"Draft the commentary",detail:`${s.drafted} of ${s.n} drafted · every figure checked against the computed facts`,state:s.n&&s.drafted===s.n?"done":"todo",target:routeHash({tab:"kpis",period:P})},
-    {id:"approve",title:s.approved<s.n?`Approve ${plural(s.n-s.approved,"draft","drafts")}`:"Approve the drafts",detail:`${s.approved} of ${s.n} approved`,state:s.n&&s.approved===s.n?"done":s.drafted?"todo":"blocked",target:routeHash({tab:"kpis",period:P})},
-    {id:"share",title:"Send the digest",detail:s.shared?"A digest has been saved for this close":"Goes to leadership once the drafts are approved",state:s.shared?"done":s.n&&s.approved===s.n?"todo":"blocked",target:routeHash({tab:"digest",period:P})},
+    step("import","Import actuals and budget",s.n?`${plural(s.n,"KPI","KPIs")} imported · open Data to check coverage`:"Import actuals on the Data tab to start this close",s.n?"done":"todo",s.n,"data"),
+    step("review","Review the biggest movers",unchecked?`${plural(unchecked,"draft needs","drafts need")} a check · open KPIs`:"Figures checked · open KPIs to review movers",unchecked?"todo":"done",unchecked,"kpis"),
+    step("reasons",needs?`Add reasons for ${plural(needs,"variance")}`:"Every variance has a reason",needs?`${plural(needs,"variance needs","variances need")} a reason · open Context`:"Reasons recorded · open Context to review notes",needs?"todo":"done",needs,"context"),
+    step("approve",pending?`Approve ${plural(pending,"draft")}`:"Approve the drafts",pending?`${plural(pending,"draft needs","drafts need")} approval · open KPIs`:remaining?"Draft commentary on KPIs before approving":"Drafts approved · open KPIs to read commentary",!remaining?"done":pending?"todo":"blocked",pending,"kpis"),
+    step("share","Send the digest",s.shared?"Digest sent · open Digest to read it":!remaining?"Open Digest to prepare the leadership summary":"Approve the drafts on KPIs before sharing",s.shared?"done":!remaining?"todo":"blocked",+s.shared,"digest"),
   ];
 }
 let overviewStatus=null,overviewFor=null;
 async function renderOverview(){
-  if(!$("v-overview")||!currentPeriod){if($("ov-checklist"))$("ov-checklist").innerHTML=currentPeriod?"":`<li class="cl"><span></span><div><b>No closes yet</b><small>Import a CSV or Excel export to start your first close.</small></div><button class="btn primary exec-hide" onclick="nav('datahub')">Import data</button></li>`;return;}
+  if(!$("v-overview")||!currentPeriod){if($("ov-checklist"))$("ov-checklist").innerHTML=currentPeriod?"":`<li class="cl"><span></span><div><b>No closes yet</b><small>Import a CSV or Excel export to start your first close.</small></div><button class="btn primary write-only" onclick="nav('datahub')">Import data</button></li>`;return;}
   const p=currentPeriod;
   paintOverview();
   if(overviewFor!==p){overviewFor=p;overviewStatus=null;
@@ -731,8 +740,12 @@ function paintOverview(){
     const good=v===0?null:(f.direction_good==="down"?v<0:v>0);
     return `<button onclick="openMetricByName('${esc(f.metric).replace(/'/g,"\\'")}')"><span>${esc(f.metric)}</span><b>${fmt(f.value,f.unit)} <span class="${good===null?"":good?"c-ok":"c-exc"}">${pct(v)}</span><span class="visually-hidden"> ${plan?"vs plan":"vs prior period"}</span></b></button>`;}).join("")}</div>`
     :`<p class="mh-sub">No movements to show for this close.</p>`;
+  if(movers.length&&movers.every(x=>!x.plan)){
+    const dataCopy="Add a budget on the Data tab.";
+    $("ov-glance").innerHTML+=`<p class="mh-sub">No budget loaded for this close: figures compare with last month. ${canReview()?`<a href="#month=${encodeURIComponent(currentPeriod)}&tab=data">${dataCopy}</a>`:dataCopy}</p>`;
+  }
   const act=overviewStatus&&overviewStatus.activity;
-  const fallback=[activeDatasetObj&&activeDatasetObj.created_at?{at:activeDatasetObj.created_at,text:`${activeDatasetObj.name||"Dataset"} imported`}:null,
+  const fallback=[activeDatasetObj&&activeDatasetObj.created_at?{at:activeDatasetObj.created_at,text:`${datasetDisplayName(activeDatasetObj.name)||"Dataset"} imported`}:null,
     s.drafted?{at:null,text:`${s.drafted} of ${s.n} commentaries drafted`}:null,s.approved?{at:null,text:`${s.approved} approved`}:null].filter(Boolean);
   const rows=act&&act.length?act:fallback;
   $("ov-activity").innerHTML=rows.length?rows.map(a=>`<p>${a.at?`<time>${esc(fmtDate(a.at))}</time>`:""}<span>${esc(a.text)}${a.actor?` · ${esc(a.actor)}`:""}</span></p>`).join("")
@@ -754,12 +767,12 @@ function renderDataHealth(){
   const names=a=>esc(a.slice(0,4).join(", ")+(a.length>4?` and ${a.length-4} more`:""));
   const rows=[
     {done:h.withData>0,title:h.withData?`${plural(h.withData,"KPI","KPIs")} computed for ${P}`:`No figures for ${P} yet`,
-      detail:activeDatasetObj?`${esc(activeDatasetObj.name||"Dataset")}${activeDatasetObj.created_at?` · imported ${esc(fmtDate(activeDatasetObj.created_at))}`:""}`:"",act:""},
+      detail:activeDatasetObj?`${esc(datasetDisplayName(activeDatasetObj.name)||"Dataset")}${activeDatasetObj.created_at?` · imported ${esc(fmtDate(activeDatasetObj.created_at))}`:""}`:"",act:""},
     {done:!h.noData.length,title:h.noData.length?`${plural(h.noData.length,"KPI has","KPIs have")} no data for ${P}`:"Every tracked KPI has data",
-      detail:h.noData.length?names(h.noData):"",act:h.noData.length?`<button class="btn" onclick="$('imp-mode').value='new';onImportModeChange();$('file-in').click()">Import the missing month</button>`:""},
+      detail:h.noData.length?names(h.noData):"",act:h.noData.length?`<button class="write-only btn" onclick="$('imp-mode').value='new';onImportModeChange();$('file-in').click()">Import the missing month</button>`:""},
     {done:!h.noBudget.length,title:h.noBudget.length?`${plural(h.noBudget.length,"KPI has","KPIs have")} no budget`:"Every KPI has a budget to compare against",
       detail:h.noBudget.length?names(h.noBudget)+" · commentary can't say how they did against plan":"",
-      act:h.noBudget.length?`<button class="btn" onclick="$('imp-mode').value='join';onImportModeChange();$('drop').scrollIntoView({block:'center'})">Add a budget file</button>`:""},
+      act:h.noBudget.length?`<button class="write-only btn" onclick="$('imp-mode').value='join';onImportModeChange();$('drop').scrollIntoView({block:'center'})">Add a budget file</button>`:""},
   ];
   el.style.display="";
   el.innerHTML=`<h2>${esc(P)} data</h2><ol class="checklist">${rows.map(r=>`<li class="cl ${r.done?"done":"todo"}"><span class="box">${r.done?BOXTICK:""}</span>
@@ -1112,11 +1125,11 @@ function renderRootCause(rc){
   let drivers="";
   if(rc.drivers&&rc.drivers.length)
     drivers=`<div class="rc-sec-label">Moved with</div><div class="rc-drivers">`+rc.drivers.map(d=>`<b>${esc(d.metric)}</b> (r=${d.r})`).join(" · ")+`</div>`;
-  box.innerHTML=`<div class="rc-panel">
-    <div class="rc-head"><span class="rc-title">Root cause — ${esc(rc.primary_factor||"")}</span>${z}</div>
+  box.innerHTML=`<section class="rc-section">
+    <div class="rc-head"><span class="rc-title">Root cause: ${esc(rc.primary_factor||"")}</span>${z}</div>
     ${bars}${trend}${drivers}
-    <div style="margin-top:12px"><button class="btn sm write-hide" id="d-rc-narr-btn" onclick="rootCauseNarrative()">Explain (AI)</button></div>
-    <div id="d-rc-narr" style="margin-top:10px"></div></div>`;
+    <div style="margin-top:12px"><button class="btn sm write-only" id="d-rc-narr-btn" onclick="rootCauseNarrative()">Explain (AI)</button></div>
+    <div id="d-rc-narr" style="margin-top:10px"></div></section>`;
 }
 async function rootCauseNarrative(){
   if(!detailFact)return;
@@ -1153,7 +1166,7 @@ async function exportBoardPack(){
 /* ---------- secondary screen states ---------- */
 const screenLoads=new Map();
 function screenState(title,body,action,label,kind="empty"){
-  return `<div class="screen-state ${esc(kind)}" role="${kind==="error"?"alert":"status"}"><h2>${esc(title)}</h2><p>${esc(body)}</p>${action?`<button class="btn primary" onclick="${esc(action)}">${esc(label)}</button>`:""}</div>`;
+  return `<div class="screen-state ${esc(kind)}" role="${kind==="error"?"alert":"status"}"><h2>${esc(title)}</h2><p>${esc(body)}</p>${action?`<button class="btn primary${/^(?:loadDigest\(true|nav\('(?:import|data|datahub)'|ctxNew|inviteUser)|nt-target|sch-kind|c-title/.test(action)?" write-only":""}" onclick="${esc(action)}">${esc(label)}</button>`:""}</div>`;
 }
 function screenRow(html,cols){return cols?`<tr><td colspan="${esc(cols)}">${html}</td></tr>`:html;}
 function screenLoading(id,message,cols=0){
@@ -1314,7 +1327,7 @@ async function loadCrossDomain(){
       const lag=p.lag?`${Math.abs(p.lag)}-period ${p.lag>0?"lead":"lag"}`:"same period";
       return `<div class="xd-item"><div class="xd-r ${cls}">${p.r>0?"+":""}${p.r}</div>
         <div class="xd-body"><div class="xd-pair">${esc(p.metric_a)} <span class="xd-arrow">↔</span> ${esc(p.metric_b)}</div>
-        <div class="xd-meta">${esc(p.dataset_a)} → ${esc(p.dataset_b)} · ${lag} · ${p.months} mo overlap</div></div></div>`;
+        <div class="xd-meta">${esc(datasetDisplayName(p.dataset_a))} → ${esc(datasetDisplayName(p.dataset_b))} · ${lag} · ${p.months} mo overlap</div></div></div>`;
     }).join("");
   }catch(e){if(done())box.innerHTML=screenError(e,"loadCrossDomain()");}
 }
@@ -1332,6 +1345,11 @@ function narrMeta(f){
   return bits.join(" · ");
 }
 function renderReviewStrip(f){
+  const readonly=$("d-readonly-approval");
+  if(readonly){
+    readonly.style.display=canReview()?"none":"";
+    readonly.innerHTML=canReview()?"":`<button class="btn sm" disabled>Approve</button><p>${demoSession?`<a href="#signup" onclick="event.preventDefault();exitDemo(true)">Sign up to approve commentary</a>`:"Only analysts and admins can approve"}</p>`;
+  }
   const strip=$("d-rev-strip");if(!strip)return;
   if(!f||!f.report_id){strip.style.display="none";$("d-versions").style.display="none";$("d-assign-row").style.display="none";return;}
   strip.style.display="";
@@ -1392,7 +1410,7 @@ async function loadReview(){
   box.innerHTML=items.map((it,i)=>`<div class="rq-item" role="button" tabindex="0" onclick="openReviewItem(${esc(i)})">
     <div class="rq-main"><div class="rq-metric">${esc(it.metric)}</div>
     <div class="rq-preview">${esc(it.preview||"No preview")}</div>
-    <div class="rq-meta">${esc(it.dataset_name||"")}</div></div>
+    <div class="rq-meta">${esc(datasetDisplayName(it.dataset_name))}</div></div>
     <span class="rq-period">${esc(fmtPeriod(it.period))}</span>
     <svg class="rq-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>`).join("");
 }
@@ -1453,8 +1471,8 @@ async function loadNotifications(){
         </div>
         <label style="font-size:12px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px">
           <input type="checkbox" ${c.enabled?"checked":""} onchange="ntToggle(${esc(c.id)},this.checked)"> Enabled</label>
-        <button class="btn sm" onclick="ntTest(${esc(c.id)},this)">Send test</button>
-        <button class="ico" title="Delete channel" aria-label="Delete channel" onclick="ntDelete(${esc(c.id)})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">${ICON_PATHS.trash}</svg></button>
+        <button class="write-only btn sm" onclick="ntTest(${esc(c.id)},this)">Send test</button>
+        <button class="write-only ico" title="Delete channel" aria-label="Delete channel" onclick="ntDelete(${esc(c.id)})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">${ICON_PATHS.trash}</svg></button>
       </div>`;
     }).join(""):screenState("No notification channels yet","Send digests and anomaly alerts to email, Slack or a webhook.","$('nt-target').focus()","Add a channel");
   }catch(e){if(done())$("nt-list").innerHTML=screenError(e,"loadNotifications()");}
@@ -1478,7 +1496,7 @@ async function loadSchedules(){
       </div>
       <label style="font-size:12px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px">
         <input type="checkbox" ${j.enabled?"checked":""} onchange="schToggle(${esc(j.id)},this.checked)"> Enabled</label>
-      <button class="ico" title="Delete schedule" aria-label="Delete schedule" onclick="schDelete(${esc(j.id)})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">${ICON_PATHS.trash}</svg></button>
+      <button class="write-only ico" title="Delete schedule" aria-label="Delete schedule" onclick="schDelete(${esc(j.id)})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">${ICON_PATHS.trash}</svg></button>
     </div>`).join(""):screenState("No schedules yet","Schedule digests, anomaly scans or board pack emails to run automatically.","$('sch-kind').focus()","Add a schedule");
 }
 async function schCreate(){
@@ -1543,7 +1561,7 @@ async function loadAdmin(){
     $("admin-rows").innerHTML=users.map(u=>`<tr>
       <td><b>${esc(u.email)}</b></td>
       <td style="color:var(--mut2);font-family:ui-monospace,Menlo,monospace;font-size:12px">${esc(u.user_id).slice(0,18)}…</td>
-      <td><select aria-label="Role for ${esc(u.email)}" onchange="setUserRole('${esc(u.user_id)}',this.value)">
+      <td><select class="write-only" aria-label="Role for ${esc(u.email)}" onchange="setUserRole('${esc(u.user_id)}',this.value)">
         ${["analyst","executive","admin"].map(r=>`<option ${u.role===r?"selected":""}>${r}</option>`).join("")}</select></td>
       <td style="color:var(--mut);white-space:nowrap">${esc(fmtDate(u.created_at))}</td></tr>`).join("")
       ||screenRow(screenState("No users yet","People who sign in appear here so you can manage their access.","inviteUser()","Invite a user"),4);
@@ -1566,23 +1584,23 @@ async function loadDatasets(){
   activeDatasetObj=active||null;
   // The active domain drives funnel rendering (marketing defines an ordered funnel).
   try{activeDomain=await api("/domain");}catch{activeDomain=null;}
-  $("ws-name").textContent=active?active.name:"No dataset";
+  $("ws-name").textContent=active?datasetDisplayName(active.name):"No dataset";
   const rows=d.datasets.map(ds=>`
     <div class="ws-item">
       <button class="ws-choice" onclick="activateDataset(${esc(ds.id)})">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${ds.is_active?'var(--accent)':'var(--mut2)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-5"/></svg>
-      <span class="ws-info"><b>${esc(ds.name)}</b><span>${esc(datasetCaption(ds))}</span></span></button>
-      <span class="ws-kebab exec-hide">
-        <button aria-label="Options for ${esc(ds.name)}" aria-haspopup="true" aria-expanded="false" aria-controls="kmenu-${ds.id}" onclick="toggleKebab(event,${ds.id})">⋯</button>
+      <span class="ws-info"><b>${esc(datasetDisplayName(ds.name))}</b><span>${esc(datasetCaption(ds))}</span></span></button>
+      <span class="ws-kebab write-only">
+        <button aria-label="Options for ${esc(datasetDisplayName(ds.name))}" aria-haspopup="true" aria-expanded="false" aria-controls="kmenu-${ds.id}" onclick="toggleKebab(event,${ds.id})">⋯</button>
         <div class="ws-kmenu" id="kmenu-${ds.id}">
-          <button onclick="event.stopPropagation();renameDataset(${ds.id})">Rename</button>
-          <button class="danger" onclick="event.stopPropagation();deleteDataset(${ds.id})">Delete</button>
+          <button class="write-only" onclick="event.stopPropagation();renameDataset(${ds.id})">Rename</button>
+          <button class="write-only danger" onclick="event.stopPropagation();deleteDataset(${ds.id})">Delete</button>
         </div>
       </span>
     </div>`).join("")||'<div class="ws-item">No datasets</div>';
-  $("ws-menu").innerHTML=rows+`<button class="ws-newbtn exec-hide" onclick="event.stopPropagation();$('ws-menu').classList.remove('open');nav('import')">+ Import new dataset</button>`;
+  $("ws-menu").innerHTML=rows+`<button class="ws-newbtn write-only" onclick="event.stopPropagation();$('ws-menu').classList.remove('open');nav('import')">+ Import new dataset</button>`;
 }
-function dsName(id){const d=(datasetsCache||[]).find(x=>x.id===id);return d?d.name:"this dataset";}
+function dsName(id){const d=(datasetsCache||[]).find(x=>x.id===id);return d?datasetDisplayName(d.name):"this dataset";}
 function toggleKebab(e,id){e.stopPropagation();
   document.querySelectorAll(".ws-kmenu").forEach(m=>{if(m.id!=="kmenu-"+id)m.classList.remove("open");});
   const open=$("kmenu-"+id).classList.toggle("open");
@@ -1590,7 +1608,7 @@ function toggleKebab(e,id){e.stopPropagation();
   if(open)$("kmenu-"+id).querySelector("button")?.focus();
 }
 async function renameDataset(id){
-  const cur=dsName(id);
+  const cur=(datasetsCache.find(d=>d.id===id)||{}).name||"";
   const name=await modalInput("Rename dataset",{label:"Dataset name",value:cur,okLabel:"Rename",required:true});
   if(name==null||name===cur)return;
   try{await api(`/datasets/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});toast("Renamed");await loadDatasets();}
@@ -1613,7 +1631,7 @@ async function loadWorkspaces(){
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${w.id===activeWorkspaceId?'var(--accent)':'var(--mut2)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 21V8l6-4 6 4v13"/></svg>
       <span class="ws-info"><b>${esc(w.name)}</b><span style="text-transform:capitalize">${esc(w.role)}</span></span>
     </button>`).join("")
-    +`<button class="ws-newbtn" onclick="createWorkspaceUI()">+ New workspace</button>`;
+    +`<button class="write-only ws-newbtn" onclick="createWorkspaceUI()">+ New workspace</button>`;
 }
 function toggleWsp(e){e.stopPropagation();$("wsp-menu").classList.toggle("open");}
 async function switchWorkspace(id){
@@ -1731,7 +1749,7 @@ async function loadPeriods(){
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:52px;height:52px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
       <div style="font-size:17px;font-weight:800;color:var(--ink);margin:14px 0 6px">Import your financials</div>
       <div style="max-width:34ch;margin:0 auto 18px">Drop in a CSV or Excel export — any layout. We detect your columns and draft variance commentary in minutes.</div>
-      <button class="btn primary exec-hide" onclick="nav('datahub')" style="font-size:14px;padding:11px 20px">Import your first file</button>
+      <button class="btn primary write-only" onclick="nav('datahub')" style="font-size:14px;padding:11px 20px">Import your first file</button>
     </div>`;
   }
 }
@@ -1805,7 +1823,7 @@ function maybePromptGenerate(){
     el.style.display="";el.className="banner info";
     el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>
       <span>No narratives for ${esc(fmtPeriod(currentPeriod,"long"))} yet.</span>
-      <button class="btn sm primary exec-hide" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Generate narratives</button>
+      <button class="btn sm primary write-only" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Generate narratives</button>
       <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">${XICON}</button>`;
   }
 }
@@ -1852,7 +1870,7 @@ async function renderFunnel(){
   el.innerHTML=`<div class="funnel">
     <div class="funnel-head">
       <div><h3>Acquisition funnel</h3><div class="fh-sub">${esc(fmtPeriodTitle(currentPeriod).replace(" close","").replace(" overview",""))} · overall ${f.overall_conversion!=null?f.overall_conversion+"% end-to-end":"—"}</div></div>
-      <div class="fh-sub">${leakLine} ${activeDomain.narrative_style?'· <button class="txtact acc" onclick="explainFunnel(this)">Explain funnel</button>':""}</div>
+      <div class="fh-sub">${leakLine} ${activeDomain.narrative_style?'· <button class="write-only txtact acc" onclick="explainFunnel(this)">Explain funnel</button>':""}</div>
     </div>
     <div class="funnel-stages">${cards}</div>
     <div class="funnel-narr" id="funnel-narr" style="display:none"></div>
@@ -1945,7 +1963,7 @@ function narrativeBlock(f,q,i){
   let html=`<div class="narr ${narrState}">${f.narrative?hl(f.narrative,q):"No narrative yet — generate one to explain this movement."}</div>`;
   if(f.faithfulness==="failed")
     // The guard caught an unverifiable number. Surface it — do NOT hide it.
-    html+=`<div class="banner err" style="margin:8px 0 0;font-size:12px;padding:8px 10px">${warnIcon()}<span>Numbers couldn't be verified — review manually.</span><button class="btn sm exec-hide" style="margin-left:auto;padding:3px 9px" onclick="event.stopPropagation();retryCard(${i})">Retry</button></div>`;
+    html+=`<div class="banner err" style="margin:8px 0 0;font-size:12px;padding:8px 10px">${warnIcon()}<span>Numbers couldn't be verified — review manually.</span><button class="btn sm write-only" style="margin-left:auto;padding:3px 9px" onclick="event.stopPropagation();retryCard(${i})">Retry</button></div>`;
   return html;
 }
 // Index-based wrappers so no user string is interpolated into inline onclick.
@@ -2030,7 +2048,7 @@ function queueRow(f,i,q){
   const g=queueGroup(f);
   if(!f.has_data)return `<div class="qi nodata"><i class="dot" aria-hidden="true"></i><span class="qn">${hl(f.metric,q)}</span><span class="qsub">No data for ${esc(fmtPeriod(currentPeriod))}</span></div>`;
   const plan=f.deltas.budget_var_pct,v=plan!=null?plan:f.deltas.mom_pct;
-  const vLabel=plan!=null?"vs plan":f.aggregated?(granularity==="year"?"YoY":"QoQ"):"MoM";
+  const vLabel=plan!=null?"vs plan":priorPeriodLabel();
   const good=v==null||v===0?null:(f.direction_good==="down"?v<0:v>0);
   const tone=good===null?"":good?"c-ok":"c-exc";
   const state=generatingSet.has(f.metric)?"Drafting…"
@@ -2187,12 +2205,12 @@ function openDetail(i,{fromRoute=false}={}){
   markQueueSelection();
   $("d-title").textContent=f.metric;const dg=f.direction_good==="down";
   $("d-sub").innerHTML=`<span class="cat-dot" style="${catStyle(f.category)}"></span>${esc(f.category||"")} · ${esc(fmtPeriod(currentPeriod,"long"))} · <span class="nbi-num">${fmt(f.value,f.unit)}</span> `
-    +deltaChip("MoM",f.deltas.mom_pct,dg)+" "+deltaChip("vs plan",f.deltas.budget_var_pct,dg)
+    +deltaChip(priorPeriodLabel(),f.deltas.mom_pct,dg)+" "+deltaChip("vs plan",f.deltas.budget_var_pct,dg)
     +(f.is_anomaly?' <span class="anom">Anomaly</span>':"");
   const cd=f.chart_data||{};
   const bva=cd.budget_vs_actual||{};
   $("d-figs").innerHTML=[["Actual",f.unavailable?"—":fmt(f.value,f.unit)],["Budget",bva.budget!=null?fmt(bva.budget,f.unit):"—"],
-    ["Vs plan",pct(f.deltas.budget_var_pct)||"—"],["Vs prior period",pct(f.deltas.mom_pct)||"—"],["Year on year",pct(f.deltas.yoy_pct)||"—"]]
+    ["Vs plan",pct(f.deltas.budget_var_pct)||"—"],[priorPeriodLabel(),pct(f.deltas.mom_pct)||"—"],["vs last year",pct(f.deltas.yoy_pct)||"—"]]
     .map(([k,val])=>`<div><dt>${k}</dt><dd class="nbi-num">${esc(val)}</dd></div>`).join("");
   $("d-regen").textContent=f.narrative?"Regenerate":"Draft commentary";
   // Restore canvases (an earlier "no data" state may have replaced them with text).
@@ -2422,10 +2440,11 @@ function renderDigest(d){
       <div class="dg-figs">
         ${v!=null?`<span class="nbi-num ${v<0?"c-exc":"c-ok"}">${esc(fmt(v,"USD"))} vs plan (${esc(pct(it.budget_var_pct)||"–")})</span>`:""}
         ${it.faithfulness==="passed"?seal(true):it.faithfulness==="failed"?seal(false):""}
-        ${it.report_id?`<span class="dg-act"><button class="txtact" onclick="feedback(${esc(it.report_id)},'accepted',this)">Accept</button><button class="txtact bad" onclick="rejectNarr(${esc(it.report_id)},this)">Reject</button></span>`:""}
+        ${it.report_id?`<span class="dg-act write-only"><button class="write-only txtact" onclick="feedback(${esc(it.report_id)},'accepted',this)">Accept</button><button class="write-only txtact bad" onclick="rejectNarr(${esc(it.report_id)},this)">Reject</button></span>`:""}
       </div></div></section>`;}).join("")||screenState("No movers with budget data","This saved digest has no budget comparisons. Add budget data to explain the largest movements.","nav('data')","Import budget data"));
 }
 async function loadDigest(force){
+  if(force&&!canReview())return;
   if(digestGenerating)return;
   if(!force)return loadDigestHistory();
   digestGenerating=true;const btn=$("digest-generate");if(btn)btn.disabled=true;
@@ -2455,8 +2474,15 @@ async function loadDigestHistory(keepCurrent=false){
   try{
     const runs=await api("/digests/history");if(!done()||revision!==digestRevision)return;
     const mine=granularity==="month"&&currentPeriod?runs.find(r=>r.period===currentPeriod):runs[0];
-    if(!keepCurrent)$("digest-list").innerHTML=mine?renderDigest(mine)
-      :screenState(`No saved digest for ${fmtPeriod(currentPeriod)} yet`,"An executive digest explains the largest budget movements in this close, with every figure checked.","loadDigest(true)","Generate a new digest");
+    $("digest-generate").style.display=mine?"":"none";
+    if(!keepCurrent){
+      if(mine)$("digest-list").innerHTML=renderDigest(mine);
+      else if(canReview())$("digest-list").innerHTML=screenState(`No saved digest for ${fmtPeriod(currentPeriod)} yet`,"An executive digest explains the largest budget movements in this close, with every figure checked.","loadDigest(true)","Generate a new digest");
+      else{
+        const s=closeStateFor(currentPeriod)||closeProgress(currentFacts,false);
+        $("digest-list").innerHTML=screenState(`${fmtPeriod(currentPeriod,"long")}'s digest isn't ready yet`,`${s.approved} of ${s.n} KPIs are approved. Leadership gets the digest once the close is approved.`,"nav('kpis')","Open KPIs");
+      }
+    }
     const past=runs.filter(r=>r!==mine);
     $("digest-history").innerHTML=past.length?'<h2 class="digest-history-title">Earlier digests</h2>'+past.map(r=>`<button class="dg-past" onclick="selectClose('${esc(r.period)}')">
       <b>${esc(fmtPeriod(r.period))}</b><small>${esc(fmtDate(r.created_at))} · ${esc(r.trigger)}${r.cost_usd!=null?` · ${esc(fmt(r.cost_usd,"USD"))}`:""}</small>
@@ -2495,7 +2521,7 @@ function renderContextList(){
     const on=d.id===ctxSel;
     return `<div class="ctx-item${on?" on":""}">
       <button class="ctx-open" onclick="ctxOpen(${esc(d.id)})"${on?' aria-current="true"':""}><b>${esc(d.title)}</b><small>${esc(d.type.replace("_"," "))} · ${esc(ctxWhen(d))}</small></button>
-      <button class="row-del exec-hide" aria-label="Delete ${esc(d.title)}" onclick="delContext(${esc(d.id)})">${XICON}</button></div>`;
+      <button class="row-del write-only" aria-label="Delete ${esc(d.title)}" onclick="delContext(${esc(d.id)})">${XICON}</button></div>`;
   }).join("")||`<p class="ctx-none">No notes dated in ${esc(fmtPeriod(currentPeriod))}. <button class="linkbtn" onclick="ctxScope='all';renderContextList()">Show all notes</button></p>`;
   paintContextDetail();
 }
@@ -2581,7 +2607,7 @@ async function onImportModeChange(){
   if(importMode==="join"){
     try{
       const d=await api("/datasets");
-      $("imp-target").innerHTML=(d.datasets||[]).map(x=>`<option value="${esc(x.id)}">${esc(x.name)} · ${esc(datasetCaption(x))}</option>`).join("")
+      $("imp-target").innerHTML=(d.datasets||[]).map(x=>`<option value="${esc(x.id)}">${esc(datasetDisplayName(x.name))} · ${esc(datasetCaption(x))}</option>`).join("")
         ||'<option value="">No datasets yet — import actuals first</option>';
     }catch{}
   }
@@ -2763,10 +2789,10 @@ async function confirmKpis(){
   if(el){el.style.display="";el.className="banner ok";
     el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
       <span>Imported · ${plural(li.rows||0,"row")} · ${plural(kpis.length,"KPI")} · ${plural(li.periods||0,"period")}.</span>
-      <button class="btn sm primary" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Generate narratives</button>
+      <button class="write-only btn sm primary" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Generate narratives</button>
       <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">${XICON}</button>`;
   }
-  }catch(e){$("imp-result").innerHTML=`<div class="banner err">Import failed to finalize: ${esc(e.message)} <button class="btn sm" onclick="confirmKpis()">Retry</button></div>`;}
+  }catch(e){$("imp-result").innerHTML=`<div class="banner err">Import failed to finalize: ${esc(e.message)} <button class="write-only btn sm" onclick="confirmKpis()">Retry</button></div>`;}
   finally{kpiSaving=false;updateKpiSelection();}
 }
 

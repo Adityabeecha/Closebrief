@@ -110,3 +110,14 @@ def test_pack_uses_closing_ring_fonts_and_checked_figures():
     assert 'Every figure computed in code and checked' in doc
     assert '1 of 1 figures checked' in doc and '<mark' in doc
     assert 'size:A4 portrait' in doc
+
+
+@pytest.mark.parametrize("stored,display", [
+    ('store_channel_pl_monthly.csv','Store channel pl monthly'),
+    ('FY-2026_ACTUALS.XLSX','Fy 2026 actuals'),('Board Actuals','Board Actuals'),
+])
+def test_board_pack_uses_readable_dataset_name(stored,display):
+    doc=build_board_pack_html([_fact('Revenue',102000)],'2026-06',{'dataset_name':stored})
+    assert display in doc
+    if stored != display:
+        assert stored not in doc

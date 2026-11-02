@@ -42,7 +42,24 @@ frame.addEventListener('load', async () => {{
   const doc = frame.contentDocument;
   const win = frame.contentWindow;
   let result;
-  if ('{target}' === 'notification-channels') {{
+  if ('{target}' === 'demo-header') {{
+    win.hideLogin();doc.body.classList.add('demo');
+    doc.getElementById('month-head').style.display='';
+    result={{titleTop:doc.getElementById('mh-title').getBoundingClientRect().top,
+            navBottom:doc.querySelector('.mtop').getBoundingClientRect().bottom}};
+  }} else if ('{target}' === 'detail-polish') {{
+    win.renderRootCause({{unit:'USD',primary_factor:'Budget variance'}});
+    result=['light','dark'].map(theme=>{{
+      doc.documentElement.setAttribute('data-theme',theme);
+      const input=doc.getElementById('d-qa'),style=win.getComputedStyle(input),placeholder=win.getComputedStyle(input,'::placeholder');
+      return {{theme,bg:style.backgroundColor,text:style.color,placeholder:placeholder.color,opacity:placeholder.opacity,
+        blocks:[doc.getElementById('d-grounding'),doc.querySelector('#d-rootcause > *')].map(el=>{{
+          const cs=win.getComputedStyle(el);
+          return {{background:cs.backgroundColor,shadow:cs.boxShadow,radius:cs.borderRadius,
+                   top:cs.borderTopWidth,left:cs.borderLeftWidth,right:cs.borderRightWidth,bottom:cs.borderBottomWidth}};
+        }})}};
+    }});
+  }} else if ('{target}' === 'notification-channels') {{
     win.hideLogin();
     win.api = async path => path === '/notifications/configs'
       ? [{{id:1,channel:'email',enabled:true,config:{{recipients:['finance.operations@example.com','chief.finance@example.com']}}}}]
@@ -465,3 +482,27 @@ def test_real_notification_and_schedule_rows_leave_room_for_readable_details(wid
     assert layout["scrollWidth"] <= layout["viewportWidth"]
     assert len(layout["bodies"]) == 2
     assert all(body >= 200 for body in layout["bodies"]), layout
+
+
+
+def test_detail_qa_contrast_and_flat_inner_sections():
+    import re
+    def luminance(color):
+        rgb=[int(x)/255 for x in re.findall(r"\d+",color)[:3]]
+        linear=[v/12.92 if v <= .04045 else ((v+.055)/1.055)**2.4 for v in rgb]
+        return sum(v*w for v,w in zip(linear,[.2126,.7152,.0722]))
+    for theme in _render_probe(375,'detail-polish'):
+        bg=luminance(theme['bg'])
+        assert float(theme['opacity']) == 1
+        for field in ['text','placeholder']:
+            fg=luminance(theme[field])
+            assert (max(bg,fg)+.05)/(min(bg,fg)+.05) >= 4.5, theme
+        for block in theme['blocks']:
+            assert block == {'background':'rgba(0, 0, 0, 0)','shadow':'none','radius':'0px',
+                             'top':'1px','left':'0px','right':'0px','bottom':'0px'}, theme
+
+
+
+def test_demo_mobile_header_does_not_cover_month_title():
+    layout=_render_probe(375,'demo-header')
+    assert layout['titleTop'] >= layout['navBottom'], layout
