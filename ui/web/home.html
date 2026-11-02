@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Closebrief — variance commentary, ticked and tied</title>
+<meta name="description" content="Closebrief computes every KPI in code and drafts the month-end variance commentary. The AI writes the words; it never computes the numbers, and every figure is checked against its source.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Closebrief — variance commentary, ticked and tied">
+<meta property="og:description" content="Every KPI computed in code. Commentary drafted for review. Every figure in the prose checked against the computed facts.">
+<meta property="og:url" content="https://closebrief.onrender.com">
+<meta name="twitter:card" content="summary">
+<link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="6" fill="%231e6e50"/><path d="M8 17.5l5.2 5.3L24.5 9" fill="none" stroke="white" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'>
+<link rel="preload" as="font" type="font/woff2" href="/vendor/fonts/schibsted-grotesk.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="/vendor/fonts/redhat-mono.woff2" crossorigin>
+<script>
+  // Links sent before the home page existed pointed at /#metric=… or /#review.
+  // Forward them to the app so old Slack and email links keep working.
+  (function(){var h=location.hash;if(/^#(metric=|dashboard|digest|context|analytics|review|import|costs|notifications|admin)\b/.test(h))location.replace("/app"+h);})();
+</script>
+<link rel="stylesheet" href="/theme.css">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:var(--font-sans);color:var(--ink);font-size:17px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh}
+  a{color:inherit}
+  .fig,.num,table.sched td.n,.ref{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+  .ref{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+  .wrap{max-width:1344px;margin:0 auto;padding:0 48px}
+  :focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:2px}
+  .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .skip{position:absolute;left:16px;top:-60px;background:var(--green);color:var(--on-green);padding:10px 16px;font-weight:700;border-radius:var(--radius);z-index:10}
+  .skip:focus{top:12px}
+
+  /* ---- top rule bar ---- */
+  .bar{border-bottom:2px solid var(--rule-strong);background:var(--pad)}
+  .bar .wrap{display:flex;align-items:center;gap:28px;min-height:76px}
+  .brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+  .brand b{font-size:24px;font-weight:800;letter-spacing:-.025em}
+  .brand svg{width:30px;height:30px;flex:none}
+  .bar nav{margin-left:auto;display:flex;align-items:center;gap:6px}
+  .bar nav a.link{font-size:15px;font-weight:600;color:var(--ink-2);text-decoration:none;padding:10px 12px;border-radius:var(--radius)}
+  .bar nav a.link:hover{color:var(--ink);background:var(--green-wash)}
+  .btn{display:inline-flex;align-items:center;gap:10px;font-family:var(--font-sans);font-weight:800;text-decoration:none;border-radius:var(--radius);
+    background:var(--green);color:var(--on-green);border:2px solid var(--green);transition:background-color .15s var(--ease),border-color .15s var(--ease)}
+  .btn:hover{background:var(--green-deep);border-color:var(--green-deep)}
+  .btn:active{transform:translateY(1px)}
+  .btn svg{width:18px;height:18px}
+  .btn.md{font-size:16px;padding:12px 20px;margin-left:10px}
+  .btn .short{display:none}
+  .btn.lg{font-size:19px;padding:17px 26px}
+  .btn.quiet{background:transparent;color:var(--ink);border-color:var(--ink)}
+  .btn.quiet:hover{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+
+  /* ---- working-paper header strip ---- */
+  .wp-head{display:grid;grid-template-columns:repeat(6,auto);justify-content:space-between;gap:12px 28px;padding:18px 0 14px;border-bottom:1px solid var(--rule)}
+  .wp-head div{display:flex;flex-direction:column;gap:2px}
+  .wp-head dd{font-size:15px;font-weight:600}
+  .wp-head dd.blank{color:var(--ink-3)}
+
+  /* ---- lead schedule (first viewport) ---- */
+  .lead{display:grid;grid-template-columns:minmax(0,1.62fr) minmax(0,1fr);gap:56px;padding:28px 0 22px}
+  .side{display:flex;flex-direction:column;gap:26px}
+  h1{font-size:clamp(42px,4.5vw,66px);line-height:.96;letter-spacing:-.04em;font-weight:850;max-width:19ch;text-wrap:balance}
+  h1 em{font-style:normal;color:var(--green)}
+  .lede{font-size:19px;line-height:1.5;color:var(--ink-2);max-width:56ch;margin:16px 0 24px}
+  table.sched{width:100%;border-collapse:collapse}
+  table.sched caption{caption-side:top;text-align:left}
+  table.sched th{font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--green);
+    text-align:right;padding:0 12px 9px;border-bottom:2px solid var(--rule-strong)}
+  table.sched th:first-child,table.sched td:first-child{text-align:left;padding-left:2px}
+  table.sched td{padding:11px 12px;border-bottom:1px solid var(--rule);font-size:18px}
+  table.sched td:first-child{font-weight:650}
+  table.sched td.n{text-align:right;font-size:18px;font-weight:500;white-space:nowrap}
+  table.sched td.t{width:58px;text-align:right;white-space:nowrap}
+  table.sched tr{transition:background-color .2s var(--ease)}
+  table.sched tr.lit{background:var(--green-wash)}
+  table.sched tr.exc td{color:var(--red-pencil)}
+  table.sched tr.exc.lit{background:var(--red-wash)}
+  .tick{display:inline-block;width:26px;height:22px;vertical-align:-5px;color:var(--green)}
+  .tick.x{color:var(--red-pencil)}
+  /* Stroke props sit on the outer svg: <use> instances only inherit, so
+     selectors can't reach the symbol's path. Dash offset inherits too. */
+  .tick{fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:40;stroke-dashoffset:0;overflow:visible}
+  .tick-ref{font-family:var(--font-mono);font-size:12px;font-weight:700;color:inherit;vertical-align:super;margin-left:1px}
+  .draw tbody .tick{animation:pencil .5s var(--ease) both;animation-delay:calc(var(--i,0) * 140ms + 350ms)}
+  @keyframes pencil{from{stroke-dashoffset:40}to{stroke-dashoffset:0}}
+  tr.lit .tick{animation:pencil .45s var(--ease) both}
+
+  /* the reviewer's note: a loose sheet clipped to the schedule */
+  .note{background:var(--sheet);border:1px solid var(--rule);box-shadow:var(--lift);padding:0 28px;align-self:start;position:relative}
+  .sheet-head{display:flex;justify-content:space-between;gap:12px;margin:0 -28px;padding:12px 28px;border-bottom:2px solid var(--rule-strong);background:var(--pad-deep)}
+  .note h2{font-size:27px;line-height:1.15;letter-spacing:-.02em;font-weight:800;margin:20px 0 12px;text-wrap:balance}
+  .note p{font-size:18px;line-height:1.6;color:var(--ink-2)}
+  .note p.draft{text-decoration:underline dashed var(--ink-3);text-decoration-thickness:1px;text-underline-offset:6px}
+  .note a.fig{font-weight:600;color:var(--ink);text-decoration:none;border-radius:2px;padding:0 1px;background:linear-gradient(var(--green-wash),var(--green-wash)) no-repeat 0 100%/100% 0;transition:background-size .2s var(--ease)}
+  .note a.fig:hover,.note a.fig:focus-visible{background-size:100% 100%}
+  .note a.fig.exc{color:var(--red-pencil);background-image:linear-gradient(var(--red-wash),var(--red-wash))}
+  .note a.fig sup{font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--green);margin-left:1px}
+  .note a.fig.exc sup{color:var(--red-pencil)}
+  .signoff{display:grid;grid-template-columns:repeat(3,1fr);margin:22px -28px 0;border-top:2px solid var(--rule-strong)}
+  .signoff div{padding:12px 0 14px 28px;display:flex;flex-direction:column;gap:3px}
+  .signoff div+div{border-left:1px solid var(--rule)}
+  .signoff b{font-size:17px}
+  .signoff b.blank{color:var(--ink-3);font-weight:500}
+
+  /* legend: the core promise, set as the schedule's footer rule */
+  .legend{display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px;border-top:2px solid var(--rule-strong);padding:16px 0 30px}
+  .legend strong{font-size:clamp(18px,1.5vw,21px);letter-spacing:-.015em;margin-right:auto;font-weight:800}
+  .legend span{display:inline-flex;align-items:center;gap:8px;font-size:15px;color:var(--ink-2)}
+  .legend .tick{width:22px;height:18px}
+  .cta-row{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+  .cta-row small{font-size:14px;color:var(--ink-3)}
+
+  /* ---- sections below: more schedules, never feature cards ---- */
+  section.ws{padding:84px 0;border-top:2px solid var(--rule-strong)}
+  section.ws h2{font-size:clamp(34px,3.6vw,52px);line-height:1;letter-spacing:-.035em;font-weight:850;max-width:18ch;text-wrap:balance}
+  section.ws .intro{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:56px;align-items:end;margin-bottom:38px}
+  section.ws .intro p{font-size:19px;color:var(--ink-2);max-width:48ch}
+  table.proc{width:100%;border-collapse:collapse;background:var(--sheet);border:1px solid var(--rule);box-shadow:var(--lift)}
+  table.proc th{font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--green);text-align:left;padding:14px 18px;border-bottom:2px solid var(--rule-strong);background:var(--pad-deep)}
+  table.proc td{padding:18px;border-bottom:1px solid var(--rule);vertical-align:top;font-size:16.5px;color:var(--ink-2)}
+  table.proc tr:last-child td{border-bottom:none}
+  table.proc td.ref{font-size:13px;color:var(--green);padding-top:20px;width:72px}
+  table.proc td b{display:block;font-size:19px;color:var(--ink);margin-bottom:2px;letter-spacing:-.01em}
+  table.proc td.you{color:var(--ink-3)}
+
+  .guard{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:56px;align-items:start}
+  .guard ol{list-style:none;counter-reset:g;display:flex;flex-direction:column;gap:22px;margin-top:30px}
+  .guard li{counter-increment:g;display:grid;grid-template-columns:44px 1fr;gap:4px 14px}
+  .guard li:before{content:counter(g);grid-row:span 2;font-family:var(--font-mono);font-weight:700;font-size:15px;color:var(--green);border:2px solid var(--green);border-radius:50%;width:34px;height:34px;display:grid;place-items:center}
+  .guard li b{font-size:19px;letter-spacing:-.01em}
+  .guard li span{color:var(--ink-2)}
+  .test{background:var(--sheet);border:1px solid var(--rule);box-shadow:var(--lift)}
+  .test header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 22px;border-bottom:2px solid var(--rule-strong);background:var(--pad-deep)}
+  .test .draft{padding:24px 22px 8px;font-size:20px;line-height:1.75}
+  .test mark{background:none;color:inherit;font-family:var(--font-mono);font-weight:600;border-bottom:2px solid var(--green);padding:0 2px}
+  .test mark.bad{border-bottom-color:var(--red-pencil);color:var(--red-pencil);text-decoration:line-through;text-decoration-thickness:2px}
+  .test dl{display:grid;grid-template-columns:auto auto 1fr;gap:0;padding:8px 22px 20px}
+  .test dl div{display:contents}
+  .test dt,.test dd{padding:11px 0;border-top:1px solid var(--rule)}
+  .test dt{font-family:var(--font-mono);font-weight:600;padding-right:18px}
+  .test dd.mark{padding-right:14px}
+  .test dd.why{color:var(--ink-2);font-size:15.5px}
+  .test .bad,.test dd.bad{color:var(--red-pencil)}
+  .test footer{border-top:2px solid var(--rule-strong);padding:14px 22px;font-size:15px;color:var(--ink-2);display:flex;gap:28px;flex-wrap:wrap}
+  .test footer span{display:inline-flex;gap:10px;align-items:baseline}
+  .test footer i{font-style:normal;text-decoration:underline dashed var(--ink-3);text-underline-offset:5px}
+  .test footer u{text-decoration:underline solid var(--ink);text-underline-offset:5px}
+
+  table.ctl{width:100%;border-collapse:collapse;background:var(--sheet);border:1px solid var(--rule);box-shadow:var(--lift)}
+  table.ctl th{font-family:var(--font-mono);font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--green);text-align:left;padding:14px 18px;border-bottom:2px solid var(--rule-strong);background:var(--pad-deep)}
+  table.ctl th.r,table.ctl td.r{text-align:right}
+  table.ctl td{padding:18px;border-bottom:1px solid var(--rule);vertical-align:top;font-size:16.5px;color:var(--ink-2)}
+  table.ctl tr:last-child td{border-bottom:none}
+  table.ctl td b{display:block;font-size:19px;color:var(--ink);letter-spacing:-.01em}
+  table.ctl td.res{font-family:var(--font-mono);font-size:22px;font-weight:600;color:var(--ink);white-space:nowrap}
+  table.ctl td.res .tick{margin-left:8px}
+  .evi-note{margin-top:18px;font-size:15.5px;color:var(--ink-3);max-width:80ch}
+  .evi-note code{white-space:nowrap;font-family:var(--font-mono);font-size:14px;color:var(--ink);background:var(--pad-deep);padding:2px 6px;border-radius:3px}
+
+  .close{padding:84px 0 40px;border-top:2px solid var(--rule-strong)}
+  .close .sheetwide{background:var(--sheet);border:1px solid var(--rule);box-shadow:var(--lift);display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
+  .close .sheetwide>div{padding:38px 40px}
+  .close .sheetwide>div+div{border-left:1px solid var(--rule);display:flex;flex-direction:column;justify-content:center;gap:16px}
+  .close h2{font-size:clamp(34px,3.6vw,52px);line-height:1;letter-spacing:-.035em;font-weight:850;max-width:16ch}
+  .close p{font-size:18px;color:var(--ink-2);margin-top:16px;max-width:44ch}
+  .close .signoff{margin:28px -40px -38px}
+  .close .signoff div{padding-left:40px}
+  footer.foot{padding:26px 0 40px;display:flex;flex-wrap:wrap;gap:12px 28px;font-size:14px;color:var(--ink-3)}
+  footer.foot a{color:var(--ink-2);display:inline-block;padding:8px 0;margin:-8px 0}
+
+  @media (max-width:1100px){
+    .lead{grid-template-columns:1fr;gap:34px}
+    .note{max-width:640px}
+    .wp-head{grid-template-columns:repeat(3,auto)}
+    section.ws .intro,.guard{grid-template-columns:1fr;gap:22px}
+  }
+  @media (max-width:720px){
+    body{font-size:16px}
+    .wrap{padding:0 16px}
+    .bar .wrap{min-height:64px;gap:10px}
+    .brand b{font-size:21px}
+    .bar nav a.link.hide-sm{display:none}
+    .btn.md{font-size:15px;padding:11px 14px;margin-left:4px;white-space:nowrap}
+    .btn.md .long{display:none}.btn.md .short{display:inline}
+    .bar nav a.link{white-space:nowrap}
+    .wp-head .sm-hide{display:none}
+    .wp-head{grid-template-columns:repeat(2,minmax(0,1fr));justify-content:stretch}
+    .lead{padding-top:24px}
+    .lede{font-size:17px}
+    table.sched th{padding:0 6px 8px;font-size:11px;letter-spacing:.08em}
+    table.sched td{padding:10px 6px;font-size:15.5px}
+    table.sched td.n{font-size:15px}
+    table.sched .col-budget{display:none}
+    table.sched td.t{width:40px}
+    .note{padding:0 18px}
+    .sheet-head{margin:0 -18px;padding:12px 18px}
+    .signoff{margin:20px -18px 0}
+    .signoff div{padding-left:18px}
+    .legend{padding-bottom:22px}
+    .legend strong{flex-basis:100%}
+    section.ws{padding:56px 0}
+    table.proc thead{display:none}
+    table.proc,table.proc tbody,table.proc tr,table.proc td{display:block;width:100%}
+    table.proc tr{border-bottom:1px solid var(--rule);padding:6px 0}
+    table.proc td{border:none;padding:6px 16px}
+    table.proc td.ref{padding-top:14px}
+    table.proc td.you:before{content:"Your part: ";font-weight:700;color:var(--ink-2)}
+    .test dl{grid-template-columns:auto 1fr}
+    .test dd.why{grid-column:1/-1;border-top:none;padding-top:0}
+    table.ctl thead{display:none}
+    table.ctl,table.ctl tbody,table.ctl tr,table.ctl td{display:block;width:100%}
+    table.ctl tr{border-bottom:1px solid var(--rule);padding:6px 0}
+    table.ctl td{border:none;padding:6px 16px}
+    table.ctl td.r{text-align:left}
+    .close .sheetwide{grid-template-columns:1fr}
+    .close .sheetwide>div{padding:28px 18px}
+    .close .sheetwide>div+div{border-left:none;border-top:1px solid var(--rule)}
+    .close .signoff{margin:24px -18px -28px}
+    .close .signoff div{padding-left:18px}
+    .btn.lg{font-size:17px;padding:15px 20px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*:before,*:after{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body class="pad-ground">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="t-ok" viewBox="0 0 26 22"><path d="M3.5 12.2c1.9 1.4 3.6 3.3 5.2 5.6C12.4 11 16.8 6.2 22.6 3.4"/></symbol>
+  <symbol id="t-trace" viewBox="0 0 26 22"><path d="M4 16.5c2.6-4.6 5.6-8.6 9-12 3 3.6 5.8 7.6 8.6 12"/></symbol>
+  <symbol id="t-x" viewBox="0 0 26 22"><path d="M5.5 4.5c4.7 4 9.4 8.4 14.6 13.3M20.2 4.2C15.3 8.4 10.6 13 5.8 18"/></symbol>
+  <symbol id="arrow" viewBox="0 0 20 20"><path d="M3 10h13M11 5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+<a class="skip" href="#lead">Skip to the schedule</a>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="brand" href="/" aria-label="Closebrief home">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="6" fill="var(--green)"/><path d="M8 17.5l5.2 5.3L24.5 9" fill="none" stroke="var(--on-green)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <b>Closebrief</b>
+    </a>
+    <nav aria-label="Main">
+      <a class="link hide-sm" href="#checked">How every figure is checked</a>
+      <a class="link" href="/app" id="nav-signin">Sign in</a>
+      <a class="btn md" href="/app?demo=1" data-cta><span class="long" data-cta-label>Open the demo close</span><span class="short" data-cta-short>Demo</span><svg aria-hidden="true"><use href="#arrow"/></svg></a>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="wrap">
+    <dl class="wp-head" aria-label="Working paper details">
+      <div><dt class="ref">Client</dt><dd>Sample Co. · demo data</dd></div>
+      <div><dt class="ref">Period</dt><dd>June 2026 close</dd></div>
+      <div class="sm-hide"><dt class="ref">Schedule</dt><dd>Lead schedule</dd></div>
+      <div><dt class="ref">W/P ref</dt><dd class="num">A-1</dd></div>
+      <div class="sm-hide"><dt class="ref">Prepared</dt><dd>Closebrief · 2 Jul</dd></div>
+      <div><dt class="ref">Reviewed</dt><dd class="blank">Waiting for you</dd></div>
+    </dl>
+
+    <div class="lead" id="lead">
+      <div>
+        <h1>Variance commentary, <em>ticked and tied.</em></h1>
+        <p class="lede">Closebrief computes every KPI from your export, drafts the month-end commentary, and checks each figure in the prose against the numbers before you see it.</p>
+        <table class="sched draw" id="sched">
+          <caption class="vh">Lead schedule, June 2026, sample data</caption>
+          <thead><tr><th scope="col">KPI</th><th scope="col">Actual</th><th scope="col" class="col-budget">Budget</th><th scope="col">Var</th><th scope="col"><span class="vh">Check</span><svg class="tick" aria-hidden="true" style="width:18px;height:15px"><use href="#t-ok"/></svg></th></tr></thead>
+          <tbody>
+            <tr id="r1" style="--i:0"><td>Net revenue</td><td class="n">$10.72M</td><td class="n col-budget">$10.40M</td><td class="n">+3.1%</td><td class="t"><svg class="tick" role="img" aria-label="Computed in code, tick 1"><use href="#t-ok"/></svg><span class="tick-ref" aria-hidden="true">1</span></td></tr>
+            <tr id="r2" style="--i:1"><td>Gross margin</td><td class="n">61.4%</td><td class="n col-budget">60.0%</td><td class="n">+1.4pt</td><td class="t"><svg class="tick" role="img" aria-label="Computed in code, tick 2"><use href="#t-ok"/></svg><span class="tick-ref" aria-hidden="true">2</span></td></tr>
+            <tr id="r3" style="--i:2"><td>Operating expense</td><td class="n">$3.18M</td><td class="n col-budget">$3.25M</td><td class="n">−2.2%</td><td class="t"><svg class="tick" role="img" aria-label="Computed in code"><use href="#t-ok"/></svg></td></tr>
+            <tr id="r4" class="exc" style="--i:3"><td>Bad debt</td><td class="n">$212K</td><td class="n col-budget">$90K</td><td class="n">+136%</td><td class="t"><svg class="tick x" role="img" aria-label="Exception past the materiality threshold, tick 3"><use href="#t-x"/></svg><span class="tick-ref" aria-hidden="true">3</span></td></tr>
+            <tr id="r5" style="--i:4"><td>Days sales outstanding</td><td class="n">41 days</td><td class="n col-budget">45 days</td><td class="n">−4 days</td><td class="t"><svg class="tick" role="img" aria-label="Computed in code"><use href="#t-ok"/></svg></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="side">
+      <aside class="note" aria-labelledby="note-title">
+        <div class="sheet-head"><span class="ref">Reviewer's note · draft</span><span class="ref">W/P A-1/1</span></div>
+        <h2 id="note-title">Revenue beat plan on enterprise pricing.</h2>
+        <p class="draft">Net revenue reached <a class="fig" href="#r1" data-row="r1">$10.72M<sup>1</sup></a>, 3.1% above budget, after the March price change. Gross margin held at <a class="fig" href="#r2" data-row="r2">61.4%<sup>2</sup></a>. Bad debt is the exception: <a class="fig exc" href="#r4" data-row="r4">$212K<sup>3</sup></a> against $90K planned, one customer default, flagged for review.</p>
+        <div class="signoff" role="group" aria-label="Sign-off">
+          <div><span class="ref">Prepared</span><b>Closebrief</b></div>
+          <div><span class="ref">Reviewed</span><b class="blank">—</b></div>
+          <div><span class="ref">Approved</span><b class="blank">—</b></div>
+        </div>
+      </aside>
+        <div class="cta-row">
+          <a class="btn lg" href="/app?demo=1" data-cta><span data-cta-label>Open the demo close</span><svg aria-hidden="true"><use href="#arrow"/></svg></a>
+          <small data-cta-note>Read-only sample data. No account needed.</small>
+        </div>
+      </div>
+    </div>
+
+    <div class="legend" role="note" aria-label="Tick-mark legend">
+      <strong>The AI writes the words. It never computes the numbers.</strong>
+      <span><svg class="tick" aria-hidden="true"><use href="#t-ok"/></svg>Computed in code</span>
+      <span><svg class="tick" aria-hidden="true"><use href="#t-trace"/></svg>Traced to your context note</span>
+      <span><svg class="tick x" aria-hidden="true"><use href="#t-x"/></svg>Exception past threshold</span>
+    </div>
+  </div>
+
+  <section class="ws" aria-labelledby="proc-title">
+    <div class="wrap">
+      <div class="intro">
+        <h2 id="proc-title">From closed books to a signed-off brief.</h2>
+        <p>The same steps your close already has. Closebrief does the computing and the first draft; the judgement stays with you.</p>
+      </div>
+      <table class="proc">
+        <thead><tr><th scope="col">W/P</th><th scope="col">Step</th><th scope="col">What Closebrief does</th><th scope="col">Your part</th></tr></thead>
+        <tbody>
+          <tr><td class="ref">B-1</td><td><b>Import</b>CSV or Excel, any layout</td><td>Detects columns from NetSuite, QuickBooks or spreadsheet exports, long or wide, and joins budgets from a separate file.</td><td class="you">Confirm the mapping and pick the KPIs.</td></tr>
+          <tr><td class="ref">B-2</td><td><b>Compute</b>Deterministic KPIs</td><td>Calculates value, month-over-month, year-over-year, budget variance, trends, streaks and anomalies in code.</td><td class="you">Nothing. No model touches a number.</td></tr>
+          <tr><td class="ref">B-3</td><td><b>Draft</b>Commentary with the why</td><td>Writes plain-English commentary for each KPI, citing the context notes you keep: price changes, campaigns, one-offs.</td><td class="you">Add context the data can't know.</td></tr>
+          <tr><td class="ref">B-4</td><td><b>Check</b>Every figure, every time</td><td>Matches each number in the prose to a computed fact. Anything it can't trace is sent back once, then flagged.</td><td class="you">Look at what's flagged.</td></tr>
+          <tr><td class="ref">B-5</td><td><b>Review</b>Prepared, reviewed, approved</td><td>Keeps each draft marked until someone approves it, with version history and reviewer assignment.</td><td class="you">Edit, approve or request changes.</td></tr>
+          <tr><td class="ref">B-6</td><td><b>Share</b>Digest, board pack, deck</td><td>Builds the executive digest, a print-ready board pack and a PowerPoint deck, and sends to Slack or email on a schedule.</td><td class="you">Send it.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="ws" id="checked" aria-labelledby="check-title">
+    <div class="wrap guard">
+      <div>
+        <h2 id="check-title">How every figure is checked.</h2>
+        <ol>
+          <li><b>Numbers first.</b><span>Every KPI is computed from your data before any text is written.</span></li>
+          <li><b>Words second.</b><span>The model gets those figures, already formatted, and is told to copy them exactly.</span></li>
+          <li><b>Then a check.</b><span>Each number in the draft must match a computed fact or a figure in your own context notes. Rounding like $271K is allowed; invention isn't.</span></li>
+          <li><b>You sign off.</b><span>Drafts stay dashed until a person approves them.</span></li>
+        </ol>
+      </div>
+      <figure class="test" aria-labelledby="test-cap">
+        <header><span class="ref" id="test-cap">Test of the guard · W/P C-2</span><span class="ref">Revenue · Jun 2026</span></header>
+        <p class="draft">Revenue was <mark>$271K</mark>, up <mark>+1.2%</mark> on May, and <mark class="bad">$300K</mark> for the quarter.</p>
+        <dl>
+          <div><dt>$271K</dt><dd class="mark"><svg class="tick" role="img" aria-label="Passed"><use href="#t-ok"/></svg></dd><dd class="why">Rounds from $271,254.84, computed in code.</dd></div>
+          <div><dt>+1.2%</dt><dd class="mark"><svg class="tick" role="img" aria-label="Passed"><use href="#t-ok"/></svg></dd><dd class="why">Matches the computed month-over-month change.</dd></div>
+          <div><dt class="bad">$300K</dt><dd class="mark"><svg class="tick x" role="img" aria-label="Failed"><use href="#t-x"/></svg></dd><dd class="why bad">No computed figure matches. The sentence goes back for a rewrite.</dd></div>
+        </dl>
+        <footer><span><i>Dashed</i> means draft</span><span><u>Solid</u> means a person approved it</span></footer>
+      </figure>
+    </div>
+  </section>
+
+  <section class="ws" aria-labelledby="evi-title">
+    <div class="wrap">
+      <div class="intro">
+        <h2 id="evi-title">Tested like a control, not a demo.</h2>
+        <p>A 15-case evaluation set runs through the real retrieval, generation and checking pipeline.</p>
+      </div>
+      <table class="ctl">
+        <caption class="vh">Test of controls, W/P D-1</caption>
+        <thead><tr><th scope="col">W/P</th><th scope="col">Control</th><th scope="col">What it tests</th><th scope="col" class="r">Result</th></tr></thead>
+        <tbody>
+          <tr><td class="ref">D-1</td><td><b>Faithfulness</b></td><td>Every generated commentary passed the figure check: no number it couldn't trace.</td><td class="r res">100%<svg class="tick" role="img" aria-label="Passed"><use href="#t-ok"/></svg></td></tr>
+          <tr><td class="ref">D-2</td><td><b>Recall@5</b></td><td>For every case that needs context, the right note was in the top five results.</td><td class="r res">100%<svg class="tick" role="img" aria-label="Passed"><use href="#t-ok"/></svg></td></tr>
+          <tr><td class="ref">D-3</td><td><b>Groundedness</b></td><td>Every cause the commentary named appeared in the context it retrieved.</td><td class="r res">100%<svg class="tick" role="img" aria-label="Passed"><use href="#t-ok"/></svg></td></tr>
+        </tbody>
+      </table>
+      <p class="evi-note">Results from the project's golden set (<code>eval/fixtures/golden.json</code>). Re-run them yourself with <code>python -m eval.run</code>.</p>
+    </div>
+  </section>
+
+  <section class="close" aria-labelledby="close-title">
+    <div class="wrap">
+      <div class="sheetwide">
+        <div>
+          <h2 id="close-title">Open last month's close and see for yourself.</h2>
+          <p>The demo is a full read-only workspace: dashboard, commentary, checks, digest and board pack, on sample data.</p>
+          <div class="signoff" role="group" aria-label="Sign-off">
+            <div><span class="ref">Prepared</span><b>Closebrief</b></div>
+            <div><span class="ref">Reviewed</span><b>You</b></div>
+            <div><span class="ref">Approved</span><b class="blank">—</b></div>
+          </div>
+        </div>
+        <div>
+          <a class="btn lg" href="/app?demo=1" data-cta><span data-cta-label>Open the demo close</span><svg aria-hidden="true"><use href="#arrow"/></svg></a>
+          <a class="btn lg quiet" href="/app">Sign in to your workspace</a>
+        </div>
+      </div>
+      <footer class="foot">
+        <span>Closebrief</span>
+        <span>Figures on this page are sample data.</span>
+        <a href="/docs">API docs</a>
+      </footer>
+    </div>
+  </section>
+</main>
+
+<script>
+(function(){
+  // Signature interaction: a footnoted figure in the note traces to its row.
+  var figs=document.querySelectorAll(".note a.fig");
+  function lit(id,on){var r=document.getElementById(id);if(r)r.classList.toggle("lit",on);}
+  figs.forEach(function(a){
+    var id=a.getAttribute("data-row");
+    ["mouseenter","focus"].forEach(function(e){a.addEventListener(e,function(){lit(id,true);});});
+    ["mouseleave","blur"].forEach(function(e){a.addEventListener(e,function(){lit(id,false);});});
+  });
+
+  // Returning users go to their workspace, not the sign-in screen.
+  try{
+    var signed=localStorage.getItem("cb-session-token")||Object.keys(localStorage).some(function(k){return /^sb-.*-auth-token$/.test(k);});
+    if(signed){var s=document.getElementById("nav-signin");if(s)s.textContent="Open your workspace";}
+  }catch(e){}
+
+  // The demo only exists where the server enables it; otherwise send people
+  // straight into the app (local dev) or to sign-up.
+  fetch("/auth/config").then(function(r){return r.json();}).then(function(cfg){
+    if(cfg.demo_enabled)return;
+    var label=cfg.auth_enabled?"Create your workspace":"Open the app";
+    document.querySelectorAll("[data-cta]").forEach(function(a){a.href="/app";});
+    document.querySelectorAll("[data-cta-label]").forEach(function(s){s.textContent=label;});
+    document.querySelectorAll("[data-cta-short]").forEach(function(s){s.textContent=cfg.auth_enabled?"Start":"Open";});
+    var n=document.querySelector("[data-cta-note]");
+    if(n)n.textContent=cfg.auth_enabled?"Import a CSV or Excel export to start.":"Local workspace, no sign-in.";
+  }).catch(function(){});
+})();
+</script>
+</body>
+</html>

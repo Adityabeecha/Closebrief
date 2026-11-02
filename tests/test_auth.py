@@ -85,7 +85,10 @@ def test_app_shell_and_its_script_are_public(make_client):
     a bearer token on <script src>, so gating /app.js 401s the whole frontend
     (regression: /app.js was split out of index.html without being allowlisted)."""
     c = make_client(auth_on=True)
-    assert c.get("/").status_code == 200
+    assert c.get("/").status_code == 200        # public home page
+    assert c.get("/app").status_code == 200     # the app shell
+    assert c.get("/theme.css").status_code == 200
+    assert "text/css" in c.get("/theme.css").headers["content-type"]
     r = c.get("/app.js")
     assert r.status_code == 200, "/app.js must be reachable pre-login"
     assert "javascript" in r.headers["content-type"]

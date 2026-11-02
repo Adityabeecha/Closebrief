@@ -9,6 +9,7 @@ def section(start, end):
 
 
 SETUP = r"""
+  const XICON='<svg></svg>';   // shared close icon, defined once at module level in app.js
 const els={},timers=new Map(),calls=[],visits=[];let clock=0,response=[],failure=null;
 const $=id=>(els[id]??={innerHTML:'',textContent:'',value:'',disabled:false,hidden:false,style:{},attrs:{},wait:{hidden:true},
   setAttribute(k,v){this.attrs[k]=v},removeAttribute(k){delete this.attrs[k]},

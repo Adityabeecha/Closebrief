@@ -1,0 +1,76 @@
+/* Closebrief — "Working Papers": the auditor's lead schedule on a green columnar
+   pad. Ledger green rules and actions, graphite ink, pencil tick marks, red
+   pencil only for exceptions past the materiality threshold.
+   Shared by the home page (/) and the app (/app). */
+
+@font-face{font-family:'Schibsted Grotesk';font-style:normal;font-weight:400 900;font-display:swap;src:url(/vendor/fonts/schibsted-grotesk.woff2) format('woff2')}
+@font-face{font-family:'Red Hat Mono';font-style:normal;font-weight:400 700;font-display:swap;src:url(/vendor/fonts/redhat-mono.woff2) format('woff2')}
+
+:root{
+  --font-sans:'Schibsted Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'Red Hat Mono',ui-monospace,Consolas,monospace;
+
+  /* paper */
+  --pad:#e7efe2;          /* the columnar pad: page ground */
+  --pad-deep:#dde8d6;     /* sunken areas, table headers */
+  --sheet:#f5f9f2;        /* a loose sheet laid on the pad: cards, notes */
+  --rule:rgba(30,110,80,.26);        /* column rules */
+  --rule-faint:rgba(30,110,80,.11);  /* horizontal ruling */
+  --rule-strong:#1e6e50;             /* heavy rules under headers */
+
+  /* ink */
+  --ink:#1d2621;
+  --ink-2:#34423a;
+  --ink-3:#4d5e54;        /* labels, meta: 5.1:1 on the pad */
+
+  /* pencils */
+  --green:#1e6e50;        /* brand: rules, ticks, primary action */
+  --green-deep:#124632;
+  --on-green:#ffffff;
+  --green-wash:rgba(30,110,80,.12);
+  --red-pencil:#b33a27;   /* exceptions past threshold, nothing else */
+  --red-wash:rgba(179,58,39,.10);
+  --amber:#8a5a00;        /* a deviation before it becomes an exception */
+  --amber-wash:rgba(138,90,0,.12);
+  --blue-pencil:#2b5aa8;  /* the one signal for "new since you last looked" */
+
+  --radius:4px;
+  --lift:0 1px 0 rgba(29,38,33,.06),0 8px 22px -14px rgba(29,38,33,.35);
+  --ease:cubic-bezier(.2,.7,.2,1);
+  color-scheme:light;
+}
+
+/* Night shift: the same pad under a desk lamp, ink and paper swapped. */
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --pad:#0f1713; --pad-deep:#0b120e; --sheet:#16211b;
+    --rule:rgba(120,200,160,.20); --rule-faint:rgba(120,200,160,.08); --rule-strong:#5cbf8f;
+    --ink:#e3ebe5; --ink-2:#c3cfc7; --ink-3:#9aaba1;
+    --green:#5cbf8f; --green-deep:#2f8f64; --on-green:#04110a; --green-wash:rgba(92,191,143,.14);
+    --red-pencil:#f08a77; --red-wash:rgba(240,138,119,.12);
+    --amber:#e2b04f; --amber-wash:rgba(226,176,79,.12);
+    --blue-pencil:#8fb2f0;
+    --lift:0 1px 0 rgba(0,0,0,.3),0 10px 26px -14px rgba(0,0,0,.7);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --pad:#0f1713; --pad-deep:#0b120e; --sheet:#16211b;
+  --rule:rgba(120,200,160,.20); --rule-faint:rgba(120,200,160,.08); --rule-strong:#5cbf8f;
+  --ink:#e3ebe5; --ink-2:#c3cfc7; --ink-3:#9aaba1;
+  --green:#5cbf8f; --green-deep:#2f8f64; --on-green:#04110a; --green-wash:rgba(92,191,143,.14);
+  --red-pencil:#f08a77; --red-wash:rgba(240,138,119,.12);
+  --amber:#e2b04f; --amber-wash:rgba(226,176,79,.12);
+  --blue-pencil:#8fb2f0;
+  --lift:0 1px 0 rgba(0,0,0,.3),0 10px 26px -14px rgba(0,0,0,.7);
+  color-scheme:dark;
+}
+
+/* The pad itself: green column rules over faint horizontal ruling. */
+.pad-ground{
+  background-color:var(--pad);
+  background-image:
+    repeating-linear-gradient(90deg,transparent 0 119px,var(--rule) 119px 120px),
+    repeating-linear-gradient(0deg,transparent 0 31px,var(--rule-faint) 31px 32px);
+}
+::selection{background:var(--green);color:var(--on-green)}

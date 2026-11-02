@@ -182,7 +182,7 @@ from app.services import log_llm_call as _log_llm_call  # noqa: E402
 # the frontend needs to boot the login form, and the API docs.
 # /app.js is the shell's own script (split out of index.html): a browser cannot
 # attach a bearer token to <script src>, so gating it 401s the entire frontend.
-_OPEN_PATHS = {"/", "/app.js", "/health", "/auth/config", "/auth/google", "/openapi.json", "/docs", "/redoc"}
+_OPEN_PATHS = {"/", "/app", "/theme.css", "/app.js", "/health", "/auth/config", "/auth/google", "/openapi.json", "/docs", "/redoc"}
 
 
 
@@ -391,10 +391,24 @@ _UI_INDEX = Path(__file__).resolve().parent.parent / "ui" / "web" / "index.html"
 
 
 @app.get("/", include_in_schema=False)
+def ui_home() -> FileResponse:
+    # Public home page. Old deep links (/#metric=...) are forwarded to /app by
+    # the page itself, since the fragment never reaches the server.
+    return FileResponse(_UI_INDEX.parent / "home.html", headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/app", include_in_schema=False)
 def ui_root() -> FileResponse:
     # no-cache: browsers must revalidate so UI fixes are picked up immediately
     # (stale cached copies of this shell caused hard-to-debug auth errors).
     return FileResponse(_UI_INDEX, headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/theme.css", include_in_schema=False)
+def ui_theme() -> FileResponse:
+    # Design tokens shared by the home page and the app.
+    return FileResponse(_UI_INDEX.parent / "theme.css", media_type="text/css",
+                        headers={"Cache-Control": "no-cache"})
 
 
 # Vendored frontend libraries served from our own origin (no CDN dependency, so

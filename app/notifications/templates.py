@@ -74,7 +74,7 @@ def _drill_url(metric: str | None, period: str | None = None) -> str | None:
     frag = f"#metric={urllib.parse.quote(metric or '')}"
     if period:
         frag += f"&period={urllib.parse.quote(period)}"
-    return f"{base}/{frag}"
+    return f"{base}/app{frag}"
 
 
 def _delta_emoji(delta: str) -> str:

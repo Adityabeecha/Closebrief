@@ -151,3 +151,13 @@ def test_cards_open_from_keyboard_but_not_from_inner_buttons():
       cardKey({key:'a',target:card,currentTarget:card,preventDefault(){}},5);
       assert.deepEqual(opened,[2,3]);
     """)
+
+
+def test_unreviewed_commentary_keeps_an_open_tick_box():
+    # Working Papers: a KPI sheet's box stays empty until a person approves it.
+    run_js("function reviewTick(", "// Cards act as links:", "", """
+      assert.equal(reviewTick({report_id:null}),'');
+      assert.equal(reviewTick({report_id:3,aggregated:true}),'');
+      assert.match(reviewTick({report_id:3,review_status:'pending'}),/aria-label="Not approved yet"/);
+      assert.match(reviewTick({report_id:3,review_status:'approved'}),/rev-tick ok/);
+    """)
