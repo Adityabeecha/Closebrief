@@ -21,6 +21,7 @@ const ICON_PATHS={},updateReviewBadge=n=>{$('review-badge').textContent=n},onLev
 const ensureCanvas=()=>{},chartReg={},chartTheme=()=>({}),mkChart=()=>{},tooltipCfg=()=>({});
 let currentPeriod='2026-06',granularity='month',currentFacts=[],currentUser={role:'admin'},costsData=null;
 let _anMetrics=[],_reviewItems=[],modalAnswer=false,modalCalls=[];
+const canReview=()=>!['viewer','executive'].includes(currentUser.role);
 const document={querySelectorAll:()=>[]},window={dispatchEvent(){}};
 const EST_COST_PER_NARR=0.006,modalConfirm=async(...args)=>{modalCalls.push(args);return modalAnswer};
 """
@@ -230,4 +231,25 @@ def test_analytics_empty_period_does_not_claim_the_dataset_has_no_metrics():
       currentFacts=[{metric:'Revenue',value:null,has_data:false,unit:'USD'}];await loadAnalytics();
       const html=$('analytics-state').innerHTML;assert.match(html,/No metrics for Jun 2026/);
       assert.match(html,/Choose a period/);assert.match(html,/Open the dashboard/);assert.doesNotMatch(html,/Import data/);
+    """)
+
+
+@pytest.mark.parametrize("role", ["viewer", "executive"])
+def test_read_only_digest_empty_state_offers_kpis_without_generation(role):
+    run_screen(LOADERS[0], f"""
+      currentUser.role='{role}';await loadDigest();
+      const html=$('digest-list').innerHTML;
+      assert.match(html,/June 2026&#39;s digest isn&#39;t ready yet/);
+      assert.match(html,/2 of 7 KPIs are approved/);assert.match(html,/Open KPIs/);
+      assert.doesNotMatch(html,/Generate a new digest|loadDigest\\(true/);
+      assert.equal($('digest-generate').style.display,'none');
+    """, extra="const closeStateFor=()=>({approved:2,n:7});")
+
+
+def test_writer_digest_empty_state_has_only_one_generate_action():
+    run_screen(LOADERS[0], """
+      await loadDigest();assert.match($('digest-list').innerHTML,/Generate a new digest/);
+      assert.equal($('digest-generate').style.display,'none');
+      response=[{period:'2026-06',items:[]}];await loadDigest();
+      assert.equal($('digest-generate').style.display,'');
     """)

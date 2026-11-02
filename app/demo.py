@@ -17,6 +17,7 @@ from app.domains.marketing import MARKETING
 from app.ingestion.ingest import ingest_dataframe, parse_csv
 from app.kpis.library import suggest_kpi
 from app.schemas import ContextDocIn
+from app.scheduling import record_digest_run
 
 DEMO_DATASET_NAME = "Demo — Sample FP&A"
 _SAMPLE_CSV = Path(__file__).resolve().parent.parent / "data" / "sample_fpa.csv"
@@ -116,6 +117,7 @@ def _seed_fpa(conn, context_store=None) -> bool:
     # Pre-generated narratives + a PVM bridge so the demo is full on first view.
     try:
         _seed_narratives(conn, ds, added_docs)
+        _seed_close_history(conn, ds, added_docs)
         _seed_pvm_bridge(conn, ds)
         conn.commit()
     except Exception:  # noqa: BLE001 - demo polish is best-effort
@@ -144,6 +146,7 @@ def _seed_marketing(conn, context_store=None) -> bool:
     added_docs = _seed_context(conn, context_store, _MARKETING_CONTEXT)
     try:
         _seed_narratives(conn, ds, added_docs)
+        _seed_close_history(conn, ds, added_docs)
         conn.commit()
     except Exception:  # noqa: BLE001 - demo polish is best-effort
         pass
@@ -159,10 +162,10 @@ def _latest_period(conn, ds: int) -> str | None:
     return row["p"] if row and row["p"] else None
 
 
-def _seed_narratives(conn, ds: int, docs: list) -> None:
+def _seed_narratives(conn, ds: int, docs: list, period: str | None = None) -> None:
     """Deterministic, grounded narratives from each metric's real computed fact
     plus a matching context note — persisted like any generated report."""
-    period = _latest_period(conn, ds)
+    period = period or _latest_period(conn, ds)
     if not period:
         return
     # Map a metric-tag keyword to the seeded context doc for source chips.
@@ -175,7 +178,8 @@ def _seed_narratives(conn, ds: int, docs: list) -> None:
         """SELECT m.id AS metric_id, m.name AS metric, cf.value, cf.mom_pct,
                   cf.budget_var_pct, cf.is_anomaly, m.unit, m.direction_good
            FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
-           WHERE m.dataset_id = ? AND cf.period = ?""",
+           WHERE m.dataset_id = ? AND cf.period = ? AND cf.value IS NOT NULL
+           ORDER BY m.name""",
         (ds, period),
     ).fetchall()
 
@@ -189,6 +193,8 @@ def _seed_narratives(conn, ds: int, docs: list) -> None:
         return f"${v/1e6:.2f}M" if abs(v) >= 1e6 else f"${v/1e3:.0f}K"
 
     for f in facts:
+        if conn.execute("SELECT 1 FROM generated_reports WHERE metric_id=? AND period=?", (f["metric_id"], period)).fetchone():
+            continue
         mom = f["mom_pct"]
         bud = f["budget_var_pct"]
         doc = None
@@ -244,3 +250,32 @@ def _seed_pvm_bridge(conn, ds: int) -> None:
            ON CONFLICT(metric_id, period) DO NOTHING""",
         (row["metric_id"], period, volume, price, mix, total),
     )
+
+
+def _seed_close_history(conn, ds: int, docs: list) -> None:
+    """Two completed closes lead into a partly approved latest close, without AI."""
+    periods = [r["period"] for r in conn.execute(
+        """SELECT DISTINCT cf.period FROM computed_facts cf JOIN metrics m ON m.id=cf.metric_id
+           WHERE m.dataset_id=? ORDER BY cf.period DESC LIMIT 3""", (ds,)).fetchall()]
+    if not periods:
+        return
+    for period in reversed(periods[1:]):
+        _seed_narratives(conn, ds, docs, period)
+        conn.execute("""UPDATE generated_reports SET review_status='approved'
+                        WHERE period=? AND metric_id IN (SELECT id FROM metrics WHERE dataset_id=?)""", (period, ds))
+        if conn.execute("SELECT 1 FROM digest_runs WHERE dataset_id=? AND period=?", (ds, period)).fetchone():
+            continue
+        movers = conn.execute("""SELECT m.name, cf.value, cf.budget_var_abs, cf.budget_var_pct, gr.id, gr.narrative
+            FROM computed_facts cf JOIN metrics m ON m.id=cf.metric_id
+            JOIN generated_reports gr ON gr.id=(SELECT MAX(g.id) FROM generated_reports g WHERE g.metric_id=m.id AND g.period=cf.period)
+            WHERE m.dataset_id=? AND cf.period=? AND cf.value IS NOT NULL
+            ORDER BY ABS(COALESCE(cf.budget_var_abs,0)) DESC, m.name LIMIT 3""", (ds, period)).fetchall()
+        items = [{"metric": r["name"], "headline": r["narrative"].split('. ', 1)[0] + '.',
+                  "detail": r["narrative"], "budget_var_abs": r["budget_var_abs"],
+                  "budget_var_pct": r["budget_var_pct"], "faithfulness": "passed", "report_id": r["id"]} for r in movers]
+        record_digest_run(conn, ds, period, 3, items, 0, 'scheduled')
+    # Deterministic minority approved; the rest still need the analyst's decision.
+    conn.execute("""UPDATE generated_reports SET review_status='approved' WHERE id IN (
+        SELECT gr.id FROM generated_reports gr JOIN metrics m ON m.id=gr.metric_id
+        WHERE m.dataset_id=? AND gr.period=? ORDER BY m.name LIMIT 2)""", (ds, periods[0]))
+    conn.commit()
