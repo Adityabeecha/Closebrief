@@ -129,12 +129,15 @@ def status(period: str, _: CurrentUser = Depends(require_read)):
         def step(id, title, detail, state, count, tab):
             return {'id': id, 'title': title, 'detail': detail, 'state': state, 'count': count,
                     'target': f'#month={period}&tab={tab}'}
-        unchecked = s['kpis'] - s['checked']
+        flagged = s['drafted'] - s['checked']        # drafts whose figures didn't all pass the check
+        undrafted = s['kpis'] - s['drafted']
         steps = [
             step('import', 'Import actuals and budget', f"{n(s['kpis'], 'KPI', 'KPIs')} imported · open Data to check coverage", 'done', s['kpis'], 'data'),
             step('review', 'Review the biggest movers',
-                 f"{n(unchecked, 'draft needs', 'drafts need')} a check · open KPIs" if unchecked else 'Figures checked · open KPIs to review movers',
-                 'todo' if unchecked else 'done', unchecked, 'kpis'),
+                 f"{n(flagged, 'draft has', 'drafts have')} a figure to check · open KPIs" if flagged
+                 else f"{n(undrafted, 'KPI is', 'KPIs are')} not drafted yet · open KPIs" if undrafted
+                 else 'Figures checked · open KPIs to review movers',
+                 'todo' if flagged or undrafted else 'done', flagged + undrafted, 'kpis'),
             step('reasons', f"Add reasons for {n(s['needs_reason'], 'variance')}" if s['needs_reason'] else 'Every variance has a reason',
                  f"{n(s['needs_reason'], 'variance needs', 'variances need')} a reason · open Context" if s['needs_reason'] else 'Reasons recorded · open Context to review notes',
                  'todo' if s['needs_reason'] else 'done', s['needs_reason'], 'context'),
