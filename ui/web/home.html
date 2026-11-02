@@ -54,20 +54,20 @@
   .btn .short{display:none}
 
   /* ---- hero ---- */
-  .hero{position:relative;text-align:center;padding:64px 0 0;isolation:isolate}
+  .hero{position:relative;text-align:center;padding:40px 0 0;isolation:isolate}
   .hero:before{content:"";position:absolute;inset:-120px 0 0;z-index:-1;pointer-events:none;
     background:radial-gradient(760px 420px at 72% 8%,var(--glow-a),transparent 62%),radial-gradient(620px 380px at 14% 70%,var(--glow-b),transparent 62%)}
-  h1{font-size:clamp(44px,6vw,80px);line-height:1;letter-spacing:-.045em;font-weight:750;max-width:19ch;margin:0 auto;text-wrap:balance}
+  h1{font-size:clamp(40px,4.6vw,64px);line-height:1;letter-spacing:-.045em;font-weight:750;max-width:19ch;margin:0 auto;text-wrap:balance}
   h1 em{font-style:normal;color:var(--accent)}
-  .lede{font-size:clamp(17px,1.5vw,20px);color:var(--text-2);max-width:36em;margin:22px auto 0}
-  .ctas{display:flex;gap:12px;justify-content:center;margin-top:30px;flex-wrap:wrap}
-  .promise{display:inline-flex;align-items:center;gap:8px;margin-top:22px;font-size:14.5px;color:var(--text-3)}
+  .lede{font-size:clamp(17px,1.5vw,20px);color:var(--text-2);max-width:54em;margin:16px auto 0;text-wrap:balance}
+  .ctas{display:flex;gap:12px;justify-content:center;align-items:center;margin-top:24px;flex-wrap:wrap}
+  .promise{display:inline-flex;align-items:center;gap:8px;margin-left:10px;font-size:14.5px;color:var(--text-3)}
   .promise svg{color:var(--verified)}
 
   /* ---- the live workspace preview ---- */
-  .stage{margin:52px auto 0;max-width:1180px;position:relative}
+  .stage{margin:36px auto 0;max-width:1180px;position:relative}
   .ws{background:var(--surface);border:1px solid var(--line);border-bottom:none;border-radius:var(--r-lg) var(--r-lg) 0 0;box-shadow:var(--shadow-lg);
-    display:grid;grid-template-columns:250px minmax(0,1fr) 300px;text-align:left;overflow:hidden;min-height:440px}
+    display:grid;grid-template-columns:250px minmax(0,1fr) 300px;text-align:left;overflow:hidden}
   .ws-q{background:var(--surface-2);border-right:1px solid var(--line);padding:16px 12px}
   .ws-q .t{display:flex;justify-content:space-between;align-items:center;padding:2px 8px 12px;font-weight:700;font-size:14.5px}
   .ws-q .t span{font-family:var(--font-mono);font-size:12px;color:var(--text-3);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
@@ -90,9 +90,9 @@
   .doc p+p{margin-top:12px}
   mark.f{background:var(--verified-wash);color:var(--text);font-family:var(--font-mono);font-size:.93em;font-weight:600;border-radius:5px;padding:1px 5px;cursor:default;transition:box-shadow .15s var(--ease)}
   mark.f.lit,mark.f:focus-visible{box-shadow:0 0 0 2px var(--verified);outline:none}
-  .ws-i{border-left:1px solid var(--line);background:var(--surface-2);padding:20px 18px}
+  .ws-i{border-left:1px solid var(--line);background:var(--surface-2);padding:18px 18px 10px}
   .ws-i .ih{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin:0 0 8px}
-  .ws-i .ih+*{margin-bottom:18px}
+  .ws-i .ih+*{margin-bottom:12px}
   .kv{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px;color:var(--text-3)}
   .kv b{font-family:var(--font-mono);font-size:14.5px;color:var(--text)}
   .kv b.c-exc{color:var(--exception)}
@@ -100,9 +100,9 @@
   .tr svg{color:var(--verified);width:15px;height:15px;stroke-width:2.8}
   .tr b{font-family:var(--font-mono);font-weight:600;color:var(--text)}
   .tr.lit{background:var(--verified-wash)}
-  .spark{display:block;width:100%;height:56px}
+  .spark{display:block;width:100%;height:42px}
   .spark path{fill:none;stroke:var(--exception);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-  .fade{position:absolute;left:0;right:0;bottom:0;height:80px;background:linear-gradient(transparent,var(--bg));pointer-events:none}
+  .fade{position:absolute;left:0;right:0;bottom:0;height:28px;background:linear-gradient(transparent,var(--bg));pointer-events:none}
 
   /* ---- sections ---- */
   section.s{padding:104px 0 0}
@@ -166,7 +166,9 @@
     .brand{margin-right:auto}
     .btn.md{padding:10px 14px}
     .btn.md .long{display:none}.btn.md .short{display:inline}
-    .hero{padding-top:36px}
+    .hero{padding-top:28px}
+    .promise{display:block;margin:6px 0 0;flex-basis:100%;text-align:center;text-wrap:balance}
+    .promise svg{display:inline-block;vertical-align:-3px;margin-right:6px}
     .stage{margin-top:36px}
     .ws{grid-template-columns:1fr;min-height:0}
     .ws-q{display:none}
@@ -210,12 +212,12 @@
   <section class="hero" aria-labelledby="hero-title">
     <div class="wrap">
       <h1 id="hero-title">Close the books. <em>The brief is already written.</em></h1>
-      <p class="lede">Closebrief computes every KPI from your export, drafts the variance commentary, and traces every figure in it to its source before you sign off.</p>
+      <p class="lede">Every KPI computed in code, the variance commentary drafted, and every figure traced to its source.</p>
       <div class="ctas">
         <a class="btn lg" href="/app?demo=1" data-cta><span data-cta-label>Open the demo close</span><svg class="i" aria-hidden="true"><use href="#arrow"/></svg></a>
         <a class="btn lg ghost" href="#verification">How verification works</a>
+        <span class="promise"><svg class="i" aria-hidden="true"><use href="#shield"/></svg>The AI writes the words. It never computes the numbers.</span>
       </div>
-      <p class="promise"><svg class="i" aria-hidden="true"><use href="#shield"/></svg>The AI writes the words. It never computes the numbers.</p>
     </div>
 
     <div class="wrap">
