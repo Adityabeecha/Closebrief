@@ -22,8 +22,10 @@ def _label(period):
 
 def _summaries(conn, ds):
     """Progress: 20% imported, 20% checked share, 20% reason coverage,
-    30% approved share, and 10% shared. Empty reason sets are fully covered;
-    checked means the latest report passed the existing faithfulness check.
+    30% approved share, and 10% shared. Reason coverage counts only once
+    something is drafted (an untouched close shows just its import); empty
+    reason sets are then fully covered. Checked means the latest report
+    passed the existing faithfulness check.
     """
     if ds is None:
         return []
@@ -63,7 +65,8 @@ def _summaries(conn, ds):
     for period, g in groups.items():
         n = g['kpis']
         is_shared = period in shared
-        progress = .2 + .2 * g['checked'] / n + .2 * (1 - g['needs_reason'] / g['flagged'] if g['flagged'] else 1) + .3 * g['approved'] / n + .1 * is_shared
+        coverage = (1 - g['needs_reason'] / g['flagged'] if g['flagged'] else 1) if g['drafted'] else 0
+        progress = .2 + .2 * g['checked'] / n + .2 * coverage + .3 * g['approved'] / n + .1 * is_shared
         out.append({'period': period, 'label': _label(period),
                     'status': 'shared' if is_shared else 'in_progress' if g['drafted'] else 'not_started',
                     **g, 'progress': round(progress, 2), 'shared_at': shared.get(period)})
@@ -114,14 +117,17 @@ def status(period: str, _: CurrentUser = Depends(require_read)):
             raise HTTPException(status_code=404, detail='No facts for period')
         remaining = s['kpis'] - s['approved']
         pending_drafts = s['drafted'] - s['approved']
+        def n(count, one, many=None):
+            return f"{count} {one if count == 1 else (many or one + 's')}"
         def step(id, title, detail, state, count, tab):
             return {'id': id, 'title': title, 'detail': detail, 'state': state, 'count': count,
                     'target': f'#month={period}&tab={tab}'}
         steps = [
-            step('import', 'Import actuals and budget', f"{s['kpis']} figures imported", 'done', s['kpis'], 'data'),
-            step('review', 'Review the biggest movers', f"{s['checked']} of {s['kpis']} figures checked", 'done' if s['checked'] == s['kpis'] else 'todo', s['checked'], 'kpis'),
-            step('reasons', f"Add reasons for {s['needs_reason']} variances", f"{s['needs_reason']} need context", 'done' if not s['needs_reason'] else 'todo', s['needs_reason'], 'context'),
-            step('approve', f'Approve {pending_drafts} drafts', f"{s['approved']} of {s['kpis']} approved", 'done' if not remaining else 'todo' if pending_drafts else 'blocked', pending_drafts, 'kpis'),
+            step('import', 'Import actuals and budget', f"{n(s['kpis'], 'figure')} imported", 'done', s['kpis'], 'data'),
+            step('review', 'Review the biggest movers', f"{s['checked']} of {n(s['kpis'], 'figure')} checked", 'done' if s['checked'] == s['kpis'] else 'todo', s['checked'], 'kpis'),
+            step('reasons', f"Add reasons for {n(s['needs_reason'], 'variance')}" if s['needs_reason'] else 'Every variance has a reason',
+                 f"{n(s['needs_reason'], 'variance needs', 'variances need')} context" if s['needs_reason'] else 'No large variance is missing a context note', 'done' if not s['needs_reason'] else 'todo', s['needs_reason'], 'context'),
+            step('approve', f"Approve {n(pending_drafts, 'draft')}" if pending_drafts else 'Approve the drafts', f"{s['approved']} of {s['kpis']} approved", 'done' if not remaining else 'todo' if pending_drafts else 'blocked', pending_drafts, 'kpis'),
             step('share', 'Send the digest', 'Digest sent' if s['status'] == 'shared' else 'Digest not sent', 'done' if s['status'] == 'shared' else 'todo' if not remaining else 'blocked', int(s['status'] == 'shared'), 'digest'),
         ]
         return {'period': period, 'label': s['label'], 'steps': steps, 'activity': _activity(conn, ds, period)}

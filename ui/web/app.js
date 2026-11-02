@@ -622,9 +622,10 @@ function closeProgress(facts,shared){
   return {n,drafted,approved,failed,exceptions,shared:!!shared,progress,status};
 }
 const CLOSE_STATUS={empty:["No data",""],not_started:["Not started",""],in_progress:["In progress","prog"],ready:["Ready to share","prog"],shared:["Shared","done"]};
+// The server's summary wins when it has one, so every close in the list is scored the same way.
 function closeStateFor(p){
-  if(p===currentPeriod&&currentFacts)return closeProgress(currentFacts,closeShared.has(p));
-  const m=closeMonths[p];if(!m)return null;
+  const m=closeMonths[p];
+  if(!m)return p===currentPeriod&&currentFacts?closeProgress(currentFacts,closeShared.has(p)):null;
   return {n:m.kpis,approved:m.approved,drafted:m.drafted,progress:m.progress,status:m.status,shared:m.status==="shared"};
 }
 function renderCloses(){
@@ -676,7 +677,7 @@ function renderMonthHead(){
   if(!currentPeriod){head.style.display="none";return;}
   const s=closeProgress(currentFacts,closeShared.has(currentPeriod));
   $("mh-title").textContent=fmtPeriodTitle(currentPeriod);
-  const [word,cls]=CLOSE_STATUS[s.status];
+  const [word,cls]=CLOSE_STATUS[(closeStateFor(currentPeriod)||s).status]||CLOSE_STATUS[s.status];
   const pill=$("mh-pill");pill.textContent=word;pill.className="mh-pill "+cls;
   const ds=activeDatasetObj&&activeDatasetObj.name;
   $("mh-sub").textContent=[ds,s.n?`${plural(s.n,"KPI","KPIs")} computed in code`:null,s.n?`${s.approved} of ${s.n} approved`:null].filter(Boolean).join(" · ");
