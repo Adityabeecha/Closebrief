@@ -1,268 +1,328 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-02T04:13:22+00:00",
+  "generatedAt": "2026-11-02T05:08:43+00:00",
   "title": "Design System: Closebrief",
   "extensions": {
     "colorMeta": {
-      "ledger-green": {
+      "accent": {
         "role": "primary",
-        "displayName": "Ledger Green",
-        "canonical": "#1e6e50",
+        "displayName": "Ledger Emerald",
+        "canonical": "#047857",
         "tonalRamp": [
-          "#103c2c",
-          "#1b6449",
-          "#268c66",
-          "#31b483",
-          "#57d1a3",
-          "#8fe0c2",
-          "#c3efde",
-          "#ebfaf4"
+          "#024a36",
+          "#047b59",
+          "#06ad7d",
+          "#07dea1",
+          "#30f8bf",
+          "#75fad4",
+          "#b5fde8",
+          "#e6fef7"
         ]
       },
-      "ledger-green-deep": {
+      "accent-hover": {
         "role": "primary",
-        "displayName": "Deep Ledger Green",
-        "canonical": "#124632",
+        "displayName": "Deep Emerald",
+        "canonical": "#065f46",
         "tonalRamp": [
-          "#103d2b",
-          "#1a6548",
-          "#258e65",
-          "#2fb782",
-          "#55d3a3",
-          "#8de2c1",
-          "#c2efde",
-          "#ebfaf4"
+          "#054835",
+          "#087858",
+          "#0ba87c",
+          "#0ed89f",
+          "#36f2bd",
+          "#79f7d3",
+          "#b7fae8",
+          "#e7fdf7"
         ]
       },
-      "pad": {
-        "role": "neutral",
-        "displayName": "Columnar Pad",
-        "canonical": "#e7efe2",
+      "select": {
+        "role": "secondary",
+        "displayName": "Selection Blue",
+        "canonical": "#2563eb",
         "tonalRamp": [
-          "#24311b",
-          "#3c522d",
-          "#53733f",
-          "#6b9452",
-          "#8db375",
-          "#b3cca3",
-          "#d6e4ce",
-          "#f1f6ef"
+          "#061a46",
+          "#0b2c75",
+          "#0f3da3",
+          "#134fd2",
+          "#3b73ed",
+          "#7ca1f3",
+          "#b9cdf9",
+          "#e8eefd"
         ]
       },
-      "pad-deep": {
-        "role": "neutral",
-        "displayName": "Pad Header Wash",
-        "canonical": "#dde8d6",
-        "tonalRamp": [
-          "#24311b",
-          "#3c522e",
-          "#547240",
-          "#6c9352",
-          "#8db276",
-          "#b3cca4",
-          "#d6e4ce",
-          "#f1f6ef"
-        ]
-      },
-      "sheet": {
-        "role": "neutral",
-        "displayName": "Loose Sheet",
-        "canonical": "#f5f9f2",
-        "tonalRamp": [
-          "#243418",
-          "#3c5728",
-          "#557a38",
-          "#6d9d48",
-          "#8ebb6c",
-          "#b4d29d",
-          "#d7e7cb",
-          "#f2f7ee"
-        ]
-      },
-      "graphite": {
-        "role": "neutral",
-        "displayName": "Graphite Ink",
-        "canonical": "#1d2621",
-        "tonalRamp": [
-          "#212b26",
-          "#37483f",
-          "#4d6558",
-          "#638271",
-          "#86a292",
-          "#aec1b7",
-          "#d4ded8",
-          "#f1f4f2"
-        ]
-      },
-      "graphite-2": {
-        "role": "neutral",
-        "displayName": "Soft Graphite",
-        "canonical": "#34423a",
-        "tonalRamp": [
-          "#222b26",
-          "#38473f",
-          "#4f6458",
-          "#658071",
-          "#87a192",
-          "#afc0b6",
-          "#d4ddd8",
-          "#f1f4f2"
-        ]
-      },
-      "graphite-3": {
-        "role": "neutral",
-        "displayName": "Pencil Grey",
-        "canonical": "#4d5e54",
-        "tonalRamp": [
-          "#222a26",
-          "#39463f",
-          "#506258",
-          "#677e71",
-          "#899f92",
-          "#b1bfb6",
-          "#d5ddd8",
-          "#f1f4f2"
-        ]
-      },
-      "red-pencil": {
+      "review": {
         "role": "tertiary",
-        "displayName": "Red Pencil",
-        "canonical": "#b33a27",
+        "displayName": "Review Amber",
+        "canonical": "#a1450a",
         "tonalRamp": [
-          "#3f140e",
-          "#692217",
-          "#932f20",
-          "#bc3d29",
-          "#d9624f",
-          "#e5968a",
-          "#f1c7c0",
-          "#faecea"
+          "#481f04",
+          "#783307",
+          "#a8480a",
+          "#d85d0d",
+          "#f27f35",
+          "#f7aa79",
+          "#fbd1b7",
+          "#fef0e7"
         ]
       },
-      "amber-pencil": {
-        "role": "secondary",
-        "displayName": "Amber Pencil",
-        "canonical": "#8a5a00",
+      "exception": {
+        "role": "tertiary",
+        "displayName": "Exception Rose",
+        "canonical": "#c8281c",
         "tonalRamp": [
-          "#4c3200",
-          "#805300",
-          "#b27400",
-          "#e69600",
-          "#ffb429",
-          "#ffcd70",
-          "#ffe4b2",
-          "#fff6e5"
+          "#430d09",
+          "#701610",
+          "#9d1f16",
+          "#c9281c",
+          "#e54e43",
+          "#ed8982",
+          "#f6c0bc",
+          "#fceae9"
         ]
       },
-      "blue-pencil": {
-        "role": "secondary",
-        "displayName": "Blue Pencil",
-        "canonical": "#2b5aa8",
+      "verified": {
+        "role": "tertiary",
+        "displayName": "Verified",
+        "canonical": "#067647",
         "tonalRamp": [
-          "#10213d",
-          "#1a3666",
-          "#244c8e",
-          "#2f62b7",
-          "#5484d3",
-          "#8dade2",
-          "#c2d3ef",
-          "#ebf0fa"
+          "#04492c",
+          "#067949",
+          "#09aa66",
+          "#0bda83",
+          "#33f5a3",
+          "#77f8c2",
+          "#b6fbde",
+          "#e7fef4"
         ]
       },
-      "night-pad": {
+      "bg": {
         "role": "neutral",
-        "displayName": "Night Pad",
-        "canonical": "#0f1713",
+        "displayName": "Cool White",
+        "canonical": "#fbfcfd",
         "tonalRamp": [
-          "#1e2e26",
-          "#324d40",
-          "#466c59",
-          "#5b8b73",
-          "#7daa94",
-          "#a9c7b8",
-          "#d1e1d9",
-          "#f0f5f2"
+          "#192633",
+          "#2a4055",
+          "#3b5977",
+          "#4c7399",
+          "#7094b8",
+          "#a0b8cf",
+          "#ccd9e6",
+          "#eef2f6"
         ]
       },
-      "night-sheet": {
+      "surface": {
         "role": "neutral",
-        "displayName": "Night Sheet",
-        "canonical": "#16211b",
+        "displayName": "Pane",
+        "canonical": "#ffffff",
         "tonalRamp": [
-          "#1f2e26",
-          "#334c3f",
-          "#476b58",
-          "#5c8a71",
-          "#7ea992",
-          "#a9c6b6",
-          "#d1e0d8",
-          "#f0f5f2"
+          "#262626",
+          "#404040",
+          "#595959",
+          "#737373",
+          "#949494",
+          "#b8b8b8",
+          "#d9d9d9",
+          "#f2f2f2"
         ]
       },
-      "night-green": {
+      "surface-3": {
+        "role": "neutral",
+        "displayName": "Pane Sunken",
+        "canonical": "#f1f4f8",
+        "tonalRamp": [
+          "#192433",
+          "#2a3d55",
+          "#3b5577",
+          "#4c6d99",
+          "#708fb8",
+          "#a0b4cf",
+          "#ccd7e6",
+          "#eef2f6"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#e6e9ef",
+        "tonalRamp": [
+          "#1e232f",
+          "#323b4e",
+          "#46536d",
+          "#5a6a8c",
+          "#7c8cab",
+          "#a8b2c7",
+          "#d0d6e1",
+          "#eff1f5"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#0b1220",
+        "tonalRamp": [
+          "#142039",
+          "#21355f",
+          "#2e4b85",
+          "#3b60ab",
+          "#6082c8",
+          "#95acda",
+          "#c6d3eb",
+          "#ecf0f8"
+        ]
+      },
+      "text-3": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "canonical": "#596579",
+        "tonalRamp": [
+          "#20252c",
+          "#363d49",
+          "#4c5667",
+          "#616e84",
+          "#8490a4",
+          "#adb5c2",
+          "#d3d7df",
+          "#f0f2f4"
+        ]
+      },
+      "night-bg": {
+        "role": "neutral",
+        "displayName": "Warm Charcoal",
+        "canonical": "#141311",
+        "tonalRamp": [
+          "#292723",
+          "#45413b",
+          "#605c52",
+          "#7c7669",
+          "#9d978b",
+          "#bdbab2",
+          "#dcdad6",
+          "#f3f3f1"
+        ]
+      },
+      "night-surface": {
+        "role": "neutral",
+        "displayName": "Night Pane",
+        "canonical": "#1c1a17",
+        "tonalRamp": [
+          "#2a2722",
+          "#464139",
+          "#625b50",
+          "#7e7567",
+          "#9e9689",
+          "#bfb9b1",
+          "#dcdad5",
+          "#f4f2f1"
+        ]
+      },
+      "night-accent": {
         "role": "primary",
-        "displayName": "Lamplit Green",
-        "canonical": "#5cbf8f",
+        "displayName": "Night Emerald",
+        "canonical": "#34d399",
         "tonalRamp": [
-          "#163727",
-          "#245c41",
-          "#32805a",
-          "#41a574",
-          "#65c395",
-          "#98d7b9",
-          "#c8e9d9",
-          "#edf8f2"
+          "#0e3f2d",
+          "#17694b",
+          "#209369",
+          "#29bd87",
+          "#4fd9a7",
+          "#8ae6c4",
+          "#c0f1df",
+          "#eafaf4"
+        ]
+      },
+      "night-review": {
+        "role": "tertiary",
+        "displayName": "Night Amber",
+        "canonical": "#fbbf24",
+        "tonalRamp": [
+          "#4b3701",
+          "#7d5b02",
+          "#af7f03",
+          "#e1a404",
+          "#fbc22d",
+          "#fcd673",
+          "#fee9b4",
+          "#fff8e6"
+        ]
+      },
+      "night-exception": {
+        "role": "tertiary",
+        "displayName": "Night Rose",
+        "canonical": "#fb7185",
+        "tonalRamp": [
+          "#4a020d",
+          "#7c0315",
+          "#ae051d",
+          "#df0626",
+          "#f92f4c",
+          "#fb7488",
+          "#fdb5bf",
+          "#fee6ea"
+        ]
+      },
+      "night-select": {
+        "role": "secondary",
+        "displayName": "Night Blue",
+        "canonical": "#8ab4ff",
+        "tonalRamp": [
+          "#001b4c",
+          "#002e80",
+          "#0040b2",
+          "#0052e6",
+          "#2976ff",
+          "#70a3ff",
+          "#b2ceff",
+          "#e5efff"
         ]
       }
     },
     "typographyMeta": {
       "display": {
         "displayName": "Display",
-        "purpose": "The home page's lead headline."
+        "purpose": "The home page headline only."
       },
       "headline": {
         "displayName": "Headline",
-        "purpose": "Section headings on the home page; page titles in the app."
+        "purpose": "Home page section heads."
       },
       "title": {
         "displayName": "Title",
-        "purpose": "Sheet headings: the reviewer's note, panels, the closing sheet."
+        "purpose": "App page and KPI titles."
       },
       "body": {
         "displayName": "Body",
-        "purpose": "Commentary and explanatory copy."
+        "purpose": "Copy and the commentary document."
       },
       "label": {
-        "displayName": "Reference label",
-        "purpose": "W/P references, column headers, sheet header bands."
+        "displayName": "Label",
+        "purpose": "Queue group headings, pane headings, table headers."
       },
       "figure": {
         "displayName": "Figure",
-        "purpose": "Every number: KPI values, variances, results."
+        "purpose": "Every number, including checked figures inside prose."
       }
     },
     "shadows": [
       {
-        "name": "sheet-lift",
-        "value": "0 1px 0 rgba(29,38,33,.06), 0 8px 22px -14px rgba(29,38,33,.35)",
-        "purpose": "A loose sheet resting on the pad: cards, notes, schedules."
+        "name": "pane",
+        "value": "0 1px 2px rgba(16,24,40,.05), 0 12px 32px -18px rgba(16,24,40,.28)",
+        "purpose": "Panes, panels, the sign-in sheet."
       },
       {
-        "name": "sheet-lift-hover",
-        "value": "0 1px 0 rgba(29,38,33,.06), 0 16px 30px -18px rgba(29,38,33,.45)",
-        "purpose": "A clickable sheet lifted under the pointer."
+        "name": "showcase",
+        "value": "0 2px 4px rgba(16,24,40,.04), 0 40px 80px -30px rgba(16,24,40,.35)",
+        "purpose": "The home page workspace preview only."
       }
     ],
     "motion": [
       {
-        "name": "ease-pencil",
+        "name": "ease",
         "value": "cubic-bezier(.2,.7,.2,1)",
-        "purpose": "Pencil strokes and state transitions."
+        "purpose": "State transitions."
       },
       {
-        "name": "pencil-draw",
-        "value": "stroke-dashoffset 40 -> 0, 500ms, staggered 140ms per row",
-        "purpose": "Ticks draw down the schedule on first view; a row's tick redraws when its footnote is hovered or focused."
+        "name": "trace-link",
+        "value": "150ms ring on the figure, wash on its trace row",
+        "purpose": "Hover or focus a checked figure to light its trace."
       }
     ],
     "breakpoints": [
@@ -271,12 +331,12 @@
         "value": "720px"
       },
       {
-        "name": "tablet",
+        "name": "one-pane",
         "value": "900px"
       },
       {
-        "name": "narrow-desktop",
-        "value": "1100px"
+        "name": "stacked-inspector",
+        "value": "1360px"
       }
     ]
   },
@@ -285,116 +345,115 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The one main action per view: open the demo, generate, approve.",
-      "html": "<button class=\"ds-btn-primary\">Open the demo close<svg width=\"18\" height=\"18\" viewBox=\"0 0 20 20\" aria-hidden=\"true\"><path d=\"M3 10h13M11 5l5 5-5 5\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></button>",
-      "css": ".ds-btn-primary{display:inline-flex;align-items:center;gap:10px;font-family:'Schibsted Grotesk',system-ui,sans-serif;font-weight:800;font-size:17px;padding:15px 24px;border-radius:4px;background:#1e6e50;color:#fff;border:2px solid #1e6e50;cursor:pointer;transition:background-color .15s cubic-bezier(.2,.7,.2,1)}.ds-btn-primary:hover{background:#124632;border-color:#124632}.ds-btn-primary:active{transform:translateY(1px)}.ds-btn-primary:focus-visible{outline:2px solid #1e6e50;outline-offset:3px}"
+      "description": "The one main action of a view.",
+      "html": "<button class=\"ds-btn\">Open the demo close</button>",
+      "css": ".ds-btn{font-family:'Schibsted Grotesk',system-ui,sans-serif;font-weight:700;font-size:17px;padding:15px 24px;border-radius:8px;background:#047857;color:#fff;border:1px solid #047857;cursor:pointer;transition:background-color .15s}.ds-btn:hover{background:#065f46;border-color:#065f46}.ds-btn:focus-visible{outline:2px solid #2563eb;outline-offset:3px}"
     },
     {
-      "name": "Quiet Button",
+      "name": "Ghost Button",
       "kind": "button",
-      "refersTo": "button-quiet",
-      "description": "Secondary action beside a primary one.",
-      "html": "<button class=\"ds-btn-quiet\">Sign in to your workspace</button>",
-      "css": ".ds-btn-quiet{font-family:'Schibsted Grotesk',system-ui,sans-serif;font-weight:800;font-size:17px;padding:15px 24px;border-radius:4px;background:transparent;color:#1d2621;border:2px solid #1d2621;cursor:pointer}.ds-btn-quiet:hover{background:#1d2621;color:#f5f9f2}.ds-btn-quiet:focus-visible{outline:2px solid #1e6e50;outline-offset:3px}"
+      "refersTo": "button-ghost",
+      "description": "Secondary action beside the primary one.",
+      "html": "<button class=\"ds-ghost\">How verification works</button>",
+      "css": ".ds-ghost{font-family:'Schibsted Grotesk',system-ui,sans-serif;font-weight:700;font-size:17px;padding:15px 24px;border-radius:8px;background:#fff;color:#0b1220;border:1px solid #cfd5df;cursor:pointer}.ds-ghost:hover{background:#f1f4f8;border-color:#596579}.ds-ghost:focus-visible{outline:2px solid #2563eb;outline-offset:3px}"
     },
     {
       "name": "Field",
       "kind": "input",
       "refersTo": "input",
-      "description": "Labelled text field on a sheet.",
+      "description": "Labelled field.",
       "html": "<label class=\"ds-field\"><span>Work email</span><input placeholder=\"you@company.com\"></label>",
-      "css": ".ds-field{display:flex;flex-direction:column;gap:6px;font-family:'Schibsted Grotesk',system-ui,sans-serif}.ds-field span{font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#4d5e54}.ds-field input{padding:12px 13px;border:1px solid #4d5e54;border-radius:4px;background:#e7efe2;color:#1d2621;font:inherit;font-size:15px}.ds-field input:focus-visible{outline:2px solid #1e6e50;outline-offset:1px}"
+      "css": ".ds-field{display:flex;flex-direction:column;gap:6px;font-family:'Schibsted Grotesk',system-ui,sans-serif;width:320px}.ds-field span{font-size:13px;font-weight:600;color:#344054}.ds-field input{padding:12px 13px;border:1px solid #cfd5df;border-radius:8px;background:#fff;color:#0b1220;font:inherit;font-size:15px}.ds-field input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px #e8f0fe}"
     },
     {
-      "name": "KPI Sheet",
-      "kind": "card",
-      "refersTo": "card",
-      "description": "One KPI as a loose working paper: header band, figure, draft commentary, review box.",
-      "html": "<article class=\"ds-sheet\"><header><b>Net revenue</b><span class=\"ds-box\" role=\"img\" aria-label=\"Not approved yet\"></span></header><p class=\"ds-fig\">$10.72M</p><p class=\"ds-draft\">Net revenue rose 3.1% above budget after the March price change.</p></article>",
-      "css": ".ds-sheet{width:320px;background:#f5f9f2;border:1px solid rgba(30,110,80,.26);border-radius:4px;box-shadow:0 1px 0 rgba(29,38,33,.06),0 8px 22px -14px rgba(29,38,33,.35);font-family:'Schibsted Grotesk',system-ui,sans-serif;color:#1d2621;transition:border-color .2s,transform .2s}.ds-sheet:hover{border-color:#1e6e50;transform:translateY(-2px)}.ds-sheet header{display:flex;justify-content:space-between;align-items:center;padding:11px 18px;border-bottom:1px solid rgba(30,110,80,.26);background:rgba(221,232,214,.55)}.ds-box{width:22px;height:22px;border:1.5px solid #4d5e54;border-radius:3px}.ds-fig{margin:14px 18px 6px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:30px;font-weight:600;letter-spacing:-.03em}.ds-draft{margin:0 18px 18px;font-size:15px;line-height:1.6;color:#34423a;text-decoration:underline dashed #1e6e50;text-decoration-thickness:1px;text-underline-offset:5px}"
-    },
-    {
-      "name": "Variance Chip",
+      "name": "Status Pills",
       "kind": "chip",
-      "refersTo": "chip-delta",
-      "description": "A month-over-month or vs-plan change, in mono figures.",
-      "html": "<span class=\"ds-delta\">MoM +2.1%</span><span class=\"ds-delta ds-bad\">MoM −5.6%</span>",
-      "css": ".ds-delta{display:inline-flex;gap:4px;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:11.5px;font-weight:600;padding:3px 8px;border-radius:3px;color:#1e6e50;background:rgba(30,110,80,.12);margin-right:6px}.ds-bad{color:#b33a27;background:rgba(179,58,39,.10)}"
+      "refersTo": "status-pill",
+      "description": "Every state colour with its word.",
+      "html": "<span class=\"ds-pill ex\">Exception</span><span class=\"ds-pill rv\">Needs review</span><span class=\"ds-pill ok\">4 of 4 figures verified</span>",
+      "css": ".ds-pill{display:inline-flex;font-family:'Schibsted Grotesk',system-ui,sans-serif;font-size:12.5px;font-weight:700;border-radius:999px;padding:3px 10px;margin-right:6px}.ex{color:#c8281c;background:#fdeeed}.rv{color:#a1450a;background:#fff6e5}.ok{color:#067647;background:#e8f8ef}"
     },
     {
-      "name": "Lead Schedule",
+      "name": "Queue Row",
       "kind": "custom",
-      "refersTo": "schedule",
-      "description": "The signature table: KPI rows in mono figures, a pencil tick per row, exceptions in red pencil.",
-      "html": "<table class=\"ds-sched\"><thead><tr><th>KPI</th><th>Actual</th><th>Var</th><th>Tick</th></tr></thead><tbody><tr><td>Net revenue</td><td>$10.72M</td><td>+3.1%</td><td><svg viewBox=\"0 0 26 22\" class=\"ds-tick\" role=\"img\" aria-label=\"Computed in code\"><path d=\"M3.5 12.2c1.9 1.4 3.6 3.3 5.2 5.6C12.4 11 16.8 6.2 22.6 3.4\"/></svg></td></tr><tr class=\"ds-exc\"><td>Bad debt</td><td>$212K</td><td>+136%</td><td><svg viewBox=\"0 0 26 22\" class=\"ds-tick\" role=\"img\" aria-label=\"Exception\"><path d=\"M5.5 4.5c4.7 4 9.4 8.4 14.6 13.3M20.2 4.2C15.3 8.4 10.6 13 5.8 18\"/></svg></td></tr></tbody></table>",
-      "css": ".ds-sched{border-collapse:collapse;width:420px;font-family:'Schibsted Grotesk',system-ui,sans-serif;color:#1d2621}.ds-sched th{font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#1e6e50;text-align:right;padding:0 10px 8px;border-bottom:2px solid #1e6e50}.ds-sched th:first-child,.ds-sched td:first-child{text-align:left;font-weight:650;font-family:inherit}.ds-sched td{padding:10px;border-bottom:1px solid rgba(30,110,80,.26);text-align:right;font-family:'Red Hat Mono',ui-monospace,monospace}.ds-sched tr:hover{background:rgba(30,110,80,.12)}.ds-tick{width:24px;height:20px;fill:none;stroke:#1e6e50;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}.ds-exc td{color:#b33a27}.ds-exc .ds-tick{stroke:#b33a27}"
+      "refersTo": "queue-row",
+      "description": "One KPI in the review queue; the selected row takes the blue wash and ring.",
+      "html": "<div class=\"ds-q\"><div class=\"ds-qi on\"><i></i><b>Bad debt</b><em>+136%</em><small>$212K · vs plan · Anomaly</small></div><div class=\"ds-qi rev\"><i></i><b>Net revenue</b><em class=\"g\">+3.1%</em><small>$10.7M · vs plan · Draft ready</small></div></div>",
+      "css": ".ds-q{width:320px;background:#f8fafc;border:1px solid #e6e9ef;border-radius:16px;padding:10px;font-family:'Schibsted Grotesk',system-ui,sans-serif}.ds-qi{display:grid;grid-template-columns:10px 1fr auto;column-gap:10px;align-items:center;padding:10px;border-radius:8px;cursor:pointer}.ds-qi:hover{background:#f1f4f8}.ds-qi.on{background:#e8f0fe;box-shadow:0 0 0 1px #2563eb}.ds-qi i{width:8px;height:8px;border-radius:50%;background:#c8281c}.ds-qi.rev i{background:#a1450a}.ds-qi b{font-size:14.5px;color:#0b1220}.ds-qi em{font-style:normal;font-family:'Red Hat Mono',ui-monospace,monospace;font-size:13px;font-weight:600;color:#c8281c}.ds-qi em.g{color:#067647}.ds-qi small{grid-column:2/-1;font-size:12.5px;color:#596579}"
     },
     {
-      "name": "Sign-off Strip",
+      "name": "Traced Figure",
       "kind": "custom",
-      "refersTo": "signoff",
-      "description": "Prepared / Reviewed / Approved, closing a note or a sheet.",
-      "html": "<div class=\"ds-sign\"><div><span>Prepared</span><b>Closebrief</b></div><div><span>Reviewed</span><b>You</b></div><div><span>Approved</span><b class=\"ds-blank\">—</b></div></div>",
-      "css": ".ds-sign{display:grid;grid-template-columns:repeat(3,1fr);width:420px;border-top:2px solid #1e6e50;background:#f5f9f2;font-family:'Schibsted Grotesk',system-ui,sans-serif}.ds-sign div{padding:10px 16px;display:flex;flex-direction:column;gap:3px}.ds-sign div+div{border-left:1px solid rgba(30,110,80,.26)}.ds-sign span{font-family:'Red Hat Mono',ui-monospace,monospace;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#4d5e54}.ds-sign b{font-size:17px;color:#1d2621}.ds-blank{color:#4d5e54;font-weight:500}"
+      "refersTo": "pane",
+      "description": "A checked figure in the document and its trace in the inspector.",
+      "html": "<p class=\"ds-doc\">Bad debt rose to <mark>$212K</mark> against plan.</p><div class=\"ds-tr\"><b>$212K</b> GL 6420, June</div>",
+      "css": ".ds-doc{font-family:'Schibsted Grotesk',system-ui,sans-serif;font-size:17px;color:#344054}.ds-doc mark{background:#e8f8ef;color:#0b1220;font-family:'Red Hat Mono',ui-monospace,monospace;font-weight:600;border-radius:5px;padding:1px 5px}.ds-doc mark:hover{box-shadow:0 0 0 2px #067647}.ds-tr{font-family:'Schibsted Grotesk',system-ui,sans-serif;font-size:13.5px;color:#344054;background:#e8f8ef;border-radius:6px;padding:8px;margin-top:8px;width:260px}.ds-tr b{font-family:'Red Hat Mono',ui-monospace,monospace;color:#0b1220}"
+    },
+    {
+      "name": "Logo",
+      "kind": "custom",
+      "refersTo": "pane",
+      "description": "The Closing Ring with the wordmark.",
+      "html": "<div class=\"ds-logo\"><svg viewBox=\"0 0 56 56\" width=\"40\" height=\"40\"><path d=\"M47 22.5A20 20 0 1 1 37.5 10\" fill=\"none\" stroke=\"#047857\" stroke-width=\"6\" stroke-linecap=\"round\"/><path d=\"M19 28.5l7 7L48 13\" fill=\"none\" stroke=\"#0b1220\" stroke-width=\"6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg><b>close<span>brief</span></b></div>",
+      "css": ".ds-logo{display:flex;align-items:center;gap:10px;font-family:'Schibsted Grotesk',system-ui,sans-serif}.ds-logo b{font-size:28px;font-weight:800;letter-spacing:-.035em;color:#0b1220}.ds-logo span{font-weight:500}"
     }
   ],
   "narrative": {
-    "northStar": "Working Papers",
-    "overview": "Closebrief is an auditor's working papers for the month-end close. The page is a green columnar analysis pad; KPIs sit on it as a lead schedule; each figure carries a pencil tick that says how it was checked, and a legend explains every mark. Commentary is the reviewer's note clipped beside the schedule, and every piece of work closes on a Prepared / Reviewed / Approved sign-off. The system exists to make one promise visible: the AI writes the words, it never computes the numbers.\n\nThe world is dense where finance people expect density (schedules, figures, references) and quiet everywhere else. Colour is pencil, not paint: ledger green rules and ticks, graphite text, and red pencil reserved for the exceptions that matter. Nothing is decorative; every rule, reference code and tick is doing a job a controller would recognise. The look was chosen over a generic SaaS template, a playful style, a dark developer-tool look and a plain corporate one; it should never drift toward any of those.\n\nLight is the daytime desk; dark is the same pad under a desk lamp (\"night shift\"), built from the same tokens.",
+    "northStar": "The Review Instrument",
+    "overview": "Closebrief is an instrument for reviewing a month's close, not a dashboard of tiles. Every screen is organised around one loop: a queue of KPIs ordered by what needs a decision, the selected KPI's commentary read as a document, and an inspector beside it that traces every figure in that document to its source. The home page shows the same instrument working, so a visitor sees the product before they read about it.\n\nIt ships in two lightings of one instrument. **Precision** (light) is cool white, ink and slate with an electric-blue selection; **Night close** (dark) is warm charcoal with an emerald action and amber and rose states. The theme follows the visitor's system. Colour carries state and nothing else: emerald is the action and \"verified\", amber is \"needs review\", rose is \"exception\", blue is \"selected\". Every state colour travels with a word.\n\nIt must not drift toward paper or ledger textures (the previous direction), a single flat green, a grid of equal KPI cards, neon-on-black developer tooling, or bland grey corporate.",
     "keyCharacteristics": [
-      "A columnar pad ground (green column rules every 120px over faint 32px ruling).",
-      "Loose sheets with square-ish corners resting on the pad, never rounded app cards.",
-      "Every number in mono tabular figures; every number with a reference or a tick.",
-      "Drawn pencil tick marks with a legend, never glyph icons.",
-      "Draft prose dashed, approved prose solid."
+      "Queue | document | inspector, the same three parts on every KPI surface.",
+      "Hairline structure (1px lines), soft shadows on panes only, 8 to 16px radii, pill status chips.",
+      "Schibsted Grotesk set tight for words; Red Hat Mono for every figure.",
+      "Checked figures inside prose are highlighted and link to their trace.",
+      "Light and dark from the same semantic tokens in `ui/web/theme.css`."
     ],
     "rules": [
       {
-        "name": "The Red Pencil Rule",
-        "body": "Red marks an exception past the materiality threshold, a failed figure check, or a destructive action. It is never decoration, never a category colour, never emphasis.",
+        "name": "The State Has A Word Rule",
+        "body": "No colour stands alone: every dot, pill or tint is paired with its label (\"Exception\", \"Needs review\", \"Approved\", \"4 of 4 figures verified\").",
         "section": "colors"
       },
       {
-        "name": "The One Signal Rule",
-        "body": "Blue pencil means \"new since you last looked\" and nothing else. If it appears for any other reason, it's wrong.",
+        "name": "The One Action Rule",
+        "body": "Emerald fills only the primary action of a view. Secondary actions are ghost buttons on a hairline.",
         "section": "colors"
       },
       {
         "name": "The 4.5 Rule",
-        "body": "Every text colour clears 4.5:1 on pad, pad-deep and sheet in both themes; the tokens were chosen against that, so use the tokens.",
+        "body": "Every text and state token clears 4.5:1 on every surface in both themes, including state text on its own wash.",
         "section": "colors"
       },
       {
         "name": "The Mono Means Data Rule",
-        "body": "Mono is for figures, references and codes. Never set prose, buttons or headings in mono.",
+        "body": "Mono is for figures and codes only; never for prose, buttons or headings.",
         "section": "typography"
       },
       {
         "name": "The No-Kicker Rule",
-        "body": "Labels live in header bands and column heads, never as a small line floating above a heading.",
+        "body": "Labels head panes and groups; they never float as a small line above a headline.",
         "section": "typography"
       },
       {
-        "name": "The Paper Rule",
-        "body": "Only sheets cast shadows. Buttons, chips and controls are flat; no hard offset shadows, no glow.",
+        "name": "The Flat Controls Rule",
+        "body": "Buttons, chips, rows and inputs are flat. No offset shadows, no glow, no coloured edge stripes; selection is a tinted fill with a 1px ring.",
         "section": "elevation"
       }
     ],
     "dos": [
-      "**Do** give every figure a mono tabular face and, where it is checked, a pencil tick from the legend.",
-      "**Do** underline draft commentary dashed (1px, 5px offset) and approved commentary solid green.",
-      "**Do** keep exceptions in red pencil and nothing else red.",
-      "**Do** put labels in header bands and column heads, with a 2px ledger-green rule under them.",
-      "**Do** draw icons as SVG strokes in the pencil style (2.4–2.6 stroke, round caps).",
-      "**Do** label sample data as sample data wherever a visitor could mistake it for real."
+      "**Do** order every KPI list by what needs a decision: exceptions first.",
+      "**Do** pair every state colour with its word.",
+      "**Do** set every figure in Red Hat Mono, and highlight checked figures inside prose.",
+      "**Do** build both themes from the semantic tokens in `ui/web/theme.css`; never hard-code a hex in a component.",
+      "**Do** show selection as the blue wash and 1px ring.",
+      "**Do** label sample data wherever a visitor could take it for real."
     ],
     "donts": [
-      "**Don't** use rounded app cards, coloured left-edge stripes or gradient backgrounds on sheets.",
-      "**Don't** put a small eyebrow label above a heading.",
-      "**Don't** use hard offset shadows or glow on buttons.",
-      "**Don't** use glyph characters (✓ ✕ × ▾ ‹ ›) as icons.",
-      "**Don't** set prose or buttons in mono.",
-      "**Don't** drift toward the rejected looks: generic SaaS template, playful, dark developer tool, plain corporate."
+      "**Don't** lay KPIs out as a grid of equal cards.",
+      "**Don't** use coloured left or right edge stripes, offset shadows or glows on controls.",
+      "**Don't** put a small label above a headline.",
+      "**Don't** use text glyphs as icons; draw them as SVG.",
+      "**Don't** return to paper, ruled-pad or ledger textures, a single flat green, neon-on-black, or grey corporate."
     ]
   }
 }

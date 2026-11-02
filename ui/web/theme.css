@@ -1,7 +1,8 @@
-/* Closebrief — "Working Papers": the auditor's lead schedule on a green columnar
-   pad. Ledger green rules and actions, graphite ink, pencil tick marks, red
-   pencil only for exceptions past the materiality threshold.
-   Shared by the home page (/) and the app (/app). */
+/* Closebrief — a review instrument in two lightings.
+   Light ("Precision"): cool white, ink, slate, electric-blue selection.
+   Dark ("Night close"): warm charcoal, emerald action, amber and rose states.
+   Shared by the home page (/) and the app (/app). The theme follows the
+   visitor's system unless the app sets data-theme. */
 
 @font-face{font-family:'Schibsted Grotesk';font-style:normal;font-weight:400 900;font-display:swap;src:url(/vendor/fonts/schibsted-grotesk.woff2) format('woff2')}
 @font-face{font-family:'Red Hat Mono';font-style:normal;font-weight:400 700;font-display:swap;src:url(/vendor/fonts/redhat-mono.woff2) format('woff2')}
@@ -10,67 +11,67 @@
   --font-sans:'Schibsted Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
   --font-mono:'Red Hat Mono',ui-monospace,Consolas,monospace;
 
-  /* paper */
-  --pad:#e7efe2;          /* the columnar pad: page ground */
-  --pad-deep:#dde8d6;     /* sunken areas, table headers */
-  --sheet:#f5f9f2;        /* a loose sheet laid on the pad: cards, notes */
-  --rule:rgba(30,110,80,.26);        /* column rules */
-  --rule-faint:rgba(30,110,80,.11);  /* horizontal ruling */
-  --rule-strong:#1e6e50;             /* heavy rules under headers */
+  /* surfaces */
+  --bg:#fbfcfd;  --surface:#ffffff;  --surface-2:#f8fafc;  --surface-3:#f1f4f8;
+  --line:#e6e9ef; --line-strong:#cfd5df;
+  /* text */
+  --text:#0b1220; --text-2:#344054; --text-3:#596579;
+  /* primary action: the brand green */
+  --accent:#047857; --accent-hover:#065f46; --on-accent:#ffffff;
+  /* states: each always paired with a word */
+  --verified:#067647;  --verified-wash:#e8f8ef;
+  --review:#a1450a;    --review-wash:#fff6e5;
+  --exception:#c8281c; --exception-wash:#fdeeed;
+  --select:#2563eb;    --select-wash:#e8f0fe;
 
-  /* ink */
-  --ink:#1d2621;
-  --ink-2:#34423a;
-  --ink-3:#4d5e54;        /* labels, meta: 5.1:1 on the pad */
-
-  /* pencils */
-  --green:#1e6e50;        /* brand: rules, ticks, primary action */
-  --green-deep:#124632;
-  --on-green:#ffffff;
-  --green-wash:rgba(30,110,80,.12);
-  --red-pencil:#b33a27;   /* exceptions past threshold, nothing else */
-  --red-wash:rgba(179,58,39,.10);
-  --amber:#8a5a00;        /* a deviation before it becomes an exception */
-  --amber-wash:rgba(138,90,0,.12);
-  --blue-pencil:#2b5aa8;  /* the one signal for "new since you last looked" */
-
-  --radius:4px;
-  --lift:0 1px 0 rgba(29,38,33,.06),0 8px 22px -14px rgba(29,38,33,.35);
+  --r-sm:8px; --r-md:12px; --r-lg:16px; --r-pill:999px;
+  --shadow:0 1px 2px rgba(16,24,40,.05),0 12px 32px -18px rgba(16,24,40,.28);
+  --shadow-lg:0 2px 4px rgba(16,24,40,.04),0 40px 80px -30px rgba(16,24,40,.35);
+  --glow-a:rgba(37,99,235,.08); --glow-b:rgba(5,150,105,.08);
   --ease:cubic-bezier(.2,.7,.2,1);
   color-scheme:light;
 }
 
-/* Night shift: the same pad under a desk lamp, ink and paper swapped. */
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --pad:#0f1713; --pad-deep:#0b120e; --sheet:#16211b;
-    --rule:rgba(120,200,160,.20); --rule-faint:rgba(120,200,160,.08); --rule-strong:#5cbf8f;
-    --ink:#e3ebe5; --ink-2:#c3cfc7; --ink-3:#9aaba1;
-    --green:#5cbf8f; --green-deep:#2f8f64; --on-green:#04110a; --green-wash:rgba(92,191,143,.14);
-    --red-pencil:#f08a77; --red-wash:rgba(240,138,119,.12);
-    --amber:#e2b04f; --amber-wash:rgba(226,176,79,.12);
-    --blue-pencil:#8fb2f0;
-    --lift:0 1px 0 rgba(0,0,0,.3),0 10px 26px -14px rgba(0,0,0,.7);
+    --bg:#141311;  --surface:#1c1a17;  --surface-2:#191815;  --surface-3:#26231f;
+    --line:#2e2b27; --line-strong:#44403c;
+    --text:#f3efe8; --text-2:#d6d3d1; --text-3:#a8a29e;
+    --accent:#34d399; --accent-hover:#6ee7b7; --on-accent:#06120c;
+    --verified:#34d399;  --verified-wash:rgba(52,211,153,.14);
+    --review:#fbbf24;    --review-wash:rgba(251,191,36,.12);
+    --exception:#fb7185; --exception-wash:rgba(251,113,133,.13);
+    --select:#8ab4ff;    --select-wash:rgba(138,180,255,.13);
+    --shadow:0 1px 0 rgba(0,0,0,.35),0 18px 44px -24px rgba(0,0,0,.85);
+    --shadow-lg:0 1px 0 rgba(0,0,0,.4),0 40px 90px -30px rgba(0,0,0,.9);
+    --glow-a:rgba(52,211,153,.10); --glow-b:rgba(245,158,11,.06);
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --pad:#0f1713; --pad-deep:#0b120e; --sheet:#16211b;
-  --rule:rgba(120,200,160,.20); --rule-faint:rgba(120,200,160,.08); --rule-strong:#5cbf8f;
-  --ink:#e3ebe5; --ink-2:#c3cfc7; --ink-3:#9aaba1;
-  --green:#5cbf8f; --green-deep:#2f8f64; --on-green:#04110a; --green-wash:rgba(92,191,143,.14);
-  --red-pencil:#f08a77; --red-wash:rgba(240,138,119,.12);
-  --amber:#e2b04f; --amber-wash:rgba(226,176,79,.12);
-  --blue-pencil:#8fb2f0;
-  --lift:0 1px 0 rgba(0,0,0,.3),0 10px 26px -14px rgba(0,0,0,.7);
+  --bg:#141311;  --surface:#1c1a17;  --surface-2:#191815;  --surface-3:#26231f;
+  --line:#2e2b27; --line-strong:#44403c;
+  --text:#f3efe8; --text-2:#d6d3d1; --text-3:#a8a29e;
+  --accent:#34d399; --accent-hover:#6ee7b7; --on-accent:#06120c;
+  --verified:#34d399;  --verified-wash:rgba(52,211,153,.14);
+  --review:#fbbf24;    --review-wash:rgba(251,191,36,.12);
+  --exception:#fb7185; --exception-wash:rgba(251,113,133,.13);
+  --select:#8ab4ff;    --select-wash:rgba(138,180,255,.13);
+  --shadow:0 1px 0 rgba(0,0,0,.35),0 18px 44px -24px rgba(0,0,0,.85);
+  --shadow-lg:0 1px 0 rgba(0,0,0,.4),0 40px 90px -30px rgba(0,0,0,.9);
+  --glow-a:rgba(52,211,153,.10); --glow-b:rgba(245,158,11,.06);
   color-scheme:dark;
 }
 
-/* The pad itself: green column rules over faint horizontal ruling. */
-.pad-ground{
-  background-color:var(--pad);
-  background-image:
-    repeating-linear-gradient(90deg,transparent 0 119px,var(--rule) 119px 120px),
-    repeating-linear-gradient(0deg,transparent 0 31px,var(--rule-faint) 31px 32px);
+/* Earlier token names, kept so older component CSS resolves into this world. */
+:root{
+  --pad:var(--bg); --pad-deep:var(--surface-3); --sheet:var(--surface);
+  --rule:var(--line); --rule-faint:var(--line); --rule-strong:var(--line-strong);
+  --ink:var(--text); --ink-2:var(--text-2); --ink-3:var(--text-3);
+  --green:var(--accent); --green-deep:var(--accent-hover); --on-green:var(--on-accent); --green-wash:var(--verified-wash);
+  --red-pencil:var(--exception); --red-wash:var(--exception-wash);
+  --amber:var(--review); --amber-wash:var(--review-wash);
+  --blue-pencil:var(--select);
+  --radius:var(--r-md); --lift:var(--shadow);
 }
-::selection{background:var(--green);color:var(--on-green)}
+::selection{background:var(--select);color:#fff}

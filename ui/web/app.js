@@ -498,7 +498,12 @@ window.addEventListener("popstate",()=>importRouteChanged());
 window.addEventListener("hashchange",()=>importRouteChanged());
 function nav(v,{fromRoute=false}={}){
   closeSidebar();   // dismiss the mobile drawer on navigation
-  for(const s of["detail",...VIEWS])$("v-"+s).style.display=s===v?"":"none";
+  // The dashboard and the open KPI share one workspace: queue + document + inspector.
+  for(const s of VIEWS)$("v-"+s).style.display=(s===v||(v==="detail"&&s==="dashboard"))?"":"none";
+  $("v-detail").style.display=(v==="detail"||(v==="dashboard"&&detailFact))?"":"none";
+  $("d-empty").style.display=detailFact?"none":"";
+  $("ws-split").classList.toggle("has-detail",v==="detail");
+  $("v-dashboard").classList.toggle("detail-open",v==="detail");
   for(const s of VIEWS){
     const item=document.querySelector(`[data-view=${s}]`);if(!item)continue;
     const on=s===v||(v==="detail"&&s==="dashboard");
@@ -1677,32 +1682,24 @@ function streakBadge(s){
   return`<span class="delta ${up?"good":"bad"}" title="${esc(s.start_period)} → ${esc(s.end_period)}">${up?"↗":"↘"} ${s.months}-mo ${up?"streak":"decline"}</span>`;
 }
 
+// The review order of the queue, and the words each group goes by.
+const QUEUE_GROUPS=[["exception","Exceptions"],["review","Needs review"],["approved","Approved"],["nodata","No data this period"]];
+function queueGroup(f){
+  if(!f.has_data)return "nodata";
+  if(f.is_anomaly||f.faithfulness==="failed")return "exception";
+  if(f.review_status==="approved")return "approved";
+  return "review";
+}
 function renderStatrow(facts){
   const el=$("statrow");if(!el)return;
   const withData=facts.filter(f=>f.has_data);
   if(!withData.length){el.innerHTML="";return;}
-  const anom=withData.filter(f=>f.is_anomaly).length;
-  const narr=withData.filter(f=>f.narrative).length;
-  const offPlan=withData.filter(f=>f.deltas&&f.deltas.budget_var_pct!=null&&f.deltas.budget_var_pct<0).length;
-  // Biggest absolute move vs plan, for a "top mover" headline tile.
-  const mover=withData.filter(f=>f.deltas&&f.deltas.budget_var_pct!=null)
-    .sort((a,b)=>Math.abs(b.deltas.budget_var_pct)-Math.abs(a.deltas.budget_var_pct))[0];
-  const ic={grid:'<path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/>',
-    bolt:'<path d="M13 2 3 14h7l-1 8 10-12h-7z"/>',
-    warn:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/>',
-    trend:'<path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-5"/>'};
-  // The svg inherits --sc from its .stat container — set the color once, on the tile.
-  const svg=p=>`<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
-  const tile=(lbl,path,color,val,hint,mono)=>`<div class="stat rise" style="--sc:${color}">
-    <span class="stat-lbl">${svg(path)}${lbl}</span>
-    <span class="stat-val${mono?" nbi-num":""}">${val}</span><span class="stat-hint">${hint}</span></div>`;
-  const attn=anom?`${plural(anom,"anomaly","anomalies")}`:"All clear";
-  el.innerHTML=[
-    `<div class="stat rise${anom?" alert":""}" style="--sc:${anom?"var(--red)":"var(--accent)"}"><span class="stat-lbl">${svg(ic.warn)}Needs attention</span><span class="stat-val">${attn}</span><span class="stat-hint">${anom?"open the flagged card to review":"no anomalies this period"}</span></div>`,
-    mover?tile("Top mover vs plan",ic.trend,catColor(mover.category)||"#eb6834",esc(mover.metric),`${pct(mover.deltas.budget_var_pct)||"–"} vs budget`):"",
-    tile("Narratives",ic.bolt,"#4a3aa7",`${narr}<small>/${withData.length}</small>`,narr===withData.length?"all explained":`${withData.length-narr} to generate`,true),
-    tile("Off plan",ic.grid,offPlan?"var(--amber)":"#2a78d6",offPlan,offPlan?"KPIs behind budget":"everything on or ahead of plan",true)
-  ].join("");
+  const n=g=>withData.filter(f=>queueGroup(f)===g).length;
+  const drafted=withData.filter(f=>f.narrative).length;
+  el.innerHTML=`<span class="qs exc"><b class="nbi-num">${n("exception")}</b> ${n("exception")===1?"exception":"exceptions"}</span>`
+    +`<span class="qs rev"><b class="nbi-num">${n("review")}</b> to review</span>`
+    +`<span class="qs ok"><b class="nbi-num">${n("approved")}</b> approved</span>`
+    +`<span class="qs drafted">${drafted}/${withData.length} drafted</span>`;
 }
 let shownFacts=[];
 function renderPills(){
@@ -1717,14 +1714,6 @@ document.addEventListener("keydown",e=>{
   const t=e.target;
   if((e.key==="Enter"||e.key===" ")&&t&&t.getAttribute&&t.getAttribute("role")==="button"&&!/^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(t.tagName)){e.preventDefault();t.click();}
 });
-// The working-paper tick box: empty until a person approves the commentary,
-// so unreviewed work stays visibly open (docs/ui-standard.md §3).
-function reviewTick(f){
-  if(!f.report_id||f.aggregated)return "";
-  return f.review_status==="approved"
-    ?`<span class="rev-tick ok" role="img" aria-label="Approved" title="Approved"><svg viewBox="0 0 26 22"><path d="M3.5 12.2c1.9 1.4 3.6 3.3 5.2 5.6C12.4 11 16.8 6.2 22.6 3.4"/></svg></span>`
-    :`<span class="rev-tick" role="img" aria-label="Not approved yet" title="Not approved yet"></span>`;
-}
 // Cards act as links: Enter/Space opens, but only when the card itself has focus
 // (not one of its inner Accept/Edit/Generate buttons).
 function cardKey(e,i){if(e.target===e.currentTarget&&(e.key==="Enter"||e.key===" ")){e.preventDefault();openDetail(i);}}
@@ -1734,51 +1723,58 @@ function renderCards(){
   const cat=catFilter;
   let facts=cat?currentFacts.filter(f=>(f.category||"Uncategorized")===cat):currentFacts;
   if(searchQuery)facts=facts.filter(f=>factMatches(f,searchQuery));
+  // Review order: exceptions first, approved and empty KPIs last; stable within a group.
+  const order=Object.fromEntries(QUEUE_GROUPS.map(([g],i)=>[g,i]));
+  facts=facts.map((f,i)=>[f,i]).sort((x,y)=>order[queueGroup(x[0])]-order[queueGroup(y[0])]||x[1]-y[1]).map(x=>x[0]);
   shownFacts=facts;
   renderStatrow(facts);renderPills();
-  if(!currentFacts.length){$("cards").innerHTML=`<div class="empty-state" style="grid-column:1/-1"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/></svg><div>No KPIs to show. Select KPIs during import, or switch dataset.</div></div>`;return;}
-  if(!facts.length){$("cards").innerHTML=`<div class="empty-state" style="grid-column:1/-1"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><div>No metrics match ${searchQuery?`“${esc(searchQuery)}”`:"these filters"}. <a onclick="clearSearch();clearCatFilter()" style="color:var(--accent);cursor:pointer;font-weight:700">Clear filters</a></div></div>`;return;}
-  const q=searchQuery;
-  // Only run the staggered entrance on the first paint of a dataset/period —
-  // not on every re-render during generation (which caused a full-grid flicker).
-  const rise=skipRise?"":"rise";
-  $("cards").innerHTML=facts.map((f,i)=>{
-    const dg=f.direction_good==="down",delay=`style="${skipRise?"":`animation-delay:${Math.min(i*45,400)}ms;`}${catStyle(f.category)}"`;
-    if(!f.has_data){
-      return`<div class="card empty ${rise}" ${delay}>
-        <div class="card-top"><span class="card-name"><span class="cat-dot"></span>${hl(f.metric,q)}</span></div>
-        <div class="card-value" style="font-size:20px;color:var(--mut2)">No data</div>
-        <div class="narr muted">No data for ${esc(currentPeriod)} in this dataset.</div></div>`;
+  if(!currentFacts.length){$("cards").innerHTML=`<div class="empty-state">No KPIs to show. Select KPIs during import, or switch dataset.</div>`;return;}
+  if(!facts.length){$("cards").innerHTML=`<div class="empty-state">No KPIs match ${searchQuery?`“${esc(searchQuery)}”`:"these filters"}. <button class="linkbtn" onclick="clearSearch();clearCatFilter()">Clear filters</button></div>`;return;}
+  const q=searchQuery;let html="",last=null;
+  facts.forEach((f,i)=>{
+    const g=queueGroup(f);
+    if(g!==last){
+      html+=`<div class="q-grp">${QUEUE_GROUPS.find(x=>x[0]===g)[1]}<span class="nbi-num">${facts.filter(x=>queueGroup(x)===g).length}</span></div>`;
+      last=g;
     }
-    // ONE status slot beside the value (was 4 competing badge systems).
-    const status=f.is_anomaly?'<span class="anom">Anomaly</span>'
-      :f.faithfulness==="failed"?seal(false)
-      :f.faithfulness==="passed"?seal(true):"";
-    const nsrc=(f.sources||[]).length;
-    return`<div class="card click ${rise}" ${delay} onclick="openDetail(${i})" onkeydown="cardKey(event,${i})" tabindex="0" role="link" aria-label="${esc(f.metric)}: ${esc(fmt(f.value,f.unit))}. Open details">
-      <div class="card-top">
-        <span class="card-name" title="${esc(f.category||"Uncategorized")}"><span class="cat-dot"></span>${hl(f.metric,q)}</span>
-        <span style="display:flex;align-items:center">${f.chart_data&&f.chart_data.trend?sparkline(f.chart_data.trend,f.direction_good,96,28,f.unit):""}${reviewTick(f)}</span>
-      </div>
-      <div class="card-value-row">
-        <span style="display:flex;align-items:center;gap:9px"><span class="card-value nbi-num" ${f.unavailable?'title="Ratios/percentages aren\'t aggregated across months — view at Month granularity"':""}>${f.unavailable?"—":fmt(f.value,f.unit)}</span>${status}${f.edited?'<span class="badge edited">edited</span>':""}</span>
-      </div>
-      <div class="deltas">
-        ${deltaChip(f.aggregated?(granularity==="year"?"YoY":"QoQ"):"MoM",f.deltas.mom_pct,dg)}
-        ${deltaChip("vs plan",f.deltas.budget_var_pct,dg)}
-        ${streakBadge(f.trend_streak)}
-      </div>
-      ${narrativeBlock(f,q,i)}
-      ${f.narrative&&!f.aggregated?`<span class="read-more">Read more${nsrc?` · ${plural(nsrc,"source")}`:""}</span>`:""}
-      ${f.aggregated?"":`<div class="card-foot" onclick="event.stopPropagation()">
-        ${f.report_id?`
-          <button class="txtact" onclick="feedback(${f.report_id},'accepted',this)">Accept</button>
-          <button class="txtact" onclick="editNarr(${f.report_id})">Edit</button>
-          <button class="txtact bad" onclick="rejectNarr(${f.report_id},this)">Reject</button>`:""}
-        <button class="txtact acc" style="margin-left:auto" onclick="genCard(${i},this)">${f.narrative?"Regenerate":"Generate"}</button>
-      </div>`}
-    </div>`;
-  }).join("");
+    html+=queueRow(f,i,q);
+  });
+  $("cards").innerHTML=html;
+  autoSelect();
+}
+// One queue row: status dot, name, the variance that matters, and the state in words.
+function queueRow(f,i,q){
+  const g=queueGroup(f);
+  if(!f.has_data)return `<div class="qi nodata"><i class="dot" aria-hidden="true"></i><span class="qn">${hl(f.metric,q)}</span><span class="qsub">No data for ${esc(fmtPeriod(currentPeriod))}</span></div>`;
+  const plan=f.deltas.budget_var_pct,v=plan!=null?plan:f.deltas.mom_pct;
+  const vLabel=plan!=null?"vs plan":f.aggregated?(granularity==="year"?"YoY":"QoQ"):"MoM";
+  const good=v==null||v===0?null:(f.direction_good==="down"?v<0:v>0);
+  const tone=good===null?"":good?"c-ok":"c-exc";
+  const state=generatingSet.has(f.metric)?"Drafting…"
+    :g==="exception"?(f.is_anomaly?"Anomaly":"Figures need review")
+    :g==="approved"?"Approved":f.narrative?"Draft ready":"Not drafted";
+  const sel=!!(detailFact&&detailFact.metric===f.metric);
+  return `<div class="qi ${g}${sel?" on":""}" data-i="${i}" onclick="openDetail(${i})" onkeydown="cardKey(event,${i})" tabindex="0" role="link"${sel?' aria-current="true"':""} aria-label="${esc(f.metric)}, ${esc(f.unavailable?"no value":fmt(f.value,f.unit))}, ${esc(state)}">
+    <i class="dot" aria-hidden="true"></i><span class="qn">${hl(f.metric,q)}</span>
+    <span class="qv nbi-num ${tone}">${v==null?"–":pct(v)}</span>
+    <span class="qsub"><span class="nbi-num">${f.unavailable?"—":fmt(f.value,f.unit)}</span> · ${vLabel} · ${esc(state)}</span></div>`;
+}
+function markQueueSelection(){
+  document.querySelectorAll("#cards .qi[data-i]").forEach(el=>{
+    const f=shownFacts[+el.dataset.i],on=!!(f&&detailFact&&f.metric===detailFact.metric);
+    el.classList.toggle("on",on);
+    if(on)el.setAttribute("aria-current","true");else el.removeAttribute("aria-current");
+  });
+}
+// Wide screens always show a document: keep the open KPI (refreshed to this
+// period's figures) or open the first one in review order.
+const wideWorkspace=window.matchMedia?window.matchMedia("(min-width: 901px)"):{matches:true};
+function autoSelect(){
+  if(!wideWorkspace.matches||$("v-dashboard").style.display==="none")return;
+  const cur=detailFact?shownFacts.findIndex(f=>f.metric===detailFact.metric&&f.has_data):-1;
+  if(cur>=0){if(shownFacts[cur]!==detailFact)openDetail(cur,{fromRoute:true});return;}
+  const first=shownFacts.findIndex(f=>f.has_data);
+  if(first>=0)openDetail(first,{fromRoute:true});
 }
 
 /* ---------- charts ---------- */
@@ -1903,12 +1899,19 @@ function openDetail(i,{fromRoute=false}={}){
   const f=shownFacts[i];if(!f||!f.has_data)return;detailFact=f;nav("detail");
   if(!fromRoute)pushRoute(metricHash(f.metric,currentPeriod));
   setDocTitle(`${f.metric} · ${fmtPeriod(currentPeriod)}`);
-  $("main").scrollTop=0;window.scrollTo(0,0);
+  // Phones show one pane at a time, so start the document at its top.
+  if(!wideWorkspace.matches){$("main").scrollTop=0;window.scrollTo(0,0);}
+  markQueueSelection();
   $("d-title").textContent=f.metric;const dg=f.direction_good==="down";
   $("d-sub").innerHTML=`<span class="cat-dot" style="${catStyle(f.category)}"></span>${esc(f.category||"")} · ${esc(fmtPeriod(currentPeriod,"long"))} · <span class="nbi-num">${fmt(f.value,f.unit)}</span> `
     +deltaChip("MoM",f.deltas.mom_pct,dg)+" "+deltaChip("vs plan",f.deltas.budget_var_pct,dg)
     +(f.is_anomaly?' <span class="anom">Anomaly</span>':"");
   const cd=f.chart_data||{};
+  const bva=cd.budget_vs_actual||{};
+  $("d-figs").innerHTML=[["Actual",f.unavailable?"—":fmt(f.value,f.unit)],["Budget",bva.budget!=null?fmt(bva.budget,f.unit):"—"],
+    ["Vs plan",pct(f.deltas.budget_var_pct)||"—"],["Vs prior period",pct(f.deltas.mom_pct)||"—"],["Year on year",pct(f.deltas.yoy_pct)||"—"]]
+    .map(([k,val])=>`<div><dt>${k}</dt><dd class="nbi-num">${esc(val)}</dd></div>`).join("");
+  $("d-regen").textContent=f.narrative?"Regenerate":"Draft commentary";
   // Restore canvases (an earlier "no data" state may have replaced them with text).
   $("d-trend").innerHTML=trendTable(cd.trend||[],f.unit);
   ensureCanvas("c-trend");ensureCanvas("c-bva");ensureCanvas("c-bridge");
