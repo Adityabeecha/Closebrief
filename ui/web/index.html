@@ -838,6 +838,165 @@
   .digest-saved p{color:var(--mut);font-size:12px;margin-bottom:16px}
   #nt-list .card,#sch-list .card{flex-wrap:wrap}
   @media(max-width:899px){.screen-state{padding:20px 16px}.screen-state .btn{width:100%;min-height:40px}#nt-list .card>div,#sch-list .card>div{flex-basis:calc(100% - 60px)!important}}
+
+  /* ===== Month Workspace: closes list, month header, tabs, overview, board pack ===== */
+  .closes-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 8px 6px}
+  .closes-head .nav-label{padding:0}
+  .seg.gran{display:inline-flex;border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden;background:var(--surface)}
+  .seg.gran button{border:none;background:none;min-width:28px;min-height:26px;font-size:11.5px;font-weight:700;color:var(--text-3);cursor:pointer}
+  .seg.gran button+button{border-left:1px solid var(--line)}
+  .seg.gran button.active{background:var(--text);color:var(--surface)}
+  .closes{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}
+  .ci{display:grid;grid-template-columns:minmax(0,1fr) auto;row-gap:2px;column-gap:8px;align-items:center;width:100%;text-align:left;border:none;background:none;border-radius:var(--r-sm);padding:9px 10px;color:var(--text-2);cursor:pointer;font:inherit}
+  .ci:hover{background:var(--surface-3);color:var(--text)}
+  .ci.on{background:var(--surface);color:var(--text);box-shadow:0 0 0 1px var(--line),0 1px 2px rgba(16,24,40,.06)}
+  .ci:focus-visible{outline:2px solid var(--select);outline-offset:1px}
+  .ci b{font-size:14px;font-weight:600}
+  .ci .cs{font-size:11.5px;font-weight:700;border-radius:var(--r-pill);padding:1px 8px;background:var(--surface-3);color:var(--text-3)}
+  .ci .cs.prog{background:var(--review-wash);color:var(--review)}
+  .ci .cs.done{background:var(--verified-wash);color:var(--verified)}
+  .ci small{grid-column:1/-1;font-size:12px;color:var(--text-3)}
+  .ci .cbar{grid-column:1/-1;height:4px;border-radius:2px;background:var(--surface-3);overflow:hidden;margin-top:4px}
+  .ci .cbar i{display:block;height:100%;background:var(--accent);border-radius:2px}
+  .closes .more{border:none;background:none;color:var(--text-3);font:inherit;font-size:12.5px;font-weight:600;text-align:left;padding:6px 10px;cursor:pointer;border-radius:var(--r-sm)}
+  .closes .more:hover{color:var(--text);background:var(--surface-3)}
+  .close-skel{height:46px;border-radius:var(--r-sm);background:var(--surface-3);margin:2px 0;opacity:.7}
+
+  .mh{background:var(--surface);border-bottom:1px solid var(--line);padding:20px 32px 0;position:sticky;top:0;z-index:20}
+  .mh-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .mh-title{display:flex;align-items:center;gap:12px;min-width:0;flex:1}
+  .mh-title h1{font-size:clamp(24px,2.2vw,30px);font-weight:750;letter-spacing:-.03em;line-height:1.1;margin:0}
+  .mh-pill{font-size:12.5px;font-weight:700;border-radius:var(--r-pill);padding:3px 10px;background:var(--surface-3);color:var(--text-3);white-space:nowrap}
+  .mh-pill.prog{background:var(--review-wash);color:var(--review)}
+  .mh-pill.done{background:var(--verified-wash);color:var(--verified)}
+  .mh-pill:empty{display:none}
+  .mh-actions{display:flex;align-items:center;gap:8px}
+  .jump-btn{color:var(--text-3)}
+  .jump-btn kbd{font-family:var(--font-mono);font-size:11px;border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--text-3)}
+  .mh-sub{color:var(--text-3);font-size:13.5px;margin:6px 0 10px}
+  .mtabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;margin:0 -4px}
+  .mtabs::-webkit-scrollbar{display:none}
+  .mtabs a{display:inline-flex;align-items:center;gap:6px;padding:10px 12px;font-size:14px;font-weight:600;color:var(--text-2);text-decoration:none;border-bottom:2px solid transparent;white-space:nowrap}
+  .mtabs a:hover{color:var(--text)}
+  .mtabs a[aria-current=page]{color:var(--text);border-bottom-color:var(--accent)}
+  .mtabs a:focus-visible{outline:2px solid var(--select);outline-offset:-2px;border-radius:var(--r-sm)}
+  .mtabs .mt-n{font-family:var(--font-mono);font-size:12px;color:var(--text-3)}
+  .mtabs .mt-n:empty{display:none}
+  .mtabs .nav-badge{margin-left:0}
+  body.in-month #v-dashboard>.head>div:first-child{display:none}
+  body.in-month #v-dashboard>.head{justify-content:flex-end;margin-bottom:6px}
+
+  .pane{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:20px 22px}
+  .pane h2{font-size:16px;font-weight:700;letter-spacing:-.01em;margin:0 0 12px;color:var(--text)}
+  .ov-grid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px;align-items:start}
+  .ov-right{display:flex;flex-direction:column;gap:16px}
+  .checklist{list-style:none;margin:0;padding:0}
+  .cl{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
+  .cl:first-child{border-top:none;padding-top:4px}
+  .cl .box{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line-strong);display:grid;place-items:center}
+  .cl.done .box{background:var(--accent);border-color:var(--accent)}
+  .cl.done .box svg{width:13px;height:13px;stroke:var(--on-accent)}
+  .cl.blocked .box{border-style:dashed}
+  .cl b{display:block;font-size:15px;font-weight:600;color:var(--text)}
+  .cl.done b{color:var(--text-2)}
+  .cl small{display:block;font-size:13px;color:var(--text-3);margin-top:2px}
+  .cl .st{font-size:12px;font-weight:700;border-radius:var(--r-pill);padding:3px 9px;white-space:nowrap}
+  .cl .st.done{background:var(--verified-wash);color:var(--verified)}
+  .cl .st.wait{background:var(--surface-3);color:var(--text-3)}
+  .glance{display:flex;flex-direction:column}
+  .glance button{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:9px 0;border:none;border-top:1px solid var(--line);background:none;font:inherit;font-size:14px;color:var(--text-2);text-align:left;cursor:pointer}
+  .glance button:first-child{border-top:none}
+  .glance button:hover span:first-child{color:var(--text);text-decoration:underline}
+  .glance b{font-family:var(--font-mono);font-weight:600;color:var(--text);white-space:nowrap}
+  .ov-activity p{display:flex;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:13.5px;color:var(--text-2);margin:0}
+  .ov-activity p:first-child{border-top:none}
+  .ov-activity time{font-family:var(--font-mono);font-size:12px;color:var(--text-3);white-space:nowrap;padding-top:1px}
+  .ov-review{padding-top:0}
+  .ov-h{font-size:18px;font-weight:700;letter-spacing:-.015em;margin:0}
+
+  .bp-bar{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+  .bp-bar p{flex:1;min-width:240px;color:var(--text-3);font-size:14px;margin:0}
+  .bp-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .bp-frame{width:100%;height:calc(100vh - 240px);min-height:520px;border:1px solid var(--line);border-radius:var(--r-lg);background:#fff;box-shadow:var(--shadow)}
+
+  /* Tabs inside a close: the month header names the page, so the view's own title steps aside. */
+  body.in-month #v-digest>.head>div:first-child,body.in-month #v-context>.head>div:first-child,body.in-month #v-import>.head>div:first-child{display:none}
+  body.in-month #v-digest>.head,body.in-month #v-context>.head{justify-content:flex-end;margin-bottom:10px}
+  .dg-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:start}
+  .dg-grid .dg-aside:empty{display:none}
+  .dg-grid:has(.dg-aside:empty){grid-template-columns:minmax(0,1fr)}
+  .dg-doc:has(.dg-head){background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:36px clamp(20px,4vw,56px) 28px}
+  .dg-head{padding-bottom:18px;border-bottom:1px solid var(--line);margin-bottom:6px}
+  .dg-kick{font-size:13px;color:var(--text-3);margin:0 0 6px}
+  .dg-head h2{font-size:clamp(26px,2.6vw,36px);font-weight:750;letter-spacing:-.03em;line-height:1.1;margin:0;max-width:24ch}
+  .dg-meta{font-size:13.5px;color:var(--text-3);margin:10px 0 0}
+  .dg-sec{display:grid;grid-template-columns:36px minmax(0,1fr);gap:14px;padding:22px 0;border-top:1px solid var(--line)}
+  .dg-head+.dg-sec{border-top:none}
+  .dg-n{width:28px;height:28px;border-radius:50%;background:var(--surface-3);color:var(--text-2);display:grid;place-items:center;font-size:13px;font-weight:600}
+  .dg-metric{font-size:13px;font-weight:700;color:var(--text-3);margin:2px 0 4px}
+  .dg-sec h3{font-size:20px;font-weight:700;letter-spacing:-.02em;line-height:1.25;margin:0 0 8px;color:var(--text)}
+  .dg-body{font-size:16.5px;line-height:1.65;color:var(--text-2);margin:0;max-width:68ch}
+  .dg-figs{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:14px;font-weight:600}
+  .dg-act{margin-left:auto;display:flex;gap:4px}
+  .dg-aside .digest-history-title{font-family:var(--font-sans);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin:6px 2px 10px}
+  .dg-past{display:flex;flex-direction:column;gap:2px;width:100%;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:var(--r-md);padding:12px 14px;margin-bottom:8px;font:inherit;color:var(--text);cursor:pointer}
+  .dg-past:hover{border-color:var(--line-strong);background:var(--surface-2)}
+  .dg-past b{font-size:14.5px}
+  .dg-past small{font-size:12.5px;color:var(--text-3)}
+  .ctx-split{display:grid;grid-template-columns:minmax(280px,380px) minmax(0,1fr);gap:20px;align-items:start}
+  .ctx-listcol{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-lg);padding:10px}
+  .ctx-scope{display:flex;gap:6px;padding:2px 2px 10px}
+  .ctx-scope:empty{display:none}
+  .ctx-scope button{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-pill);padding:5px 12px;font:inherit;font-size:13px;font-weight:600;color:var(--text-2);cursor:pointer}
+  .ctx-scope button[aria-pressed=true]{background:var(--text);border-color:var(--text);color:var(--surface)}
+  .ctx-list{display:flex;flex-direction:column;gap:2px}
+  .ctx-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;align-items:start;padding:10px 12px;border-radius:var(--r-sm);cursor:pointer;color:var(--text)}
+  .ctx-item:hover{background:var(--surface-3)}
+  .ctx-item.on{background:var(--select-wash);box-shadow:0 0 0 1px var(--select)}
+  .ctx-item:focus-visible{outline:2px solid var(--select);outline-offset:1px}
+  .ctx-item b{font-size:14.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ctx-item small{grid-column:1;font-size:12.5px;color:var(--text-3)}
+  .ctx-item .row-del{grid-row:1/3;grid-column:2;align-self:center}
+  .ctx-none{font-size:14px;color:var(--text-3);padding:10px}
+  .ctx-detail{min-width:0}
+  .ctx-view{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:28px clamp(20px,3vw,40px)}
+  .ctx-view h2{font-size:clamp(22px,2vw,28px);font-weight:750;letter-spacing:-.025em;line-height:1.15;margin:8px 0 12px}
+  .ctx-view .ctx-body{font-size:16.5px;line-height:1.65;color:var(--text-2);white-space:pre-wrap;max-width:68ch;margin:0}
+  .ctx-view dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:8px 18px;margin:22px 0 0;padding-top:16px;border-top:1px solid var(--line);font-size:14px}
+  .ctx-view dt{color:var(--text-3)}.ctx-view dd{margin:0;color:var(--text)}
+  .ctx-h{font-size:18px;font-weight:700;letter-spacing:-.015em;margin:0}
+  #v-context .ctx-form{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);margin:0}
+  @media (max-width:1100px){.ov-grid{grid-template-columns:1fr}.dg-grid{grid-template-columns:1fr}}
+  body.in-settings #v-costs>.head>div:first-child,body.in-settings #v-notifications>.head>div:first-child,body.in-settings #v-admin>.head>div:first-child{display:none}
+  body.in-settings #v-costs>.head,body.in-settings #v-notifications>.head,body.in-settings #v-admin>.head{justify-content:flex-end}
+  .an-split{display:grid;grid-template-columns:260px minmax(0,1fr);gap:20px;align-items:start}
+  .an-tools{display:flex;flex-direction:column;gap:2px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-lg);padding:8px;position:sticky;top:12px}
+  .an-tools button{display:flex;flex-direction:column;gap:2px;text-align:left;border:none;background:none;border-radius:var(--r-sm);padding:10px 12px;font:inherit;color:var(--text-2);cursor:pointer}
+  .an-tools button:hover{background:var(--surface-3);color:var(--text)}
+  .an-tools button[aria-pressed=true]{background:var(--surface);color:var(--text);box-shadow:0 0 0 1px var(--line),0 1px 2px rgba(16,24,40,.06)}
+  .an-tools b{font-size:14.5px;font-weight:600}
+  .an-tools small{font-size:12.5px;color:var(--text-3)}
+  .an-grid.an-one{grid-template-columns:1fr}
+  .an-grid.an-one>.panel{padding:24px 28px}
+  .an-grid.an-one>.panel>h2{font-size:22px;font-weight:750;letter-spacing:-.025em;text-transform:none;color:var(--text);margin:0 0 4px}
+  @media (max-width:900px){.ctx-split{grid-template-columns:1fr}}
+  @media (max-width:900px){.an-split{grid-template-columns:1fr}.an-tools{position:static;flex-direction:row;overflow-x:auto}.an-tools button{flex:none;min-width:200px}}
+  @media (max-width:900px){
+    .mh{padding:14px 16px 0;position:static}
+    .mh-title h1{font-size:22px}
+    .jump-btn span,.jump-btn kbd{display:none}
+    .mh-actions{width:100%}
+    .mh-actions #mh-next{flex:1}
+    .pane{padding:16px}
+    .cl{grid-template-columns:24px minmax(0,1fr)}
+    .cl .st,.cl .btn{grid-column:2;justify-self:start}
+    .bp-frame{height:70vh;min-height:420px}
+  }
+  @media (max-width:900px),(pointer:coarse){
+    .seg.gran button{min-width:40px;min-height:40px}
+    .ci{min-height:44px}
+    .mtabs a{min-height:44px}
+  }
 </style>
 </head>
 <body>
@@ -932,28 +1091,27 @@
         </div>
       </div>
     </div>
+    <!-- Each close is a workspace: the list of closes is the main navigation. -->
     <nav class="nav" aria-label="Main">
-      <div class="nav-label">Close</div>
-      <button class="nav-item active" data-view="dashboard" aria-current="page" onclick="requestImportView('dashboard')">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Insights Dashboard</button>
-      <button class="nav-item" data-view="digest" onclick="requestImportView('digest')">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>Executive Digest</button>
-      <button class="nav-item" data-view="context" onclick="requestImportView('context')">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Context Library</button>
+      <div class="closes-head">
+        <div class="nav-label" id="closes-label">Closes</div>
+        <div class="seg gran" id="gran-seg" role="group" aria-label="Period length">
+          <button data-g="month" class="active" onclick="setGranularity('month')" title="Months" aria-pressed="true">M</button>
+          <button data-g="quarter" onclick="setGranularity('quarter')" title="Quarters" aria-pressed="false">Q</button>
+          <button data-g="year" onclick="setGranularity('year')" title="Years" aria-pressed="false">Y</button>
+        </div>
+      </div>
+      <div class="closes" id="close-list" aria-labelledby="closes-label"><div class="close-skel"></div><div class="close-skel"></div></div>
+      <div class="nav-label">Across months</div>
       <button class="nav-item" data-view="analytics" onclick="requestImportView('analytics')">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>Advanced Analytics</button>
-      <button class="nav-item write-hide" data-view="review" onclick="requestImportView('review')">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Review Queue<span class="nav-badge" id="review-badge" style="display:none">0</span></button>
-      <div class="nav-label exec-hide">Data</div>
-      <button class="nav-item exec-hide" data-view="import" onclick="requestImportView('import')">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>Import &amp; Mapping</button>
-      <div class="nav-label admin-only">Admin</div>
-      <button class="nav-item admin-only" data-view="costs" onclick="requestImportView('costs')">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Cost &amp; Usage</button>
-      <button class="nav-item admin-only" data-view="notifications" onclick="requestImportView('notifications')">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>Notifications</button>
-      <button class="nav-item" id="nav-admin" data-view="admin" onclick="requestImportView('admin')" style="display:none">
-        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>User Management</button>
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>Analyze</button>
+      <button class="nav-item" data-view="library" onclick="requestImportView('library')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Context library</button>
+      <button class="nav-item exec-hide" data-view="datahub" onclick="requestImportView('datahub')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>Data and imports</button>
+      <button class="nav-item admin-only" data-view="costs" data-group="settings" onclick="requestImportView('costs')">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
+      <span id="nav-admin" hidden></span>
     </nav>
     <button class="nav-item" onclick="$('help-back').classList.add('open')" style="margin:2px 12px">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>How Closebrief works</button>
@@ -972,6 +1130,70 @@
 
   <!-- ============ MAIN ============ -->
   <main class="nbi-scroll" id="main" tabindex="-1">
+    <!-- ---------- MONTH HEADER: the open close, its state, its next step, its tabs ---------- -->
+    <header class="mh" id="month-head" style="display:none">
+      <div class="mh-row">
+        <div class="mh-title">
+          <h1 id="mh-title">Close</h1>
+          <span class="mh-pill" id="mh-pill"></span>
+        </div>
+        <div class="mh-actions">
+          <button class="btn jump-btn" onclick="openPalette()" aria-keyshortcuts="Control+K" title="Jump to a KPI or page (Ctrl K)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+            <span>Jump to…</span><kbd>Ctrl K</kbd></button>
+          <button class="btn primary" id="mh-next" style="display:none"></button>
+        </div>
+      </div>
+      <div class="mh-sub" id="mh-sub"></div>
+      <nav class="mtabs" id="month-tabs" aria-label="This close">
+        <a href="#" data-tab="overview">Overview<span class="nav-badge" id="review-badge" style="display:none">0</span></a>
+        <a href="#" data-tab="kpis">KPIs<span class="mt-n" id="mt-kpis"></span></a>
+        <a href="#" data-tab="context">Context</a>
+        <a href="#" data-tab="digest">Digest</a>
+        <a href="#" data-tab="boardpack">Board pack</a>
+        <a href="#" data-tab="data" class="exec-hide">Data</a>
+      </nav>
+    </header>
+
+    <!-- ---------- SETTINGS HEADER: workspace settings share one place ---------- -->
+    <header class="mh sh" id="settings-head" style="display:none">
+      <div class="mh-row"><div class="mh-title"><h1>Settings</h1></div></div>
+      <div class="mh-sub">Workspace-wide: these apply to every close.</div>
+      <nav class="mtabs" aria-label="Settings">
+        <a href="#settings=costs" data-place="costs">Cost and usage</a>
+        <a href="#settings=notifications" data-place="notifications">Notifications</a>
+        <a href="#settings=users" data-place="admin" id="st-users">Users</a>
+      </nav>
+    </header>
+
+    <!-- ---------- OVERVIEW: what's left before this close can be shared ---------- -->
+    <section id="v-overview" class="wrap" style="display:none">
+      <div class="ov-grid">
+        <div class="pane ov-left">
+          <h2 id="ov-check-title">What's left before this close can be shared</h2>
+          <ol class="checklist" id="ov-checklist"></ol>
+        </div>
+        <div class="ov-right">
+          <div class="pane"><h2 id="ov-glance-title">At a glance</h2><div id="ov-glance"></div></div>
+          <div class="pane"><h2>Activity</h2><div id="ov-activity" class="ov-activity"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- BOARD PACK: the print document, previewed in place ---------- -->
+    <section id="v-boardpack" class="wrap" style="display:none">
+      <div class="bp-bar">
+        <p id="bp-note">The board pack is built from the same computed figures and approved commentary as the KPIs tab.</p>
+        <div class="bp-actions">
+          <button class="btn" onclick="exportPPTX()">PowerPoint</button>
+          <button class="btn" onclick="exportPDF()">PDF report</button>
+          <button class="btn primary" onclick="printBoardPack()">Print or save as PDF</button>
+        </div>
+      </div>
+      <div id="bp-state"></div>
+      <iframe id="bp-frame" class="bp-frame" title="Board pack preview" style="display:none"></iframe>
+    </section>
+
     <!-- ---------- DASHBOARD ---------- -->
     <section id="v-dashboard" class="wrap">
       <div class="head">
@@ -981,12 +1203,8 @@
           <div class="sub" id="dash-fresh" style="font-size:12px;color:var(--mut2);margin-top:2px"></div>
         </div>
         <div class="head-actions">
-          <div class="period-ctl" role="group" aria-label="Reporting period">
-            <div class="seg" id="gran-seg">
-              <button data-g="month" class="active" onclick="setGranularity('month')" title="Monthly" aria-label="Monthly" aria-pressed="true">M</button>
-              <button data-g="quarter" onclick="setGranularity('quarter')" title="Quarterly" aria-label="Quarterly" aria-pressed="false">Q</button>
-              <button data-g="year" onclick="setGranularity('year')" title="Yearly" aria-label="Yearly" aria-pressed="false">Y</button>
-            </div>
+          <!-- The period now comes from the closes list; this select stays as the period's single source of truth. -->
+          <div class="period-ctl" role="group" aria-label="Reporting period" hidden>
             <button class="pnav" onclick="stepPeriod(-1)" aria-label="Previous period" title="Previous"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
             <select id="period-select" onchange="loadFacts()" aria-label="Period"></select>
             <button class="pnav" onclick="stepPeriod(1)" aria-label="Next period" title="Next"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button>
@@ -1107,7 +1325,14 @@
         </div>
       </div>
       <div id="analytics-state"></div>
-      <div class="an-grid" id="analytics-tools" style="display:none">
+      <div class="an-split" id="analytics-tools" style="display:none">
+        <nav class="an-tools" aria-label="Analysis tools">
+          <button data-tool="0" aria-pressed="true" onclick="anTool(0)"><b>Forecast</b><small>Projection with a backtested error band</small></button>
+          <button data-tool="1" aria-pressed="false" onclick="anTool(1)"><b>What-if scenario</b><small>Price, volume and mix levers on the latest actual</small></button>
+          <button data-tool="2" aria-pressed="false" class="exec-hide" onclick="anTool(2)"><b>Custom KPI</b><small>A metric defined by formula over existing ones</small></button>
+          <button data-tool="3" aria-pressed="false" onclick="anTool(3)"><b>Cross-dataset signals</b><small>Strongest correlations, with lead and lag</small></button>
+        </nav>
+      <div class="an-grid an-one">
 
         <!-- Forecast -->
         <div class="panel">
@@ -1173,14 +1398,15 @@
         </div>
 
       </div>
+      </div>
     </section>
 
     <!-- ---------- REVIEW QUEUE ---------- -->
-    <section id="v-review" class="wrap" style="display:none">
+    <section id="v-review" class="wrap ov-review" style="display:none">
       <div class="head">
         <div>
-          <h1>Review Queue</h1>
-          <div class="sub">Narratives assigned to you and awaiting approval, across all your datasets</div>
+          <h2 class="ov-h">Assigned to you</h2>
+          <div class="sub">Commentary waiting for your approval, across every dataset</div>
         </div>
         <button class="btn" onclick="loadReview()">Refresh</button>
       </div>
@@ -1194,28 +1420,39 @@
         <div class="head-actions"><button class="btn primary" id="digest-generate" onclick="loadDigest(true)">Generate a new digest</button></div>
       </div>
       <div id="digest-status"></div>
-      <div class="digest-wrap" id="digest-list"></div>
-      <div class="digest-wrap" id="digest-history" style="margin-top:26px"></div>
+      <div class="dg-grid">
+        <article class="digest-wrap dg-doc" id="digest-list"></article>
+        <aside class="digest-wrap dg-aside" id="digest-history"></aside>
+      </div>
     </section>
 
     <!-- ---------- CONTEXT ---------- -->
     <section id="v-context" class="wrap" style="display:none">
-      <div class="head"><div><h1>Context Library</h1><div class="sub">Ground every narrative in your own business context</div></div></div>
-      <form class="ctx-form exec-hide" onsubmit="addContext(event)">
-        <div><label for="c-type" class="lbl">Type</label>
-          <select id="c-type">
-            <option value="event_note">Event note</option><option value="definition">Definition</option>
-            <option value="glossary">Glossary</option><option value="historical_commentary">Historical commentary</option>
-            <option value="policy">Policy</option>
-          </select></div>
-        <div><label for="c-title" class="lbl">Title</label><input id="c-title" required placeholder="March 2025 pricing change"></div>
-        <div class="ctx-full"><label for="c-body" class="lbl">Body</label><textarea id="c-body" required placeholder="What happened, when, and which metrics it affects…"></textarea></div>
-        <div><label for="c-tags" class="lbl">Metric tags (comma-separated, empty = all)</label><input id="c-tags" placeholder="Net Revenue, Churned ARR"></div>
-        <div><label for="c-date" class="lbl">Effective date (YYYY-MM)</label><input id="c-date" placeholder="2025-03"></div>
-        <div class="ctx-full" style="text-align:right"><button class="btn primary" type="submit">Add to library</button></div>
-      </form>
-      <table class="ctx-table"><thead><tr><th>Type</th><th>Title &amp; body</th><th>Tags</th><th>Effective</th><th></th></tr></thead>
-        <tbody id="ctx-rows"></tbody></table>
+      <div class="head"><div><h1>Context library</h1><div class="sub">Notes the commentary cites to explain why a number moved</div></div>
+        <div class="head-actions"><button class="btn primary exec-hide" onclick="ctxNew()">New note</button></div></div>
+      <div class="ctx-split">
+        <div class="ctx-listcol">
+          <div class="ctx-scope" id="ctx-scope" role="group" aria-label="Which notes"></div>
+          <div class="ctx-list" id="ctx-rows" aria-label="Context notes"></div>
+        </div>
+        <div class="ctx-detail">
+          <article class="ctx-view" id="ctx-view" style="display:none"></article>
+          <form class="ctx-form exec-hide" id="ctx-form" onsubmit="addContext(event)">
+            <h2 class="ctx-h ctx-full">New context note</h2>
+            <div><label for="c-type" class="lbl">Type</label>
+              <select id="c-type">
+                <option value="event_note">Event note</option><option value="definition">Definition</option>
+                <option value="glossary">Glossary</option><option value="historical_commentary">Historical commentary</option>
+                <option value="policy">Policy</option>
+              </select></div>
+            <div><label for="c-title" class="lbl">Title</label><input id="c-title" required placeholder="March 2025 pricing change"></div>
+            <div class="ctx-full"><label for="c-body" class="lbl">Body</label><textarea id="c-body" required placeholder="What happened, when, and which metrics it affects…"></textarea></div>
+            <div><label for="c-tags" class="lbl">Metric tags (comma-separated, empty = all)</label><input id="c-tags" placeholder="Net Revenue, Churned ARR"></div>
+            <div><label for="c-date" class="lbl">Effective date (YYYY-MM)</label><input id="c-date" placeholder="2025-03"></div>
+            <div class="ctx-full" style="text-align:right"><button class="btn primary" type="submit">Add to library</button></div>
+          </form>
+        </div>
+      </div>
     </section>
 
     <!-- ---------- IMPORT ---------- -->

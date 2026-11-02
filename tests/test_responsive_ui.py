@@ -104,7 +104,7 @@ frame.addEventListener('load', async () => {{
       focusRestored: doc.activeElement === trigger
     }};
     trigger.click();
-    const navButton = drawer.querySelector('[data-view="dashboard"]');
+    const navButton = drawer.querySelector('[data-view="analytics"]');
     navButton.focus();
     navButton.click();
     result = {{
@@ -359,7 +359,7 @@ frame.onload=async()=>{
       fieldLabels:[...rows[0].querySelectorAll('.kpi-field-label')].every(el=>el.getClientRects().length),
       bulkTargetHeight:Math.min(...[...d.querySelectorAll('.kpi-bulk input,.kpi-bulk select')].map(el=>el.getBoundingClientRect().height)),
       theme:d.documentElement.getAttribute('data-theme')};
-    $('imp-name').value='Sample finance';$('imp-finish').click();await wait(()=>w.location.hash==='#dashboard');
+    $('imp-name').value='Sample finance';$('imp-finish').click();await wait(()=>/tab=kpis/.test(w.location.hash));
     const configured=await w.api('/kpis');check(configured.selected.length===2,'Excluded KPIs were sent');
     check(configured.selected.every(k=>k.category==='Operating costs'&&k.direction_good==='down'&&k.unit==='count'),'Bulk values not saved');
     w.nav('import');await importFile();$('imp-name').value='Sample finance';
@@ -373,9 +373,9 @@ frame.onload=async()=>{
     $('imp-mode').value='new';await w.onImportModeChange();
     const leave=()=>w.requestImportView('dashboard');
     let leaving=leave();await wait(()=>$('modal-back').classList.contains('open'));w.closeModal();await leaving;
-    check(w.location.hash==='#import'&&w.eval('lastImport.datasetId')===pending,'Cancel lost import');
+    check(/tab=data|#data$/.test(w.location.hash)&&w.eval('lastImport.datasetId')===pending,'Cancel lost import');
     leaving=leave();await wait(()=>$('modal-back').classList.contains('open'));$('modal-ok').click();await leaving;
-    check(w.location.hash==='#dashboard','Leave did not navigate');
+    check(/tab=kpis/.test(w.location.hash),'Leave did not navigate');
     const datasets=await w.api('/datasets');check(datasets.datasets.length===1,'Abandoned dataset not removed');
     document.getElementById('result').textContent=JSON.stringify({...layout,kpis:configured.selected.length,cleaned:true});
   }catch(e){document.getElementById('result').textContent=JSON.stringify({error:e.stack});}
