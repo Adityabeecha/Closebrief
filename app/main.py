@@ -16,6 +16,7 @@ from app.auth import CurrentUser, authenticate, get_current_user
 from app.board_pack import build_board_pack_html
 from app.cache import make_insight_key
 from app.compute import derived as derived_metrics
+from app.compute.availability import has_usable_value
 from app.compute.aggregate import (
     GRANULARITIES,
     aggregate_series,
@@ -1011,12 +1012,12 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
 
         card_data = _prefetch_cards(
             conn,
-            {r["metric_id"]: r["metric"] for r in rows if r["metric_id"] is not None and r["value"] is not None},
+            {r["metric_id"]: r["metric"] for r in rows if has_usable_value(r["metric_id"], r["value"])},
             period,
         )
         out = []
         for r in rows:
-            has_data = r["metric_id"] is not None and r["value"] is not None
+            has_data = has_usable_value(r["metric_id"], r["value"])
             report = reports_by_metric.get(r["metric_id"]) if has_data else None
             edited = edited_by_report.get(report["id"]) if report else None
             reviewer = reviewer_by_report.get(report["id"]) if report else None
