@@ -34,14 +34,15 @@ def _email_review_nudge_async(to_email: str | None, metric: str, period: str,
             base = (settings.app_base_url or "").rstrip("/")
             link = ""
             if base:
-                url = f"{base}/app#metric={urllib.parse.quote(metric)}&period={urllib.parse.quote(period)}"
-                link = (f"<p><a href='{escape(url, quote=True)}' style='display:inline-block;background:#1e6e50;color:#fff;"
+                url = f"{base}/app#month={urllib.parse.quote(period, safe='')}&tab=kpis&metric={urllib.parse.quote(metric, safe='')}"
+                link = (f"<p><a href='{escape(url, quote=True)}' style='display:inline-block;background:#047857;color:#fff;"
                         f"padding:9px 16px;border-radius:8px;text-decoration:none;font-weight:600'>"
                         f"Review in Closebrief</a></p>")
             html = (
+                '<div style="font-family:Schibsted Grotesk,system-ui,sans-serif;color:#0b1220">'
                 f"<p>{escape(who)} assigned you a narrative to review in Closebrief.</p>"
                 f"<p style='font-size:16px'><b>{escape(metric)}</b> — {escape(period)}</p>"
-                f"{link or '<p>Open Closebrief to approve it or request changes.</p>'}"
+                f"{link or '<p>Open Closebrief to approve it or request changes.</p>'}</div>"
             )
             EmailChannel({"recipients": [to_email]})._send(subject, html)
         except Exception:  # noqa: BLE001 - best-effort by design

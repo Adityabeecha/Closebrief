@@ -1866,6 +1866,14 @@ def board_pack(period: str, user: CurrentUser = Depends(require_read)) -> HTMLRe
             ds_name = row["name"] if row else None
     finally:
         conn.close()
+    from app.board_pack import collect_facts
+    conn = get_connection()
+    try:
+        approved = {f["metric"]: f["narrative"] for f in collect_facts(conn, ds, period)} if ds else {}
+        for fact in facts:
+            fact["narrative"] = approved.get(fact["metric"])
+    finally:
+        conn.close()
     doc = build_board_pack_html(facts, period, {"dataset_name": ds_name})
     return HTMLResponse(doc)
 
@@ -2224,8 +2232,10 @@ from app.routers import admin as _admin_router  # noqa: E402
 from app.routers import insights as _insights_router  # noqa: E402
 from app.routers import notifications as _notif_router  # noqa: E402
 from app.routers import review as _review_router  # noqa: E402
+from app.routers import close as _close_router  # noqa: E402
 
 app.include_router(_admin_router.router)
 app.include_router(_notif_router.router)
 app.include_router(_review_router.router)
+app.include_router(_close_router.router)
 app.include_router(_insights_router.router)
