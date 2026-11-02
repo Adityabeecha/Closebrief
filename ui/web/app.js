@@ -1125,11 +1125,11 @@ function renderRootCause(rc){
   let drivers="";
   if(rc.drivers&&rc.drivers.length)
     drivers=`<div class="rc-sec-label">Moved with</div><div class="rc-drivers">`+rc.drivers.map(d=>`<b>${esc(d.metric)}</b> (r=${d.r})`).join(" · ")+`</div>`;
-  box.innerHTML=`<div class="rc-panel">
-    <div class="rc-head"><span class="rc-title">Root cause — ${esc(rc.primary_factor||"")}</span>${z}</div>
+  box.innerHTML=`<section class="rc-section">
+    <div class="rc-head"><span class="rc-title">Root cause: ${esc(rc.primary_factor||"")}</span>${z}</div>
     ${bars}${trend}${drivers}
     <div style="margin-top:12px"><button class="btn sm write-only" id="d-rc-narr-btn" onclick="rootCauseNarrative()">Explain (AI)</button></div>
-    <div id="d-rc-narr" style="margin-top:10px"></div></div>`;
+    <div id="d-rc-narr" style="margin-top:10px"></div></section>`;
 }
 async function rootCauseNarrative(){
   if(!detailFact)return;
