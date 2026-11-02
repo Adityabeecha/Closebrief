@@ -54,7 +54,7 @@
   .btn .short{display:none}
 
   /* ---- hero ---- */
-  .hero{position:relative;text-align:center;padding:40px 0 0;isolation:isolate}
+  .hero{position:relative;text-align:center;padding:28px 0 0;isolation:isolate}
   .hero:before{content:"";position:absolute;inset:-120px 0 0;z-index:-1;pointer-events:none;
     background:radial-gradient(760px 420px at 72% 8%,var(--glow-a),transparent 62%),radial-gradient(620px 380px at 14% 70%,var(--glow-b),transparent 62%)}
   h1{font-size:clamp(40px,4.6vw,64px);line-height:1;letter-spacing:-.045em;font-weight:750;max-width:19ch;margin:0 auto;text-wrap:balance}
@@ -65,44 +65,36 @@
   .promise svg{color:var(--verified)}
 
   /* ---- the live workspace preview ---- */
-  .stage{margin:36px auto 0;max-width:1180px;position:relative}
-  .ws{background:var(--surface);border:1px solid var(--line);border-bottom:none;border-radius:var(--r-lg) var(--r-lg) 0 0;box-shadow:var(--shadow-lg);
-    display:grid;grid-template-columns:250px minmax(0,1fr) 300px;text-align:left;overflow:hidden}
-  .ws-q{background:var(--surface-2);border-right:1px solid var(--line);padding:16px 12px}
-  .ws-q .t{display:flex;justify-content:space-between;align-items:center;padding:2px 8px 12px;font-weight:700;font-size:14.5px}
-  .ws-q .t span{font-family:var(--font-mono);font-size:12px;color:var(--text-3);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
-  .grp{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin:14px 8px 6px}
-  .row{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:var(--r-sm);font-size:14.5px;color:var(--text-2)}
-  .row .v{margin-left:auto;font-family:var(--font-mono);font-size:13px;font-weight:600}
-  .row.on{background:var(--select-wash);color:var(--text);box-shadow:0 0 0 1px var(--select)}
-  .dot{width:8px;height:8px;border-radius:50%;flex:none}
-  .d-exc{background:var(--exception)}.d-rev{background:var(--review)}.d-ok{background:var(--verified)}
-  .c-exc{color:var(--exception)}.c-rev{color:var(--review)}.c-ok{color:var(--verified)}
-  .row.done{opacity:.62}
-  .ws-d{padding:26px 34px}
-  .crumb{font-size:13.5px;color:var(--text-3)}
-  .ws-d .ws-h{font-size:30px;line-height:1.1;letter-spacing:-.03em;font-weight:750;margin:14px 0 8px}
-  .meta{font-size:14px;color:var(--text-3);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;border-radius:var(--r-pill);padding:3px 10px}
-  .p-ok{color:var(--verified);background:var(--verified-wash)}.p-rev{color:var(--review);background:var(--review-wash)}.p-exc{color:var(--exception);background:var(--exception-wash)}
-  .pill svg{width:13px;height:13px;stroke-width:2.8}
-  .doc{margin-top:18px;font-size:17px;line-height:1.75;color:var(--text-2)}
-  .doc p+p{margin-top:12px}
-  mark.f{background:var(--verified-wash);color:var(--text);font-family:var(--font-mono);font-size:.93em;font-weight:600;border-radius:5px;padding:1px 5px;cursor:default;transition:box-shadow .15s var(--ease)}
-  mark.f.lit,mark.f:focus-visible{box-shadow:0 0 0 2px var(--verified);outline:none}
-  .ws-i{border-left:1px solid var(--line);background:var(--surface-2);padding:18px 18px 10px}
-  .ws-i .ih{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin:0 0 8px}
-  .ws-i .ih+*{margin-bottom:12px}
-  .kv{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px;color:var(--text-3)}
-  .kv b{font-family:var(--font-mono);font-size:14.5px;color:var(--text)}
-  .kv b.c-exc{color:var(--exception)}
-  .tr{display:flex;align-items:center;gap:8px;padding:8px 6px;border-radius:6px;font-size:13.5px;color:var(--text-2);transition:background-color .15s var(--ease)}
-  .tr svg{color:var(--verified);width:15px;height:15px;stroke-width:2.8}
-  .tr b{font-family:var(--font-mono);font-weight:600;color:var(--text)}
-  .tr.lit{background:var(--verified-wash)}
-  .spark{display:block;width:100%;height:42px}
-  .spark path{fill:none;stroke:var(--exception);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-  .fade{position:absolute;left:0;right:0;bottom:0;height:28px;background:linear-gradient(transparent,var(--bg));pointer-events:none}
+  .stage{margin:24px auto 0;max-width:1180px}
+  .ws{display:grid;grid-template-columns:200px minmax(0,1fr);text-align:left;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow);overflow:hidden;font-size:13px}
+  .month-side{background:var(--surface-2);border-right:1px solid var(--line);padding:18px 12px}
+  .month-side h3{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin:0 10px 12px}
+  .close-month{display:grid;grid-template-columns:1fr auto;gap:5px 6px;align-items:center;padding:11px 10px;border-radius:8px;text-decoration:none;margin-bottom:5px;min-height:60px}
+  .close-month.selected{background:var(--surface);outline:1px solid var(--line)}
+  .close-month b{font-size:13px;white-space:nowrap}.close-month small{grid-column:1/-1;color:var(--text-3);font-size:11px}
+  .progress{grid-column:1/-1;height:4px;background:var(--surface-3);border-radius:4px;overflow:hidden;margin-top:3px}.progress i{display:block;width:64%;height:100%;background:var(--accent)}
+  .month-side .across{margin-top:24px}.month-side .across a{display:flex;align-items:center;min-height:40px;padding:6px 10px;color:var(--text-2);text-decoration:none}
+  .month-main{min-width:0}.month-head{padding:17px 22px 0;border-bottom:1px solid var(--line)}
+  .month-title{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.month-title h2{font-size:24px;line-height:1.15;letter-spacing:-.03em;max-width:none}.month-title .next-step{margin-left:auto;color:var(--accent);font-size:12px;font-weight:700;min-height:40px;display:flex;align-items:center;text-decoration:none}
+  .sample-caption{color:var(--text-3);font-size:11px;margin:6px 0 8px}
+  .month-tabs{display:flex;gap:16px;flex-wrap:wrap}.month-tabs a{display:flex;gap:5px;align-items:center;min-height:40px;text-decoration:none;color:var(--text-2);font-weight:600;border-bottom:2px solid transparent;white-space:nowrap}
+  .month-tabs .active{color:var(--text);border-color:var(--accent)}.month-tabs .num{color:var(--text-3);font-size:11px}
+  .overview-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px;padding:16px 22px 20px;background:var(--bg)}
+  .overview-card{padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);min-width:0}
+  .overview-card h3{font-size:14px;letter-spacing:-.015em;margin-bottom:8px}.overview-right{display:grid;gap:12px}
+  .checklist{list-style:none}.checklist li+li{border-top:1px solid var(--line)}
+  .checklist a{display:grid;grid-template-columns:17px minmax(0,1fr) auto;gap:9px;align-items:center;min-height:54px;padding:8px 0;text-decoration:none}
+  .checklist b{font-weight:600;font-size:12px}.checklist small{display:block;font-size:10.5px;color:var(--text-3);margin-top:2px}
+  .check-box{width:16px;height:16px;border:1px solid var(--line-strong);border-radius:4px;display:grid;place-items:center}.check-box.done{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}.check-box svg{width:12px;height:12px}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;border-radius:var(--r-pill);padding:2px 8px;white-space:nowrap}
+  .p-ok{color:var(--verified);background:var(--verified-wash)}.p-rev{color:var(--review);background:var(--review-wash)}.p-exc{color:var(--exception);background:var(--exception-wash)}.pill svg{width:13px;height:13px}
+  .c-ok{color:var(--verified)}.c-exc{color:var(--exception)}
+  .glance{margin:0}.glance div{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--line);font-size:11px}.glance div:first-child{border:0}.glance dt{color:var(--text-2)}.glance dd{text-align:right;white-space:nowrap;font-family:var(--font-mono);font-size:11px;font-weight:600}.glance dd span{margin-left:5px}
+  .activity{list-style:none;color:var(--text-2);font-size:10.5px}.activity li{padding:6px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}.activity li:first-child{border:0}.activity time{font-family:var(--font-mono);color:var(--text-3);margin-right:5px}
+  mark.f{background:var(--verified-wash);color:var(--text);font-family:var(--font-mono);font-size:.93em;font-weight:600;border-radius:5px;padding:1px 5px}
+  @media(max-width:1100px){.ws{grid-template-columns:190px minmax(0,1fr)}.month-head{padding:14px 16px 0}.overview-grid{padding:14px 16px;gap:12px}.overview-card{padding:12px}.month-tabs{gap:12px}.month-title h2{font-size:22px}.checklist a{grid-template-columns:16px minmax(0,1fr)}.checklist .pill{display:none}.month-title .next-step{display:none}}
+  @media(max-width:720px){.ws{grid-template-columns:minmax(0,1fr)}.month-side{border-right:0;border-bottom:1px solid var(--line);padding:12px}.month-side h3,.month-side .across,.close-month:not(.selected){display:none}.close-month{margin:0;min-height:0}.close-month.selected{outline:0;background:transparent}.month-head{padding:16px 14px 0}.month-title{gap:8px}.month-title h2{font-size:23px}.month-title>.pill{display:none}.month-tabs{column-gap:17px;row-gap:0}.month-tabs a{font-size:12px;min-height:40px}.overview-grid{grid-template-columns:minmax(0,1fr);padding:14px;gap:14px}.overview-card{padding:14px}.overview-card h3{font-size:16px}.checklist b{font-size:13px}.checklist small{font-size:12px}.checklist a{min-height:62px}.glance div,.glance dd{font-size:12px}.activity{font-size:12px}.close-month b{font-size:14px}.close-month small{font-size:12px}.bar .brand{min-height:40px}footer a{min-height:40px;display:inline-flex;align-items:center}.panel header{flex-wrap:wrap}}
+  @media(pointer:coarse){a.link,.btn{min-height:40px}}
 
   /* ---- sections ---- */
   section.s{padding:104px 0 0}
@@ -125,7 +117,7 @@
   .ck svg{width:16px;height:16px;stroke-width:2.8;align-self:center}
   .ck.ok svg{color:var(--verified)} .ck.no svg{color:var(--exception)} .ck.no b,.ck.no span{color:var(--exception)}
 
-  .flow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));margin-top:40px;border-top:1px solid var(--line-strong)}
+  .flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin-top:40px;border-top:1px solid var(--line-strong)}
   .flow li{list-style:none;padding:22px 18px 0 0;position:relative}
   .flow li:before{content:"";position:absolute;top:-6px;left:0;width:11px;height:11px;border-radius:50%;background:var(--bg);border:2px solid var(--accent)}
   .flow li.you:before{background:var(--accent)}
@@ -153,7 +145,7 @@
   footer a{display:inline-block;padding:6px 0;margin:-6px 0}
 
   @media (max-width:1100px){
-    .ws{grid-template-columns:220px minmax(0,1fr)}
+
     .ws-i{display:none}
     .split{grid-template-columns:1fr;gap:36px}
     .flow{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:28px}
@@ -170,7 +162,7 @@
     .promise{display:block;margin:6px 0 0;flex-basis:100%;text-align:center;text-wrap:balance}
     .promise svg{display:inline-block;vertical-align:-3px;margin-right:6px}
     .stage{margin-top:36px}
-    .ws{grid-template-columns:1fr;min-height:0}
+
     .ws-q{display:none}
     .ws-d{padding:20px 18px}
     .ws-d .ws-h{font-size:24px}
@@ -222,43 +214,37 @@
 
     <div class="wrap">
       <div class="stage">
-        <div class="ws" role="group" aria-label="Preview of the Closebrief workspace with sample data">
-          <div class="ws-q" aria-label="KPI queue">
-            <div class="t">June close <span>sample</span></div>
-            <div class="grp">Exceptions</div>
-            <div class="row on"><i class="dot d-exc"></i>Bad debt<span class="v c-exc">+136%</span></div>
-            <div class="grp">Needs review</div>
-            <div class="row"><i class="dot d-rev"></i>Hosting costs<span class="v c-rev">+18.0%</span></div>
-            <div class="row"><i class="dot d-rev"></i>Net revenue<span class="v c-ok">+3.1%</span></div>
-            <div class="row"><i class="dot d-rev"></i>Gross margin<span class="v c-ok">+1.4pt</span></div>
-            <div class="grp">Approved</div>
-            <div class="row done"><i class="dot d-ok"></i>Operating expense<span class="v">−2.2%</span></div>
-            <div class="row done"><i class="dot d-ok"></i>Cash<span class="v">+6.0%</span></div>
-          </div>
-          <div class="ws-d">
-            <div class="crumb">June 2026 · Exceptions · Bad debt</div>
-            <p class="ws-h">One default doubled bad debt.</p>
-            <div class="meta"><span class="pill p-exc">Exception</span><span class="pill p-ok"><svg class="i"><use href="#ok"/></svg>4 of 4 figures verified</span><span>Draft</span></div>
-            <div class="doc">
-              <p>Bad debt rose to <mark class="f" tabindex="0" data-t="t1">$212K</mark> against <mark class="f" tabindex="0" data-t="t2">$90K</mark> planned, after one enterprise customer defaulted on <mark class="f" tabindex="0" data-t="t3">$124K</mark> of receivables.</p>
-              <p>Excluding the default, provisions track plan at <mark class="f" tabindex="0" data-t="t4">$88K</mark>.</p>
-            </div>
-          </div>
-          <aside class="ws-i" aria-label="Inspector">
-            <p class="ih">Figures</p>
-            <div><div class="kv">Actual<b>$212K</b></div><div class="kv">Budget<b>$90K</b></div><div class="kv">Variance<b class="c-exc">+136%</b></div></div>
-            <p class="ih">12-month trend</p>
-            <svg class="spark" viewBox="0 0 260 56" preserveAspectRatio="none" aria-hidden="true"><path d="M2 44 L26 42 L50 45 L74 41 L98 43 L122 40 L146 44 L170 42 L194 43 L218 38 L242 30 L258 6"/></svg>
-            <p class="ih">Traces</p>
-            <div>
-              <div class="tr" id="t1"><svg class="i"><use href="#ok"/></svg><b>$212K</b>GL 6420, June</div>
-              <div class="tr" id="t2"><svg class="i"><use href="#ok"/></svg><b>$90K</b>FY26 budget</div>
-              <div class="tr" id="t3"><svg class="i"><use href="#ok"/></svg><b>$124K</b>Credit memo note</div>
-              <div class="tr" id="t4"><svg class="i"><use href="#ok"/></svg><b>$88K</b>Computed</div>
-            </div>
+        <div class="ws" role="group" aria-label="Month Workspace preview — sample data">
+          <aside class="month-side" aria-label="Sample closes">
+            <h3>Closes</h3>
+            <a class="close-month selected" href="/app?demo=1#month=2026-06&tab=overview"><b>June <span class="num">2026</span></b><span class="pill p-rev">Day <span class="num">3</span></span><small><span class="num">9 of 14</span> KPIs approved</small><span class="progress" role="progressbar" aria-label="June close progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="64"><i></i></span></a>
+            <a class="close-month" href="/app?demo=1#month=2026-05&tab=overview"><b>May <span class="num">2026</span></b><span class="pill p-ok">Shared</span><small>Digest sent <span class="num">2</span> Jun</small></a>
+            <a class="close-month" href="/app?demo=1#month=2026-04&tab=overview"><b>April <span class="num">2026</span></b><span class="pill p-ok">Shared</span><small>Board pack <span class="num">5</span> May</small></a>
+            <div class="across"><h3>Across months</h3><a href="/app?demo=1#analyze">Analyze trends</a><a href="/app?demo=1#library">Context library</a><a href="/app?demo=1#data">Data and imports</a></div>
           </aside>
+          <div class="month-main">
+            <div class="month-head">
+              <div class="month-title"><h2>June <span class="num">2026</span> close</h2><span class="pill p-rev">In progress</span><a class="next-step" href="/app?demo=1#month=2026-06&tab=context">Add <span class="num">&nbsp;3&nbsp;</span> reasons <span aria-hidden="true">→</span></a></div>
+              <p class="sample-caption">Sample data · <span class="num">14</span> KPIs computed in code</p>
+              <nav class="month-tabs" aria-label="Sample month tabs"><a class="active" aria-current="page" href="/app?demo=1#month=2026-06&tab=overview">Overview</a><a href="/app?demo=1#month=2026-06&tab=kpis">KPIs <span class="num">14</span></a><a href="/app?demo=1#month=2026-06&tab=context">Context <span class="num">6</span></a><a href="/app?demo=1#month=2026-06&tab=digest">Digest</a><a href="/app?demo=1#month=2026-06&tab=boardpack">Board pack</a><a href="/app?demo=1#month=2026-06&tab=data">Data</a></nav>
+            </div>
+            <div class="overview-grid">
+              <section class="overview-card" aria-labelledby="checklist-title"><h3 id="checklist-title">What's left before June can be shared</h3>
+                <ol class="checklist">
+                  <li><a href="/app?demo=1#month=2026-06&tab=data"><span class="check-box done"><svg class="i" aria-hidden="true"><use href="#ok"/></svg></span><span><b>Import actuals and budget</b><small><span class="num">2</span> files, all columns mapped · Done</small></span><span class="pill p-ok">Done</span></a></li>
+                  <li><a href="/app?demo=1#month=2026-06&tab=kpis"><span class="check-box done"><svg class="i" aria-hidden="true"><use href="#ok"/></svg></span><span><b>Review the biggest movers</b><small>Anomalies checked · Done</small></span><span class="pill p-ok">Done</span></a></li>
+                  <li><a href="/app?demo=1#month=2026-06&tab=context"><span class="check-box"></span><span><b>Add reasons for <span class="num">3</span> variances</b><small>Bad debt, Marketing spend, DSO</small></span><span class="pill p-rev">Next</span></a></li>
+                  <li><a href="/app?demo=1#month=2026-06&tab=kpis"><span class="check-box"></span><span><b>Approve <span class="num">5</span> drafts</b><small><span class="num">4</span> checked, <span class="num">1</span> figure needs review</small></span><span class="pill p-rev">Review</span></a></li>
+                  <li><a href="/app?demo=1#month=2026-06&tab=digest"><span class="check-box"></span><span><b>Send the digest</b><small>After reasons and approvals</small></span><span class="pill">Waiting</span></a></li>
+                </ol>
+              </section>
+              <div class="overview-right">
+                <section class="overview-card" aria-labelledby="glance-title"><h3 id="glance-title">June at a glance</h3><dl class="glance"><div><dt>Net revenue</dt><dd>$10.7M <span class="c-ok">+3.1%</span></dd></div><div><dt>Gross margin</dt><dd>38.6% <span class="c-ok">+1.2 pts</span></dd></div><div><dt>Bad debt</dt><dd>$212K <span class="c-exc">+136%</span></dd></div><div><dt>COGS</dt><dd>$1.42M <span class="c-exc">+18.4%</span></dd></div></dl></section>
+                <section class="overview-card" aria-labelledby="activity-title"><h3 id="activity-title">Activity</h3><ul class="activity"><li><time>09:22</time><span class="num">4</span> drafts written, <span class="num">11 of 12</span> figures checked</li><li><time>09:15</time><span class="num">7</span> movers found, <span class="num">1</span> exception</li><li><time>09:14</time>Actuals and budget imported</li></ul></section>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="fade" aria-hidden="true"></div>
       </div>
     </div>
   </section>
@@ -291,12 +277,11 @@
     <div class="wrap">
       <h2 id="close-title">Built around the close you already run.</h2>
       <ol class="flow">
-        <li><b>Import</b><span>CSV or Excel from NetSuite, QuickBooks or spreadsheets, any layout; budgets joined from a second file.</span></li>
-        <li><b>Compute</b><span>Value, month-over-month, year-over-year, budget variance, trends and anomalies, in code.</span></li>
-        <li><b>Draft</b><span>Plain-English commentary per KPI, citing the context notes you keep.</span></li>
-        <li><b>Check</b><span>Every figure in the prose traced to a computed fact or flagged.</span></li>
-        <li class="you"><b>Review</b><span>Work the queue from exceptions down, edit, approve.</span><em>Your part</em></li>
-        <li><b>Share</b><span>Executive digest, board pack, PowerPoint, Slack or email on a schedule.</span></li>
+        <li><b>Import</b><span>Import actuals and budget, with every column mapped.</span></li>
+        <li><b>Review</b><span>Review the biggest movers and check the anomalies.</span></li>
+        <li><b>Explain</b><span>Add reasons for variances using your analyst context notes.</span></li>
+        <li class="you"><b>Approve</b><span>Approve the checked drafts before the close is shared.</span></li>
+        <li><b>Share</b><span>Send the digest and share the board pack.</span></li>
       </ol>
     </div>
   </section>
@@ -349,20 +334,35 @@
     var t=document.getElementById(m.getAttribute("data-t"));if(t){link(m,t);link(t,m);}
   });
 
-  // Returning users go to their workspace, not the sign-in screen.
+  // A saved session opens the newest unfinished month in the same workspace.
+  var token=null;
   try{
-    var signed=localStorage.getItem("cb-session-token")||Object.keys(localStorage).some(function(k){return /^sb-.*-auth-token$/.test(k);});
-    if(signed){var s=document.getElementById("nav-signin");if(s)s.textContent="Open your workspace";}
+    token=localStorage.getItem("cb-session-token");
+    if(!token){
+      var key=Object.keys(localStorage).find(function(k){return /^sb-.*-auth-token$/.test(k);});
+      if(key){var session=JSON.parse(localStorage.getItem(key));token=session.access_token||(session.currentSession&&session.currentSession.access_token);}
+    }
   }catch(e){}
+  if(token){
+    function returning(label,href){
+      document.querySelectorAll("[data-cta],#nav-signin").forEach(function(a){a.href=href;});
+      document.querySelectorAll("[data-cta-label],#nav-signin").forEach(function(el){el.textContent=label;});
+      document.querySelectorAll("[data-cta-short]").forEach(function(el){el.textContent=label.indexOf("Continue")===0?"Continue":"Open";});
+      document.getElementById("nav-signin").hidden=true;
+    }
+    returning("Open your workspace","/app");
+    var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},8000);
+    var headers={Authorization:"Bearer "+token};
+    try{var ws=localStorage.getItem("cb-ws");if(/^[1-9]\d*$/.test(ws||""))headers["X-Workspace-Id"]=ws;}catch(e){}
+    fetch("/close/months",{headers:headers,signal:controller.signal}).then(function(r){if(!r.ok)throw new Error("Months unavailable");return r.json();}).then(function(months){
+      if(!Array.isArray(months))throw new Error("Invalid months");
+      var month=months.filter(function(m){return m.status==="in_progress"&&/^\d{4}-(0[1-9]|1[0-2])$/.test(m.period);}).sort(function(a,b){return b.period.localeCompare(a.period);})[0];
+      if(!month)return;
+      var name=new Intl.DateTimeFormat("en",{month:"long",timeZone:"UTC"}).format(new Date(month.period+"-01T00:00:00Z"));
+      returning("Continue "+name+" close","/app#month="+month.period+"&tab=overview");
+    }).catch(function(){}).finally(function(){clearTimeout(timer);});
+  }
 
-  // The demo only exists where the server enables it.
-  fetch("/auth/config").then(function(r){return r.json();}).then(function(cfg){
-    if(cfg.demo_enabled)return;
-    var label=cfg.auth_enabled?"Create your workspace":"Open the app";
-    document.querySelectorAll("[data-cta]").forEach(function(a){a.href="/app";});
-    document.querySelectorAll("[data-cta-label]").forEach(function(s){s.textContent=label;});
-    document.querySelectorAll("[data-cta-short]").forEach(function(s){s.textContent=cfg.auth_enabled?"Start":"Open";});
-  }).catch(function(){});
 })();
 </script>
 </body>
