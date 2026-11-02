@@ -102,3 +102,11 @@ def test_board_pack_endpoint_returns_html(client):
 
 def test_board_pack_requires_period(client):
     assert client.get("/board-pack").status_code == 422
+
+
+def test_pack_uses_closing_ring_fonts_and_checked_figures():
+    doc = build_board_pack_html([_fact('Revenue', 1420000, narrative='Revenue was $1.42M.')], '2025-03')
+    assert 'Schibsted Grotesk' in doc and 'Red Hat Mono' in doc
+    assert 'Every figure computed in code and checked' in doc
+    assert '1 of 1 figures checked' in doc and '<mark' in doc
+    assert 'size:A4 portrait' in doc

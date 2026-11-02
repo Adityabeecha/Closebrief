@@ -150,3 +150,22 @@ def test_invented_number_still_fails_with_context():
     passed, unverified = check_faithfulness(narrative, make_fact(), context)
     assert not passed
     assert 47.0 in unverified
+
+
+def test_human_guard_message_preserves_numeric_result():
+    from app.generation.guard import faithfulness_messages
+    fact = make_fact(value=1420000)
+    assert check_faithfulness('Revenue was $1.5M.', fact) == (False, [1500000.0])
+    assert faithfulness_messages('Revenue was $1.5M.', fact) == ["$1.5M doesn't match any computed figure (the actual is $1.42M)"]
+
+
+def test_human_guard_message_keeps_percent_and_count_distinct():
+    from app.generation.guard import faithfulness_messages
+    fact = make_fact(value=12, unit='count', deltas=Deltas())
+    assert faithfulness_messages('12 customers, up 12%.', fact) == ["12% doesn't match any computed figure"]
+
+
+def test_human_guard_message_is_empty_for_verified_context():
+    from app.generation.guard import faithfulness_messages
+    context = [ContextSnippet(id='ctx-1', body='A campaign cost $50K.')]
+    assert faithfulness_messages('A campaign cost $50K.', make_fact(), context) == []

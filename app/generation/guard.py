@@ -226,3 +226,47 @@ def check_faithfulness(
     unverified.extend(_check_multiplier_claims(narrative, percents))
 
     return (len(unverified) == 0, unverified)
+
+
+def faithfulness_messages(narrative: str, fact: ComputedFact,
+                          context: list[ContextSnippet] | None = None) -> list[str]:
+    """Human explanations only; check_faithfulness's numeric contract is unchanged."""
+    passed, unverified = check_faithfulness(narrative, fact, context)
+    if passed:
+        return []
+    def amount(value, percent=False):
+        if percent:
+            return f"{value:g}%"
+        if (fact.unit or '').lower() in ('count', 'customers', 'logos'):
+            return f"{value:,.0f}"
+        sign = '-' if value < 0 else ''
+        value = abs(value)
+        if value >= 1e6:
+            return f"{sign}${value / 1e6:.2f}M"
+        if value >= 1e3:
+            return f"{sign}${value / 1e3:g}K"
+        return f"{sign}${value:g}"
+    magnitudes, percents = _allowed_values(fact)
+    ctx_magnitudes, ctx_percents = _context_values(context)
+    excluded = _excluded_tokens(fact)
+    messages = []
+    for match in _NUMBER_RE.finditer(narrative):
+        norm = _normalize(*match.groups())
+        if not norm:
+            continue
+        value, percent = norm
+        raw, suffix, percent_token = match.groups()
+        if not percent_token and not suffix and '$' not in raw and '.' not in raw and value in excluded:
+            continue
+        if _is_date_or_duration(match, narrative, raw, suffix, percent_token):
+            continue
+        if _matches_any(value, percents if percent else magnitudes, .02) or _matches_any(value, ctx_percents if percent else ctx_magnitudes, .02):
+            continue
+        token = match.group().strip()
+        actual = amount(fact.value, (fact.unit or '').lower() in ('%', 'percent'))
+        # Avoid implying a percent mismatch is the current metric's currency value.
+        suffix = f" (the actual is {actual})" if not norm[1] or (fact.unit or '').lower() in ('%', 'percent') else ''
+        messages.append(f"{token} doesn't match any computed figure{suffix}")
+    if not messages:
+        messages.append("The claimed change doesn't match the computed figures. Review the change against the source data.")
+    return list(dict.fromkeys(messages))

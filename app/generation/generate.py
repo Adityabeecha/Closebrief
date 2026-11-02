@@ -4,7 +4,7 @@ faithfulness guard. Never lets an unverified number leave the system."""
 import re
 import time
 
-from app.generation.guard import check_faithfulness
+from app.generation.guard import check_faithfulness, faithfulness_messages
 from app.generation.llm_client import LLMClient, LLMGenerationError
 from app.generation.prompts import FIGURE_RULES, PROMPT_VERSION, SYSTEM_PROMPT, _fmt, build_user_prompt
 from app.schemas import ComputedFact, ContextSnippet, InsightOutput, SourceRef, TrendStreak
@@ -162,6 +162,7 @@ def generate_insight(
         sources=sources,
         confidence=confidence,
         faithfulness="passed" if passed else "failed",
+        faithfulness_messages=faithfulness_messages(narrative, fact, context),
         prompt_tokens=prompt_tokens,
         completion_tokens=completion_tokens,
         cost_usd=cost_usd,
