@@ -60,7 +60,7 @@ def test_slack_blocks_include_drill_links(monkeypatch):
     d = slack_digest_blocks("2025-03", SAMPLE)
     accessories = [b["accessory"] for b in d["blocks"] if b.get("accessory")]
     assert len(accessories) == len(SAMPLE)                       # a drill button per metric
-    assert accessories[0]["url"] == "https://app.example.com/app#metric=Net%20Revenue&period=2025-03"
+    assert accessories[0]["url"] == "https://app.example.com/app#month=2025-03&tab=kpis&metric=Net%20Revenue"
     assert any(b["type"] == "actions" for b in d["blocks"])      # footer 'Open dashboard'
     assert any(b.get("accessory") for b in slack_anomaly_blocks(SAMPLE)["blocks"])
     json.dumps(d)                                               # Block Kit stays serializable
@@ -115,3 +115,23 @@ def test_deliver_filters_by_event(monkeypatch, tmp_path):
     conn.close()
     assert result["sent"] == []
     assert len(result["failed"]) == 1 and result["failed"][0]["id"] == 2
+
+
+def test_email_drill_link_encodes_slashes_and_uses_month(monkeypatch):
+    from app.config import settings
+    from app.notifications.templates import render_digest_email
+    monkeypatch.setattr(settings, 'app_base_url', 'https://example.com')
+    _, body = render_digest_email('2026-06', [{'metric': 'Sales / Returns', 'value': '$10'}])
+    assert '#month=2026-06&amp;tab=kpis&amp;metric=Sales%20%2F%20Returns' in body
+
+
+def test_review_nudge_uses_month_link(monkeypatch):
+    from app.config import settings
+    import app.routers.review as review
+    from app.notifications.channels import EmailChannel
+    sent = []
+    monkeypatch.setattr(settings, 'app_base_url', 'https://example.com')
+    monkeypatch.setattr(review.bg_executor, 'submit', lambda task: task())
+    monkeypatch.setattr(EmailChannel, '_send', lambda self, subject, body: sent.append(body))
+    review._email_review_nudge_async('a@example.com', 'Sales / Returns', '2026-06', 'Analyst')
+    assert '#month=2026-06&amp;tab=kpis&amp;metric=Sales%20%2F%20Returns' in sent[0]

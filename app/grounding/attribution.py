@@ -16,6 +16,7 @@ import re
 
 from app.generation.guard import (
     _NUMBER_RE,
+    faithfulness_messages,
     _check_multiplier_claims,
     _context_values,
     _excluded_tokens,
@@ -142,5 +143,6 @@ def attribute(narrative: str, fact: ComputedFact,
     return {
         "sentences": sentences,
         "unverified": unverified_all,
+        "messages": faithfulness_messages(narrative, fact, context),
         "faithful": len(unverified_all) == 0,
     }

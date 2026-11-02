@@ -165,6 +165,7 @@ class InsightOutput(BaseModel):
     sources: list[SourceRef] = Field(default_factory=list)
     confidence: Confidence
     faithfulness: Faithfulness
+    faithfulness_messages: list[str] = Field(default_factory=list)
     # ── Enriched analysis (v2.1) ──
     correlations: list[CorrelationPair] = Field(default_factory=list)
     trend_streak: Optional[TrendStreak] = None
