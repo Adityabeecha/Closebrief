@@ -452,11 +452,13 @@
   .side-foot .logout{margin-left:auto;border:none;background:none;color:var(--mut2);cursor:pointer;padding:4px}
   .side-foot .logout:hover{color:var(--red)}
   [data-role="executive"] .exec-hide{display:none !important}
+  [data-role="viewer"] .write-only,[data-role="executive"] .write-only{display:none!important}
   /* viewer (demo) = strictly read-only: hide every write action + admin surface */
-  [data-role="viewer"] .exec-hide,[data-role="viewer"] .write-hide,[data-role="viewer"] #nav-admin,
-  [data-role="viewer"] .card-foot,[data-role="viewer"] .theme-btn{display:none !important}
+  [data-role="viewer"] #nav-admin{display:none !important}
   /* Demo viewers may switch between the demo datasets (read-only navigation);
-     rename/delete/import stay hidden via .exec-hide. */
+     rename/delete/import stay hidden via .write-only. */
+  .readonly-approval{margin-top:12px;font-size:13px;color:var(--text-3)}
+  .readonly-approval p{margin-top:8px}
   /* demo bar */
   .demo-bar{position:fixed;top:0;left:0;right:0;height:44px;z-index:120;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:0 18px;background:#0b1220;color:#fff;font-size:13px;font-weight:600;border-bottom:1px solid #26231f}
   .demo-bar b{font-weight:800}
@@ -1134,7 +1136,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>Analyze</button>
       <button class="nav-item" data-view="library" onclick="requestImportView('library')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Context library</button>
-      <button class="nav-item exec-hide" data-view="datahub" onclick="requestImportView('datahub')">
+      <button class="nav-item write-only" data-view="datahub" onclick="requestImportView('datahub')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>Data and imports</button>
       <button class="nav-item admin-only" data-view="costs" data-group="settings" onclick="requestImportView('costs')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
@@ -1171,7 +1173,7 @@
           <button class="btn jump-btn" onclick="openPalette()" aria-keyshortcuts="Control+K" title="Jump to a KPI or page (Ctrl K)">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
             <span>Jump to…</span><kbd>Ctrl K</kbd></button>
-          <button class="btn primary" id="mh-next" style="display:none"></button>
+          <button class="btn primary write-only" id="mh-next" style="display:none"></button>
         </div>
       </div>
       <div class="mh-sub" id="mh-sub"></div>
@@ -1181,7 +1183,7 @@
         <a href="#" data-tab="context">Context</a>
         <a href="#" data-tab="digest">Digest</a>
         <a href="#" data-tab="boardpack">Board pack</a>
-        <a href="#" data-tab="data" class="exec-hide">Data</a>
+        <a href="#" data-tab="data" class="write-only">Data</a>
       </nav>
     </header>
 
@@ -1248,7 +1250,7 @@
               <button onclick="exportPPTX()"><b>PowerPoint</b><span>Editable .pptx deck</span></button>
             </div>
           </div>
-          <button class="btn primary exec-hide cta" id="gen-all" onclick="generateAll()">Generate narratives</button>
+          <button class="btn primary write-only cta" id="gen-all" onclick="generateAll()">Generate narratives</button>
         </div>
       </div>
       <div class="banner ok" id="import-banner" style="display:none" role="status"></div>
@@ -1267,7 +1269,7 @@
         </div>
         <div class="catbar" id="cat-pills"></div>
         <div class="tool-right">
-          <button class="tbtn exec-hide" onclick="openKpiManager()" title="Choose which KPIs appear on the dashboard">Manage KPIs</button>
+          <button class="tbtn write-only" onclick="openKpiManager()" title="Choose which KPIs appear on the dashboard">Manage KPIs</button>
         </div>
       </div>
           <div class="filter-pills" id="filter-pills"></div>
@@ -1285,7 +1287,7 @@
         <div><h1 id="d-title">Metric</h1><div class="sub" id="d-sub"></div></div>
         <div class="head-actions">
           <button class="btn" id="d-rc-btn" onclick="loadRootCause()" title="Deterministic decomposition of what moved this metric">Why did this move?</button>
-          <button class="btn" id="d-regen" onclick="regenDetail()">Regenerate</button>
+          <button class="write-only btn" id="d-regen" onclick="regenDetail()">Regenerate</button>
         </div>
       </div>
       <div class="detail-grid">
@@ -1298,15 +1300,16 @@
           <div class="rev-strip" id="d-rev-strip" style="display:none">
             <span class="rev-badge none" id="d-rev-badge">Not approved yet</span>
             <span id="d-assigned" class="rev-assigned"></span>
-            <button class="btn sm write-hide" onclick="reviewReport('approved')">Approve</button>
-            <button class="btn sm write-hide" onclick="reviewReport('changes_requested')">Request changes</button>
-            <button class="btn sm write-hide" id="d-assign-btn" onclick="toggleAssign()">Assign reviewer</button>
+            <button class="btn sm write-only" onclick="reviewReport('approved')">Approve</button>
+            <button class="btn sm write-only" onclick="reviewReport('changes_requested')">Request changes</button>
+            <button class="btn sm write-only" id="d-assign-btn" onclick="toggleAssign()">Assign reviewer</button>
             <button class="btn sm" id="d-ver-btn" onclick="toggleVersions()">History</button>
           </div>
-          <div class="assign-row" id="d-assign-row" style="display:none">
+          <div id="d-readonly-approval" class="readonly-approval" style="display:none"></div>
+          <div class="assign-row write-only" id="d-assign-row" style="display:none">
             <input id="d-assign-email" class="modal-field" list="ws-members" placeholder="reviewer@company.com" aria-label="Reviewer email">
             <datalist id="ws-members"></datalist>
-            <button class="btn sm primary" onclick="assignReviewer()">Send</button>
+            <button class="write-only btn sm primary" onclick="assignReviewer()">Send</button>
           </div>
           <div id="d-versions" style="display:none;margin:4px 0 10px"></div>
           <div class="qa">
@@ -1359,7 +1362,7 @@
         <nav class="an-tools" aria-label="Analysis tools">
           <button data-tool="0" aria-pressed="true" onclick="anTool(0)"><b>Forecast</b><small>Projection with a backtested error band</small></button>
           <button data-tool="1" aria-pressed="false" onclick="anTool(1)"><b>What-if scenario</b><small>Price, volume and mix levers on the latest actual</small></button>
-          <button data-tool="2" aria-pressed="false" class="exec-hide" onclick="anTool(2)"><b>Custom KPI</b><small>A metric defined by formula over existing ones</small></button>
+          <button data-tool="2" aria-pressed="false" class="write-only" onclick="anTool(2)"><b>Custom KPI</b><small>A metric defined by formula over existing ones</small></button>
           <button data-tool="3" aria-pressed="false" onclick="anTool(3)"><b>Cross-dataset signals</b><small>Strongest correlations, with lead and lag</small></button>
         </nav>
       <div class="an-grid an-one">
@@ -1378,7 +1381,7 @@
           <div class="chart-box" id="box-c-forecast" style="height:220px"><canvas id="c-forecast"></canvas></div>
           <div id="fc-meta" class="statrow" style="margin:14px 0 0"></div>
           <div id="fc-narr" style="margin-top:12px"></div>
-          <button class="btn sm write-hide" id="fc-narr-btn" style="margin-top:10px;display:none" onclick="forecastNarrative()">Explain this forecast</button>
+          <button class="btn sm write-only" id="fc-narr-btn" style="margin-top:10px;display:none" onclick="forecastNarrative()">Explain this forecast</button>
         </div>
 
         <!-- Scenario -->
@@ -1401,7 +1404,7 @@
         </div>
 
         <!-- Custom KPI builder (create needs analyst/admin — hidden for executives & viewers) -->
-        <div class="panel exec-hide">
+        <div class="panel write-only">
           <h2>Custom KPI</h2><div class="psub">Define a metric by formula over existing metrics. It flows through compute, so it gets full trend, variance &amp; narrative support</div>
           <div class="fbuild">
             <div><label for="kb-name" class="lbl">Name</label><input id="kb-name" class="modal-field" placeholder="Gross Margin %"></div>
@@ -1417,7 +1420,7 @@
               <div><label for="kb-dir" class="lbl">Good direction</label>
                 <select id="kb-dir" class="modal-field"><option value="up">Higher is better</option><option value="down">Lower is better</option></select></div>
             </div>
-            <div><button class="btn primary" id="kb-btn" onclick="createDerivedKpi()">Create KPI</button></div>
+            <div><button class="write-only btn primary" id="kb-btn" onclick="createDerivedKpi()">Create KPI</button></div>
           </div>
         </div>
 
@@ -1447,7 +1450,7 @@
     <section id="v-digest" class="wrap" style="display:none">
       <div class="head">
         <div><h1>Executive Digest</h1><div class="sub">Most recent saved digest, ranked by budget variance</div></div>
-        <div class="head-actions"><button class="btn primary" id="digest-generate" onclick="loadDigest(true)">Generate a new digest</button></div>
+        <div class="head-actions"><button class="write-only btn primary" id="digest-generate" onclick="loadDigest(true)">Generate a new digest</button></div>
       </div>
       <div id="digest-status"></div>
       <div class="dg-grid">
@@ -1459,7 +1462,7 @@
     <!-- ---------- CONTEXT ---------- -->
     <section id="v-context" class="wrap" style="display:none">
       <div class="head"><div><h1>Context library</h1><div class="sub">Notes the commentary cites to explain why a number moved</div></div>
-        <div class="head-actions"><button class="btn primary exec-hide" onclick="ctxNew()">New note</button></div></div>
+        <div class="head-actions"><button class="btn primary write-only" onclick="ctxNew()">New note</button></div></div>
       <div class="ctx-split">
         <div class="ctx-listcol">
           <div class="ctx-scope" id="ctx-scope" role="group" aria-label="Which notes"></div>
@@ -1467,7 +1470,7 @@
         </div>
         <div class="ctx-detail">
           <article class="ctx-view" id="ctx-view" style="display:none"></article>
-          <form class="ctx-form exec-hide" id="ctx-form" onsubmit="addContext(event)">
+          <form class="ctx-form write-only" id="ctx-form" onsubmit="addContext(event)">
             <h2 class="ctx-h ctx-full">New context note</h2>
             <div><label for="c-type" class="lbl">Type</label>
               <select id="c-type">
@@ -1495,7 +1498,7 @@
         <span class="step" id="st-2">2 · Map columns</span>
         <span class="step" id="st-3">3 · Pick KPIs</span>
       </div>
-      <div id="imp-upload">
+      <div id="imp-upload" class="write-only">
         <div class="ctx-form" id="imp-mode-row">
           <div><label for="imp-mode" class="lbl">Import as</label>
             <select id="imp-mode" class="pill-btn" onchange="onImportModeChange()">
@@ -1506,14 +1509,14 @@
             <label class="lbl" for="imp-target">Target dataset</label>
             <select id="imp-target" class="pill-btn"></select></div>
         </div>
-        <div class="drop" id="drop" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="dropFile(event)">
+        <div class="write-only drop" id="drop" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="dropFile(event)">
           <b>Drag your CSV or Excel here, or browse</b>
           <small>.csv or .xlsx · NetSuite, QuickBooks &amp; Excel exports · wide or long layout</small><br><br>
           <input type="file" id="file-in" accept=".csv,.xlsx" style="display:none" onchange="uploadFile(this.files[0])">
           <button class="btn" onclick="document.getElementById('file-in').click()">Browse files</button>
         </div>
       </div>
-      <div id="imp-map" style="display:none">
+      <div class="write-only" id="imp-map" style="display:none">
         <button class="back" onclick="resetImport()" style="margin-bottom:12px">Choose a different file</button>
         <div class="banner info" id="tpl-banner" style="display:none"></div>
         <div class="banner info" id="map-warnings" style="display:none"></div>
@@ -1524,13 +1527,13 @@
           <div id="imp-suffix-wrap" style="display:none"><label for="imp-suffix" class="lbl" title="If the target dataset's metrics are named '<name> spend_usd' rather than just '<name>', enter the suffix here so budgets attach to the right one.">Metric name suffix (optional)</label>
             <input class="pill-btn" id="imp-suffix" placeholder="e.g. spend_usd" style="width:160px"></div>
           <div style="flex:1"></div>
-          <button class="btn primary" id="imp-confirm-btn" onclick="confirmMapping()">Confirm &amp; normalize</button>
+          <button class="write-only btn primary" id="imp-confirm-btn" onclick="confirmMapping()">Confirm &amp; normalize</button>
         </div>
         <div id="map-holder"></div>
         <div id="map-hint" class="banner info" style="display:none;margin-top:12px"></div>
       </div>
       <div id="imp-join-result" style="display:none"></div>
-      <div id="imp-kpis" style="display:none">
+      <div class="write-only" id="imp-kpis" style="display:none">
         <div class="banner ok" id="norm-summary"></div>
         <div class="ctx-form import-summary-form">
           <div><label class="lbl" for="imp-name">Dataset name</label><input id="imp-name" placeholder="e.g. FY2025 Actuals"></div>
@@ -1557,7 +1560,7 @@
         <p id="kpi-selection" role="status">Loading KPI choices…</p>
         <div class="kpi-finish">
           <label style="font-size:13px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px"><input type="checkbox" id="save-tpl" checked> Save as template</label>
-          <button class="btn primary" id="imp-finish" disabled aria-describedby="kpi-selection" onclick="confirmKpis()">Finish import</button>
+          <button class="write-only btn primary" id="imp-finish" disabled aria-describedby="kpi-selection" onclick="confirmKpis()">Finish import</button>
         </div>
       </div>
       <div id="imp-result" style="margin-top:16px"></div>
@@ -1591,7 +1594,7 @@
     <!-- ---------- NOTIFICATIONS ---------- -->
     <section id="v-notifications" class="wrap" style="display:none">
       <div class="head"><div><h1>Notifications</h1><div class="sub">Deliver digests and anomaly alerts to email, Slack, or a webhook</div></div></div>
-      <div class="ctx-form three-col-form">
+      <div class="ctx-form three-col-form write-only">
         <div><label for="nt-channel" class="lbl">Channel</label>
           <select id="nt-channel" onchange="ntChannelFields()">
             <option value="email">Email</option><option value="slack">Slack</option><option value="webhook">Webhook</option>
@@ -1604,13 +1607,13 @@
             <option value="anomaly_detected">Anomalies only</option>
             <option value="digest_generated">Digests only</option>
           </select></div>
-        <div class="ctx-full" style="text-align:right"><button class="btn primary" onclick="ntCreate()">Add channel</button></div>
+        <div class="ctx-full" style="text-align:right"><button class="write-only btn primary" onclick="ntCreate()">Add channel</button></div>
       </div>
       <div id="nt-list"></div>
 
       <h2 style="font-size:20px;margin:30px 0 4px">Schedules</h2>
       <div class="sub" style="margin-bottom:14px">Run digests and anomaly scans automatically. An external cron calls the app with your scheduler token; see the setup note after adding one.</div>
-      <div class="ctx-form three-col-form">
+      <div class="ctx-form three-col-form write-only">
         <div><label for="sch-kind" class="lbl">Job</label>
           <select id="sch-kind" onchange="schKindFields()">
             <option value="digest">Scheduled digest</option>
@@ -1625,7 +1628,7 @@
           <input id="sch-topn" type="number" min="1" max="20" value="5"></div>
         <div id="sch-recip-wrap" style="display:none"><label for="sch-recip" class="lbl">Email recipients (comma-separated)</label>
           <input id="sch-recip" type="text" placeholder="cfo@co.com, board@co.com"></div>
-        <div class="ctx-full" style="text-align:right"><button class="btn primary" onclick="schCreate()">Add schedule</button></div>
+        <div class="ctx-full" style="text-align:right"><button class="write-only btn primary" onclick="schCreate()">Add schedule</button></div>
       </div>
       <div id="sch-list"></div>
     </section>
@@ -1633,7 +1636,7 @@
     <!-- ---------- ADMIN ---------- -->
     <section id="v-admin" class="wrap" style="display:none">
       <div class="head"><div><h1>User Management</h1><div class="sub">Assign roles. Analysts can write; executives read-only; admins manage users.</div></div>
-        <div class="head-actions"><button class="btn primary" onclick="inviteUser()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>Add user</button></div>
+        <div class="head-actions"><button class="write-only btn primary" onclick="inviteUser()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>Add user</button></div>
       </div>
       <table class="admin-table"><thead><tr><th>Email</th><th>User ID</th><th>Role</th><th>Since</th></tr></thead>
         <tbody id="admin-rows"></tbody></table>
@@ -1659,8 +1662,8 @@
     <div style="padding:14px 16px;max-height:56vh;overflow-y:auto" id="kpim-rows"></div>
     <div style="display:flex;gap:8px;align-items:center;padding:12px 16px;border-top:1px solid var(--b08)">
       <select id="kpim-add" aria-label="KPI to add" class="pill-btn" style="flex:1"></select>
-      <button class="btn sm" onclick="kpimAdd()">Add to board</button>
-      <button class="btn primary sm" style="margin-left:auto" onclick="kpimSave(this)">Save changes</button>
+      <button class="write-only btn sm" onclick="kpimAdd()">Add to board</button>
+      <button class="write-only btn primary sm" style="margin-left:auto" onclick="kpimSave(this)">Save changes</button>
     </div>
   </div>
 </div>

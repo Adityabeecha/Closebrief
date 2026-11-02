@@ -244,3 +244,20 @@ def test_queue_row_states_the_status_in_words():
       detailFact={metric:'Revenue'};
       assert.match(queueRow({metric:'Revenue',has_data:true,value:10,narrative:'x',deltas:{mom_pct:-2}},1,''),/aria-current="true"/);
     """)
+
+
+
+def test_detail_read_only_approval_explains_permissions_and_demo_signup():
+    run_js("function renderReviewStrip(", "async function reviewReport(", """
+      const els={};const $=id=>(els[id]??={style:{},innerHTML:'',textContent:''});
+      let role='viewer',demoSession=true;const canReview=()=>['admin','analyst'].includes(role);
+      const REVIEW_LABELS={none:'Not approved yet'};
+    """, r"""
+      renderReviewStrip({report_id:1});
+      assert.match($('d-readonly-approval').innerHTML,/<button[^>]+disabled>Approve/);
+      assert.match($('d-readonly-approval').innerHTML,/Sign up to approve commentary/);
+      assert.match($('d-readonly-approval').innerHTML,/exitDemo\(true\)/);
+      demoSession=false;renderReviewStrip({report_id:1});
+      assert.match($('d-readonly-approval').innerHTML,/Only analysts and admins can approve/);
+      role='admin';renderReviewStrip({report_id:1});assert.equal($('d-readonly-approval').style.display,'none');
+    """)

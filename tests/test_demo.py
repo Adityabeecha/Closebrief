@@ -110,3 +110,27 @@ def test_seed_demo_idempotent(client):
     ).fetchone()["n"]
     conn.close()
     assert n == 1
+
+
+def test_seeded_closes_have_two_shared_months_and_one_in_progress(client):
+    import app.main as main
+    from app.demo import seed_demo
+    from app.scheduling import list_digest_runs
+    conn = main.get_connection()
+    for ds in conn.execute("SELECT id FROM datasets WHERE is_demo = true").fetchall():
+        periods = [r['period'] for r in conn.execute(
+            "SELECT DISTINCT cf.period FROM computed_facts cf JOIN metrics m ON m.id=cf.metric_id WHERE m.dataset_id=? ORDER BY cf.period DESC LIMIT 3", (ds['id'],)).fetchall()]
+        for i, period in enumerate(periods):
+            reports = conn.execute("SELECT gr.* FROM generated_reports gr JOIN metrics m ON m.id=gr.metric_id WHERE m.dataset_id=? AND gr.period=?", (ds['id'], period)).fetchall()
+            assert reports
+            approved = sum(r['review_status'] == 'approved' for r in reports)
+            assert (0 < approved < len(reports)) if i == 0 else approved == len(reports)
+        runs = list_digest_runs(conn, ds['id'])
+        assert {r['period'] for r in runs} == set(periods[1:])
+        assert all(r['trigger'] == 'scheduled' and len(r['items']) == 3 for r in runs)
+        assert all({'metric','headline','detail','budget_var_abs','budget_var_pct','faithfulness'} <= item.keys()
+                   and item['faithfulness'] == 'passed' for r in runs for item in r['items'])
+    before = conn.execute('SELECT COUNT(*) AS n FROM digest_runs').fetchone()['n']
+    assert seed_demo(conn) is False
+    assert conn.execute('SELECT COUNT(*) AS n FROM digest_runs').fetchone()['n'] == before
+    conn.close()

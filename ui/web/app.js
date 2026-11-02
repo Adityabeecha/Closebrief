@@ -251,7 +251,7 @@ function renderKpim(){
       <input value="${esc(k.unit)}" data-f="unit">
       <select data-f="direction_good">${dirOpt(k.direction_good)}</select>
       <select data-f="aggregation_type" title="flow=sum · balance=last month · ratio=not aggregated">${aggOpt(k.aggregation_type)}</select>
-      <button class="row-del" title="Remove from board" onclick="kpimRemove(${i})">${XICON}</button>
+      <button class="write-only row-del" title="Remove from board" onclick="kpimRemove(${i})">${XICON}</button>
     </div>`).join("")
     :'<div class="empty-state" style="padding:26px">No KPIs selected — add one below.</div>';
   $("kpim-add").innerHTML='<option value="">Add a metric to the board…</option>'
@@ -706,7 +706,7 @@ function overviewSteps(s,server){
 }
 let overviewStatus=null,overviewFor=null;
 async function renderOverview(){
-  if(!$("v-overview")||!currentPeriod){if($("ov-checklist"))$("ov-checklist").innerHTML=currentPeriod?"":`<li class="cl"><span></span><div><b>No closes yet</b><small>Import a CSV or Excel export to start your first close.</small></div><button class="btn primary exec-hide" onclick="nav('datahub')">Import data</button></li>`;return;}
+  if(!$("v-overview")||!currentPeriod){if($("ov-checklist"))$("ov-checklist").innerHTML=currentPeriod?"":`<li class="cl"><span></span><div><b>No closes yet</b><small>Import a CSV or Excel export to start your first close.</small></div><button class="btn primary write-only" onclick="nav('datahub')">Import data</button></li>`;return;}
   const p=currentPeriod;
   paintOverview();
   if(overviewFor!==p){overviewFor=p;overviewStatus=null;
@@ -756,10 +756,10 @@ function renderDataHealth(){
     {done:h.withData>0,title:h.withData?`${plural(h.withData,"KPI","KPIs")} computed for ${P}`:`No figures for ${P} yet`,
       detail:activeDatasetObj?`${esc(activeDatasetObj.name||"Dataset")}${activeDatasetObj.created_at?` · imported ${esc(fmtDate(activeDatasetObj.created_at))}`:""}`:"",act:""},
     {done:!h.noData.length,title:h.noData.length?`${plural(h.noData.length,"KPI has","KPIs have")} no data for ${P}`:"Every tracked KPI has data",
-      detail:h.noData.length?names(h.noData):"",act:h.noData.length?`<button class="btn" onclick="$('imp-mode').value='new';onImportModeChange();$('file-in').click()">Import the missing month</button>`:""},
+      detail:h.noData.length?names(h.noData):"",act:h.noData.length?`<button class="write-only btn" onclick="$('imp-mode').value='new';onImportModeChange();$('file-in').click()">Import the missing month</button>`:""},
     {done:!h.noBudget.length,title:h.noBudget.length?`${plural(h.noBudget.length,"KPI has","KPIs have")} no budget`:"Every KPI has a budget to compare against",
       detail:h.noBudget.length?names(h.noBudget)+" · commentary can't say how they did against plan":"",
-      act:h.noBudget.length?`<button class="btn" onclick="$('imp-mode').value='join';onImportModeChange();$('drop').scrollIntoView({block:'center'})">Add a budget file</button>`:""},
+      act:h.noBudget.length?`<button class="write-only btn" onclick="$('imp-mode').value='join';onImportModeChange();$('drop').scrollIntoView({block:'center'})">Add a budget file</button>`:""},
   ];
   el.style.display="";
   el.innerHTML=`<h2>${esc(P)} data</h2><ol class="checklist">${rows.map(r=>`<li class="cl ${r.done?"done":"todo"}"><span class="box">${r.done?BOXTICK:""}</span>
@@ -1115,7 +1115,7 @@ function renderRootCause(rc){
   box.innerHTML=`<div class="rc-panel">
     <div class="rc-head"><span class="rc-title">Root cause — ${esc(rc.primary_factor||"")}</span>${z}</div>
     ${bars}${trend}${drivers}
-    <div style="margin-top:12px"><button class="btn sm write-hide" id="d-rc-narr-btn" onclick="rootCauseNarrative()">Explain (AI)</button></div>
+    <div style="margin-top:12px"><button class="btn sm write-only" id="d-rc-narr-btn" onclick="rootCauseNarrative()">Explain (AI)</button></div>
     <div id="d-rc-narr" style="margin-top:10px"></div></div>`;
 }
 async function rootCauseNarrative(){
@@ -1153,7 +1153,7 @@ async function exportBoardPack(){
 /* ---------- secondary screen states ---------- */
 const screenLoads=new Map();
 function screenState(title,body,action,label,kind="empty"){
-  return `<div class="screen-state ${esc(kind)}" role="${kind==="error"?"alert":"status"}"><h2>${esc(title)}</h2><p>${esc(body)}</p>${action?`<button class="btn primary" onclick="${esc(action)}">${esc(label)}</button>`:""}</div>`;
+  return `<div class="screen-state ${esc(kind)}" role="${kind==="error"?"alert":"status"}"><h2>${esc(title)}</h2><p>${esc(body)}</p>${action?`<button class="btn primary${/^(?:loadDigest\(true|nav\('(?:import|data|datahub)'|ctxNew|inviteUser)|nt-target|sch-kind|c-title/.test(action)?" write-only":""}" onclick="${esc(action)}">${esc(label)}</button>`:""}</div>`;
 }
 function screenRow(html,cols){return cols?`<tr><td colspan="${esc(cols)}">${html}</td></tr>`:html;}
 function screenLoading(id,message,cols=0){
@@ -1332,6 +1332,11 @@ function narrMeta(f){
   return bits.join(" · ");
 }
 function renderReviewStrip(f){
+  const readonly=$("d-readonly-approval");
+  if(readonly){
+    readonly.style.display=canReview()?"none":"";
+    readonly.innerHTML=canReview()?"":`<button class="btn sm" disabled>Approve</button><p>${demoSession?`<a href="#signup" onclick="event.preventDefault();exitDemo(true)">Sign up to approve commentary</a>`:"Only analysts and admins can approve"}</p>`;
+  }
   const strip=$("d-rev-strip");if(!strip)return;
   if(!f||!f.report_id){strip.style.display="none";$("d-versions").style.display="none";$("d-assign-row").style.display="none";return;}
   strip.style.display="";
@@ -1453,8 +1458,8 @@ async function loadNotifications(){
         </div>
         <label style="font-size:12px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px">
           <input type="checkbox" ${c.enabled?"checked":""} onchange="ntToggle(${esc(c.id)},this.checked)"> Enabled</label>
-        <button class="btn sm" onclick="ntTest(${esc(c.id)},this)">Send test</button>
-        <button class="ico" title="Delete channel" aria-label="Delete channel" onclick="ntDelete(${esc(c.id)})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">${ICON_PATHS.trash}</svg></button>
+        <button class="write-only btn sm" onclick="ntTest(${esc(c.id)},this)">Send test</button>
+        <button class="write-only ico" title="Delete channel" aria-label="Delete channel" onclick="ntDelete(${esc(c.id)})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">${ICON_PATHS.trash}</svg></button>
       </div>`;
     }).join(""):screenState("No notification channels yet","Send digests and anomaly alerts to email, Slack or a webhook.","$('nt-target').focus()","Add a channel");
   }catch(e){if(done())$("nt-list").innerHTML=screenError(e,"loadNotifications()");}
@@ -1478,7 +1483,7 @@ async function loadSchedules(){
       </div>
       <label style="font-size:12px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px">
         <input type="checkbox" ${j.enabled?"checked":""} onchange="schToggle(${esc(j.id)},this.checked)"> Enabled</label>
-      <button class="ico" title="Delete schedule" aria-label="Delete schedule" onclick="schDelete(${esc(j.id)})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">${ICON_PATHS.trash}</svg></button>
+      <button class="write-only ico" title="Delete schedule" aria-label="Delete schedule" onclick="schDelete(${esc(j.id)})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">${ICON_PATHS.trash}</svg></button>
     </div>`).join(""):screenState("No schedules yet","Schedule digests, anomaly scans or board pack emails to run automatically.","$('sch-kind').focus()","Add a schedule");
 }
 async function schCreate(){
@@ -1543,7 +1548,7 @@ async function loadAdmin(){
     $("admin-rows").innerHTML=users.map(u=>`<tr>
       <td><b>${esc(u.email)}</b></td>
       <td style="color:var(--mut2);font-family:ui-monospace,Menlo,monospace;font-size:12px">${esc(u.user_id).slice(0,18)}…</td>
-      <td><select aria-label="Role for ${esc(u.email)}" onchange="setUserRole('${esc(u.user_id)}',this.value)">
+      <td><select class="write-only" aria-label="Role for ${esc(u.email)}" onchange="setUserRole('${esc(u.user_id)}',this.value)">
         ${["analyst","executive","admin"].map(r=>`<option ${u.role===r?"selected":""}>${r}</option>`).join("")}</select></td>
       <td style="color:var(--mut);white-space:nowrap">${esc(fmtDate(u.created_at))}</td></tr>`).join("")
       ||screenRow(screenState("No users yet","People who sign in appear here so you can manage their access.","inviteUser()","Invite a user"),4);
@@ -1572,15 +1577,15 @@ async function loadDatasets(){
       <button class="ws-choice" onclick="activateDataset(${esc(ds.id)})">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${ds.is_active?'var(--accent)':'var(--mut2)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-5"/></svg>
       <span class="ws-info"><b>${esc(ds.name)}</b><span>${esc(datasetCaption(ds))}</span></span></button>
-      <span class="ws-kebab exec-hide">
+      <span class="ws-kebab write-only">
         <button aria-label="Options for ${esc(ds.name)}" aria-haspopup="true" aria-expanded="false" aria-controls="kmenu-${ds.id}" onclick="toggleKebab(event,${ds.id})">⋯</button>
         <div class="ws-kmenu" id="kmenu-${ds.id}">
-          <button onclick="event.stopPropagation();renameDataset(${ds.id})">Rename</button>
-          <button class="danger" onclick="event.stopPropagation();deleteDataset(${ds.id})">Delete</button>
+          <button class="write-only" onclick="event.stopPropagation();renameDataset(${ds.id})">Rename</button>
+          <button class="write-only danger" onclick="event.stopPropagation();deleteDataset(${ds.id})">Delete</button>
         </div>
       </span>
     </div>`).join("")||'<div class="ws-item">No datasets</div>';
-  $("ws-menu").innerHTML=rows+`<button class="ws-newbtn exec-hide" onclick="event.stopPropagation();$('ws-menu').classList.remove('open');nav('import')">+ Import new dataset</button>`;
+  $("ws-menu").innerHTML=rows+`<button class="ws-newbtn write-only" onclick="event.stopPropagation();$('ws-menu').classList.remove('open');nav('import')">+ Import new dataset</button>`;
 }
 function dsName(id){const d=(datasetsCache||[]).find(x=>x.id===id);return d?d.name:"this dataset";}
 function toggleKebab(e,id){e.stopPropagation();
@@ -1613,7 +1618,7 @@ async function loadWorkspaces(){
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${w.id===activeWorkspaceId?'var(--accent)':'var(--mut2)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 21V8l6-4 6 4v13"/></svg>
       <span class="ws-info"><b>${esc(w.name)}</b><span style="text-transform:capitalize">${esc(w.role)}</span></span>
     </button>`).join("")
-    +`<button class="ws-newbtn" onclick="createWorkspaceUI()">+ New workspace</button>`;
+    +`<button class="write-only ws-newbtn" onclick="createWorkspaceUI()">+ New workspace</button>`;
 }
 function toggleWsp(e){e.stopPropagation();$("wsp-menu").classList.toggle("open");}
 async function switchWorkspace(id){
@@ -1731,7 +1736,7 @@ async function loadPeriods(){
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:52px;height:52px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
       <div style="font-size:17px;font-weight:800;color:var(--ink);margin:14px 0 6px">Import your financials</div>
       <div style="max-width:34ch;margin:0 auto 18px">Drop in a CSV or Excel export — any layout. We detect your columns and draft variance commentary in minutes.</div>
-      <button class="btn primary exec-hide" onclick="nav('datahub')" style="font-size:14px;padding:11px 20px">Import your first file</button>
+      <button class="btn primary write-only" onclick="nav('datahub')" style="font-size:14px;padding:11px 20px">Import your first file</button>
     </div>`;
   }
 }
@@ -1805,7 +1810,7 @@ function maybePromptGenerate(){
     el.style.display="";el.className="banner info";
     el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>
       <span>No narratives for ${esc(fmtPeriod(currentPeriod,"long"))} yet.</span>
-      <button class="btn sm primary exec-hide" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Generate narratives</button>
+      <button class="btn sm primary write-only" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Generate narratives</button>
       <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">${XICON}</button>`;
   }
 }
@@ -1852,7 +1857,7 @@ async function renderFunnel(){
   el.innerHTML=`<div class="funnel">
     <div class="funnel-head">
       <div><h3>Acquisition funnel</h3><div class="fh-sub">${esc(fmtPeriodTitle(currentPeriod).replace(" close","").replace(" overview",""))} · overall ${f.overall_conversion!=null?f.overall_conversion+"% end-to-end":"—"}</div></div>
-      <div class="fh-sub">${leakLine} ${activeDomain.narrative_style?'· <button class="txtact acc" onclick="explainFunnel(this)">Explain funnel</button>':""}</div>
+      <div class="fh-sub">${leakLine} ${activeDomain.narrative_style?'· <button class="write-only txtact acc" onclick="explainFunnel(this)">Explain funnel</button>':""}</div>
     </div>
     <div class="funnel-stages">${cards}</div>
     <div class="funnel-narr" id="funnel-narr" style="display:none"></div>
@@ -1945,7 +1950,7 @@ function narrativeBlock(f,q,i){
   let html=`<div class="narr ${narrState}">${f.narrative?hl(f.narrative,q):"No narrative yet — generate one to explain this movement."}</div>`;
   if(f.faithfulness==="failed")
     // The guard caught an unverifiable number. Surface it — do NOT hide it.
-    html+=`<div class="banner err" style="margin:8px 0 0;font-size:12px;padding:8px 10px">${warnIcon()}<span>Numbers couldn't be verified — review manually.</span><button class="btn sm exec-hide" style="margin-left:auto;padding:3px 9px" onclick="event.stopPropagation();retryCard(${i})">Retry</button></div>`;
+    html+=`<div class="banner err" style="margin:8px 0 0;font-size:12px;padding:8px 10px">${warnIcon()}<span>Numbers couldn't be verified — review manually.</span><button class="btn sm write-only" style="margin-left:auto;padding:3px 9px" onclick="event.stopPropagation();retryCard(${i})">Retry</button></div>`;
   return html;
 }
 // Index-based wrappers so no user string is interpolated into inline onclick.
@@ -2422,10 +2427,11 @@ function renderDigest(d){
       <div class="dg-figs">
         ${v!=null?`<span class="nbi-num ${v<0?"c-exc":"c-ok"}">${esc(fmt(v,"USD"))} vs plan (${esc(pct(it.budget_var_pct)||"–")})</span>`:""}
         ${it.faithfulness==="passed"?seal(true):it.faithfulness==="failed"?seal(false):""}
-        ${it.report_id?`<span class="dg-act"><button class="txtact" onclick="feedback(${esc(it.report_id)},'accepted',this)">Accept</button><button class="txtact bad" onclick="rejectNarr(${esc(it.report_id)},this)">Reject</button></span>`:""}
+        ${it.report_id?`<span class="dg-act write-only"><button class="write-only txtact" onclick="feedback(${esc(it.report_id)},'accepted',this)">Accept</button><button class="write-only txtact bad" onclick="rejectNarr(${esc(it.report_id)},this)">Reject</button></span>`:""}
       </div></div></section>`;}).join("")||screenState("No movers with budget data","This saved digest has no budget comparisons. Add budget data to explain the largest movements.","nav('data')","Import budget data"));
 }
 async function loadDigest(force){
+  if(force&&!canReview())return;
   if(digestGenerating)return;
   if(!force)return loadDigestHistory();
   digestGenerating=true;const btn=$("digest-generate");if(btn)btn.disabled=true;
@@ -2455,8 +2461,15 @@ async function loadDigestHistory(keepCurrent=false){
   try{
     const runs=await api("/digests/history");if(!done()||revision!==digestRevision)return;
     const mine=granularity==="month"&&currentPeriod?runs.find(r=>r.period===currentPeriod):runs[0];
-    if(!keepCurrent)$("digest-list").innerHTML=mine?renderDigest(mine)
-      :screenState(`No saved digest for ${fmtPeriod(currentPeriod)} yet`,"An executive digest explains the largest budget movements in this close, with every figure checked.","loadDigest(true)","Generate a new digest");
+    $("digest-generate").style.display=mine?"":"none";
+    if(!keepCurrent){
+      if(mine)$("digest-list").innerHTML=renderDigest(mine);
+      else if(canReview())$("digest-list").innerHTML=screenState(`No saved digest for ${fmtPeriod(currentPeriod)} yet`,"An executive digest explains the largest budget movements in this close, with every figure checked.","loadDigest(true)","Generate a new digest");
+      else{
+        const s=closeStateFor(currentPeriod)||closeProgress(currentFacts,false);
+        $("digest-list").innerHTML=screenState(`${fmtPeriod(currentPeriod,"long")}'s digest isn't ready yet`,`${s.approved} of ${s.n} KPIs are approved. Leadership gets the digest once the close is approved.`,"nav('kpis')","Open KPIs");
+      }
+    }
     const past=runs.filter(r=>r!==mine);
     $("digest-history").innerHTML=past.length?'<h2 class="digest-history-title">Earlier digests</h2>'+past.map(r=>`<button class="dg-past" onclick="selectClose('${esc(r.period)}')">
       <b>${esc(fmtPeriod(r.period))}</b><small>${esc(fmtDate(r.created_at))} · ${esc(r.trigger)}${r.cost_usd!=null?` · ${esc(fmt(r.cost_usd,"USD"))}`:""}</small>
@@ -2495,7 +2508,7 @@ function renderContextList(){
     const on=d.id===ctxSel;
     return `<div class="ctx-item${on?" on":""}">
       <button class="ctx-open" onclick="ctxOpen(${esc(d.id)})"${on?' aria-current="true"':""}><b>${esc(d.title)}</b><small>${esc(d.type.replace("_"," "))} · ${esc(ctxWhen(d))}</small></button>
-      <button class="row-del exec-hide" aria-label="Delete ${esc(d.title)}" onclick="delContext(${esc(d.id)})">${XICON}</button></div>`;
+      <button class="row-del write-only" aria-label="Delete ${esc(d.title)}" onclick="delContext(${esc(d.id)})">${XICON}</button></div>`;
   }).join("")||`<p class="ctx-none">No notes dated in ${esc(fmtPeriod(currentPeriod))}. <button class="linkbtn" onclick="ctxScope='all';renderContextList()">Show all notes</button></p>`;
   paintContextDetail();
 }
@@ -2763,10 +2776,10 @@ async function confirmKpis(){
   if(el){el.style.display="";el.className="banner ok";
     el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
       <span>Imported · ${plural(li.rows||0,"row")} · ${plural(kpis.length,"KPI")} · ${plural(li.periods||0,"period")}.</span>
-      <button class="btn sm primary" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Generate narratives</button>
+      <button class="write-only btn sm primary" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Generate narratives</button>
       <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">${XICON}</button>`;
   }
-  }catch(e){$("imp-result").innerHTML=`<div class="banner err">Import failed to finalize: ${esc(e.message)} <button class="btn sm" onclick="confirmKpis()">Retry</button></div>`;}
+  }catch(e){$("imp-result").innerHTML=`<div class="banner err">Import failed to finalize: ${esc(e.message)} <button class="write-only btn sm" onclick="confirmKpis()">Retry</button></div>`;}
   finally{kpiSaving=false;updateKpiSelection();}
 }
 
