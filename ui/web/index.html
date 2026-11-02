@@ -520,7 +520,7 @@
   body.side-collapsed .side{display:none}
   body.side-collapsed .reopen-btn{display:flex}
   @media (max-width:900px){
-    .app{display:block;height:auto;min-height:100vh;min-height:100dvh;overflow-x:hidden}
+    .app{display:block;height:auto;min-height:100vh;min-height:100dvh;overflow:clip}
     body.sidebar-open{overflow:hidden}
     body.demo .app{height:auto;min-height:calc(100vh - 44px);min-height:calc(100dvh - 44px)}
     .mtop{display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:70;height:52px;padding:0 14px;background:var(--card);border-bottom:1px solid var(--b08)}
@@ -767,6 +767,10 @@
   .q-col .empty-state{padding:28px 12px;font-size:14px}
   .d-col{min-width:0}
   .d-empty{border:1px dashed var(--line-strong);border-radius:var(--r-lg);padding:60px 24px;text-align:center;color:var(--text-3)}
+
+  #d-qa{background:var(--surface);border-color:var(--line-strong);color:var(--text)}
+  #d-qa::placeholder{color:var(--text-3);opacity:1}
+  #v-detail .grounding,#v-detail .rc-section{border:0;border-top:1px solid var(--line);border-radius:0;box-shadow:none;background:none;padding:16px 0}
 
   /* the document + inspector */
   #v-detail.wrap{max-width:none;padding:0}
