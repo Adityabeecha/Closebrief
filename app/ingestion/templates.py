@@ -5,6 +5,13 @@ same format are one click."""
 import json
 import sqlite3
 
+from app.datasets import current_workspace
+
+
+def _signature(signature: str) -> str:
+    ws = current_workspace()
+    return signature if ws is None else f"ws:{ws}:{signature}"
+
 
 def save_template(
     conn: sqlite3.Connection,
@@ -12,6 +19,7 @@ def save_template(
     mapping: dict,
     kpi_config: dict | None = None,
 ) -> int:
+    column_signature = _signature(column_signature)
     conn.execute(
         """
         INSERT INTO mapping_templates (column_signature, mapping, kpi_config)
@@ -34,15 +42,20 @@ def get_template(conn: sqlite3.Connection, template_id: int) -> dict | None:
     ).fetchone()
     if row is None:
         return None
+    signature = row["column_signature"]
+    raw_signature = signature.rsplit(":", 1)[-1]
+    if signature != _signature(raw_signature):
+        return None
     return {
         "id": row["id"],
-        "column_signature": row["column_signature"],
+        "column_signature": raw_signature,
         "mapping": json.loads(row["mapping"]),
         "kpi_config": json.loads(row["kpi_config"]) if row["kpi_config"] else None,
     }
 
 
 def match_template(conn: sqlite3.Connection, column_signature: str) -> dict | None:
+    column_signature = _signature(column_signature)
     row = conn.execute(
         "SELECT id FROM mapping_templates WHERE column_signature = ?", (column_signature,)
     ).fetchone()

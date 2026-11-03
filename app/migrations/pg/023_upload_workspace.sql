@@ -1,0 +1,1 @@
+ALTER TABLE uploads ADD COLUMN IF NOT EXISTS workspace_id INTEGER;

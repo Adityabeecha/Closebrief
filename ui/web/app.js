@@ -32,12 +32,12 @@ initTheme();
 /* ---------- export (PDF / PPTX) ---------- */
 /* Fixed brand colors for standalone exports, which can't read the app's CSS
    tokens at runtime. Keep in sync with --accent / --red in :root. */
-const BRAND={green:"#1e6e50",greenDark:"#4fae83",red:"#b42e2c"};
+const BRAND={green:"#047857",greenDark:"#34d399",red:"#c8281c"};
 function toggleExport(e){e.stopPropagation();$("export-menu").classList.toggle("open");}
 function reportDelta(label,v,downGood){
   const p=pct(v);if(p===null)return`<span class="rd flat">${label} –</span>`;
-  const good=downGood?v<0:v>0,col=v===0?"#5c6a62":good?BRAND.green:BRAND.red,bg=v===0?"#f1f3f0":good?"#e9f3ee":"#faeeed";
-  return`<span class="rd" style="color:${col};background:${bg}">${v>0?"▲":v<0?"▼":"■"} ${label} ${p}</span>`;
+  const good=downGood?v<0:v>0,col=v===0?"#596579":good?"#067647":BRAND.red,bg=v===0?"#f1f4f8":good?"#e8f8ef":"#fdeeed";
+  return`<span class="rd" style="color:${col};background:${bg}">${label} ${p}</span>`;
 }
 function buildReportHTML(facts){
   const withData=facts.filter(f=>f.has_data);
@@ -51,8 +51,9 @@ function buildReportHTML(facts){
       <div class="rc-top"><span class="rc-dot" style="background:${col}"></span><span class="rc-name">${esc(f.metric)}</span>
         <span class="rc-cat">${esc(f.category||"")}</span></div>
       <div class="rc-vrow"><span class="rc-val">${fmt(f.value,f.unit)}</span>${spark}</div>
-      <div class="rc-deltas">${reportDelta("MoM",f.deltas.mom_pct,dg)}${reportDelta("vs plan",f.deltas.budget_var_pct,dg)}${f.is_anomaly?'<span class="rd" style="color:#b42e2c;background:#faeeed">ANOMALY</span>':""}</div>
+      <div class="rc-deltas">${reportDelta(priorPeriodLabel(),f.deltas.mom_pct,dg)}${reportDelta("vs plan",f.deltas.budget_var_pct,dg)}${f.is_anomaly?'<span class="rd" style="color:#b42e2c;background:#faeeed">ANOMALY</span>':""}</div>
       <div class="rc-narr">${f.narrative?esc(f.narrative):"<i>No narrative generated for this metric.</i>"}</div>
+      ${f.faithfulness==="failed"?'<div class="rd" style="color:#b42e2c">Numbers need review — unverified narrative</div>':""}
       ${src?`<div class="rc-src">${src}</div>`:""}
     </div>`;
   }).join("");
@@ -61,37 +62,33 @@ function buildReportHTML(facts){
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     :root{--green2:${BRAND.green};--red:${BRAND.red};--mut2:#8a948c}
-    body{font-family:'Plus Jakarta Sans',system-ui,-apple-system,Segoe UI,sans-serif;color:#16211b;padding:28px 32px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    @font-face{font-family:'Plus Jakarta Sans';font-weight:400;src:url(/vendor/fonts/pjs-400.woff2) format('woff2')}
-    @font-face{font-family:'Plus Jakarta Sans';font-weight:600;src:url(/vendor/fonts/pjs-600.woff2) format('woff2')}
-    @font-face{font-family:'Plus Jakarta Sans';font-weight:700;src:url(/vendor/fonts/pjs-700.woff2) format('woff2')}
-    @font-face{font-family:'Plus Jakarta Sans';font-weight:800;src:url(/vendor/fonts/pjs-800.woff2) format('woff2')}
-    @font-face{font-family:'Newsreader';font-weight:400 700;src:url(/vendor/fonts/newsreader.woff2) format('woff2')}
-    @font-face{font-family:'IBM Plex Mono';font-weight:500;src:url(/vendor/fonts/plexmono-500.woff2) format('woff2')}
+    body{font-family:'Schibsted Grotesk',system-ui,-apple-system,Segoe UI,sans-serif;color:#16211b;padding:28px 32px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    @font-face{font-family:'Schibsted Grotesk';font-weight:400 900;src:url(/vendor/fonts/schibsted-grotesk.woff2) format('woff2')}
+    @font-face{font-family:'Red Hat Mono';font-weight:400 700;src:url(/vendor/fonts/redhat-mono.woff2) format('woff2')}
     .rhead{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid ${BRAND.green};padding-bottom:14px;margin-bottom:18px}
     .rhead .mark{display:inline-flex;align-items:center;gap:9px}
-    .rhead .mk{width:26px;height:26px;border-radius:7px;background:${BRAND.green};display:inline-flex;align-items:center;justify-content:center}
-    .rhead h1{font-family:'Newsreader',Georgia,serif;font-size:20px;font-weight:600;letter-spacing:-.005em}
+    .rhead .mk{width:26px;height:26px;border-radius:8px;background:${BRAND.green};display:inline-flex;align-items:center;justify-content:center}
+    .rhead h1{font-family:'Schibsted Grotesk',system-ui,sans-serif;font-size:20px;font-weight:600;letter-spacing:-.005em}
     .rhead .sub{font-size:12px;color:#5c6a62;margin-top:2px}
-    .rhead .r{text-align:right;font-size:11.5px;color:#5c6a62;line-height:1.6}
-    .rsummary{display:flex;gap:26px;background:#f4f7f4;border:1px solid #e2e8e2;border-radius:10px;padding:13px 18px;margin-bottom:20px}
-    .rsummary div{font-size:11.5px;color:#5c6a62;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
-    .rsummary b{display:block;font-family:'IBM Plex Mono',Menlo,monospace;font-size:19px;color:#16211b;font-weight:500;margin-top:3px;text-transform:none;letter-spacing:0}
+    .rhead .r{text-align:right;font-size:12px;color:#5c6a62;line-height:1.6}
+    .rsummary{display:flex;gap:26px;background:#f4f7f4;border:1px solid #e2e8e2;border-radius:8px;padding:13px 18px;margin-bottom:20px}
+    .rsummary div{font-size:12px;color:#5c6a62;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+    .rsummary b{display:block;font-family:'Red Hat Mono',Menlo,monospace;font-size:20px;color:#16211b;font-weight:500;margin-top:3px;text-transform:none;letter-spacing:0}
     .rgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-    .rcard{border:1px solid #e2e8e2;border-radius:11px;padding:15px 16px;break-inside:avoid}
+    .rcard{border:1px solid #e2e8e2;border-radius:12px;padding:15px 16px;break-inside:avoid}
     .rc-top{display:flex;align-items:center;gap:7px;margin-bottom:8px}
     .rc-dot{width:8px;height:8px;border-radius:50%;flex:none}
     .rc-name{font-weight:700;font-size:14px}
-    .rc-cat{margin-left:auto;font-size:10px;color:#8a948c;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+    .rc-cat{margin-left:auto;font-size:12px;color:#8a948c;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
     .rc-vrow{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-bottom:9px}
-    .rc-val{font-family:'IBM Plex Mono',Menlo,monospace;font-size:23px;font-weight:500;letter-spacing:-.02em}
+    .rc-val{font-family:'Red Hat Mono',Menlo,monospace;font-size:24px;font-weight:500;letter-spacing:-.02em}
     .rc-deltas{display:flex;gap:7px;margin-bottom:9px}
-    .rd{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px}
+    .rd{font-size:12px;font-weight:700;padding:3px 8px;border-radius:8px}
     .rd.flat{color:#5c6a62;background:#f1f3f0}
-    .rc-narr{font-family:'Newsreader',Georgia,serif;font-size:13.5px;line-height:1.6;color:#33413a}
+    .rc-narr{font-family:'Schibsted Grotesk',system-ui,sans-serif;font-size:14px;line-height:1.6;color:#33413a}
     .rc-src{margin-top:9px;display:flex;flex-wrap:wrap;gap:5px}
-    .src{font-size:9.5px;font-weight:700;color:${BRAND.green};background:#e9f3ee;border:1px solid #c6ddd1;padding:2px 7px;border-radius:5px}
-    .rfoot{margin-top:22px;padding-top:12px;border-top:1px solid #e2e8e2;font-size:10.5px;color:#8a948c;text-align:center}
+    .src{font-size:9.5px;font-weight:700;color:${BRAND.green};background:#e9f3ee;border:1px solid #c6ddd1;padding:2px 7px;border-radius:4px}
+    .rfoot{margin-top:22px;padding-top:12px;border-top:1px solid #e2e8e2;font-size:12px;color:#8a948c;text-align:center}
     @page{margin:14mm}
     @media print{.rcard{break-inside:avoid}}
   </style></head><body>
@@ -133,33 +130,51 @@ async function exportPPTX(){
     toast("Building PowerPoint…");
     await loadPptx();
     const facts=shownFacts.filter(f=>f.has_data);
-    const dark=document.documentElement.getAttribute("data-theme")==="dark";
-    const BG=dark?"171F1A":"FFFFFF",INK=dark?"E9EEE9":"16211B",MUT=dark?"93A096":"5C6A62",ACC=(dark?BRAND.greenDark:BRAND.green).slice(1).toUpperCase();
-    const p=new PptxGenJS();p.layout="LAYOUT_16x9";   // 10 x 5.63in default
-    const bg={color:BG};
+    // Decks are read on projectors and printed: always the light palette.
+    const INK="0B1220",TXT="344054",MUT="596579",LINE="E6E9EF",ACC=BRAND.green.slice(1).toUpperCase(),RED=BRAND.red.slice(1).toUpperCase(),OK="067647",AMB="A1450A";
+    const F="Segoe UI",M="Consolas";
+    const title=currentPeriod?fmtPeriodTitle(currentPeriod):"Close";
+    const p=new PptxGenJS();p.layout="LAYOUT_16x9";   // 10 x 5.63in
+    const foot=(s,n)=>{s.addShape(p.ShapeType.line,{x:0.6,y:5.15,w:8.8,h:0,line:{color:LINE,width:0.75}});
+      s.addText([{text:"close",options:{bold:true}},{text:"brief"}],{x:0.6,y:5.2,w:3,h:0.3,fontSize:10,color:INK,fontFace:F});
+      s.addText(`${title} · ${n}`,{x:5.4,y:5.2,w:4,h:0.3,fontSize:10,color:MUT,fontFace:F,align:"right"});};
     // Title slide
-    let s=p.addSlide();s.background=bg;
-    s.addText("FP&A Executive Report",{x:0.6,y:1.8,w:8.8,h:0.8,fontSize:34,bold:true,color:INK,fontFace:"Segoe UI"});
-    s.addText(`${currentPeriod||""}`,{x:0.6,y:2.7,w:8.8,h:0.5,fontSize:20,color:ACC,fontFace:"Segoe UI"});
-    s.addText(`Generated ${new Date().toLocaleDateString()} · Powered by Closebrief`,{x:0.6,y:4.7,w:8.8,h:0.4,fontSize:12,color:MUT,fontFace:"Segoe UI"});
-    // Summary slide
-    const anom=facts.filter(f=>f.is_anomaly).length;
-    const mover=facts.filter(f=>f.deltas&&f.deltas.budget_var_pct!=null).sort((a,b)=>Math.abs(b.deltas.budget_var_pct)-Math.abs(a.deltas.budget_var_pct))[0];
-    s=p.addSlide();s.background=bg;
-    s.addText("Summary",{x:0.6,y:0.4,w:8.8,h:0.6,fontSize:24,bold:true,color:INK,fontFace:"Segoe UI"});
-    const rows=[["KPIs tracked",String(facts.length)],["Anomalies flagged",String(anom)],["Top mover vs plan",mover?`${mover.metric} (${pct(mover.deltas.budget_var_pct)||"–"})`:"—"]];
-    rows.forEach((r,i)=>{s.addText(r[0],{x:0.8,y:1.4+i*0.9,w:4,h:0.6,fontSize:16,color:MUT,fontFace:"Segoe UI"});
-      s.addText(r[1],{x:4.8,y:1.4+i*0.9,w:4.6,h:0.6,fontSize:16,bold:true,color:INK,fontFace:"Segoe UI"});});
-    // One slide per metric
-    facts.forEach(f=>{
-      const s=p.addSlide();s.background=bg;const dg=f.direction_good==="down";
-      s.addText(f.metric,{x:0.6,y:0.4,w:8.8,h:0.6,fontSize:22,bold:true,color:INK,fontFace:"Segoe UI"});
-      s.addText(f.category||"",{x:0.6,y:0.95,w:8.8,h:0.35,fontSize:12,color:MUT,fontFace:"Segoe UI"});   // PPTX text is not HTML — no esc()
-      s.addText(fmt(f.value,f.unit),{x:0.6,y:1.4,w:5,h:0.9,fontSize:40,bold:true,color:INK,fontFace:"Segoe UI"});
-      const mom=pct(f.deltas.mom_pct),bud=pct(f.deltas.budget_var_pct);
-      s.addText(`MoM ${mom||"–"}    vs plan ${bud||"–"}`,{x:0.6,y:2.4,w:8.8,h:0.4,fontSize:13,bold:true,color:ACC,fontFace:"Segoe UI"});
-      s.addText(f.narrative||"No narrative generated.",{x:0.6,y:2.95,w:8.8,h:2.2,fontSize:13,color:INK,fontFace:"Segoe UI",valign:"top"});
-      if(f.sources&&f.sources.length)s.addText("Sources: "+f.sources.map(x=>x.title||x.id).join(", "),{x:0.6,y:5.0,w:8.8,h:0.4,fontSize:10,italic:true,color:MUT,fontFace:"Segoe UI"});
+    let s=p.addSlide();s.background={color:"FFFFFF"};
+    s.addShape(p.ShapeType.rect,{x:0.6,y:1.45,w:0.6,h:0.08,fill:{color:ACC},line:{color:ACC}});
+    s.addText(title,{x:0.6,y:1.65,w:8.8,h:0.9,fontSize:38,bold:true,color:INK,fontFace:F});
+    s.addText("Variance commentary. Every figure computed in code and checked against the source.",{x:0.6,y:2.55,w:8.8,h:0.5,fontSize:16,color:TXT,fontFace:F});
+    s.addText(`${activeDatasetObj&&activeDatasetObj.name?datasetDisplayName(activeDatasetObj.name)+" · ":""}Prepared ${fmtDate(new Date().toISOString())}`,{x:0.6,y:4.6,w:8.8,h:0.4,fontSize:12,color:MUT,fontFace:F});
+    s.addText([{text:"close",options:{bold:true}},{text:"brief"}],{x:0.6,y:0.5,w:3,h:0.4,fontSize:16,color:INK,fontFace:F});
+    // At a glance: the movers against plan, largest first
+    const anom=facts.filter(f=>f.is_anomaly).length,approved=facts.filter(f=>f.review_status==="approved").length;
+    const movers=facts.slice().sort((a,b)=>Math.abs((b.deltas&&b.deltas.budget_var_pct)||0)-Math.abs((a.deltas&&a.deltas.budget_var_pct)||0)).slice(0,8);
+    s=p.addSlide();s.background={color:"FFFFFF"};
+    s.addText("At a glance",{x:0.6,y:0.4,w:8.8,h:0.6,fontSize:24,bold:true,color:INK,fontFace:F});
+    s.addText(`${plural(facts.length,"KPI","KPIs")} · ${plural(anom,"anomaly","anomalies")} · ${approved} of ${facts.length} approved`,{x:0.6,y:0.95,w:8.8,h:0.35,fontSize:13,color:MUT,fontFace:F});
+    const head=["KPI","Actual","Vs plan",capFirst(priorPeriodLabel()),"Status"].map(t=>({text:t,options:{bold:true,color:MUT,fontSize:11,fontFace:F}}));
+    const tone=(f,v)=>v==null||v===0?TXT:((f.direction_good==="down"?v<0:v>0)?OK:RED);
+    const body=movers.map(f=>[
+      {text:f.metric,options:{color:INK,fontSize:12,fontFace:F}},
+      {text:fmt(f.value,f.unit),options:{color:INK,fontSize:12,fontFace:M,align:"right"}},
+      {text:pct(f.deltas.budget_var_pct)||"–",options:{color:tone(f,f.deltas.budget_var_pct),fontSize:12,fontFace:M,align:"right"}},
+      {text:pct(f.deltas.mom_pct)||"–",options:{color:tone(f,f.deltas.mom_pct),fontSize:12,fontFace:M,align:"right"}},
+      {text:f.faithfulness==="failed"?"Needs review":f.review_status==="approved"?"Approved":f.narrative?"Draft":"Not drafted",options:{color:f.faithfulness==="failed"?AMB:MUT,fontSize:11,fontFace:F}}]);
+    s.addTable([head,...body],{x:0.6,y:1.45,w:8.8,colW:[3.4,1.5,1.2,1.2,1.5],border:{type:"solid",color:LINE,pt:0.75},rowH:0.36});
+    foot(s,2);
+    // One slide per KPI
+    facts.forEach((f,i)=>{
+      const s=p.addSlide();s.background={color:"FFFFFF"};
+      const state=f.faithfulness==="failed"?["Needs review",AMB]:f.review_status==="approved"?["Approved",OK]:f.narrative?["Draft",MUT]:["Not drafted",MUT];
+      s.addText(f.metric,{x:0.6,y:0.4,w:7,h:0.6,fontSize:22,bold:true,color:INK,fontFace:F});
+      s.addText(state[0],{x:7.6,y:0.48,w:1.8,h:0.4,fontSize:12,bold:true,color:state[1],fontFace:F,align:"right"});
+      s.addText(f.category||"",{x:0.6,y:0.95,w:8.8,h:0.35,fontSize:12,color:MUT,fontFace:F});   // PPTX text is not HTML — no esc()
+      s.addText(fmt(f.value,f.unit),{x:0.6,y:1.4,w:5,h:0.9,fontSize:40,bold:true,color:INK,fontFace:M});
+      const figs=[["Vs plan",f.deltas.budget_var_pct],[capFirst(priorPeriodLabel()),f.deltas.mom_pct]];
+      figs.forEach(([l,v],k)=>{s.addText(l,{x:6.2,y:1.45+k*0.45,w:1.7,h:0.4,fontSize:12,color:MUT,fontFace:F});
+        s.addText(pct(v)||"–",{x:7.9,y:1.45+k*0.45,w:1.5,h:0.4,fontSize:13,bold:true,color:tone(f,v),fontFace:M,align:"right"});});
+      s.addText((f.faithfulness==="failed"?"Numbers need review — unverified narrative\n\n":"")+(f.narrative||"No narrative generated."),{x:0.6,y:2.55,w:8.8,h:2.3,fontSize:14,color:TXT,fontFace:F,valign:"top",paraSpaceAfter:6});
+      if(f.sources&&f.sources.length)s.addText("Sources: "+f.sources.map(x=>x.title||x.id).join(", "),{x:0.6,y:4.75,w:8.8,h:0.35,fontSize:10,italic:true,color:MUT,fontFace:F});
+      foot(s,i+3);
     });
     await p.writeFile({fileName:`Closebrief_${(currentPeriod||"report").replace(/[^0-9A-Za-z_-]/g,"")}.pptx`});
     toast("PowerPoint downloaded");
@@ -172,18 +187,19 @@ const CI={page:'<path d="M4 4h16v16H4z"/><path d="M4 9h16"/>',metric:'<path d="M
   bolt:'<path d="M13 2 3 14h7l-1 8 10-12h-7z"/>',sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   down:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>'};
 function paletteActions(){
-  const pages=[["dashboard","Insights Dashboard"],["digest","Executive Digest"],["context","Context Library"],["import","Import & Mapping"],["costs","Cost & Usage"],["notifications","Notifications"]];
-  if(currentUser.role==="admin")pages.push(["admin","User Management"]);
+  const pages=[...MONTH_TABS.filter(t=>t[0]!=="data"||canReview()).map(([k,l])=>[k,currentPeriod?`${l} · ${fmtPeriod(currentPeriod)}`:l]),
+    ...PLACES.filter(([k])=>k!=="admin"||currentUser.role==="admin").filter(([k])=>!["costs","notifications"].includes(k)||currentUser.role==="admin").map(([k,,,l])=>[k,l])];
   const acts=[
-    {label:"Generate all narratives",icon:CI.bolt,run:()=>generateAll(),group:"Actions"},
+    {label:"Draft all commentary",icon:CI.bolt,run:()=>generateAll(),group:"Actions"},
     {label:"Export report (PDF)",icon:CI.down,run:()=>exportPDF(),group:"Actions"},
     {label:"Export report (PowerPoint)",icon:CI.down,run:()=>exportPPTX(),group:"Actions"},
     {label:"Toggle dark mode",icon:CI.sun,run:()=>toggleTheme(),group:"Actions"},
   ];
-  const pageItems=pages.map(([v,l])=>({label:l,icon:CI.page,run:()=>nav(v),group:"Pages"}));
+  const pageItems=pages.map(([v,l])=>({label:l,icon:CI.page,run:()=>requestImportView(v),group:"Pages"}));
   const metricItems=(currentFacts||[]).filter(f=>f.has_data).map(f=>({label:f.metric,sub:f.category||"",icon:CI.metric,
-    run:()=>{nav("dashboard");const i=shownFacts.indexOf(f);(i>=0)?openDetail(i):(currentFacts.includes(f)&&(searchQuery="",renderCards(),openDetail(shownFacts.indexOf(f))));},group:"Metrics"}));
-  return[...acts,...pageItems,...metricItems];
+    run:()=>requestImportAction(()=>{nav("dashboard");const fresh=currentFacts.find(x=>x.metric===f.metric);if(!fresh)return;const i=shownFacts.indexOf(fresh);(i>=0)?openDetail(i):(searchQuery="",renderCards(),openDetail(shownFacts.indexOf(fresh)));}),group:"Metrics"}));
+  const closeItems=[...allPeriods].reverse().slice(0,12).map(p=>({label:fmtPeriodTitle(p),icon:CI.page,run:()=>selectClose(p),group:"Closes"}));
+  return[...acts,...pageItems,...closeItems,...metricItems];
 }
 function openPalette(){
   const bk=$("cmdk-back");bk.classList.add("open");
@@ -235,7 +251,7 @@ function renderKpim(){
       <input value="${esc(k.unit)}" data-f="unit">
       <select data-f="direction_good">${dirOpt(k.direction_good)}</select>
       <select data-f="aggregation_type" title="flow=sum · balance=last month · ratio=not aggregated">${aggOpt(k.aggregation_type)}</select>
-      <button class="row-del" title="Remove from board" onclick="kpimRemove(${i})">✕</button>
+      <button class="write-only row-del" title="Remove from board" onclick="kpimRemove(${i})">${XICON}</button>
     </div>`).join("")
     :'<div class="empty-state" style="padding:26px">No KPIs selected — add one below.</div>';
   $("kpim-add").innerHTML='<option value="">Add a metric to the board…</option>'
@@ -368,19 +384,33 @@ async function api(path,opts,_retried){
     storeSessionToken(null);
     showLogin();throw new Error("Session expired — please sign in");
   }
-  if(!r.ok&&r.status!==503){let d=r.statusText;try{d=(await r.json()).detail||d;}catch{}throw new Error(d);}
+  if(!r.ok){
+    let data=null;try{data=await r.json();}catch{}
+    if(r.status===503&&path==="/generate-insight"&&data&&typeof data.metric==="string"&&
+      typeof data.period==="string"&&Number.isFinite(data.value)&&data.narrative===null&&data.faithfulness==="unchecked")return data;
+    throw new Error((data&&data.detail)||r.statusText||"Request failed");
+  }
   if(r.status===204)return null; return r.json();
 }
 const fmt=(v,unit)=>{
   if(v===null||v===undefined)return"–";
-  if(unit==="%")return(+v.toFixed(1))+"%";
-  if(unit==="count")return Math.round(v).toLocaleString();
-  // Finance-style: sign BEFORE the currency symbol (-$1.20M / -$370K / -$12.50).
-  const a=Math.abs(v),sign=v<0?"-":"";let mag;
+  if(unit==="%")return(v<0?"−":"")+Math.abs(v).toFixed(1)+"%";
+  if(unit==="count"){const n=Math.round(v);return(n<0?"−":"")+Math.abs(n).toLocaleString();}
+  // Finance-style: sign BEFORE the currency symbol (−$1.20M / −$370K / −$12.50),
+  // with a real minus sign (U+2212) so it lines up with "+" in mono figures.
+  const a=Math.abs(v),sign=v<0?"−":"";let mag;
   if(a>=1e6)mag="$"+(a/1e6).toFixed(2)+"M"; else if(a>=1e3)mag="$"+(a/1e3).toFixed(0)+"K"; else mag="$"+(+a.toFixed(2)).toLocaleString();
   return sign+mag;
 };
-const pct=v=>v===null||v===undefined?null:(v>0?"+":"")+v.toFixed(1)+"%";
+const pct=v=>v===null||v===undefined?null:(v>0?"+":v<0?"−":"")+Math.abs(v).toFixed(1)+"%";
+function datasetDisplayName(name){
+  const stored=String(name||"");
+  if(!/\.(csv|xlsx)$/i.test(stored))return stored;
+  const words=stored.replace(/\.(csv|xlsx)$/i,"").replace(/[_-]+/g," ").trim().toLowerCase();
+  return words.charAt(0).toUpperCase()+words.slice(1);
+}
+const capFirst=s=>s.charAt(0).toUpperCase()+s.slice(1);
+function priorPeriodLabel(){return granularity==="year"?"vs last year":granularity==="quarter"?"vs last quarter":"vs last month";}
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const plural=(n,one,many)=>`${n} ${n===1?one:(many||one+"s")}`;
 const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -390,6 +420,23 @@ function fmtPeriodTitle(p){
   if(/^\d{4}-Q\d$/.test(p))return `Q${p.slice(6)} ${p.slice(0,4)} overview`;
   return `${p} overview`;
 }
+// People read periods as "Jun 2026"; ISO stays in values, URLs and API calls.
+// style: "short" (Jun 2026) | "long" (June 2026) | "axis" (Jun 26).
+function fmtPeriod(p,style="short"){
+  if(!p)return"—";
+  let m=/^(\d{4})-(\d{2})$/.exec(p);
+  if(m){const name=MONTHS[+m[2]-1];
+    return style==="long"?`${name} ${m[1]}`:style==="axis"?`${name.slice(0,3)} ${m[1].slice(2)}`:`${name.slice(0,3)} ${m[1]}`;}
+  m=/^(\d{4})-Q(\d)$/.exec(p);
+  if(m)return style==="axis"?`Q${m[2]} ${m[1].slice(2)}`:`Q${m[2]} ${m[1]}`;
+  return String(p);
+}
+// One date format everywhere: "01 Nov 2026".
+function fmtDate(iso){
+  const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso||"");
+  return m?`${m[3]} ${MONTHS[+m[2]-1].slice(0,3)} ${m[1]}`:"—";
+}
+function setDocTitle(t){document.title=t?`${t} — Closebrief`:"Closebrief — FP&A intelligence";}
 
 /* ---------- reusable modal (replaces native prompt/confirm) ---------- */
 let _modalResolve=null;
@@ -416,7 +463,7 @@ function modalInput(title,{label="",value="",textarea=false,placeholder="",okLab
 // Confirm modal → resolves true (confirmed) or null (cancel). `message` is plain text.
 function modalConfirm(title,message,{okLabel="Delete",danger=true}={}){
   return _openModalRaw({title,okLabel,danger,
-    body:`<div style="font-size:13.5px;line-height:1.55;color:var(--ink2)">${esc(message)}</div>`,getValue:()=>true});
+    body:`<div style="font-size:14px;line-height:1.55;color:var(--ink2)">${esc(message)}</div>`,getValue:()=>true});
 }
 
 /* tooltip */
@@ -460,19 +507,308 @@ function toggleCollapse(){
 }
 // Restore collapsed state on load.
 try{if(localStorage.getItem("cb-side-collapsed")==="1")document.body.classList.add("side-collapsed");}catch{}
-function nav(v){
+const VIEWS=["overview","dashboard","digest","context","boardpack","analytics","review","import","costs","notifications","admin"];
+// Each close (a month, quarter or year) is a workspace with tabs: [URL key, label, the view that renders it].
+const MONTH_TABS=[["overview","Overview","overview"],["kpis","KPIs","dashboard"],["context","Context","context"],
+  ["digest","Digest","digest"],["boardpack","Board pack","boardpack"],["data","Data","import"]];
+// Places that span closes: [place, view, hash, title].
+const PLACES=[["analyze","analytics","#analyze","Analyze"],["library","context","#library","Context library"],
+  ["datahub","import","#data","Data and imports"],["costs","costs","#settings=costs","Cost and usage"],
+  ["notifications","notifications","#settings=notifications","Notifications"],["admin","admin","#settings=users","Users"]];
+// Hashes from before the month workspace (bookmarks, sent emails) and where they live now.
+const LEGACY_HASH={dashboard:{tab:"kpis"},digest:{tab:"digest"},context:{tab:"context"},review:{tab:"overview"},
+  import:{tab:"data"},analytics:{place:"analyze"},costs:{place:"costs"},notifications:{place:"notifications"},admin:{place:"admin"}};
+// "#month=2026-06&tab=kpis&metric=Net%20revenue" → {tab,period,metric}; "#analyze" → {place}; unknown → null.
+function parseRoute(hash){
+  const h=(hash||"").replace(/^#/,"");if(!h)return null;
+  if(LEGACY_HASH[h])return {...LEGACY_HASH[h]};
+  const p=new URLSearchParams(h);
+  if(p.has("month")||p.has("tab")){
+    const tab=MONTH_TABS.some(t=>t[0]===p.get("tab"))?p.get("tab"):(p.get("metric")?"kpis":"overview");
+    return {tab,period:p.get("month")||null,metric:p.get("metric")||null};
+  }
+  if(p.has("metric"))return {tab:"kpis",period:p.get("period")||null,metric:p.get("metric")};
+  if(p.has("settings")){const s=p.get("settings")==="users"?"admin":p.get("settings");
+    return PLACES.some(x=>x[0]===s)?{place:s}:null;}
+  const place=PLACES.find(x=>x[2]==="#"+h);
+  return place?{place:place[0]}:null;
+}
+function routeHash(r){
+  if(r.place)return (PLACES.find(x=>x[0]===r.place)||PLACES[0])[2];
+  const q=new URLSearchParams();if(r.period)q.set("month",r.period);q.set("tab",r.tab||"overview");if(r.metric)q.set("metric",r.metric);
+  return "#"+q.toString();
+}
+// Where a person lands with no link: executives and viewers read the digest, everyone else works the close.
+function landingTab(role){return role==="executive"||(role==="viewer"&&!demoSession)?"digest":"overview";}
+// Every view is linkable: navigation pushes a history entry so Back works,
+// and popstate (Back/Forward, a pasted link) routes without pushing again.
+function pushRoute(h){if(location.hash!==h)history.pushState(null,"",h);}
+let currentPlace={tab:"overview"};
+async function route(){
+  const r=parseRoute(location.hash)||{tab:landingTab(currentUser&&currentUser.role)};
+  if(r.place)return nav(r.place,{fromRoute:true});
+  // A link to another close switches the close first, then opens the tab.
+  const sel=$("period-select");
+  if(r.period&&sel&&sel.value!==r.period&&[...sel.options].some(o=>o.value===r.period)){sel.value=r.period;await loadFacts();}
+  if(r.metric){
+    if(currentPeriod)history.replaceState(null,"",metricHash(r.metric,currentPeriod));
+    return openMetricFromHash(new URLSearchParams({metric:r.metric,period:currentPeriod||""}).toString());
+  }
+  nav(r.tab,{fromRoute:true});
+  // Normalise legacy or partial links to the canonical URL without a new history entry.
+  const canon=routeHash({tab:r.tab,period:currentPeriod});
+  if(currentPeriod&&location.hash!==canon)history.replaceState(null,"",canon);
+}
+// Set once the app has loaded its periods (every boot path: auth, demo, local dev);
+// cleared when the login gate shows, so a hash reset on sign-out doesn't route.
+let routerReady=false;
+window.addEventListener("popstate",()=>importRouteChanged());
+window.addEventListener("hashchange",()=>importRouteChanged());
+// nav() takes a close tab ("kpis"), a place ("analyze") or an older view name ("dashboard", "import").
+function resolveNav(t){
+  if(t==="detail")return {tab:"kpis",detail:true};
+  if(PLACES.some(p=>p[0]===t))return {place:t};
+  if(t==="analytics")return {place:"analyze"};
+  if(t==="import"&&!currentPeriod)return {place:"datahub"};
+  const tab={dashboard:"kpis",review:"overview",import:"data"}[t]||t;
+  return {tab:MONTH_TABS.some(x=>x[0]===tab)?tab:"overview"};
+}
+const canReview=()=>!!currentUser&&!["viewer","executive"].includes(currentUser.role);
+function nav(t,{fromRoute=false}={}){
   closeSidebar();   // dismiss the mobile drawer on navigation
-  for(const s of["dashboard","detail","digest","context","analytics","review","import","costs","notifications","admin"])$("v-"+s).style.display=s===v?"":"none";
-  for(const s of["dashboard","digest","context","analytics","review","import","costs","notifications","admin"])
-    document.querySelector(`[data-view=${s}]`)?.classList.toggle("active",s===v||(v==="detail"&&s==="dashboard"));
-  if(v!=="detail"&&location.hash!=="#"+v)history.replaceState(null,"","#"+v);
-  if(v==="context")loadContext();
+  const r=resolveNav(t);currentPlace=r;
+  const v=r.place?PLACES.find(p=>p[0]===r.place)[1]:MONTH_TABS.find(x=>x[0]===r.tab)[2];
+  const inMonth=!r.place;
+  document.body.classList.toggle("in-month",inMonth);
+  $("month-head").style.display=inMonth&&currentPeriod?"":"none";
+  const inSettings=["costs","notifications","admin"].includes(r.place);
+  document.body.classList.toggle("in-settings",inSettings);
+  $("settings-head").style.display=inSettings?"":"none";
+  document.querySelectorAll("#settings-head .mtabs a").forEach(a=>{
+    if(a.dataset.place===r.place)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current");});
+  // Overview carries the review queue beneath the checklist for people who approve.
+  for(const s of VIEWS)$("v-"+s).style.display=(s===v||(s==="review"&&v==="overview"&&canReview()&&currentPeriod))?"":"none";
+  // The KPIs tab and the open KPI share one workspace: queue + document + inspector.
+  $("v-detail").style.display=(r.detail||(v==="dashboard"&&detailFact))?"":"none";
+  $("d-empty").style.display=detailFact?"none":"";
+  $("ws-split").classList.toggle("has-detail",!!r.detail);
+  $("v-dashboard").classList.toggle("detail-open",!!r.detail);
+  document.querySelectorAll(".nav-item[data-view]").forEach(item=>{
+    const on=item.dataset.view===r.place||(item.dataset.group==="settings"&&inSettings);item.classList.toggle("active",on);
+    if(on)item.setAttribute("aria-current","page");else item.removeAttribute("aria-current");
+  });
+  markCloses();renderMonthHead();
+  if(!r.detail){
+    if(!fromRoute)pushRoute(routeHash(r.place?r:{tab:r.tab,period:currentPeriod}));
+    const tabLabel=MONTH_TABS.find(x=>x[0]===r.tab);
+    setDocTitle(r.place?PLACES.find(p=>p[0]===r.place)[3]
+      :!currentPeriod?"Start your first close":r.tab==="overview"?fmtPeriodTitle(currentPeriod):`${tabLabel[1]} · ${fmtPeriodTitle(currentPeriod)}`);
+  }
+  if(v==="overview"){renderOverview();if(canReview()&&currentPeriod)loadReview();}
+  if(v==="context"){ctxScope=r.place?"library":"close";loadContext();}
   if(v==="analytics")loadAnalytics();
-  if(v==="review")loadReview();
   if(v==="digest")loadDigest(false);
+  if(v==="boardpack")loadBoardPack();
+  if(v==="import")renderDataHealth();
   if(v==="costs")loadCosts();
   if(v==="notifications")loadNotifications();
   if(v==="admin")loadAdmin();
+}
+
+/* ---------- month workspace: the closes list, the month header, the overview ---------- */
+let closeMonths={};       // period → server status from /close/months, when the server has it
+let closeShared=new Set(); // periods with a saved digest
+let allPeriods=[], showAllCloses=false;
+// One close's state from its computed facts. Weights: data in 20%, drafted 30%, approved 40%, shared 10%.
+function closeProgress(facts,shared){
+  const withData=(facts||[]).filter(f=>f.has_data),n=withData.length;
+  const drafted=withData.filter(f=>f.narrative).length,approved=withData.filter(f=>f.review_status==="approved").length;
+  const failed=withData.filter(f=>f.faithfulness==="failed").length;
+  const exceptions=withData.filter(f=>(f.is_anomaly||f.faithfulness==="failed")&&f.review_status!=="approved").length;
+  const progress=n?Math.round((0.2+0.3*drafted/n+0.4*approved/n+(shared?0.1:0))*100)/100:0;
+  const status=!n?"empty":approved===n&&shared?"shared":approved===n?"ready":drafted||approved?"in_progress":"not_started";
+  return {n,drafted,approved,failed,exceptions,checked:withData.filter(f=>f.faithfulness==="passed").length,shared:!!shared,progress,status};
+}
+const CLOSE_STATUS={empty:["No data",""],not_started:["Not started",""],in_progress:["In progress","prog"],ready:["Ready to share","prog"],shared:["Shared","done"]};
+// The server's summary wins when it has one, so every close in the list is scored the same way.
+function closeStateFor(p){
+  const m=closeMonths[p];
+  if(!m)return p===currentPeriod&&currentFacts?closeProgress(currentFacts,closeShared.has(p)):null;
+  return {n:m.kpis,approved:m.approved,drafted:m.drafted,progress:m.progress,status:m.status,shared:m.status==="shared"};
+}
+function renderCloses(){
+  const el=$("close-list");if(!el)return;
+  if(!allPeriods.length){el.innerHTML=`<p class="nav-empty">No closes yet. Import a file to start one.</p>`;return;}
+  const newest=[...allPeriods].reverse();
+  const shown=showAllCloses?newest:newest.slice(0,6);
+  if(currentPeriod&&!shown.includes(currentPeriod))shown.push(currentPeriod);
+  el.innerHTML=shown.map(p=>{
+    const s=closeStateFor(p),[word,cls]=CLOSE_STATUS[s?s.status:"not_started"]||CLOSE_STATUS.not_started;
+    const sub=s&&s.n?`${s.approved} of ${s.n} approved`:"";
+    return `<button class="ci" data-p="${esc(p)}" onclick="selectClose('${esc(p)}')">
+      <b>${esc(fmtPeriod(p,"long"))}</b>${s?`<span class="cs ${cls}">${word}</span>`:""}
+      ${sub?`<small>${sub}</small>`:""}${s&&s.n&&!["not_started","empty"].includes(s.status)?`<span class="cbar" aria-hidden="true"><i style="width:${Math.round(s.progress*100)}%"></i></span>`:""}</button>`;
+  }).join("")+(newest.length>6?`<button class="more" onclick="showAllCloses=!showAllCloses;renderCloses()">${showAllCloses?"Show fewer":`Show all ${newest.length}`}</button>`:"");
+  markCloses();
+}
+function markCloses(){
+  const inMonth=!currentPlace.place;
+  document.querySelectorAll("#close-list .ci").forEach(b=>{
+    const on=inMonth&&b.dataset.p===currentPeriod;b.classList.toggle("on",on);
+    if(on)b.setAttribute("aria-current","page");else b.removeAttribute("aria-current");
+  });
+}
+async function selectClose(p){
+  if(!await leaveImport())return;
+  const sel=$("period-select");
+  const tab=currentPlace.place?"overview":(currentPlace.tab||"overview");
+  if(sel.value!==p){sel.value=p;detailFact=null;await loadFacts();}
+  nav(tab);
+}
+async function loadCloseMeta(){
+  // Optional server summaries: per-close status (/close/months) and which closes have a digest.
+  try{const ms=await api(`/close/months?granularity=${granularity}`);closeMonths=Object.fromEntries(ms.map(m=>[m.period,m]));}catch{closeMonths={};}
+  try{const runs=await api("/digests/history");closeShared=new Set(runs.map(r=>r.period));}catch{closeShared=new Set();}
+  renderCloses();renderMonthHead();
+}
+// The one next step for this close, said as an action; null when nothing is left.
+function closeNextStep(s){
+  if(!s||!s.n)return {label:"Import data",run:"nav('data')"};
+  if(s.drafted<s.n)return {label:`Draft ${plural(s.n-s.drafted,"commentary","commentaries")}`,run:"generateAll()"};
+  if(s.failed)return {label:`Check ${plural(s.failed,"flagged KPI","flagged KPIs")}`,run:"nav('kpis')"};
+  if(s.approved<s.n)return {label:`Approve ${plural(s.n-s.approved,"draft","drafts")}`,run:"nav('kpis')"};
+  if(!s.shared)return {label:"Send the digest",run:"nav('digest')"};
+  return null;
+}
+function renderMonthHead(){
+  const head=$("month-head");if(!head)return;
+  if(!currentPeriod){head.style.display="none";return;}
+  const s=closeProgress(currentFacts,closeShared.has(currentPeriod));
+  $("mh-title").textContent=fmtPeriodTitle(currentPeriod);
+  const [word,cls]=CLOSE_STATUS[(closeStateFor(currentPeriod)||s).status]||CLOSE_STATUS[s.status];
+  const pill=$("mh-pill");pill.textContent=word;pill.className="mh-pill "+cls;
+  const ds=activeDatasetObj&&datasetDisplayName(activeDatasetObj.name);
+  $("mh-sub").textContent=[ds,s.n?`${plural(s.n,"KPI","KPIs")} computed in code`:null,s.n?`${s.approved} of ${s.n} approved`:null].filter(Boolean).join(" · ");
+  const next=canReview()?closeNextStep(s):null,btn=$("mh-next");
+  btn.style.display=next?"":"none";
+  if(next){btn.textContent=next.label;btn.setAttribute("onclick",next.run);}
+  $("mt-kpis").textContent=s.n||"";
+  const tab=currentPlace.place?null:currentPlace.tab;
+  document.querySelectorAll("#month-tabs a").forEach(a=>{
+    a.href=routeHash({tab:a.dataset.tab,period:currentPeriod});
+    if(a.dataset.tab===tab)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current");
+  });
+}
+const BOXTICK='<svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
+// The close checklist: the server's steps when it has them, otherwise derived from the facts.
+function overviewSteps(s,server){
+  if(server&&server.steps&&server.steps.length)return server.steps;
+  const P=currentPeriod,m=closeMonths[P]||{},flagged=s.drafted-s.checked,undrafted=s.n-s.drafted,remaining=s.n-s.approved,pending=s.drafted-s.approved;
+  const needs=m.needs_reason??s.needs_reason??(currentFacts||[]).filter(f=>f.has_data&&(f.is_anomaly||Math.abs(f.deltas?.budget_var_pct||0)>10)&&!f.sources?.length).length;
+  const step=(id,title,detail,state,count,tab)=>({id,title,detail,state,count,target:routeHash({tab,period:P})});
+  return [
+    step("import","Import actuals and budget",s.n?`${plural(s.n,"KPI","KPIs")} imported · open Data to check coverage`:"Import actuals on the Data tab to start this close",s.n?"done":"todo",s.n,"data"),
+    step("review","Review the biggest movers",flagged?`${plural(flagged,"draft has","drafts have")} a figure to check · open KPIs`:undrafted?`${plural(undrafted,"KPI is","KPIs are")} not drafted yet · open KPIs`:"Figures checked · open KPIs to review movers",flagged||undrafted?"todo":"done",flagged+undrafted,"kpis"),
+    step("reasons",needs?`Add reasons for ${plural(needs,"variance")}`:"Every variance has a reason",needs?`${plural(needs,"variance needs","variances need")} a reason · open Context`:"Reasons recorded · open Context to review notes",needs?"todo":"done",needs,"context"),
+    step("approve",pending?`Approve ${plural(pending,"draft")}`:"Approve the drafts",pending?`${plural(pending,"draft needs","drafts need")} approval · open KPIs`:remaining?"Draft commentary on KPIs before approving":"Drafts approved · open KPIs to read commentary",!remaining?"done":pending?"todo":"blocked",pending,"kpis"),
+    step("share","Send the digest",s.shared?"Digest sent · open Digest to read it":!remaining?"Open Digest to prepare the leadership summary":"Approve the drafts on KPIs before sharing",s.shared?"done":!remaining?"todo":"blocked",+s.shared,"digest"),
+  ];
+}
+let overviewStatus=null,overviewFor=null;
+async function renderOverview(){
+  const first=!currentPeriod;
+  const grid=document.querySelector("#v-overview .ov-grid");
+  if($("ov-welcome"))$("ov-welcome").style.display=first?"":"none";
+  if(grid)grid.style.display=first?"none":"";
+  if(!$("v-overview")||!currentPeriod){if($("ov-checklist"))$("ov-checklist").innerHTML=currentPeriod?"":`<li class="cl"><span></span><div><b>No closes yet</b><small>Import a CSV or Excel export to start your first close.</small></div><button class="btn primary write-only" onclick="nav('datahub')">Import data</button></li>`;return;}
+  const p=currentPeriod;
+  paintOverview();
+  if(overviewFor!==p){overviewFor=p;overviewStatus=null;
+    try{overviewStatus=await api(`/close/status?period=${encodeURIComponent(p)}`);}catch{overviewStatus=null;}
+    if(currentPeriod===p)paintOverview();}
+}
+function paintOverview(){
+  const s=closeProgress(currentFacts,closeShared.has(currentPeriod));
+  $("ov-check-title").textContent=s.status==="shared"?`${fmtPeriodTitle(currentPeriod)} is shared`:"What's left before this close can be shared";
+  $("ov-checklist").innerHTML=overviewSteps(s,overviewStatus).map(st=>{
+    const done=st.state==="done";
+    const act=done?`<span class="st done">Done</span>`:st.state==="blocked"?`<span class="st wait">Waiting</span>`
+      :`<a class="btn" href="${esc(st.target)}">${esc(st.id==="import"?"Import":st.id==="share"?"Open digest":"Open")}</a>`;
+    return `<li class="cl ${esc(st.state)}"><span class="box">${done?BOXTICK:""}</span><div><b>${esc(st.title)}</b><small>${esc(st.detail||"")}</small></div>${act}</li>`;
+  }).join("");
+  // At a glance: the four biggest movers against plan (or the prior period without a budget).
+  const movers=(currentFacts||[]).filter(f=>f.has_data&&!f.unavailable).map(f=>{
+    const plan=f.deltas&&f.deltas.budget_var_pct,v=plan!=null?plan:f.deltas&&f.deltas.mom_pct;return {f,v,plan:plan!=null};
+  }).filter(x=>x.v!=null).sort((a,b)=>Math.abs(b.v)-Math.abs(a.v)).slice(0,4);
+  $("ov-glance-title").textContent=`${fmtPeriod(currentPeriod,"long")} at a glance`;
+  $("ov-glance").innerHTML=movers.length?`<div class="glance">${movers.map(({f,v,plan})=>{
+    const good=v===0?null:(f.direction_good==="down"?v<0:v>0);
+    return `<button onclick="openMetricByName('${esc(f.metric).replace(/'/g,"\\'")}')"><span>${esc(f.metric)}</span><b>${fmt(f.value,f.unit)} <span class="${good===null?"":good?"c-ok":"c-exc"}">${pct(v)}</span><span class="visually-hidden"> ${plan?"vs plan":"vs prior period"}</span></b></button>`;}).join("")}</div>`
+    :`<p class="mh-sub">No movements to show for this close.</p>`;
+  if(movers.length&&movers.every(x=>!x.plan)){
+    const dataCopy="Add a budget on the Data tab.";
+    $("ov-glance").innerHTML+=`<p class="mh-sub">No budget loaded for this close: figures compare with last month. ${canReview()?`<a href="#month=${encodeURIComponent(currentPeriod)}&tab=data">${dataCopy}</a>`:dataCopy}</p>`;
+  }
+  const act=overviewStatus&&overviewStatus.activity;
+  const fallback=[activeDatasetObj&&activeDatasetObj.created_at?{at:activeDatasetObj.created_at,text:`${datasetDisplayName(activeDatasetObj.name)||"Dataset"} imported`}:null,
+    s.drafted?{at:null,text:`${s.drafted} of ${s.n} commentaries drafted`}:null,s.approved?{at:null,text:`${s.approved} approved`}:null].filter(Boolean);
+  const rows=act&&act.length?act:fallback;
+  $("ov-activity").innerHTML=rows.length?rows.map(a=>`<p>${a.at?`<time>${esc(fmtDate(a.at))}</time>`:""}<span>${esc(a.text)}${a.actor?` · ${esc(a.actor)}`:""}</span></p>`).join("")
+    :`<p><span>Nothing has happened in this close yet.</span></p>`;
+}
+function openMetricByName(name){openMetricFromHash(new URLSearchParams({metric:name,period:currentPeriod||""}).toString());}
+
+/* ---------- data tab: what this close's data is missing, as fix items ---------- */
+function dataHealth(facts){
+  const all=facts||[],withData=all.filter(f=>f.has_data);
+  return {total:all.length,withData:withData.length,
+    noData:all.filter(f=>!f.has_data).map(f=>f.metric),
+    noBudget:withData.filter(f=>!f.aggregated&&(!f.deltas||f.deltas.budget_var_pct==null)).map(f=>f.metric)};
+}
+function renderDataHealth(){
+  const el=$("data-health");if(!el)return;
+  if(currentPlace.place||!currentPeriod){el.style.display="none";return;}
+  const h=dataHealth(currentFacts),P=fmtPeriod(currentPeriod,"long");
+  const names=a=>esc(a.slice(0,4).join(", ")+(a.length>4?` and ${a.length-4} more`:""));
+  const rows=[
+    {done:h.withData>0,title:h.withData?`${plural(h.withData,"KPI","KPIs")} computed for ${P}`:`No figures for ${P} yet`,
+      detail:activeDatasetObj?`${esc(datasetDisplayName(activeDatasetObj.name)||"Dataset")}${activeDatasetObj.created_at?` · imported ${esc(fmtDate(activeDatasetObj.created_at))}`:""}`:"",act:""},
+    {done:!h.noData.length,title:h.noData.length?`${plural(h.noData.length,"KPI has","KPIs have")} no data for ${P}`:"Every tracked KPI has data",
+      detail:h.noData.length?names(h.noData):"",act:h.noData.length?`<button class="write-only btn" onclick="$('imp-mode').value='new';onImportModeChange();$('file-in').click()">Import the missing month</button>`:""},
+    {done:!h.noBudget.length,title:h.noBudget.length?`${plural(h.noBudget.length,"KPI has","KPIs have")} no budget`:"Every KPI has a budget to compare against",
+      detail:h.noBudget.length?names(h.noBudget)+" · commentary can't say how they did against plan":"",
+      act:h.noBudget.length?`<button class="write-only btn" onclick="$('imp-mode').value='join';onImportModeChange();$('drop').scrollIntoView({block:'center'})">Add a budget file</button>`:""},
+  ];
+  el.style.display="";
+  el.innerHTML=`<h2>${esc(P)} data</h2><ol class="checklist">${rows.map(r=>`<li class="cl ${r.done?"done":"todo"}"><span class="box">${r.done?BOXTICK:""}</span>
+    <div><b>${r.title}</b>${r.detail?`<small>${r.detail}</small>`:""}</div>${r.done?`<span class="st done">OK</span>`:r.act}</li>`).join("")}</ol>`;
+}
+
+/* ---------- board pack tab: the print document, previewed in place ---------- */
+let boardPackFor=null;
+async function fetchBoardPack(){
+  const headers={};
+  if(authToken)headers.Authorization="Bearer "+authToken;
+  else if(demoSession)headers["X-Closebrief-Demo"]="1";
+  if(activeWorkspaceId!=null)headers["X-Workspace-Id"]=String(activeWorkspaceId);
+  const r=await fetch(`/board-pack?period=${encodeURIComponent(currentPeriod)}`,{headers});
+  if(!r.ok){let d=r.statusText;try{d=(await r.json()).detail||d;}catch{}throw new Error(d);}
+  return r.text();
+}
+async function loadBoardPack(){
+  const frame=$("bp-frame");if(!frame)return;
+  if(!currentPeriod){frame.style.display="none";$("bp-state").innerHTML=screenState("No close to pack yet","Import data to build a board pack.","nav('datahub')","Import data","empty",{writeOnly:true});return;}
+  if(boardPackFor===currentPeriod+"|"+activeDatasetId&&frame.srcdoc)return;
+  const done=screenLoading("bp-state","Building the board pack…");frame.style.display="none";
+  try{
+    const html=await fetchBoardPack();if(!done())return;
+    frame.srcdoc=html;frame.style.display="";$("bp-state").innerHTML="";boardPackFor=currentPeriod+"|"+activeDatasetId;
+  }catch(e){if(done())$("bp-state").innerHTML=screenError(e,"loadBoardPack()");}
+}
+function printBoardPack(){
+  const frame=$("bp-frame");
+  if(frame&&frame.srcdoc&&frame.contentWindow){frame.contentWindow.focus();frame.contentWindow.print();}
+  else exportBoardPack();
 }
 
 /* ---------- auth ---------- */
@@ -484,15 +820,27 @@ function initSentry(cfg){
     // Don't spam Sentry with expected auth failures.
     ignoreErrors:["Session expired","Missing bearer token"]});}catch(e){}
 }
-let demoSession=false, appCfg={};
+let demoSession=false, guestSession=false, appCfg={};
+function showReadOnlyBar(text,exitLabel,signupLabel){
+  const b=$("demo-bar");if(!b)return;
+  b.style.display="flex";$("demo-bar-text").innerHTML=text;
+  $("demo-bar-exit").textContent=exitLabel;$("demo-bar-signup").textContent=signupLabel;
+}
 function enterDemo(){
-  demoSession=true;authToken=null;appStarted=false;
+  demoSession=true;guestSession=false;authToken=null;appStarted=false;
   document.body.classList.add("demo");
-  const b=$("demo-bar");if(b)b.style.display="flex";
+  showReadOnlyBar("You're exploring the <b>demo</b> — sample data, read-only.","Exit demo","Sign up to use your data");
+  hideLogin();startApp();
+}
+// Guests get the server's read-only viewer role (no token, ALLOW_GUEST=true).
+function enterGuest(){
+  guestSession=true;demoSession=false;authToken=null;appStarted=false;
+  document.body.classList.add("demo");
+  showReadOnlyBar("You're browsing as a <b>guest</b>. Read-only.","Sign in","Create an account");
   hideLogin();startApp();
 }
 function exitDemo(signup){
-  demoSession=false;document.body.classList.remove("demo");
+  demoSession=false;guestSession=false;document.body.classList.remove("demo");
   const b=$("demo-bar");if(b)b.style.display="none";
   appStarted=false;location.hash="";showLogin();
   $("app-root").style.display="none";
@@ -505,7 +853,13 @@ async function boot(){
   appCfg=cfg;
   initSentry(cfg);
   if(cfg.demo_enabled){const b=$("lg-demo");if(b)b.style.display="";const n=$("lg-demo-note");if(n)n.style.display="";}
-  if(!cfg.auth_enabled){startApp();return;}                    // local-dev bypass
+  if(cfg.allow_guest){const g=$("lg-guest");if(g)g.style.display="";const n=$("lg-guest-note");if(n)n.style.display="";}
+  // The home page's "Open the demo close" lands on /app?demo=1: go straight in.
+  if(cfg.demo_enabled&&new URLSearchParams(location.search).get("demo")==="1"){
+    history.replaceState(null,"",location.pathname+location.hash);enterDemo();return;
+  }
+  // Local-dev bypass. #app-root ships display:none, so reveal it here too.
+  if(!cfg.auth_enabled){hideLogin();startApp();return;}
   // A Closebrief session (Google sign-in) survives reloads and needs no Supabase.
   const saved=savedSessionToken();
   if(saved){authToken=saved;hideLogin();appStarted=true;await startApp();return;}
@@ -627,29 +981,65 @@ async function onGoogleCredential(resp){
 }
 
 
-function showLogin(){$("login-gate").classList.add("show");$("app-root").style.display="none";}
+function showLogin(){routerReady=false;$("login-gate").classList.add("show");$("app-root").style.display="none";}
 function hideLogin(){$("login-gate").classList.remove("show");$("app-root").style.display="";}
 function toggleAuthMode(){
   authMode=authMode==="signin"?"signup":"signin";
-  $("lg-title").textContent=authMode==="signin"?"Sign in":"Create your account";
-  $("lg-psub").textContent=authMode==="signin"?"Welcome back. Sign in to your workspace.":"The first account becomes the workspace admin.";
-  $("lg-btn").textContent=authMode==="signin"?"Sign in":"Sign up";
-  $("lg-toggle").innerHTML=authMode==="signin"?'Need an account? <a onclick="toggleAuthMode()">Sign up</a>':'Have an account? <a onclick="toggleAuthMode()">Sign in</a>';
+  const up=authMode==="signup";
+  $("lg-title").textContent=up?"Create your account":"Sign in";
+  $("lg-psub").textContent=up?"The first account becomes the workspace admin.":"Welcome back. Sign in to your workspace.";
+  $("lg-btn").textContent=up?"Create account":"Sign in";
+  // Password managers offer to generate a password only for new-password.
+  $("lg-pass").setAttribute("autocomplete",up?"new-password":"current-password");
+  $("lg-toggle").innerHTML=up?'Have an account? <button type="button" onclick="toggleAuthMode()">Sign in</button>'
+    :'Need an account? <button type="button" onclick="toggleAuthMode()">Sign up</button>';
+  showAuthErrors({});
+}
+// Field problems, in words that say how to fix them. {} when the form is fine.
+function validateAuth(email,pass,mode){
+  const errs={};
+  if(!email)errs.email="Enter your work email.";
+  else if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))errs.email="That email looks incomplete. Check it has an @ and a domain, like you@company.com.";
+  if(!pass)errs.pass="Enter your password.";
+  else if(mode==="signup"&&pass.length<6)errs.pass="Use at least 6 characters.";
+  return errs;
+}
+// Supabase errors -> what the user can do about them.
+function authErrorMessage(e){
+  const m=String((e&&e.message)||"");
+  if(/invalid login credentials/i.test(m))return "That email and password don't match. Check both and try again.";
+  if(/email not confirmed/i.test(m))return "Confirm your email first. Open the link we sent to your inbox, then sign in.";
+  if(/already registered|already exists/i.test(m))return "There's already an account for this email. Sign in instead.";
+  if(/rate limit|too many/i.test(m))return "Too many attempts. Wait a minute, then try again.";
+  if(/network|fetch/i.test(m))return "Couldn't reach the sign-in service. Check your connection and try again.";
+  return m||"Sign-in didn't work. Try again.";
+}
+function showAuthErrors(errs){
+  for(const [k,id] of [["email","lg-email"],["pass","lg-pass"]]){
+    $(id+"-err").textContent=errs[k]||"";
+    if(errs[k])$(id).setAttribute("aria-invalid","true");else $(id).removeAttribute("aria-invalid");
+  }
+}
+function setAuthBusy(busy){
+  const b=$("lg-btn");b.disabled=busy;b.setAttribute("aria-busy",String(busy));
+  b.textContent=busy?(authMode==="signin"?"Signing in…":"Creating account…"):(authMode==="signin"?"Sign in":"Create account");
 }
 async function submitAuth(){
   const email=$("lg-email").value.trim(), pass=$("lg-pass").value, err=$("lg-err");
   err.style.display="none";
-  if(!sb){err.textContent="Auth client not initialized — the auth library failed to load. Hard-refresh (Ctrl+Shift+R) and check the browser console.";err.style.display="block";return;}
-  if(!email||!pass){err.textContent="Enter email and password.";err.style.display="block";return;}
-  $("lg-btn").disabled=true;$("lg-btn").textContent="…";
+  if($("lg-btn").disabled)return;   // a second Enter while the first request runs
+  const errs=validateAuth(email,pass,authMode);showAuthErrors(errs);
+  if(errs.email||errs.pass){$(errs.email?"lg-email":"lg-pass").focus();return;}
+  if(!sb){err.textContent="Sign-in isn't available: the auth library didn't load. Refresh the page (Ctrl+Shift+R).";err.style.display="block";return;}
+  setAuthBusy(true);
   try{
     const fn=authMode==="signin"?sb.auth.signInWithPassword({email,password:pass}):sb.auth.signUp({email,password:pass});
     const {data,error}=await fn;
     if(error)throw error;
     if(data.session)onSession(data.session);
-    else{err.textContent="Check your email to confirm your account, then sign in.";err.style.display="block";toggleAuthMode();}
-  }catch(e){err.textContent=e.message||"Authentication failed.";err.style.display="block";}
-  finally{$("lg-btn").disabled=false;$("lg-btn").textContent=authMode==="signin"?"Sign in":"Sign up";}
+    else{err.textContent="Check your email to confirm your account, then sign in.";err.style.display="block";setAuthBusy(false);toggleAuthMode();return;}
+  }catch(e){err.textContent=authErrorMessage(e);err.style.display="block";}
+  setAuthBusy(false);
 }
 async function onSession(session){
   authToken=session.access_token;
@@ -673,11 +1063,9 @@ async function startApp(){
     try{activeWorkspaceId=+localStorage.getItem("cb-ws")||null;}catch{}
     await loadWorkspaces();   // resolve tenant scope before loading any data
   }else if(demoSession){currentUser={email:"demo@closebrief.app",role:"viewer"};applyRole(currentUser);}
+  else if(guestSession){currentUser={email:"Guest",role:"viewer"};applyRole(currentUser);}
   else{applyRole({email:"local@dev",role:"admin"});}
-  loadPeriods().then(()=>{const h=location.hash.slice(1);
-    if(["dashboard","digest","context","analytics","review","import","costs","notifications","admin"].includes(h))nav(h);
-    else if(h.startsWith("metric"))openMetricFromHash(h);
-  });
+  loadPeriods().then(()=>{routerReady=true;route();});
 }
 function applyRole(u){
   document.documentElement.setAttribute("data-role",u.role);
@@ -685,7 +1073,8 @@ function applyRole(u){
   $("user-avatar").textContent=(u.email||"?").slice(0,2).toUpperCase();
   $("user-role").innerHTML=`<span class="role-badge ${u.role}">${u.role}</span>`;
   $("logout-btn").style.display=authToken?"":"none";
-  $("nav-admin").style.display=u.role==="admin"?"":"none";
+
+  const su=$("st-users");if(su)su.style.display=u.role==="admin"?"":"none";
 }
 
 /* ---------- admin panel ---------- */
@@ -702,9 +1091,9 @@ function openMetricFromHash(h){
   const name=p.get("metric"),period=p.get("period");
   const go=()=>{
     const f=(currentFacts||[]).find(x=>x.metric===name&&x.has_data)||(currentFacts||[]).find(x=>x.has_data);
-    if(!f)return;
-    nav("dashboard");const i=shownFacts.indexOf(f);
-    if(i>=0)openDetail(i);else{searchQuery="";renderCards();openDetail(shownFacts.indexOf(f));}
+    if(!f){nav("dashboard",{fromRoute:true});return;}
+    nav("dashboard",{fromRoute:true});const i=shownFacts.indexOf(f);
+    if(i>=0)openDetail(i,{fromRoute:true});else{searchQuery="";renderCards();openDetail(shownFacts.indexOf(f),{fromRoute:true});}
   };
   const sel=$("period-select");
   if(period&&sel&&sel.value!==period&&[...sel.options].some(o=>o.value===period)){sel.value=period;loadFacts().then(go);}
@@ -741,11 +1130,11 @@ function renderRootCause(rc){
   let drivers="";
   if(rc.drivers&&rc.drivers.length)
     drivers=`<div class="rc-sec-label">Moved with</div><div class="rc-drivers">`+rc.drivers.map(d=>`<b>${esc(d.metric)}</b> (r=${d.r})`).join(" · ")+`</div>`;
-  box.innerHTML=`<div class="rc-panel">
-    <div class="rc-head"><span class="rc-title">Root cause — ${esc(rc.primary_factor||"")}</span>${z}</div>
+  box.innerHTML=`<section class="rc-section">
+    <div class="rc-head"><span class="rc-title">Root cause: ${esc(rc.primary_factor||"")}</span>${z}</div>
     ${bars}${trend}${drivers}
-    <div style="margin-top:12px"><button class="btn sm write-hide" id="d-rc-narr-btn" onclick="rootCauseNarrative()">Explain (AI)</button></div>
-    <div id="d-rc-narr" style="margin-top:10px"></div></div>`;
+    <div style="margin-top:12px"><button class="btn sm write-only" id="d-rc-narr-btn" onclick="rootCauseNarrative()">Explain (AI)</button></div>
+    <div id="d-rc-narr" style="margin-top:10px"></div></section>`;
 }
 async function rootCauseNarrative(){
   if(!detailFact)return;
@@ -759,6 +1148,7 @@ async function rootCauseNarrative(){
 
 /* ---- Board pack export (v5.1) ---- */
 async function exportBoardPack(){
+  $("export-menu").classList.remove("open");
   if(!currentPeriod){toast("Import data first");return;}
   const btn=$("export-pack-btn");if(btn)btn.disabled=true;
   try{
@@ -778,29 +1168,65 @@ async function exportBoardPack(){
   finally{if(btn)btn.disabled=false;}
 }
 
+/* ---------- secondary screen states ---------- */
+const screenLoads=new Map();
+// Pass {writeOnly:true} for actions that change data, so read-only people never see them.
+function screenState(title,body,action,label,kind="empty",{writeOnly=false}={}){
+  return `<div class="screen-state ${esc(kind)}" role="${kind==="error"?"alert":"status"}"><h2>${esc(title)}</h2><p>${esc(body)}</p>${action?`<button class="btn primary${writeOnly?" write-only":""}" onclick="${esc(action)}">${esc(label)}</button>`:""}</div>`;
+}
+function screenRow(html,cols){return cols?`<tr><td colspan="${esc(cols)}">${html}</td></tr>`:html;}
+function screenLoading(id,message,cols=0){
+  const el=$(id),previous=screenLoads.get(id);if(previous)clearTimeout(previous.timer);
+  const state={};screenLoads.set(id,state);
+  el.innerHTML=screenRow(`<div class="screen-state" role="status"><div class="sk sk-line" aria-hidden="true"></div><p>${esc(message)}</p><p class="screen-wait" hidden>Still working — this is taking longer than usual.</p></div>`,cols);
+  el.setAttribute("aria-busy","true");
+  state.timer=setTimeout(()=>{if(screenLoads.get(id)===state){const line=el.querySelector(".screen-wait");if(line)line.hidden=false;}},4000);
+  return ()=>{if(screenLoads.get(id)!==state)return false;clearTimeout(state.timer);el.removeAttribute("aria-busy");return true;};
+}
+function screenError(e,retry){
+  const m=(e&&e.message)||"";
+  const reason=/403|forbidden|admin|not allowed|insufficient.*role/i.test(m)?"You need admin access to see this."
+    :/401|session expired|unauthori[sz]ed/i.test(m)?"Your session expired. Sign in again, then retry."
+    :/fetch|network|offline|connection/i.test(m)?"We couldn't reach Closebrief. Check your connection and try again."
+    :/no active dataset/i.test(m)?"There is no active dataset. Import data from the dashboard, then retry."
+    :/budget/i.test(m)?"The monthly AI budget has been reached. Ask an admin to raise the limit or wait for the next cycle."
+    :"We couldn't load this information. Please try again.";
+  return screenState("Couldn't finish loading",reason,retry,"Retry","error");
+}
+
 /* ================= ADVANCED ANALYTICS (v5.0) ================= */
 let _anMetrics=[], _lastForecast=null, _scnT=null;
-function _metricList(){return (currentFacts||[]).filter(f=>f.has_data).map(f=>({name:f.metric,unit:f.unit}));}
+function _metricList(){return (currentFacts||[]).filter(f=>f.has_data).slice().sort((a,b)=>Math.abs(b.value??0)-Math.abs(a.value??0)).map(f=>({name:f.metric,unit:f.unit}));}
 function _fillMetricSelect(id){
   const sel=$(id);if(!sel)return;const prev=sel.value;
   sel.innerHTML=_anMetrics.length?_anMetrics.map(m=>`<option value="${esc(m.name)}">${esc(m.name)}</option>`).join("")
     :'<option value="">No metrics — import data first</option>';
   if(prev&&_anMetrics.some(m=>m.name===prev))sel.value=prev;
 }
+// Analyze shows one tool at a time; the list on the left picks it.
+let anToolIdx=0;
+function anTool(i){
+  anToolIdx=i;
+  document.querySelectorAll(".an-tools button").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.tool===i)));
+  document.querySelectorAll(".an-one>.panel").forEach((p,k)=>p.style.display=k===i?"":"none");
+  window.dispatchEvent(new Event("resize"));   // charts in a panel that was hidden size themselves now
+}
 async function loadAnalytics(){
-  // currentFacts is normally populated by the dashboard; on a deep-link, fetch it.
-  if(!(currentFacts&&currentFacts.length)&&currentPeriod){
-    try{currentFacts=await api(`/facts?period=${encodeURIComponent(currentPeriod)}&granularity=${granularity}`);}catch{}
-  }
-  _anMetrics=_metricList();
-  _fillMetricSelect("fc-metric");_fillMetricSelect("scn-metric");
-  const chips=$("kb-chips");
-  if(chips)chips.innerHTML=_anMetrics.length
-    ?_anMetrics.map((m,i)=>`<span class="fchip" onclick="insertMetricToken(${i})">${esc(m.name)}</span>`).join("")
-    :'<span class="an-empty">No metrics yet — import data first.</span>';
-  onLever();
-  $("scn-out").innerHTML='<div class="an-empty">Pick a metric and move a lever to project.</div>';
-  loadCrossDomain();
+  anTool(anToolIdx);
+  const done=screenLoading("analytics-state","Loading advanced analytics…");$("analytics-tools").style.display="none";
+  try{
+    // On a deep link, facts may not have arrived from the dashboard yet.
+    if(!(currentFacts&&currentFacts.length)&&currentPeriod)currentFacts=await api(`/facts?period=${encodeURIComponent(currentPeriod)}&granularity=${granularity}`);
+    if(!done())return;
+    _anMetrics=_metricList();_fillMetricSelect("fc-metric");_fillMetricSelect("scn-metric");
+    if(!_anMetrics.length){$("analytics-state").innerHTML=currentFacts.length
+      ?screenState("No metrics for "+fmtPeriod(currentPeriod),"Choose a period with actual values on the dashboard to forecast results and explore scenarios.","nav('dashboard')","Open the dashboard")
+      :screenState("No metrics to analyse yet","Import metrics to forecast results, explore scenarios and compare datasets.","nav('import')","Import data","empty",{writeOnly:true});return;}
+    $("analytics-state").innerHTML="";$("analytics-tools").style.display="";
+    $("kb-chips").innerHTML=_anMetrics.map((m,i)=>`<span class="fchip" role="button" tabindex="0" onclick="insertMetricToken(${esc(i)})">${esc(m.name)}</span>`).join("");
+    onLever();$("scn-out").innerHTML='<div class="an-empty">Pick a metric and move a lever to project.</div>';
+    await loadCrossDomain();
+  }catch(e){if(done())$("analytics-state").innerHTML=screenError(e,"loadAnalytics()");}
 }
 /* ---- Forecast ---- */
 async function runForecast(){
@@ -892,33 +1318,50 @@ async function createDerivedKpi(){
     $("kb-name").value="";$("kb-formula").value="";
     await loadFacts();                 // recompute pulls the new derived metric onto the board
     _anMetrics=_metricList();_fillMetricSelect("fc-metric");_fillMetricSelect("scn-metric");
-    const chips=$("kb-chips");if(chips)chips.innerHTML=_anMetrics.map((m,i)=>`<span class="fchip" onclick="insertMetricToken(${i})">${esc(m.name)}</span>`).join("");
+    const chips=$("kb-chips");if(chips)chips.innerHTML=_anMetrics.map((m,i)=>`<span class="fchip" role="button" tabindex="0" onclick="insertMetricToken(${i})">${esc(m.name)}</span>`).join("");
   }catch(e){toast("Failed: "+errMsg(e));}
   finally{btn.disabled=false;}
 }
 /* ---- Cross-dataset signals ---- */
 async function loadCrossDomain(){
-  const box=$("xd-list");if(!box)return;box.innerHTML='<div class="an-empty">Loading…</div>';
+  const box=$("xd-list");if(!box)return;const done=screenLoading("xd-list","Loading cross-dataset signals…");
   try{
-    const rows=await api("/insights/cross-domain");
-    if(!rows.length){box.innerHTML='<div class="an-empty">Need at least two datasets with overlapping periods to surface cross-dataset signals.</div>';return;}
+    const rows=await api("/insights/cross-domain");if(!done())return;
+    if(!rows.length){box.innerHTML=screenState("No cross-dataset signals yet","Compare at least two datasets with overlapping periods to find related movements.","nav('import')","Import another dataset","empty",{writeOnly:true});return;}
     box.innerHTML=rows.slice(0,12).map(p=>{
       const cls=p.direction==="positive"?"pos":"neg";
       const lag=p.lag?`${Math.abs(p.lag)}-period ${p.lag>0?"lead":"lag"}`:"same period";
       return `<div class="xd-item"><div class="xd-r ${cls}">${p.r>0?"+":""}${p.r}</div>
         <div class="xd-body"><div class="xd-pair">${esc(p.metric_a)} <span class="xd-arrow">↔</span> ${esc(p.metric_b)}</div>
-        <div class="xd-meta">${esc(p.dataset_a)} → ${esc(p.dataset_b)} · ${lag} · ${p.months} mo overlap</div></div></div>`;
+        <div class="xd-meta">${esc(datasetDisplayName(p.dataset_a))} → ${esc(datasetDisplayName(p.dataset_b))} · ${lag} · ${p.months} mo overlap</div></div></div>`;
     }).join("");
-  }catch(e){box.innerHTML=`<div class="an-empty">${esc(errMsg(e))}</div>`;}
+  }catch(e){if(done())box.innerHTML=screenError(e,"loadCrossDomain()");}
 }
 /* ---- Collaborative review (detail view) ---- */
+// Approval is a separate check from figure verification — see docs/ui-standard.md §3.
+const REVIEW_LABELS={none:"Not approved yet",pending:"Awaiting approval",approved:"Approved",changes_requested:"Changes requested"};
+// Figures check and explanation confidence, as two clearly separate statements.
+function narrMeta(f){
+  const bits=[];
+  if(f.faithfulness==="passed")bits.push("Figures verified");
+  else if(f.faithfulness==="failed")bits.push("Figures need review");
+  if(f.confidence)bits.push(`Explanation: ${f.confidence} confidence`);
+  if(f.edited)bits.push("edited by analyst");
+  if(f.cost_usd!=null)bits.push(`≈ $${(+f.cost_usd).toFixed(4)}`);
+  return bits.join(" · ");
+}
 function renderReviewStrip(f){
+  const readonly=$("d-readonly-approval");
+  if(readonly){
+    readonly.style.display=canReview()?"none":"";
+    readonly.innerHTML=canReview()?"":`<button class="btn sm" disabled>Approve</button><p>${demoSession?`<a href="#signup" onclick="event.preventDefault();exitDemo(true)">Sign up to approve commentary</a>`:"Only analysts and admins can approve"}</p>`;
+  }
   const strip=$("d-rev-strip");if(!strip)return;
   if(!f||!f.report_id){strip.style.display="none";$("d-versions").style.display="none";$("d-assign-row").style.display="none";return;}
   strip.style.display="";
   const st=f.review_status||"none",badge=$("d-rev-badge");
   badge.className="rev-badge "+st;
-  badge.textContent=({pending:"Pending review",approved:"Approved",changes_requested:"Changes requested"})[st]||"Not reviewed";
+  badge.textContent=REVIEW_LABELS[st]||REVIEW_LABELS.none;
   $("d-assigned").textContent=f.assigned_email?("· "+f.assigned_email):"";
   $("d-assign-row").style.display="none";
   const vb=$("d-versions");vb.style.display="none";vb.innerHTML="";$("d-ver-btn").textContent="History";
@@ -929,7 +1372,7 @@ async function reviewReport(status){
     await api(`/reports/${detailFact.report_id}/review`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({status})});
     detailFact.review_status=status;renderReviewStrip(detailFact);
     const cf=(currentFacts||[]).find(x=>x.report_id===detailFact.report_id);if(cf)cf.review_status=status;
-    toast(status==="approved"?"Narrative approved":"Changes requested");
+    toast(status==="approved"?"Commentary approved":"Changes requested");
     refreshReviewBadge();
   }catch(e){toast("Failed: "+errMsg(e));}
 }
@@ -962,18 +1405,19 @@ async function assignReviewer(){
 }
 let _reviewItems=[];
 async function loadReview(){
-  const box=$("rq-list");if(box)box.innerHTML='<div class="an-empty">Loading…</div>';
+  const box=$("rq-list");if(!box)return;const done=screenLoading("rq-list","Loading the review queue…");
   let items=[];
   try{items=await api("/reports/review-queue?all_datasets=true");}
-  catch(e){if(box)box.innerHTML=`<div class="an-empty">${esc(errMsg(e))}</div>`;return;}
+  catch(e){if(done())box.innerHTML=screenError(e,"loadReview()");return;}
+  if(!done())return;
   _reviewItems=items;updateReviewBadge(items.length);
   if(!box)return;
-  if(!items.length){box.innerHTML='<div class="an-empty">Nothing awaiting your review. Narratives assigned to you across your datasets show up here.</div>';return;}
-  box.innerHTML=items.map((it,i)=>`<div class="rq-item" onclick="openReviewItem(${i})">
+  if(!items.length){box.innerHTML=screenState("Nothing assigned to you","Commentary someone assigns to you for approval appears here. Drafts for this close are on the KPIs tab.","nav('kpis')","Open KPIs");return;}
+  box.innerHTML=items.map((it,i)=>`<div class="rq-item" role="button" tabindex="0" onclick="openReviewItem(${esc(i)})">
     <div class="rq-main"><div class="rq-metric">${esc(it.metric)}</div>
     <div class="rq-preview">${esc(it.preview||"No preview")}</div>
-    <div class="rq-meta">${esc(it.dataset_name||"")}</div></div>
-    <span class="rq-period">${esc(it.period)}</span>
+    <div class="rq-meta">${esc(datasetDisplayName(it.dataset_name))}</div></div>
+    <span class="rq-period">${esc(fmtPeriod(it.period))}</span>
     <svg class="rq-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>`).join("");
 }
 async function openReviewItem(i){
@@ -1017,9 +1461,9 @@ async function toggleVersions(){
 }
 
 async function loadNotifications(){
-  $("nt-loading").style.display="";
+  const done=screenLoading("nt-list","Loading notification channels…");const schedules=loadSchedules();
   try{
-    const cfgs=await api("/notifications/configs");
+    const cfgs=await api("/notifications/configs");if(!done())return;
     const icon={email:ICON_PATHS.mail,slack:ICON_PATHS.chat,webhook:ICON_PATHS.link};
     $("nt-list").innerHTML=cfgs.length?cfgs.map(c=>{
       const cf=c.config||{},target=cf.recipients?cf.recipients.join(", "):(cf.webhook_url||cf.url||"—");
@@ -1029,36 +1473,37 @@ async function loadNotifications(){
         <div style="flex:1;min-width:0">
           <b style="text-transform:capitalize">${esc(c.channel)}</b>
           <div style="font-size:12px;color:var(--mut);word-break:break-all">${esc(target)}</div>
-          <div style="font-size:11px;color:var(--mut2);margin-top:2px">Events: ${esc(events)}</div>
+          <div style="font-size:12px;color:var(--mut2);margin-top:2px">Events: ${esc(events)}</div>
         </div>
         <label style="font-size:12px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px">
-          <input type="checkbox" ${c.enabled?"checked":""} onchange="ntToggle(${c.id},this.checked)"> Enabled</label>
-        <button class="btn sm" onclick="ntTest(${c.id},this)">Send test</button>
-        <button class="ico" title="Delete channel" aria-label="Delete channel" onclick="ntDelete(${c.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">${ICON_PATHS.trash}</svg></button>
+          <input type="checkbox" ${c.enabled?"checked":""} onchange="ntToggle(${esc(c.id)},this.checked)"> Enabled</label>
+        <button class="write-only btn sm" onclick="ntTest(${esc(c.id)},this)">Send test</button>
+        <button class="write-only ico" title="Delete channel" aria-label="Delete channel" onclick="ntDelete(${esc(c.id)})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">${ICON_PATHS.trash}</svg></button>
       </div>`;
-    }).join(""):'<div class="empty-state">No channels configured yet. Add one above to receive alerts.</div>';
-  }catch(e){toast(e.message);}
-  finally{$("nt-loading").style.display="none";}
-  loadSchedules();
+    }).join(""):screenState("No notification channels yet","Send digests and anomaly alerts to email, Slack or a webhook.","$('nt-target').focus()","Add a channel","empty",{writeOnly:true});
+  }catch(e){if(done())$("nt-list").innerHTML=screenError(e,"loadNotifications()");}
+  await schedules;
 }
 /* ---------- schedules (Phase 2+4) ---------- */
 function schKindFields(){const k=$("sch-kind").value;$("sch-topn-wrap").style.display=k==="digest"?"":"none";$("sch-recip-wrap").style.display=k==="board_pack"?"":"none";}
 const CADENCE_LABEL={daily:"Daily",weekly:"Weekly",monthly:"Monthly"};
 async function loadSchedules(){
-  let jobs;try{jobs=await api("/schedules");}catch{return;}   // admin-only; ignore if forbidden
+  const done=screenLoading("sch-list","Loading schedules…");
+  let jobs;try{jobs=await api("/schedules");}catch(e){if(done())$("sch-list").innerHTML=screenError(e,"loadSchedules()");return;}
+  if(!done())return;
   const kindLabel={digest:"Scheduled digest",anomaly_scan:"Anomaly scan",board_pack:"Board pack email"};
   $("sch-list").innerHTML=jobs.length?jobs.map(j=>`
     <div class="card" style="margin-top:12px;flex-direction:row;align-items:center;gap:14px">
       <span class="nt-ic"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${j.kind==="digest"?'<path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/>':'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>'}</svg></span>
       <div style="flex:1;min-width:0">
         <b>${esc(kindLabel[j.kind]||j.kind)}</b>
-        <div style="font-size:12px;color:var(--mut)">${esc(CADENCE_LABEL[j.cadence]||j.cadence)}${j.kind==="digest"&&j.config&&j.config.top_n?` · top ${j.config.top_n}`:""}${j.next_run_at?` · next ${esc(String(j.next_run_at).slice(0,16).replace("T"," "))}`:""}</div>
-        ${j.last_status?`<div style="font-size:11px;margin-top:2px;color:${j.last_status==="error"?"var(--red)":j.last_status==="ok"?"var(--green)":"var(--mut2)"}">last run: ${esc(j.last_status)}${j.fail_count?` · ${j.fail_count} consecutive failures`:""}${j.last_status==="error"&&j.last_error?` — ${esc(String(j.last_error).slice(0,80))}`:""}</div>`:""}
+        <div style="font-size:12px;color:var(--mut)">${esc(CADENCE_LABEL[j.cadence]||j.cadence)}${j.kind==="digest"&&j.config&&j.config.top_n?` · top ${esc(j.config.top_n)}`:""}${j.next_run_at?` · next ${esc(fmtDate(j.next_run_at))}`:""}</div>
+        ${j.last_status?`<div style="font-size:12px;margin-top:2px;color:${j.last_status==="error"?"var(--red)":j.last_status==="ok"?"var(--green)":"var(--mut2)"}">last run: ${esc(j.last_status)}${j.fail_count?` · ${esc(j.fail_count)} consecutive failures`:""}${j.last_status==="error"&&j.last_error?` — ${esc("The scheduled run failed. Check the channel and job configuration before the next run.")}`:""}</div>`:""}
       </div>
       <label style="font-size:12px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px">
-        <input type="checkbox" ${j.enabled?"checked":""} onchange="schToggle(${j.id},this.checked)"> Enabled</label>
-      <button class="ico" title="Delete schedule" aria-label="Delete schedule" onclick="schDelete(${j.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">${ICON_PATHS.trash}</svg></button>
-    </div>`).join(""):'<div class="empty-state" style="padding:26px">No schedules yet. Add one above to run digests or anomaly scans automatically.</div>';
+        <input type="checkbox" ${j.enabled?"checked":""} onchange="schToggle(${esc(j.id)},this.checked)"> Enabled</label>
+      <button class="write-only ico" title="Delete schedule" aria-label="Delete schedule" onclick="schDelete(${esc(j.id)})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">${ICON_PATHS.trash}</svg></button>
+    </div>`).join(""):screenState("No schedules yet","Schedule digests, anomaly scans or board pack emails to run automatically.","$('sch-kind').focus()","Add a schedule","empty",{writeOnly:true});
 }
 async function schCreate(){
   const kind=$("sch-kind").value,cadence=$("sch-cadence").value;
@@ -1073,7 +1518,7 @@ async function schCreate(){
     let seen=false;try{seen=localStorage.getItem("cb-sched-hint")==="1";}catch{}
     if(!seen){try{localStorage.setItem("cb-sched-hint","1");}catch{}
     _openModalRaw({title:"One more step to activate scheduling",okLabel:"Got it",
-      body:`<div style="font-size:13.5px;line-height:1.6;color:var(--ink2)">
+      body:`<div style="font-size:14px;line-height:1.6;color:var(--ink2)">
         <p style="margin-bottom:10px">Schedules run when an external cron calls Closebrief. Render's free tier has no built-in cron, so:</p>
         <ol style="margin:0 0 4px 18px;display:flex;flex-direction:column;gap:7px">
           <li>Set a <b>SCHEDULER_TOKEN</b> env var in Render (any long random secret).</li>
@@ -1098,34 +1543,35 @@ async function ntCreate(){
 async function ntToggle(id,enabled){try{await api(`/notifications/${id}`,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({enabled})});}catch(e){toast(e.message);}}
 async function ntDelete(id){if(!await modalConfirm("Delete channel","Remove this notification channel?",{okLabel:"Delete"}))return;try{await api(`/notifications/${id}`,{method:"DELETE"});toast("Deleted");loadNotifications();}catch(e){toast(e.message);}}
 async function ntTest(id,btn){btn.disabled=true;btn.textContent="Sending…";
-  try{await api(`/notifications/test/${id}`,{method:"POST"});toast("Test sent ✓");}
+  try{await api(`/notifications/test/${id}`,{method:"POST"});toast("Test sent");}
   catch(e){toast(e.message||"Test failed");}
   finally{btn.disabled=false;btn.textContent="Send test";}
 }
 function inviteUser(){
   const url=location.origin;
   _openModalRaw({title:"Add a user",okLabel:"Copy invite link",
-    body:`<div style="font-size:13.5px;line-height:1.6;color:var(--ink2)">
+    body:`<div style="font-size:14px;line-height:1.6;color:var(--ink2)">
       <p style="margin-bottom:10px">Closebrief uses Supabase sign-in. To add a teammate:</p>
       <ol style="margin:0 0 12px 18px;display:flex;flex-direction:column;gap:6px">
         <li>Send them this link — they create their own account:</li>
       </ol>
       <div style="display:flex;gap:8px;margin-bottom:12px"><input class="modal-field" id="invite-url" value="${esc(url)}" readonly></div>
-      <p style="color:var(--mut2);font-size:12.5px">New accounts join as <b>analyst</b> by default. Once they've signed in they appear in the table below, where you can change their role.</p>
+      <p style="color:var(--mut2);font-size:13px">New accounts join as <b>analyst</b> by default. Once they've signed in they appear in the table below, where you can change their role.</p>
     </div>`,
     getValue:()=>{const el=$("invite-url");el.select();try{navigator.clipboard.writeText(el.value);}catch{}toast("Invite link copied");return true;}});
 }
 async function loadAdmin(){
+  const done=screenLoading("admin-rows","Loading user management…",4);
   try{
-    const users=await api("/admin/users");
+    const users=await api("/admin/users");if(!done())return;
     $("admin-rows").innerHTML=users.map(u=>`<tr>
       <td><b>${esc(u.email)}</b></td>
-      <td style="color:var(--mut2);font-family:ui-monospace,Menlo,monospace;font-size:11px">${esc(u.user_id).slice(0,18)}…</td>
-      <td><select onchange="setUserRole('${esc(u.user_id)}',this.value)">
+      <td style="color:var(--mut2);font-family:ui-monospace,Menlo,monospace;font-size:12px">${esc(u.user_id).slice(0,18)}…</td>
+      <td><select class="write-only" aria-label="Role for ${esc(u.email)}" onchange="setUserRole('${esc(u.user_id)}',this.value)">
         ${["analyst","executive","admin"].map(r=>`<option ${u.role===r?"selected":""}>${r}</option>`).join("")}</select></td>
-      <td style="color:var(--mut);white-space:nowrap">${esc((u.created_at||"").slice(0,10))}</td></tr>`).join("")
-      ||'<tr><td colspan="4" class="loading">No users yet.</td></tr>';
-  }catch(e){toast("Admin: "+e.message);}
+      <td style="color:var(--mut);white-space:nowrap">${esc(fmtDate(u.created_at))}</td></tr>`).join("")
+      ||screenRow(screenState("No users yet","People who sign in appear here so you can manage their access.","inviteUser()","Invite a user","empty",{writeOnly:true}),4);
+  }catch(e){if(done())$("admin-rows").innerHTML=screenRow(screenError(e,"loadAdmin()"),4);}
 }
 async function setUserRole(uid,role){
   try{await api(`/admin/users/${uid}/role?role=${role}`,{method:"PUT"});toast("Role updated");}
@@ -1135,6 +1581,7 @@ async function setUserRole(uid,role){
 /* ---------- datasets ---------- */
 const DOMAIN_LABEL={fpa:"FP&A",marketing:"Marketing",ops:"Ops"};
 let activeDatasetObj=null, activeDomain=null;
+function datasetCaption(ds){return plural(ds.metric_count||0,"KPI")+" · imported "+fmtDate(ds.created_at);}
 async function loadDatasets(){
   const d=await api("/datasets");
   activeDatasetId=d.active_id;
@@ -1143,28 +1590,31 @@ async function loadDatasets(){
   activeDatasetObj=active||null;
   // The active domain drives funnel rendering (marketing defines an ordered funnel).
   try{activeDomain=await api("/domain");}catch{activeDomain=null;}
-  $("ws-name").textContent=active?active.name:"No dataset";
+  $("ws-name").textContent=active?datasetDisplayName(active.name):"No dataset";
   const rows=d.datasets.map(ds=>`
-    <div class="ws-item" onclick="activateDataset(${ds.id})">
+    <div class="ws-item">
+      <button class="ws-choice" onclick="activateDataset(${esc(ds.id)})">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${ds.is_active?'var(--accent)':'var(--mut2)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-5"/></svg>
-      <span class="ws-info"><b>${esc(ds.name)}</b><span>${plural(ds.metric_count,"metric")} · <span class="ws-dom">${DOMAIN_LABEL[ds.domain]||"FP&A"}</span></span></span>
-      <span class="ws-kebab exec-hide" onclick="event.stopPropagation();toggleKebab(event,${ds.id})">
-        <button aria-label="Dataset options">⋯</button>
+      <span class="ws-info"><b>${esc(datasetDisplayName(ds.name))}</b><span>${esc(datasetCaption(ds))}</span></span></button>
+      <span class="ws-kebab write-only">
+        <button aria-label="Options for ${esc(datasetDisplayName(ds.name))}" aria-haspopup="true" aria-expanded="false" aria-controls="kmenu-${ds.id}" onclick="toggleKebab(event,${ds.id})">⋯</button>
         <div class="ws-kmenu" id="kmenu-${ds.id}">
-          <button onclick="event.stopPropagation();renameDataset(${ds.id})">Rename</button>
-          <button class="danger" onclick="event.stopPropagation();deleteDataset(${ds.id})">Delete</button>
+          <button class="write-only" onclick="event.stopPropagation();renameDataset(${ds.id})">Rename</button>
+          <button class="write-only danger" onclick="event.stopPropagation();deleteDataset(${ds.id})">Delete</button>
         </div>
       </span>
     </div>`).join("")||'<div class="ws-item">No datasets</div>';
-  $("ws-menu").innerHTML=rows+`<button class="ws-newbtn exec-hide" onclick="event.stopPropagation();$('ws-menu').classList.remove('open');nav('import')">+ Import new dataset</button>`;
+  $("ws-menu").innerHTML=rows+`<button class="ws-newbtn write-only" onclick="event.stopPropagation();$('ws-menu').classList.remove('open');nav('import')">+ Import new dataset</button>`;
 }
-function dsName(id){const d=(datasetsCache||[]).find(x=>x.id===id);return d?d.name:"this dataset";}
+function dsName(id){const d=(datasetsCache||[]).find(x=>x.id===id);return d?datasetDisplayName(d.name):"this dataset";}
 function toggleKebab(e,id){e.stopPropagation();
   document.querySelectorAll(".ws-kmenu").forEach(m=>{if(m.id!=="kmenu-"+id)m.classList.remove("open");});
-  $("kmenu-"+id).classList.toggle("open");
+  const open=$("kmenu-"+id).classList.toggle("open");
+  document.querySelectorAll(".ws-kebab>button").forEach(b=>b.setAttribute("aria-expanded",String(open&&b.getAttribute("aria-controls")==="kmenu-"+id)));
+  if(open)$("kmenu-"+id).querySelector("button")?.focus();
 }
 async function renameDataset(id){
-  const cur=dsName(id);
+  const cur=(datasetsCache.find(d=>d.id===id)||{}).name||"";
   const name=await modalInput("Rename dataset",{label:"Dataset name",value:cur,okLabel:"Rename",required:true});
   if(name==null||name===cur)return;
   try{await api(`/datasets/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});toast("Renamed");await loadDatasets();}
@@ -1187,10 +1637,11 @@ async function loadWorkspaces(){
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${w.id===activeWorkspaceId?'var(--accent)':'var(--mut2)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 21V8l6-4 6 4v13"/></svg>
       <span class="ws-info"><b>${esc(w.name)}</b><span style="text-transform:capitalize">${esc(w.role)}</span></span>
     </button>`).join("")
-    +`<button class="ws-newbtn" onclick="createWorkspaceUI()">+ New workspace</button>`;
+    +`<button class="write-only ws-newbtn" onclick="createWorkspaceUI()">+ New workspace</button>`;
 }
 function toggleWsp(e){e.stopPropagation();$("wsp-menu").classList.toggle("open");}
 async function switchWorkspace(id){
+  if(!await leaveImport())return;
   $("wsp-menu").classList.remove("open");
   if(id===activeWorkspaceId)return;
   activeWorkspaceId=id;try{localStorage.setItem("cb-ws",String(id));}catch{}
@@ -1198,6 +1649,7 @@ async function switchWorkspace(id){
   await loadWorkspaces();await loadPeriods();
 }
 async function createWorkspaceUI(){
+  if(!await leaveImport())return;
   const name=await modalInput("New workspace",{label:"Workspace name",placeholder:"Acme Finance",okLabel:"Create",required:true});
   if(!name)return;
   try{const r=await api("/workspaces",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});
@@ -1242,6 +1694,7 @@ document.addEventListener("keydown",e=>{
   else if(e.key==="e"){toggleExport(e);}
 });
 async function activateDataset(id){
+  if(!await leaveImport())return;
   closeSidebar();$("statrow").innerHTML="";$("cards").innerHTML=skeletonCards();  // brief loading state
   try{await api(`/datasets/${id}/activate`,{method:"POST"});toast("Switched dataset");await loadPeriods();}
   catch(e){toast("Couldn't switch dataset: "+e.message);}
@@ -1254,8 +1707,7 @@ async function deleteDataset(id){
     toast("Dataset deleted");
     await loadDatasets();
     await loadPeriods();
-    const h=location.hash.slice(1);
-    if(["digest","context","import"].includes(h))nav(h);
+    nav(currentPlace.place||currentPlace.tab||"overview",{fromRoute:true});
   }catch(e){toast("Delete failed: "+e.message);}
 }
 
@@ -1263,7 +1715,8 @@ async function deleteDataset(id){
 let granularity="month";
 function setGranularity(g){
   if(g===granularity)return;granularity=g;
-  document.querySelectorAll("#gran-seg button").forEach(b=>b.classList.toggle("active",b.dataset.g===g));
+  document.querySelectorAll("#gran-seg button").forEach(b=>{b.classList.toggle("active",b.dataset.g===g);b.setAttribute("aria-pressed",String(b.dataset.g===g));});
+  $("closes-label").textContent={month:"Closes",quarter:"Quarters",year:"Years"}[g];showAllCloses=false;
   loadPeriods();
 }
 function stepPeriod(dir){
@@ -1280,27 +1733,34 @@ function syncStepButtons(){
 }
 function groupPeriodsByYear(periods){
   // Build <optgroup> by year for quarter/year; flat for month.
-  if(granularity==="year")return periods.map(p=>`<option>${p}</option>`).join("");
+  if(granularity==="year")return periods.map(periodOption).join("");
   const byYear={};periods.forEach(p=>{const y=p.slice(0,4);(byYear[y]=byYear[y]||[]).push(p);});
-  return Object.keys(byYear).sort().map(y=>`<optgroup label="${y}">${byYear[y].map(p=>`<option>${p}</option>`).join("")}</optgroup>`).join("");
+  return Object.keys(byYear).sort().map(y=>`<optgroup label="${y}">${byYear[y].map(periodOption).join("")}</optgroup>`).join("");
 }
 async function loadPeriods(){
   await loadDatasets();
   const periods=await api(`/periods?granularity=${granularity}`);
+  allPeriods=periods;overviewFor=null;boardPackFor=null;
   const sel=$("period-select");
-  sel.innerHTML=granularity==="month"?periods.map(p=>`<option>${p}</option>`).join(""):groupPeriodsByYear(periods);
-  if(periods.length){sel.value=periods[periods.length-1];currentPeriod=sel.value;await loadFacts();}
+  sel.innerHTML=granularity==="month"?periods.map(periodOption).join(""):groupPeriodsByYear(periods);
+  if(periods.length){
+    // Keep the open close when it still exists (switching M/Q/Y or dataset), else open the newest.
+    const want=parseRoute(location.hash),keep=want&&want.period&&periods.includes(want.period)?want.period:null;
+    sel.value=keep||periods[periods.length-1];currentPeriod=sel.value;renderCloses();await loadFacts();loadCloseMeta();}
   else{
     // Empty workspace: show a centered import CTA on the dashboard, don't jump away.
+    currentPeriod=null;currentFacts=[];shownFacts=[];detailFact=null;renderCloses();renderMonthHead();
     $("dash-sub").textContent="No data yet";$("statrow").innerHTML="";$("filter-pills").innerHTML="";$("cat-pills").innerHTML="";$("dash-title").textContent="Dashboard";
     $("cards").innerHTML=`<div class="empty-state" style="grid-column:1/-1;padding:70px 20px">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:52px;height:52px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
       <div style="font-size:17px;font-weight:800;color:var(--ink);margin:14px 0 6px">Import your financials</div>
       <div style="max-width:34ch;margin:0 auto 18px">Drop in a CSV or Excel export — any layout. We detect your columns and draft variance commentary in minutes.</div>
-      <button class="btn primary exec-hide" onclick="nav('import')" style="font-size:14px;padding:11px 20px">Import your first file</button>
+      <button class="btn primary write-only" onclick="nav('datahub')" style="font-size:14px;padding:11px 20px">Import your first file</button>
     </div>`;
   }
 }
+// Value stays ISO (used by the API and the URL); the label is what people read.
+function periodOption(p){return `<option value="${esc(p)}">${esc(fmtPeriod(p))}</option>`;}
 function skeletonCards(n=6){
   const one=`<div class="sk-card"><div class="sk sk-line" style="width:45%"></div>
     <div class="sk" style="height:30px;width:60%"></div>
@@ -1308,18 +1768,28 @@ function skeletonCards(n=6){
     <div class="sk sk-line" style="width:100%"></div><div class="sk sk-line" style="width:92%"></div><div class="sk sk-line" style="width:70%"></div></div>`;
   return Array(n).fill(one).join("");
 }
+let _factsSlowT=null;
 async function loadFacts(){
   currentPeriod=$("period-select").value;syncStepButtons();
   $("dash-loading").style.display="none";$("statrow").innerHTML="";$("cards").innerHTML=skeletonCards();
+  // Say what is happening; large datasets compute for a while on first load.
+  $("dash-title").textContent=fmtPeriodTitle(currentPeriod);
+  $("dash-sub").textContent=`Loading KPIs for ${fmtPeriod(currentPeriod,"long")}…`;$("dash-fresh").textContent="";
+  clearTimeout(_factsSlowT);
+  const slowFor=currentPeriod;
+  _factsSlowT=setTimeout(()=>{if(currentPeriod===slowFor&&$("dash-sub").textContent.startsWith("Loading"))
+    $("dash-sub").textContent="Still computing KPIs — the first load of a large dataset can take up to a minute.";},4000);
   try{
     currentFacts=await api(`/facts?period=${encodeURIComponent(currentPeriod)}&granularity=${granularity}`);
+    clearTimeout(_factsSlowT);
     const cats=[...new Set(currentFacts.map(f=>f.category||"Uncategorized"))].sort();
     assignCatSlots(cats);
     renderCatPills(cats);
     renderCards();
     const anom=currentFacts.filter(f=>f.is_anomaly).map(f=>f.metric);
     $("dash-title").textContent=fmtPeriodTitle(currentPeriod);
-    const aggNote=granularity==="month"?"":" · narratives are written monthly";
+    if($("v-dashboard").style.display!=="none")setDocTitle(fmtPeriodTitle(currentPeriod));
+    const aggNote=granularity==="month"?"":" · commentary is drafted monthly";
     $("dash-sub").innerHTML=`${currentFacts.length} ${currentFacts.length===1?"KPI":"KPIs"} · <b>${anom.length?plural(anom.length,"anomaly","anomalies"):"no anomalies"}</b>${aggNote}`;
     const anomKey=`anomaly:${currentPeriod}`;
     if(anom.length&&!bannerDismissed(anomKey)){
@@ -1327,42 +1797,45 @@ async function loadFacts(){
       $("anomaly-banner").innerHTML=warnIcon()+`<span>Anomalous movement: ${anom.map(esc).join(", ")}. Open a card for the full story.</span>`+dismissX(anomKey,"anomaly-banner");
     }else $("anomaly-banner").style.display="none";
     updateGenButton();maybePromptGenerate();setFreshness();
+    renderCloses();renderMonthHead();boardPackFor=null;
+    if($("v-overview").style.display!=="none")renderOverview();
     loadConflicts();renderFunnel();
   }catch(e){
+    clearTimeout(_factsSlowT);
     $("statrow").innerHTML="";$("dash-sub").textContent="Couldn't load data";
     $("cards").innerHTML=`<div class="empty-state" style="grid-column:1/-1;padding:56px 20px">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:40px;height:40px"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
       <div style="margin:12px 0 4px;font-weight:700;color:var(--ink2)">Couldn't load KPIs</div>
-      <div style="font-size:12.5px;margin-bottom:16px">${esc(e.message||"Something went wrong.")}</div>
+      <div style="font-size:13px;margin-bottom:16px">${esc(e.message||"Something went wrong.")}</div>
       <button class="btn primary" onclick="loadFacts()">Retry</button></div>`;
   }finally{$("dash-loading").style.display="none";refreshReviewBadge();}
 }
 function setFreshness(){
   const el=$("dash-fresh");if(!el)return;
   const sel=$("period-select"),latest=sel&&sel.options.length?sel.options[sel.options.length-1].value:currentPeriod;
-  const imported=activeDatasetObj&&activeDatasetObj.created_at?activeDatasetObj.created_at.slice(0,10):null;
+  const imported=activeDatasetObj&&activeDatasetObj.created_at?fmtDate(activeDatasetObj.created_at):null;
   const narr=currentFacts.filter(f=>f.has_data&&f.narrative).length,tot=currentFacts.filter(f=>f.has_data).length;
-  const bits=[`Data through ${esc(latest||"—")}`];
-  if(imported)bits.push(`imported ${esc(imported)}`);
-  if(tot)bits.push(narr===tot?"narratives current":`${narr}/${tot} narratives generated`);
+  const bits=[`Data through ${fmtPeriod(latest)}`];
+  if(imported)bits.push(`imported ${imported}`);
+  if(tot)bits.push(narr===tot?"commentary up to date":`${narr} of ${tot} drafted`);
   el.textContent=bits.join(" · ");
 }
 function maybePromptGenerate(){
   // Offer (never force) generation when a month period has data but no narratives.
-  const el=$("import-banner");if(!el||demoSession||granularity!=="month")return;
-  const withData=currentFacts.filter(f=>f.has_data),none=withData.length&&withData.every(f=>!f.narrative);
+  const el=$("import-banner");if(!el||demoSession)return;
+  const withData=currentFacts.filter(f=>f.has_data),none=granularity==="month"&&withData.length&&withData.every(f=>!f.narrative);
   if(!none){if(el.classList.contains("info"))el.style.display="none";return;}
   if(el.style.display==="none"){
     el.style.display="";el.className="banner info";
     el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>
-      <span>No narratives for ${esc(currentPeriod)} yet.</span>
-      <button class="btn sm primary exec-hide" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Generate narratives</button>
-      <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">✕</button>`;
+      <span>No narratives for ${esc(fmtPeriod(currentPeriod,"long"))} yet.</span>
+      <button class="btn sm primary write-only" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Draft commentary</button>
+      <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">${XICON}</button>`;
   }
 }
 function dismissKey(type){return `cb-dismiss:${(currentUser&&currentUser.email)||"anon"}:${activeDatasetId}:${type}`;}
 function bannerDismissed(type){try{return localStorage.getItem(dismissKey(type))==="1";}catch{return false;}}
-function dismissX(type,elId){return `<button class="ico" style="border:none;margin-left:auto" aria-label="Dismiss" onclick="try{localStorage.setItem('${dismissKey(type)}','1')}catch{};$('${elId}').style.display='none'">✕</button>`;}
+function dismissX(type,elId){return `<button class="ico" style="border:none;margin-left:auto" aria-label="Dismiss" onclick="try{localStorage.setItem('${dismissKey(type)}','1')}catch{};$('${elId}').style.display='none'">${XICON}</button>`;}
 async function loadConflicts(){
   try{
     const cf=await api("/context/conflicts");const el=$("conflict-banner");
@@ -1403,7 +1876,7 @@ async function renderFunnel(){
   el.innerHTML=`<div class="funnel">
     <div class="funnel-head">
       <div><h3>Acquisition funnel</h3><div class="fh-sub">${esc(fmtPeriodTitle(currentPeriod).replace(" close","").replace(" overview",""))} · overall ${f.overall_conversion!=null?f.overall_conversion+"% end-to-end":"—"}</div></div>
-      <div class="fh-sub">${leakLine} ${activeDomain.narrative_style?'· <button class="txtact acc" onclick="explainFunnel(this)">Explain funnel</button>':""}</div>
+      <div class="fh-sub">${leakLine} ${activeDomain.narrative_style?'· <button class="write-only txtact acc" onclick="explainFunnel(this)">Explain funnel</button>':""}</div>
     </div>
     <div class="funnel-stages">${cards}</div>
     <div class="funnel-narr" id="funnel-narr" style="display:none"></div>
@@ -1421,9 +1894,11 @@ async function explainFunnel(btn){
 }
 
 /* The signature mark: the auditor's tick. One seal wherever numbers are verified. */
-const TICK='<svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+const XICON='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+// The pencil tick from the home page's legend: figures computed in code.
+const TICK='<svg viewBox="0 0 26 22" fill="none" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12.2c1.9 1.4 3.6 3.3 5.2 5.6C12.4 11 16.8 6.2 22.6 3.4"/></svg>';
 const seal=ok=>ok
-  ?`<span class="seal" title="Every figure checked against computed facts">${TICK}Verified</span>`
+  ?`<span class="seal" title="Every figure checked against computed facts">${TICK}Figures verified</span>`
   :`<span class="seal failed" title="A figure couldn't be verified — review before sharing"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Needs review</span>`;
 const DOCICON='<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
 /* Icon registry for JS-rendered markup. The bell mirrors the static sidebar-nav
@@ -1436,24 +1911,27 @@ const ICON_PATHS={
   trash:'<path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>'};
 
 /* ---------- cost & usage ---------- */
-const usd=v=>{v=+v||0;return "$"+(v<1?v.toFixed(4):v.toFixed(2));};
 let costsData=null;
 async function loadCosts(){
-  $("costs-loading").style.display="";
+  const done=screenLoading("costs-state","Loading cost and usage…");$("costs-content").style.display="none";
   try{
-    const c=await api("/costs");costsData=c;
+    const c=await api("/costs");if(!done())return;costsData=c;
+    if(!(c.total_llm_calls||c.total_cost_usd||(c.by_day||[]).length||Object.keys(c.latency||{}).length||(c.cache||{}).hits||(c.cache||{}).misses||(c.alert_latency||{}).n)){
+      $("costs-state").innerHTML=screenState("No usage recorded yet","Track AI spend, request latency and cache efficiency as your team uses Closebrief.","nav('dashboard')","Open the dashboard");return;
+    }
+    $("costs-state").innerHTML="";$("costs-content").style.display="";
     // Stat tiles
     const cache=c.cache||{},hr=cache.hit_rate;
     const lat=c.latency||{},p95s=Object.values(lat).map(x=>x.p95_ms).filter(v=>v!=null);
     const worstP95=p95s.length?Math.max(...p95s):null;
     const al=c.alert_latency||{};
     const svg=p=>`<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
-    const tile=(lbl,path,col,val,hint)=>`<div class="stat rise" style="--sc:${col}"><span class="stat-lbl">${svg(path)}${lbl}</span><span class="stat-val nbi-num">${val}</span><span class="stat-hint">${hint}</span></div>`;
+    const tile=(lbl,path,col,val,hint)=>`<div class="stat rise" style="--sc:${esc(col)}"><span class="stat-lbl">${svg(path)}${esc(lbl)}</span><span class="stat-val nbi-num">${esc(val)}</span><span class="stat-hint">${esc(hint)}</span></div>`;
     $("costs-stats").innerHTML=[
-      tile("Total spend",'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',"#008300",usd(c.total_cost_usd),"across all LLM calls"),
-      tile("LLM calls",'<path d="M13 2 3 14h7l-1 8 10-12h-7z"/>',"#4a3aa7",c.total_llm_calls||0,"generations + digests"),
-      tile("Cache hit rate",'<path d="M21 12a9 9 0 1 1-6.2-8.5"/><path d="M21 3v6h-6"/>',hr>=0.5?"var(--green)":"#eda100",hr==null?"—":Math.round(hr*100)+"%",`${cache.hits||0} hits · ${cache.misses||0} misses`),
-      tile("Worst p95 latency",'<path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/>',worstP95>2000?"var(--red)":"#2a78d6",worstP95==null?"—":Math.round(worstP95)+" ms","slowest endpoint"),
+      tile("Total spend",'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',"var(--green)",fmt(c.total_cost_usd,"USD"),"across all LLM calls"),
+      tile("LLM calls",'<path d="M13 2 3 14h7l-1 8 10-12h-7z"/>',"var(--accent)",c.total_llm_calls||0,"generations + digests"),
+      tile("Cache hit rate",'<path d="M21 12a9 9 0 1 1-6.2-8.5"/><path d="M21 3v6h-6"/>',hr>=0.5?"var(--green)":"var(--amber)",hr==null?"—":Math.round(hr*100)+"%",`${cache.hits||0} hits · ${cache.misses||0} misses`),
+      tile("Worst p95 latency",'<path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/>',worstP95>2000?"var(--red)":"var(--accent)",worstP95==null?"—":Math.round(worstP95)+" ms","slowest endpoint"),
       tile("Alert latency p95",'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',al.within_30s===false?"var(--red)":"var(--green)",al.p95_ms==null?"—":(al.p95_ms/1000).toFixed(1)+" s",al.n?`${al.n} alerts · target < 30s`:"no alerts yet"),
     ].join("");
     // Spend-by-day chart (aggregate endpoints per day)
@@ -1463,36 +1941,35 @@ async function loadCosts(){
     if(!days.length){if(chartReg["c-spend"]){chartReg["c-spend"].destroy();delete chartReg["c-spend"];}box.innerHTML='<div class="loading">No LLM spend recorded yet.</div>';}
     else{const th=chartTheme();
       mkChart("c-spend",{type:"bar",
-        data:{labels:days.map(d=>d.slice(5)),datasets:[{label:"Spend",data:days.map(d=>byDay[d]),backgroundColor:th.accent,borderRadius:5,borderSkipped:false,maxBarThickness:40}]},
+        data:{labels:days.map(d=>fmtDate(d)),datasets:[{label:"Spend",data:days.map(d=>byDay[d]),backgroundColor:th.accent,borderRadius:5,borderSkipped:false,maxBarThickness:40}]},
         options:{responsive:true,maintainAspectRatio:false,
-          plugins:{legend:{display:false},tooltip:tooltipCfg("USD",{label:c=>" "+usd(c.parsed.y)})},
-          scales:{y:{grid:{color:th.grid},ticks:{color:th.mut,maxTicksLimit:5,callback:v=>usd(v)},border:{display:false}},
+          plugins:{legend:{display:false},tooltip:tooltipCfg("USD",{label:c=>" "+fmt(c.parsed.y,"USD")})},
+          scales:{y:{grid:{color:th.grid},ticks:{color:th.mut,maxTicksLimit:5,callback:v=>fmt(v,"USD")},border:{display:false}},
             x:{grid:{display:false},ticks:{color:th.mut,maxRotation:0,autoSkip:true,maxTicksLimit:8},border:{color:th.grid}}}}});
     }
     // Latency table
     const lrows=Object.entries(lat);
-    $("costs-latency").innerHTML=lrows.length?`<table class="ctx-table" style="margin-top:8px"><thead><tr><th>Endpoint</th><th style="text-align:right">p50</th><th style="text-align:right">p95</th><th style="text-align:right">n</th></tr></thead><tbody>${lrows.map(([k,v])=>`<tr><td style="font-family:ui-monospace,monospace;font-size:12px">${esc(k)}</td><td style="text-align:right" class="nbi-num">${Math.round(v.p50_ms)} ms</td><td style="text-align:right" class="nbi-num">${Math.round(v.p95_ms)} ms</td><td style="text-align:right" class="nbi-num">${v.n}</td></tr>`).join("")}</tbody></table>`:'<div class="loading">No latency samples yet this session.</div>';
+    $("costs-latency").innerHTML=lrows.length?`<table class="ctx-table" style="margin-top:8px"><thead><tr><th>Endpoint</th><th style="text-align:right">p50</th><th style="text-align:right">p95</th><th style="text-align:right">n</th></tr></thead><tbody>${lrows.map(([k,v])=>`<tr><td style="font-family:ui-monospace,monospace;font-size:12px">${esc(k)}</td><td style="text-align:right" class="nbi-num">${esc(Math.round(v.p50_ms))} ms</td><td style="text-align:right" class="nbi-num">${esc(Math.round(v.p95_ms))} ms</td><td style="text-align:right" class="nbi-num">${esc(v.n)}</td></tr>`).join("")}</tbody></table>`:'<div class="loading">No latency samples yet this session.</div>';
     // Endpoint spend table
     const rows=c.by_day||[];
-    $("costs-table").innerHTML=rows.length?`<table class="ctx-table"><thead><tr><th>Day</th><th>Endpoint</th><th style="text-align:right">Calls</th><th style="text-align:right">Prompt tok</th><th style="text-align:right">Completion tok</th><th style="text-align:right">Cost</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.day)}</td><td style="font-family:ui-monospace,monospace;font-size:12px">${esc(r.endpoint)}</td><td style="text-align:right" class="nbi-num">${r.calls}</td><td style="text-align:right" class="nbi-num">${r.prompt_tokens||0}</td><td style="text-align:right" class="nbi-num">${r.completion_tokens||0}</td><td style="text-align:right" class="nbi-num">${usd(r.cost_usd)}</td></tr>`).join("")}</tbody></table>`:'<div class="loading">No spend recorded yet.</div>';
-  }catch(e){toast(e.message||"Could not load costs");}
-  finally{$("costs-loading").style.display="none";}
+    $("costs-table").innerHTML=rows.length?`<table class="ctx-table"><thead><tr><th>Day</th><th>Endpoint</th><th style="text-align:right">Calls</th><th style="text-align:right">Prompt tok</th><th style="text-align:right">Completion tok</th><th style="text-align:right">Cost</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(fmtDate(r.day))}</td><td style="font-family:ui-monospace,monospace;font-size:12px">${esc(r.endpoint)}</td><td style="text-align:right" class="nbi-num">${esc(r.calls)}</td><td style="text-align:right" class="nbi-num">${esc(r.prompt_tokens||0)}</td><td style="text-align:right" class="nbi-num">${esc(r.completion_tokens||0)}</td><td style="text-align:right" class="nbi-num">${esc(fmt(r.cost_usd,"USD"))}</td></tr>`).join("")}</tbody></table>`:'<div class="loading">No spend recorded yet.</div>';
+  }catch(e){if(done())$("costs-state").innerHTML=screenError(e,"loadCosts()");}
 }
 
 function deltaChip(label,v,downGood){
   const p=pct(v);if(p===null)return`<span class="delta flat">${label} –</span>`;
   const good=downGood?v<0:v>0,cls=v===0?"flat":good?"good":"bad";
-  const arrow=v>0?"▲":v<0?"▼":"■";
-  return`<span class="delta ${cls}">${arrow} ${label} ${p}</span>`;
+  return`<span class="delta ${cls}">${label} ${p}</span>`;
 }
 function narrativeBlock(f,q,i){
   if(generatingSet.has(f.metric))
     return `<div class="narr"><div class="sk sk-line" style="width:100%;margin-bottom:5px"></div><div class="sk sk-line" style="width:94%;margin-bottom:5px"></div><div class="sk sk-line" style="width:72%"></div></div>`;
   if(f.aggregated)return "";   // one note in the page sub-line, not repeated per card
-  let html=`<div class="narr ${f.narrative?"":"muted"}">${f.narrative?hl(f.narrative,q):"No narrative yet — generate one to explain this movement."}</div>`;
+  const narrState=!f.narrative?"muted":f.review_status==="approved"?"approved":"draft";
+  let html=`<div class="narr ${narrState}">${f.narrative?hl(f.narrative,q):"No narrative yet — generate one to explain this movement."}</div>`;
   if(f.faithfulness==="failed")
     // The guard caught an unverifiable number. Surface it — do NOT hide it.
-    html+=`<div class="banner err" style="margin:8px 0 0;font-size:11.5px;padding:8px 10px">${warnIcon()}<span>Numbers couldn't be verified — review manually.</span><button class="btn sm exec-hide" style="margin-left:auto;padding:3px 9px" onclick="event.stopPropagation();retryCard(${i})">Retry</button></div>`;
+    html+=`<div class="banner err" style="margin:8px 0 0;font-size:12px;padding:8px 10px">${warnIcon()}<span>Numbers couldn't be verified — review manually.</span><button class="btn sm write-only" style="margin-left:auto;padding:3px 9px" onclick="event.stopPropagation();retryCard(${i})">Retry</button></div>`;
   return html;
 }
 // Index-based wrappers so no user string is interpolated into inline onclick.
@@ -1509,94 +1986,102 @@ async function retryGen(metric){
 function streakBadge(s){
   if(!s)return"";
   const up=s.direction==="growing";
-  return`<span class="delta ${up?"good":"bad"}" title="${esc(s.start_period)} → ${esc(s.end_period)}">${up?"↗":"↘"} ${s.months}-mo ${up?"streak":"decline"}</span>`;
+  return`<span class="delta ${up?"good":"bad"}" title="${esc(s.start_period)} → ${esc(s.end_period)}">${s.months}-month ${up?"rise":"decline"}</span>`;
 }
 
+// The review order of the queue, and the words each group goes by.
+const QUEUE_GROUPS=[["exception","Exceptions"],["review","Needs review"],["approved","Approved"],["nodata","No data this period"]];
+function queueGroup(f){
+  if(!f.has_data)return "nodata";
+  if(f.is_anomaly||f.faithfulness==="failed")return "exception";
+  if(f.review_status==="approved")return "approved";
+  return "review";
+}
 function renderStatrow(facts){
   const el=$("statrow");if(!el)return;
   const withData=facts.filter(f=>f.has_data);
   if(!withData.length){el.innerHTML="";return;}
-  const anom=withData.filter(f=>f.is_anomaly).length;
-  const narr=withData.filter(f=>f.narrative).length;
-  const offPlan=withData.filter(f=>f.deltas&&f.deltas.budget_var_pct!=null&&f.deltas.budget_var_pct<0).length;
-  // Biggest absolute move vs plan, for a "top mover" headline tile.
-  const mover=withData.filter(f=>f.deltas&&f.deltas.budget_var_pct!=null)
-    .sort((a,b)=>Math.abs(b.deltas.budget_var_pct)-Math.abs(a.deltas.budget_var_pct))[0];
-  const ic={grid:'<path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/>',
-    bolt:'<path d="M13 2 3 14h7l-1 8 10-12h-7z"/>',
-    warn:'<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4M12 17h.01"/>',
-    trend:'<path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-5"/>'};
-  // The svg inherits --sc from its .stat container — set the color once, on the tile.
-  const svg=p=>`<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
-  const tile=(lbl,path,color,val,hint,mono)=>`<div class="stat rise" style="--sc:${color}">
-    <span class="stat-lbl">${svg(path)}${lbl}</span>
-    <span class="stat-val${mono?" nbi-num":""}">${val}</span><span class="stat-hint">${hint}</span></div>`;
-  const attn=anom?`${plural(anom,"anomaly","anomalies")}`:"All clear";
-  el.innerHTML=[
-    `<div class="stat rise${anom?" alert":""}" style="--sc:${anom?"var(--red)":"var(--accent)"}"><span class="stat-lbl">${svg(ic.warn)}Needs attention</span><span class="stat-val">${attn}</span><span class="stat-hint">${anom?"open the flagged card to review":"no anomalies this period"}</span></div>`,
-    mover?tile("Top mover vs plan",ic.trend,catColor(mover.category)||"#eb6834",esc(mover.metric),`${pct(mover.deltas.budget_var_pct)||"–"} vs budget`):"",
-    tile("Narratives",ic.bolt,"#4a3aa7",`${narr}<small>/${withData.length}</small>`,narr===withData.length?"all explained":`${withData.length-narr} to generate`,true),
-    tile("Off plan",ic.grid,offPlan?"var(--amber)":"#2a78d6",offPlan,offPlan?"KPIs behind budget":"everything on or ahead of plan",true)
-  ].join("");
+  const n=g=>withData.filter(f=>queueGroup(f)===g).length;
+  const drafted=withData.filter(f=>f.narrative).length;
+  el.innerHTML=`<span class="qs exc"><b class="nbi-num">${n("exception")}</b> ${n("exception")===1?"exception":"exceptions"}</span>`
+    +`<span class="qs rev"><b class="nbi-num">${n("review")}</b> to review</span>`
+    +`<span class="qs ok"><b class="nbi-num">${n("approved")}</b> approved</span>`
+    +`<span class="qs drafted">${drafted}/${withData.length} drafted</span>`;
 }
 let shownFacts=[];
 function renderPills(){
   const cat=catFilter,pills=[];
-  if(cat)pills.push(`Category: ${esc(cat)}<button onclick="clearCatFilter()" aria-label="Clear category filter">×</button>`);
-  if(searchQuery)pills.push(`Search: “${esc(searchQuery)}”<button onclick="clearSearch()" aria-label="Clear search">×</button>`);
+  if(cat)pills.push(`Category: ${esc(cat)}<button onclick="clearCatFilter()" aria-label="Clear category filter">${XICON}</button>`);
+  if(searchQuery)pills.push(`Search: “${esc(searchQuery)}”<button onclick="clearSearch()" aria-label="Clear search">${XICON}</button>`);
   $("filter-pills").innerHTML=pills.map(p=>`<span class="fpill">${p}</span>`).join("");
 }
+// Enter/Space activates non-native controls marked role="button" (queue rows,
+// source and metric chips, grounded sentences), the same way a <button> would.
+document.addEventListener("keydown",e=>{
+  const t=e.target;
+  if((e.key==="Enter"||e.key===" ")&&t&&t.getAttribute&&t.getAttribute("role")==="button"&&!/^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(t.tagName)){e.preventDefault();t.click();}
+});
+// Cards act as links: Enter/Space opens, but only when the card itself has focus
+// (not one of its inner Accept/Edit/Generate buttons).
+function cardKey(e,i){if(e.target===e.currentTarget&&(e.key==="Enter"||e.key===" ")){e.preventDefault();openDetail(i);}}
 function clearCatFilter(){setCat("");}
 function clearSearch(){searchQuery="";const s=$("search");if(s)s.value="";renderCards();}
 function renderCards(){
   const cat=catFilter;
   let facts=cat?currentFacts.filter(f=>(f.category||"Uncategorized")===cat):currentFacts;
   if(searchQuery)facts=facts.filter(f=>factMatches(f,searchQuery));
+  // Review order: exceptions first, approved and empty KPIs last; stable within a group.
+  const order=Object.fromEntries(QUEUE_GROUPS.map(([g],i)=>[g,i]));
+  facts=facts.map((f,i)=>[f,i]).sort((x,y)=>order[queueGroup(x[0])]-order[queueGroup(y[0])]||x[1]-y[1]).map(x=>x[0]);
   shownFacts=facts;
-  renderStatrow(facts);renderPills();
-  if(!currentFacts.length){$("cards").innerHTML=`<div class="empty-state" style="grid-column:1/-1"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/></svg><div>No KPIs to show. Select KPIs during import, or switch dataset.</div></div>`;return;}
-  if(!facts.length){$("cards").innerHTML=`<div class="empty-state" style="grid-column:1/-1"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><div>No metrics match ${searchQuery?`“${esc(searchQuery)}”`:"these filters"}. <a onclick="clearSearch();clearCatFilter()" style="color:var(--accent);cursor:pointer;font-weight:700">Clear filters</a></div></div>`;return;}
-  const q=searchQuery;
-  // Only run the staggered entrance on the first paint of a dataset/period —
-  // not on every re-render during generation (which caused a full-grid flicker).
-  const rise=skipRise?"":"rise";
-  $("cards").innerHTML=facts.map((f,i)=>{
-    const dg=f.direction_good==="down",delay=`style="${skipRise?"":`animation-delay:${Math.min(i*45,400)}ms;`}${catStyle(f.category)}"`;
-    if(!f.has_data){
-      return`<div class="card empty ${rise}" ${delay}>
-        <div class="card-top"><span class="card-name"><span class="cat-dot"></span>${hl(f.metric,q)}</span></div>
-        <div class="card-value" style="font-size:20px;color:var(--mut2)">No data</div>
-        <div class="narr muted">No data for ${esc(currentPeriod)} in this dataset.</div></div>`;
+  renderStatrow(facts);renderPills();renderBulkApprove();
+  if(!currentFacts.length){$("cards").innerHTML=`<div class="empty-state">No KPIs to show. Select KPIs during import, or switch dataset.</div>`;return;}
+  if(!facts.length){$("cards").innerHTML=`<div class="empty-state">No KPIs match ${searchQuery?`“${esc(searchQuery)}”`:"these filters"}. <button class="linkbtn" onclick="clearSearch();clearCatFilter()">Clear filters</button></div>`;return;}
+  const q=searchQuery;let html="",last=null;
+  facts.forEach((f,i)=>{
+    const g=queueGroup(f);
+    if(g!==last){
+      html+=`<div class="q-grp">${QUEUE_GROUPS.find(x=>x[0]===g)[1]}<span class="nbi-num">${facts.filter(x=>queueGroup(x)===g).length}</span></div>`;
+      last=g;
     }
-    // ONE status slot beside the value (was 4 competing badge systems).
-    const status=f.is_anomaly?'<span class="anom">Anomaly</span>'
-      :f.faithfulness==="failed"?seal(false)
-      :f.faithfulness==="passed"?seal(true):"";
-    const nsrc=(f.sources||[]).length;
-    return`<div class="card click ${rise}" ${delay} onclick="openDetail(${i})">
-      <div class="card-top">
-        <span class="card-name" title="${esc(f.category||"Uncategorized")}"><span class="cat-dot"></span>${hl(f.metric,q)}</span>
-        ${f.chart_data&&f.chart_data.trend?sparkline(f.chart_data.trend,f.direction_good,96,28,f.unit):""}
-      </div>
-      <div class="card-value-row">
-        <span style="display:flex;align-items:center;gap:9px"><span class="card-value nbi-num" ${f.unavailable?'title="Ratios/percentages aren\'t aggregated across months — view at Month granularity"':""}>${f.unavailable?"—":fmt(f.value,f.unit)}</span>${status}${f.edited?'<span class="badge edited">edited</span>':""}</span>
-      </div>
-      <div class="deltas">
-        ${deltaChip(f.aggregated?(granularity==="year"?"YoY":"QoQ"):"MoM",f.deltas.mom_pct,dg)}
-        ${deltaChip("vs plan",f.deltas.budget_var_pct,dg)}
-        ${streakBadge(f.trend_streak)}
-      </div>
-      ${narrativeBlock(f,q,i)}
-      ${f.narrative&&!f.aggregated?`<span class="read-more">Read more${nsrc?` · ${plural(nsrc,"source")}`:""}</span>`:""}
-      ${f.aggregated?"":`<div class="card-foot" onclick="event.stopPropagation()">
-        ${f.report_id?`
-          <button class="txtact" onclick="feedback(${f.report_id},'accepted',this)">Accept</button>
-          <button class="txtact" onclick="editNarr(${f.report_id})">Edit</button>
-          <button class="txtact bad" onclick="rejectNarr(${f.report_id},this)">Reject</button>`:""}
-        <button class="txtact acc" style="margin-left:auto" onclick="genCard(${i},this)">${f.narrative?"Regenerate":"Generate"}</button>
-      </div>`}
-    </div>`;
-  }).join("");
+    html+=queueRow(f,i,q);
+  });
+  $("cards").innerHTML=html;
+  autoSelect();
+}
+// One queue row: status dot, name, the variance that matters, and the state in words.
+function queueRow(f,i,q){
+  const g=queueGroup(f);
+  if(!f.has_data)return `<div class="qi nodata"><i class="dot" aria-hidden="true"></i><span class="qn">${hl(f.metric,q)}</span><span class="qsub">No data for ${esc(fmtPeriod(currentPeriod))}</span></div>`;
+  const plan=f.deltas.budget_var_pct,v=plan!=null?plan:f.deltas.mom_pct;
+  const vLabel=plan!=null?"vs plan":priorPeriodLabel();
+  const good=v==null||v===0?null:(f.direction_good==="down"?v<0:v>0);
+  const tone=good===null?"":good?"c-ok":"c-exc";
+  const state=generatingSet.has(f.metric)?"Drafting…"
+    :g==="exception"?(f.is_anomaly?"Anomaly":"Figures need review")
+    :g==="approved"?"Approved":f.narrative?"Draft ready":"Not drafted";
+  const sel=!!(detailFact&&detailFact.metric===f.metric);
+  return `<div class="qi ${g}${sel?" on":""}" data-i="${i}" onclick="openDetail(${i})" onkeydown="cardKey(event,${i})" tabindex="0" role="link"${sel?' aria-current="true"':""} aria-label="${esc(f.metric)}, ${esc(f.unavailable?"no value":fmt(f.value,f.unit))}, ${esc(state)}">
+    <i class="dot" aria-hidden="true"></i><span class="qn">${hl(f.metric,q)}</span>
+    <span class="qv nbi-num ${tone}">${v==null?"–":pct(v)}</span>
+    <span class="qsub"><span class="nbi-num">${f.unavailable?"—":fmt(f.value,f.unit)}</span> · ${vLabel} · ${esc(state)}</span></div>`;
+}
+function markQueueSelection(){
+  document.querySelectorAll("#cards .qi[data-i]").forEach(el=>{
+    const f=shownFacts[+el.dataset.i],on=!!(f&&detailFact&&f.metric===detailFact.metric);
+    el.classList.toggle("on",on);
+    if(on)el.setAttribute("aria-current","true");else el.removeAttribute("aria-current");
+  });
+}
+// Wide screens always show a document: keep the open KPI (refreshed to this
+// period's figures) or open the first one in review order.
+const wideWorkspace=window.matchMedia?window.matchMedia("(min-width: 901px)"):{matches:true};
+function autoSelect(){
+  if(!wideWorkspace.matches||$("v-dashboard").style.display==="none")return;
+  const cur=detailFact?shownFacts.findIndex(f=>f.metric===detailFact.metric&&f.has_data):-1;
+  if(cur>=0){if(shownFacts[cur]!==detailFact)openDetail(cur,{fromRoute:true});return;}
+  const first=shownFacts.findIndex(f=>f.has_data);
+  if(first>=0)openDetail(first,{fromRoute:true});
 }
 
 /* ---------- charts ---------- */
@@ -1632,9 +2117,9 @@ function chartTheme(){
     green:cssv("--green2")||"#25835f",red:cssv("--red")||"#b42e2c",card:cssv("--card")||"#fff"};
 }
 if(window.Chart){
-  Chart.defaults.font.family="'Plus Jakarta Sans',system-ui,-apple-system,sans-serif";
+  Chart.defaults.font.family="'Schibsted Grotesk',system-ui,-apple-system,sans-serif";
   Chart.defaults.font.size=11;
-  Chart.defaults.animation.duration=600;
+  Chart.defaults.animation.duration=matchMedia("(prefers-reduced-motion: reduce)").matches?0:600;
   Chart.defaults.animation.easing="easeOutQuart";
 }
 function ensureCanvas(id){
@@ -1656,34 +2141,40 @@ function tooltipCfg(unit,labeler){
     callbacks:labeler||{label:c=>` ${c.dataset.label||""}: ${fmt(c.parsed.y,unit)}`}};
 }
 function renderTrendChart(trend,unit){
-  ensureCanvas("c-trend");const box=$("box-c-trend");
+  ensureCanvas("c-trend");const box=$("box-c-trend"),note=$("d-trend-axis");if(note)note.textContent="";
   const has=trend.some(t=>t.value!=null||t.budget!=null);
+  const months=trend.filter(t=>t.value!=null).length;
+  $("d-trend-title").textContent=months>1?`${months}-month trend`:"Trend";
   if(!has){if(chartReg["c-trend"]){chartReg["c-trend"].destroy();delete chartReg["c-trend"];}box.innerHTML='<div class="loading">No trend data.</div>';return;}
   const th=chartTheme();
+  // Straight segments, no area fill: smoothing invents values between months and
+  // a fill implies a zero baseline the axis may not have (docs/ui-standard.md §6).
   mkChart("c-trend",{type:"line",
-    data:{labels:trend.map(t=>t.period.slice(2)),datasets:[
-      {label:"Actual",data:trend.map(t=>t.value),borderColor:th.accent,borderWidth:2,tension:.35,
-        pointRadius:0,pointHoverRadius:4,pointBackgroundColor:th.accent,spanGaps:true,
-        fill:true,backgroundColor:ctx=>{const{chartArea,ctx:c}=ctx.chart;if(!chartArea)return"transparent";
-          const g=c.createLinearGradient(0,chartArea.top,0,chartArea.bottom);
-          g.addColorStop(0,th.accent+"33");g.addColorStop(1,th.accent+"03");return g;}},
+    data:{labels:trend.map(t=>fmtPeriod(t.period,"axis")),datasets:[
+      {label:"Actual",data:trend.map(t=>t.value),borderColor:th.accent,borderWidth:2,tension:0,
+        pointRadius:2,pointHoverRadius:4,pointBackgroundColor:th.accent,spanGaps:true,fill:false},
       {label:"Budget",data:trend.map(t=>t.budget),borderColor:th.mut,borderWidth:2,borderDash:[5,4],
-        tension:.35,pointRadius:0,pointHoverRadius:3,fill:false,spanGaps:true}]},
+        tension:0,pointRadius:0,pointHoverRadius:3,fill:false,spanGaps:true}]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
       plugins:{legend:{display:false},tooltip:tooltipCfg(unit)},
       scales:{y:{grid:{color:th.grid},ticks:{color:th.mut,maxTicksLimit:5,callback:v=>fmt(v,unit)},border:{display:false}},
         x:{grid:{display:false},ticks:{color:th.mut,maxRotation:0,autoSkip:true,maxTicksLimit:7},border:{color:th.grid}}}}});
+  const y=chartReg["c-trend"]&&chartReg["c-trend"].scales&&chartReg["c-trend"].scales.y;
+  if(note&&y&&y.min>0)note.textContent=`Axis starts at ${fmt(y.min,unit)}, not zero.`;
 }
 function renderBvaChart(bva,unit){
   ensureCanvas("c-bva");const box=$("box-c-bva");
-  if(!bva||bva.actual==null){if(chartReg["c-bva"]){chartReg["c-bva"].destroy();delete chartReg["c-bva"];}box.innerHTML='<div class="loading">No data.</div>';return;}
+  const drop=msg=>{if(chartReg["c-bva"]){chartReg["c-bva"].destroy();delete chartReg["c-bva"];}box.innerHTML=`<div class="loading">${msg}</div>`;};
+  if(!bva||bva.actual==null){drop("No data.");return;}
+  // Half a comparison reads as a broken chart — say what's missing instead.
+  if(bva.budget==null){drop(`No budget loaded for this metric. Actual: <b class="nbi-num">${fmt(bva.actual,unit)}</b>. Attach one from Import → Budget.`);return;}
   const th=chartTheme();
   mkChart("c-bva",{type:"bar",
-    data:{labels:["Actual","Budget"],datasets:[{label:"",data:[bva.actual,bva.budget],
+    data:{labels:[`Actual ${fmt(bva.actual,unit)}`,`Budget ${fmt(bva.budget,unit)}`],datasets:[{label:"",data:[bva.actual,bva.budget],
       backgroundColor:[th.accent,th.mut],borderRadius:5,borderSkipped:false,barThickness:22}]},
     options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:tooltipCfg(unit,{label:c=>` ${c.label}: ${fmt(c.parsed.x,unit)}`})},
-      scales:{x:{grid:{color:th.grid},ticks:{color:th.mut,maxTicksLimit:5,callback:v=>fmt(v,unit)},border:{display:false}},
+      plugins:{legend:{display:false},tooltip:tooltipCfg(unit,{label:c=>` ${fmt(c.parsed.x,unit)}`})},
+      scales:{x:{beginAtZero:true,grid:{color:th.grid},ticks:{color:th.mut,maxTicksLimit:5,callback:v=>fmt(v,unit)},border:{display:false}},
         y:{grid:{display:false},ticks:{color:th.ink,font:{weight:"600"}},border:{display:false}}}}});
 }
 function renderBridgeChart(bridge,total,unit){
@@ -1707,16 +2198,27 @@ function renderBridgeChart(bridge,total,unit){
       scales:{y:{grid:{color:th.grid},ticks:{color:th.mut,maxTicksLimit:5,callback:v=>fmt(v,unit)},border:{display:false}},
         x:{grid:{display:false},ticks:{color:th.ink,font:{weight:"600"}},border:{color:th.grid}}}}});
 }
-function trendTable(trend,unit){if(!trend.length)return"";return`<details class="tbl"><summary>Show data table</summary><table><thead><tr><th>Period</th><th>Actual</th><th>Budget</th></tr></thead><tbody>${trend.map(t=>`<tr><td>${esc(t.period)}</td><td>${fmt(t.value,unit)}</td><td>${fmt(t.budget,unit)}</td></tr>`).join("")}</tbody></table></details>`;}
+function trendTable(trend,unit){if(!trend.length)return"";return`<details class="tbl"><summary>Show data table</summary><table><thead><tr><th>Period</th><th>Actual</th><th>Budget</th></tr></thead><tbody>${trend.map(t=>`<tr><td>${esc(fmtPeriod(t.period))}</td><td class="nbi-num">${fmt(t.value,unit)}</td><td class="nbi-num">${fmt(t.budget,unit)}</td></tr>`).join("")}</tbody></table></details>`;}
 
 /* ---------- metric detail ---------- */
-function openDetail(i){
+function metricHash(metric,period){return routeHash({tab:"kpis",period,metric});}
+function openDetail(i,{fromRoute=false}={}){
   const f=shownFacts[i];if(!f||!f.has_data)return;detailFact=f;nav("detail");
+  if(!fromRoute)pushRoute(metricHash(f.metric,currentPeriod));
+  setDocTitle(`${f.metric} · ${fmtPeriod(currentPeriod)}`);
+  // Phones show one pane at a time, so start the document at its top.
+  if(!wideWorkspace.matches){$("main").scrollTop=0;window.scrollTo(0,0);}
+  markQueueSelection();
   $("d-title").textContent=f.metric;const dg=f.direction_good==="down";
-  $("d-sub").innerHTML=`<span class="cat-dot" style="${catStyle(f.category)}"></span>${esc(f.category||"")} · ${esc(currentPeriod)} · ${fmt(f.value,f.unit)} `
-    +deltaChip("MoM",f.deltas.mom_pct,dg)+" "+deltaChip("vs plan",f.deltas.budget_var_pct,dg)
+  $("d-sub").innerHTML=`<span class="cat-dot" style="${catStyle(f.category)}"></span>${esc(f.category||"")} · ${esc(fmtPeriod(currentPeriod,"long"))} · <span class="nbi-num">${fmt(f.value,f.unit)}</span> `
+    +deltaChip(priorPeriodLabel(),f.deltas.mom_pct,dg)+" "+deltaChip("vs plan",f.deltas.budget_var_pct,dg)
     +(f.is_anomaly?' <span class="anom">Anomaly</span>':"");
   const cd=f.chart_data||{};
+  const bva=cd.budget_vs_actual||{};
+  $("d-figs").innerHTML=[["Actual",f.unavailable?"—":fmt(f.value,f.unit)],["Budget",bva.budget!=null?fmt(bva.budget,f.unit):"—"],
+    ["Vs plan",pct(f.deltas.budget_var_pct)||"—"],[capFirst(priorPeriodLabel()),pct(f.deltas.mom_pct)||"—"],["Vs last year",pct(f.deltas.yoy_pct)||"—"]]
+    .map(([k,val])=>`<div><dt>${k}</dt><dd class="nbi-num">${esc(val)}</dd></div>`).join("");
+  $("d-regen").textContent=f.narrative?"Regenerate":"Draft commentary";
   // Restore canvases (an earlier "no data" state may have replaced them with text).
   $("d-trend").innerHTML=trendTable(cd.trend||[],f.unit);
   ensureCanvas("c-trend");ensureCanvas("c-bva");ensureCanvas("c-bridge");
@@ -1729,13 +2231,15 @@ function openDetail(i){
   {const rc=$("d-rootcause");if(rc){rc.style.display="none";rc.innerHTML="";}}
   $("d-grounding").style.display="none";groundingData=null;
   if(f.narrative&&f.report_id&&!f.edited){
-    // Drill-down: fetch per-sentence grounding and render clickable sentences.
+    // Show the text at once; per-sentence grounding replaces it when it arrives.
+    $("d-narr").textContent=f.narrative;
     renderGroundedNarrative(f.report_id);
   }else{
-    $("d-narr").innerHTML=f.narrative?esc(f.narrative)+(f.edited&&f.original_narrative?`<details class="tbl" style="margin-top:8px"><summary>Show original (pre-edit)</summary><p style="margin-top:6px;color:var(--mut)">${esc(f.original_narrative)}</p></details>`:""):"No narrative yet — generate one from the dashboard card.";
+    $("d-narr").innerHTML=f.narrative?esc(f.narrative)+(f.edited&&f.original_narrative?`<details class="tbl" style="margin-top:8px"><summary>Show original (pre-edit)</summary><p style="margin-top:6px;color:var(--mut)">${esc(f.original_narrative)}</p></details>`:""):"No commentary yet. Draft it with the button at the top of this close.";
   }
-  $("d-narr-meta").textContent=(f.confidence?`${f.confidence} confidence · numbers ${f.faithfulness}`:"")+(f.edited?" · edited by analyst":"")+(f.cost_usd!=null?` · ≈ $${(+f.cost_usd).toFixed(4)}`:"");
-  $("d-chips").innerHTML=(f.sources||[]).map(s=>`<span class="chip" title="Open source note" onclick="showSourceDoc('${esc(s.id)}')">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
+  $("d-narr-meta").textContent=narrMeta(f);
+  $("d-chips").innerHTML=(f.sources||[]).map(s=>`<span class="chip" role="button" tabindex="0" title="Open source note" onclick="showSourceDoc('${esc(s.id)}')">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
+  renderWhyNone(f);
   $("d-qa-answer").innerHTML="";$("d-qa").value="";qaThread=[];   // fresh conversation per metric
   loadCorrelations(f.metric);
 }
@@ -1751,7 +2255,7 @@ async function renderGroundedNarrative(reportId){
   catch{el.textContent=detailFact?detailFact.narrative||"":"";return;}
   const sents=(groundingData.sentences||[]);
   if(!sents.length){el.textContent=(detailFact&&detailFact.narrative)||"";return;}
-  el.innerHTML=sents.map(s=>`<span class="gsent ${s.kind}" data-i="${s.idx}" title="Click to see what grounds this sentence" onclick="showSentenceGrounding(${s.idx})">${esc(s.text)}</span>`).join(" ")
+  el.innerHTML=sents.map(s=>`<span class="gsent ${s.kind}" data-i="${s.idx}" role="button" tabindex="0" title="Show what supports this sentence" onclick="showSentenceGrounding(${s.idx})">${esc(s.text)}</span>`).join(" ")
     +`<div class="g-legend">
         <span><i style="border-color:var(--green2)"></i>traces to a figure</span>
         <span><i style="border-color:var(--accent)"></i>cites a source</span>
@@ -1771,7 +2275,7 @@ function showSentenceGrounding(idx){
       +s.facts.map(f=>`<div class="g-fact">${gCheck}<span>${esc(G_FIELD[f.field]||f.field)}</span> = <b>${gFmtVal(f.value,f.is_percent)}</b></div>`).join("");
   }
   if(s.context_ids&&s.context_ids.length){
-    const chips=s.context_ids.map(id=>`<span class="chip" onclick="showSourceDoc('${esc(id)}')">${DOCICON}${esc(id)}</span>`).join("");
+    const chips=s.context_ids.map(id=>`<span class="chip" role="button" tabindex="0" onclick="showSourceDoc('${esc(id)}')">${DOCICON}${esc(id)}</span>`).join("");
     html+=`<div class="g-lbl" style="margin-top:${s.facts&&s.facts.length?"11px":"0"}">Cited context</div><div class="chips">${chips}</div>`;
   }
   if(s.kind==="numeric-unverified")
@@ -1807,10 +2311,10 @@ function renderQAThread(pending){
   const el=$("d-qa-answer");if(!el)return;
   if(!qaThread.length&&!pending){el.innerHTML="";return;}
   const turns=qaThread.map(t=>{
-    const srcs=(t.sources||[]).map(s=>`<span class="chip" onclick="showSourceDoc('${esc(s.id)}')">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
+    const srcs=(t.sources||[]).map(s=>`<span class="chip" role="button" tabindex="0" onclick="showSourceDoc('${esc(s.id)}')">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
     return `<div class="qa-turn">
       <div class="qa-q">${esc(t.question)}</div>
-      <div class="qa-a"><div class="narr" style="font-size:14.5px">${esc(t.answer)}</div>
+      <div class="qa-a"><div class="narr" style="font-size:15px">${esc(t.answer)}</div>
         ${(srcs||t.grounded)?`<div class="chips" style="margin-top:8px">${srcs}${t.grounded?seal(true):""}</div>`:""}</div>
     </div>`;
   }).join("");
@@ -1845,13 +2349,68 @@ async function genOne(metric,btn){
       body:JSON.stringify({metric,period:gp,force:regen})});
     if(currentPeriod!==gp||activeDatasetId!==gd){generatingSet.delete(metric);return;}   // user moved on — drop result
     applyGenerated(r);generatingSet.delete(metric);renderCards();updateGenButton();
-    toast(r.faithfulness==="failed"?`${metric}: numbers need review`:(r.cached?"Served from cache — no LLM cost":`Narrative written for ${metric}`));
+    toast(r.faithfulness==="failed"?`${metric}: numbers need review`:(r.cached?"Served from cache — no LLM cost":`Commentary drafted for ${metric}`));
   }catch(e){generatingSet.delete(metric);renderCards();toast("Failed: "+errMsg(e));}
 }
 // Rough per-narrative cost estimate (gpt-4o-class: ~1.5k prompt + ~180 completion tokens).
 const EST_COST_PER_NARR=0.006;
 let generatingSet=new Set(), skipRise=false;
 // Simple concurrency pool: run `worker` over `items`, at most `n` in flight.
+/* ---------- a big movement with no recorded reason asks for one, right where it's read ---------- */
+// "Big" is the same rule the close checklist uses: an anomaly, or more than 10% against plan.
+function needsReason(f){
+  if(!f||!f.has_data||(f.sources&&f.sources.length))return false;
+  const plan=f.deltas&&f.deltas.budget_var_pct;
+  return !!f.is_anomaly||(plan!=null&&Math.abs(plan)>10);
+}
+function renderWhyNone(f){
+  const el=$("d-why");if(!el)return;
+  if(!needsReason(f)){el.innerHTML="";return;}
+  el.innerHTML=`<div class="why-none" role="note"><span><b>No reason recorded.</b> ${canReview()
+    ?"Add a context note and the commentary will cite it next time it's drafted."
+    :"An analyst can add the reason as a context note."}</span>${canReview()?`<button class="btn sm" onclick="addReasonFor('${esc(f.metric).replace(/'/g,"\\'")}')">Add a reason</button>`:""}</div>`;
+}
+// Opens the close's Context tab with a new note already pointed at this KPI and month.
+function addReasonFor(metric){
+  nav("context");
+  setTimeout(()=>{
+    ctxNew();
+    $("c-type").value="event_note";
+    if(!$("c-title").value)$("c-title").value=`Why ${metric} moved in ${fmtPeriod(currentPeriod,"long")}`;
+    $("c-tags").value=metric;
+    if(granularity==="month")$("c-date").value=currentPeriod;
+    $("c-body").focus();
+  },60);
+}
+
+/* ---------- bulk approve: only drafts a person doesn't need to read one by one ---------- */
+// A draft qualifies when every figure passed the check and nothing about the KPI is unusual.
+// Anomalies and flagged drafts stay out on purpose: those are the ones worth reading.
+function bulkApprovable(facts){
+  return (facts||[]).filter(f=>f.has_data&&f.report_id&&f.narrative&&f.faithfulness==="passed"
+    &&!f.is_anomaly&&f.review_status!=="approved");
+}
+function renderBulkApprove(){
+  const el=$("q-bulk");if(!el)return;
+  const ok=granularity==="month"?bulkApprovable(currentFacts):[];
+  const held=(currentFacts||[]).filter(f=>f.has_data&&f.narrative&&f.review_status!=="approved").length-ok.length;
+  el.innerHTML=ok.length>1?`<button class="btn" onclick="bulkApprove()">Approve ${plural(ok.length,"checked draft","checked drafts")}</button>
+    <small>Every figure in these passed the check.${held?` ${plural(held,"anomaly or flagged draft stays","anomalies and flagged drafts stay")} for you to read.`:""}</small>`:"";
+}
+async function bulkApprove(){
+  const ok=bulkApprovable(currentFacts);if(!ok.length)return;
+  const names=ok.slice(0,5).map(f=>f.metric).join(", ")+(ok.length>5?` and ${ok.length-5} more`:"");
+  if(!await modalConfirm(`Approve ${plural(ok.length,"draft")}?`,`${names}. Every figure in these drafts passed the check against the computed facts. You can still edit or request changes on any of them later.`,{okLabel:"Approve",danger:false}))return;
+  let done=0,failed=0;
+  await runPool(ok,4,async f=>{
+    try{await api(`/reports/${f.report_id}/review`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:"approved"})});
+      f.review_status="approved";done++;}
+    catch{failed++;}
+  });
+  toast(failed?`Approved ${done}; ${plural(failed,"draft")} failed, try again`:`Approved ${plural(done,"draft")}`);
+  overviewFor=null;renderCards();renderMonthHead();loadCloseMeta();refreshReviewBadge();
+}
+
 async function runPool(items,n,worker){
   let i=0;
   await Promise.all(Array(Math.min(n,items.length)).fill(0).map(async()=>{
@@ -1864,8 +2423,8 @@ function updateGenButton(){
   if(granularity!=="month"){btn.style.display="none";return;}
   btn.style.display="";
   const n=ungeneratedFacts().length;
-  if(!n){btn.innerHTML=`Regenerate all<small>narratives are current</small>`;return;}
-  btn.innerHTML=`Generate ${plural(n,"narrative")}<small>≈ $${(n*EST_COST_PER_NARR).toFixed(2)} · ~${n*7}s</small>`;
+  if(!n){btn.innerHTML=`Redraft all<small>commentary is up to date</small>`;return;}
+  btn.innerHTML=`Draft ${plural(n,"commentary","commentaries")}<small>≈ $${(n*EST_COST_PER_NARR).toFixed(2)} · ~${n*7}s</small>`;
 }
 function applyGenerated(r){
   const f=currentFacts.find(x=>x.metric===r.metric);
@@ -1882,6 +2441,7 @@ async function generateAll(){
   const btn=$("gen-all");btn.disabled=true;
   const gp=currentPeriod,gg=granularity,gd=activeDatasetId,force=!targets.length,total=list.length;
   generatingSet=new Set(list.map(f=>f.metric));skipRise=true;renderCards();
+  {const b=$("import-banner");if(b&&b.classList.contains("info"))b.style.display="none";}
   let done=0;
   await runPool(list,3,async(f)=>{
     try{
@@ -1897,8 +2457,10 @@ async function generateAll(){
   });
   skipRise=false;btn.disabled=false;generatingSet.clear();updateGenButton();
   if(currentPeriod!==gp)return;
+  // Head, tiles, banner and cards must agree once generation finishes (QA #8).
+  setFreshness();maybePromptGenerate();renderCards();
   const failed=currentFacts.filter(f=>f.faithfulness==="failed").length;
-  toast(failed?`Done — ${plural(failed,"narrative")} need review`:"All narratives generated ✓");
+  toast(failed?`Done: ${plural(failed,"draft needs","drafts need")} review`:"All commentary drafted");
 }
 async function feedback(id,action,btn,extra){
   try{
@@ -1908,90 +2470,191 @@ async function feedback(id,action,btn,extra){
   }catch(e){toast("Couldn't save feedback: "+e.message);}
 }
 async function rejectNarr(id,btn){
-  const r=await modalInput("Reject narrative",{label:"Why is this wrong? (optional)",textarea:true,placeholder:"e.g. attributes the drop to the wrong cause",okLabel:"Reject"});
+  const r=await modalInput("Reject commentary",{label:"Why is this wrong? (optional)",textarea:true,placeholder:"e.g. attributes the drop to the wrong cause",okLabel:"Reject"});
   if(r===null)return;   // cancelled
   feedback(id,"rejected",btn,{reason:r||null});
 }
 async function editNarr(id){
   const f=currentFacts.find(x=>x.report_id===id);
   const cur=(f&&f.narrative)||"";
-  const t=await modalInput(`Edit narrative${f?" — "+f.metric:""}`,{label:"Narrative",value:cur,textarea:true,okLabel:"Save"});
+  const t=await modalInput(`Edit commentary${f?": "+f.metric:""}`,{label:"Narrative",value:cur,textarea:true,okLabel:"Save"});
   if(t==null||t===cur)return;
   await feedback(id,"edited",null,{edited_text:t});loadFacts();
 }
 
 /* ---------- digest ---------- */
+let digestGenerating=false;
+let digestRevision=0;
+// The digest reads as one document: a title, then each mover as a numbered section.
+function renderDigest(d){
+  const items=d.items||[];
+  const judged=items.filter(it=>it.faithfulness).length,checked=items.filter(it=>it.faithfulness==="passed").length;
+  const meta=[d.created_at?`Saved ${esc(fmtDate(d.created_at))}`:"Generated just now",
+    judged?`${checked} of ${judged} checked against the computed figures`:null,
+    d.cost_usd!=null?`${esc(fmt(d.cost_usd,"USD"))} this run`:null].filter(Boolean).join(" · ");
+  const heading=`<header class="dg-head"><p class="dg-kick">Executive digest · ${esc(fmtPeriod(d.period))}</p>
+    <h2>${esc(fmtPeriod(d.period,"long"))}: the largest movements against plan</h2><p class="dg-meta">${meta}</p></header>`;
+  return heading+(items.map((it,i)=>{
+    const v=it.budget_var_abs;
+    return `<section class="dg-sec"><span class="dg-n nbi-num" aria-hidden="true">${esc(i+1)}</span><div>
+      <p class="dg-metric">${esc(it.metric)}</p><h3>${esc(it.headline)}</h3>
+      ${it.detail?`<p class="dg-body">${esc(it.detail)}</p>`:""}
+      <div class="dg-figs">
+        ${v!=null?`<span class="nbi-num ${v<0?"c-exc":"c-ok"}">${esc(fmt(v,"USD"))} vs plan (${esc(pct(it.budget_var_pct)||"–")})</span>`:""}
+        ${it.faithfulness==="passed"?seal(true):it.faithfulness==="failed"?seal(false):""}
+        ${it.report_id?`<span class="dg-act write-only"><button class="write-only txtact" onclick="feedback(${esc(it.report_id)},'accepted',this)">Accept</button><button class="write-only txtact bad" onclick="rejectNarr(${esc(it.report_id)},this)">Reject</button></span>`:""}
+      </div></div></section>`;}).join("")||screenState("No movers with budget data","This saved digest has no budget comparisons. Add budget data to explain the largest movements.","nav('data')","Import budget data","empty",{writeOnly:true}));
+}
 async function loadDigest(force){
-  $("digest-loading").style.display="";$("digest-list").innerHTML="";
+  if(force&&!canReview())return;
+  if(digestGenerating)return;
+  if(!force)return loadDigestHistory();
+  digestGenerating=true;const btn=$("digest-generate");if(btn)btn.disabled=true;
+  let done;
   try{
-    // The digest is written monthly; at quarter/year granularity use the latest month.
+    const estimate=fmt(5*EST_COST_PER_NARR,"USD");
+    if(!await modalConfirm("Generate a new digest?",`The estimated AI cost is ${estimate} for up to five movers. The actual cost may vary.`,{okLabel:"Generate digest",danger:false}))return;
+    done=screenLoading("digest-status","Writing a new executive digest…");
+    // Digests use monthly facts even when the dashboard shows a quarter or year.
     let dp=currentPeriod;
     if(granularity!=="month"){const months=await api("/periods?granularity=month");dp=months[months.length-1]||currentPeriod;}
-    const d=await api(`/digest?period=${encodeURIComponent(dp)}&top_n=5&force=${!!force}`,{method:"POST"});
-    $("digest-list").innerHTML=d.items.map((it,i)=>`<div class="digest-item">
-      <span class="rank"><span class="rank-n${i<3?" top":""}">#${i+1}</span>${esc(it.metric)}</span><h3>${esc(it.headline)}</h3>
-      ${it.detail?`<p>${esc(it.detail)}</p>`:""}
-      <div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <span class="delta ${it.budget_var_abs<0?"bad":"good"}">${fmt(it.budget_var_abs,"USD")} vs budget (${pct(it.budget_var_pct)||"–"})</span>
-        ${seal(it.faithfulness==="passed")}
-        ${it.report_id?`<button class="txtact" style="margin-left:auto" onclick="feedback(${it.report_id},'accepted',this)">Accept</button><button class="txtact bad" onclick="rejectNarr(${it.report_id},this)">Reject</button>`:""}
-      </div></div>`).join("")||'<div class="empty-state">No movers with budget data for this period.</div>';
-    if(d.cost_usd!=null||d.cached)$("digest-list").insertAdjacentHTML("beforeend",`<div class="cost" style="margin-top:8px">${d.cached?"served from cache (no LLM cost)":"≈ $"+(+d.cost_usd).toFixed(4)+" this run"}</div>`);
-  }catch(e){toast("Digest failed: "+e.message);}finally{$("digest-loading").style.display="none";loadDigestHistory();}
+    if(!dp){done();$("digest-status").innerHTML=screenState("No monthly data yet","Import monthly metrics and budgets to explain the largest movements.","nav('import')","Import data","empty",{writeOnly:true});return;}
+    const d=await api(`/digest?period=${encodeURIComponent(dp)}&top_n=5&force=true`,{method:"POST"});
+    if(!done())return;
+    digestRevision++;$("digest-status").innerHTML="";$("digest-list").innerHTML=renderDigest(d);toast("Digest generated");
+    // Refresh saved history without discarding the digest if that refresh fails.
+    await loadDigestHistory(true);
+  }catch(e){if(!done||done())$("digest-status").innerHTML=screenError(e,"loadDigest(true)");}
+  finally{digestGenerating=false;if(btn)btn.disabled=false;}
 }
-// Period-over-period: past digests (manual + scheduled), newest first (Phase 4).
-async function loadDigestHistory(){
-  const el=$("digest-history");if(!el)return;
-  let runs;try{runs=await api("/digests/history");}catch{el.innerHTML="";return;}
-  if(!runs||runs.length<2){el.innerHTML="";return;}   // need history to compare
-  el.innerHTML=`<h3 style="font-family:var(--serif);font-size:17px;font-weight:600;margin-bottom:10px">Digest history</h3>`
-    +runs.map(r=>{
-      const when=r.created_at?String(r.created_at).slice(0,10):"";
-      const top=(r.items||[]).slice(0,3).map(it=>esc(it.metric)).join(", ");
-      return `<div class="digest-item" style="padding:13px 18px">
-        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
-          <b style="font-size:14px">${esc(r.period)}</b>
-          <span class="fh-sub" style="font-size:11.5px;color:var(--mut2)">${esc(r.trigger)} · ${esc(when)}${r.cost_usd!=null?" · ≈ $"+(+r.cost_usd).toFixed(4):""}</span>
-        </div>
-        ${top?`<div style="font-size:12.5px;color:var(--mut);margin-top:4px">Top movers: ${top}</div>`:""}
-      </div>`;
-    }).join("");
+// History is newest first and scoped to the active dataset by the server.
+// In a close, the digest tab shows that close's digest; earlier ones sit beside it.
+async function loadDigestHistory(keepCurrent=false){
+  const revision=digestRevision;
+  const id=keepCurrent?"digest-history":"digest-list",done=screenLoading(id,"Loading saved executive digests…");
+  if(!keepCurrent){$("digest-history").innerHTML="";$("digest-status").innerHTML="";}
+  try{
+    const runs=await api("/digests/history");if(!done()||revision!==digestRevision)return;
+    const mine=granularity==="month"&&currentPeriod?runs.find(r=>r.period===currentPeriod):runs[0];
+    $("digest-generate").style.display=mine?"":"none";
+    if(!keepCurrent){
+      if(mine)$("digest-list").innerHTML=renderDigest(mine);
+      else if(canReview())$("digest-list").innerHTML=screenState(`No saved digest for ${fmtPeriod(currentPeriod)} yet`,"An executive digest explains the largest budget movements in this close, with every figure checked.","loadDigest(true)","Generate a new digest","empty",{writeOnly:true});
+      else{
+        const s=closeStateFor(currentPeriod)||closeProgress(currentFacts,false);
+        $("digest-list").innerHTML=screenState(`${fmtPeriod(currentPeriod,"long")}'s digest isn't ready yet`,`${s.approved} of ${s.n} KPIs are approved. Leadership gets the digest once the close is approved.`,"nav('kpis')","Open KPIs");
+      }
+    }
+    const past=runs.filter(r=>r!==mine);
+    $("digest-history").innerHTML=past.length?'<h2 class="digest-history-title">Earlier digests</h2>'+past.map(r=>`<button class="dg-past" onclick="selectClose('${esc(r.period)}')">
+      <b>${esc(fmtPeriod(r.period))}</b><small>Sent ${esc(fmtDate(r.created_at))}${r.trigger==="scheduled"?" on schedule":""}</small>
+      <small>${esc((r.items||[]).slice(0,3).map(it=>it.metric).join(", "))}</small></button>`).join(""):"";
+  }catch(e){if(done()&&revision===digestRevision)$(id).innerHTML=screenError(e,keepCurrent?"loadDigestHistory(true)":"loadDigest()");}
 }
+
 
 /* ---------- context ---------- */
 async function loadContext(){
-  let docs;try{docs=await api("/context");}catch(e){$("ctx-rows").innerHTML=`<tr><td colspan="5" class="loading">Couldn't load context — <a onclick="loadContext()" style="color:var(--accent);cursor:pointer;font-weight:700">retry</a></td></tr>`;return;}
-  $("ctx-rows").innerHTML=docs.map(d=>`<tr>
-    <td><span class="ctx-type">${esc(d.type.replace("_"," "))}</span></td>
-    <td><div style="font-weight:700;font-size:13px;margin-bottom:3px">${esc(d.title)}</div><div style="color:var(--mut);line-height:1.45">${esc(d.body)}</div></td>
-    <td>${d.metric_tags.length?d.metric_tags.map(t=>`<span class="ctx-tag">${esc(t)}</span>`).join(""):'<span style="color:var(--mut2)">all</span>'}</td>
-    <td style="color:var(--mut);white-space:nowrap">${d.effective_date?esc(d.effective_date):"—"}</td>
-    <td><button class="row-del exec-hide" onclick="delContext(${d.id})">✕</button></td></tr>`).join("")
-    ||`<tr><td colspan="5" class="loading">Library is empty. Add your first context document above.</td></tr>`;
+  const done=screenLoading("ctx-rows","Loading the context library…");
+  let docs;try{docs=await api("/context");}catch(e){if(done())$("ctx-rows").innerHTML=screenError(e,"loadContext()");return;}
+  if(!done())return;
+  ctxDocs=docs;
+  if(!docs.length){
+    $("ctx-scope").innerHTML="";$("ctx-view").style.display="none";
+    $("ctx-rows").innerHTML=currentUser&&["executive","viewer"].includes(currentUser.role)
+      ?screenState("No context notes yet","Business events, definitions and policies help explain metric movements. Ask an analyst to add a note.","nav('kpis')","Open KPIs")
+      :screenState("No context notes yet","Add business events, definitions and policies to ground the explanations of your metrics.","$('c-title').focus()","Add a context note","empty",{writeOnly:true});
+    return;
+  }
+  renderContextList();
+}
+// A close's notes: dated in its period, or undated (definitions and policies apply to every close).
+function ctxInClose(d){return !d.effective_date||!currentPeriod||String(d.effective_date).startsWith(currentPeriod.slice(0,granularity==="year"?4:7));}
+const ctxWhen=(d,style)=>d.effective_date?(/^\d{4}-\d{2}$/.test(d.effective_date)?fmtPeriod(d.effective_date,style):fmtDate(d.effective_date)):"Every close";
+let ctxScope="all",ctxDocs=[],ctxSel=null,ctxComposing=false;
+function renderContextList(){
+  const scoped=ctxScope==="close"&&!!currentPeriod;
+  $("ctx-scope").innerHTML=currentPeriod&&ctxScope!=="library"
+    ?`<button aria-pressed="${scoped}" onclick="ctxScope='close';renderContextList()">This close · ${ctxDocs.filter(ctxInClose).length}</button><button aria-pressed="${!scoped}" onclick="ctxScope='all';renderContextList()">All notes · ${ctxDocs.length}</button>`:"";
+  const docs=scoped?ctxDocs.filter(ctxInClose):ctxDocs;
+  if(ctxSel!=null&&!docs.some(d=>d.id===ctxSel))ctxSel=null;
+  if(ctxSel==null&&docs.length&&!ctxComposing)ctxSel=docs[0].id;
+  $("ctx-rows").innerHTML=docs.map(d=>{
+    const on=d.id===ctxSel;
+    return `<div class="ctx-item${on?" on":""}">
+      <button class="ctx-open" onclick="ctxOpen(${esc(d.id)})"${on?' aria-current="true"':""}><b>${esc(d.title)}</b><small>${esc(d.type.replace("_"," "))} · ${esc(ctxWhen(d))}</small></button>
+      <button class="row-del write-only" aria-label="Delete ${esc(d.title)}" onclick="delContext(${esc(d.id)})">${XICON}</button></div>`;
+  }).join("")||`<p class="ctx-none">No notes dated in ${esc(fmtPeriod(currentPeriod))}. <button class="linkbtn" onclick="ctxScope='all';renderContextList()">Show all notes</button></p>`;
+  paintContextDetail();
+}
+function paintContextDetail(){
+  const d=ctxDocs.find(x=>x.id===ctxSel),view=$("ctx-view"),form=$("ctx-form");
+  form.style.display=!d&&canReview()?"":"none";
+  if(!d){view.style.display="none";return;}
+  view.style.display="";
+  view.innerHTML=`<span class="ctx-type">${esc(d.type.replace("_"," "))}</span><h2>${esc(d.title)}</h2><p class="ctx-body">${esc(d.body)}</p>
+    <dl><dt>Feeds</dt><dd>${d.metric_tags.length?d.metric_tags.map(t=>`<span class="ctx-tag">${esc(t)}</span>`).join(" "):"Every KPI"}</dd>
+    <dt>Applies to</dt><dd>${esc(ctxWhen(d,"long"))}</dd></dl>`;
+}
+function ctxOpen(id){ctxSel=id;ctxComposing=false;renderContextList();}
+function ctxNew(){
+  ctxSel=null;ctxComposing=true;renderContextList();$("ctx-form").style.display="";$("c-title").focus();
+  if(currentPeriod&&granularity==="month"&&!$("c-date").value)$("c-date").value=currentPeriod;
 }
 async function addContext(e){
   e.preventDefault();
   const tags=$("c-tags").value.split(",").map(s=>s.trim()).filter(Boolean);
   await api("/context",{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({type:$("c-type").value,title:$("c-title").value,body:$("c-body").value,metric_tags:tags,effective_date:$("c-date").value||null})});
-  toast("Added to Context Library");["c-title","c-body","c-tags","c-date"].forEach(id=>$(id).value="");loadContext();
+  toast("Added to the context library");["c-title","c-body","c-tags","c-date"].forEach(id=>$(id).value="");ctxComposing=false;ctxSel=null;loadContext();
 }
 async function delContext(id){
-  if(!await modalConfirm("Delete context note","Delete this context document? Narratives will no longer cite it.",{okLabel:"Delete"}))return;
+  if(!await modalConfirm("Delete context note","Delete this context note? Commentary will no longer cite it.",{okLabel:"Delete"}))return;
   try{await api(`/context/${id}`,{method:"DELETE"});toast("Deleted");loadContext();}catch(e){toast(e.message);}
 }
 
 /* ---------- import ---------- */
 let upload=null,profile=null,lastImport=null,importMode="new";
-function setStep(n){for(let i=1;i<=3;i++)$("st-"+i).className="step"+(i<n?" done":i===n?" active":"");
+let importStep=1,kpiLoading=false,kpiSaving=false,importLeaving=false;
+function setStep(n){importStep=n;for(let i=1;i<=3;i++){const el=$("st-"+i),done=i<n;
+    el.className="step"+(done?" done":i===n?" active":"");
+    if(i===n)el.setAttribute("aria-current","step");else el.removeAttribute("aria-current");
+    el.innerHTML=(done?'<svg class="step-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg><span class="visually-hidden">done · </span>':esc(i)+" · ")+esc(["Upload","Map columns","Pick KPIs"][i-1]);}
   $("imp-upload").style.display=n===1?"":"none";$("imp-map").style.display=n===2?"":"none";$("imp-kpis").style.display=n===3?"":"none";
   if(n!==2)$("imp-join-result").style.display="none";}
+function hasUnfinishedImport(){return importStep===3&&lastImport?.datasetId!=null;}
+async function leaveImport(){
+  if(kpiSaving||importLeaving)return false;
+  if(!hasUnfinishedImport())return true;
+  importLeaving=true;updateKpiSelection();
+  try{
+    closeSidebar();
+    const answer=modalConfirm("Leave import?","This dataset is unfinished. Delete it and leave, or cancel to keep choosing your KPIs.",{okLabel:"Delete and leave"});
+    $("modal-ok").focus?.();
+    if(!await answer)return false;
+    await api(`/datasets/${lastImport.datasetId}`,{method:"DELETE"});
+    resetImport();
+    try{await loadPeriods();}catch(e){$("import-banner").style.display="";$("import-banner").className="banner err";$("import-banner").innerHTML=`Unfinished import deleted, but the dataset list could not refresh: ${esc(e.message)} <button class="btn sm" onclick="loadPeriods()">Retry</button>`;}
+    toast("Unfinished import deleted");return true;
+  }catch(e){$("imp-result").innerHTML=`<div class="banner err">${esc(e.message)}. Your import is still open; try leaving again to retry.</div>`;return false;}
+  finally{importLeaving=false;updateKpiSelection();if(hasUnfinishedImport())$("imp-name").focus?.();}
+}
+async function requestImportAction(action){if(await leaveImport())return action();}
+function requestImportView(view){if(["import","data","datahub"].includes(view)||(!hasUnfinishedImport()&&!kpiSaving))return nav(view);return requestImportAction(()=>nav(view));}
+async function importRouteChanged(){
+  if(!routerReady)return;
+  if(!hasUnfinishedImport())return route();
+  const target=location.hash,here=routeHash(currentPlace.place?currentPlace:{tab:currentPlace.tab,period:currentPeriod});
+  if(target===here)return;
+  history.pushState(null,"",here);
+  if(await leaveImport()){history.replaceState(null,"",target);route();}
+}
 function dropFile(e){e.preventDefault();$("drop").classList.remove("drag");const f=e.dataTransfer.files[0];if(f)uploadFile(f);}
 function resetImport(){
   // Lets the user land back on step 1 and pick a DIFFERENT file. A bare file
   // input never re-fires 'change' for the same filename, and stale upload/
   // profile state would otherwise carry into the next attempt.
-  upload=null;profile=null;
+  upload=null;profile=null;lastImport=null;kpiLoading=false;
   const input=$("file-in");if(input)input.value="";
   $("imp-result").innerHTML="";$("map-warnings").style.display="none";$("map-hint").style.display="none";
   $("sheet-pick").style.display="none";$("tpl-banner").style.display="none";
@@ -2002,14 +2665,24 @@ async function onImportModeChange(){
   importMode=$("imp-mode").value;
   $("imp-target-wrap").style.display=importMode==="join"?"":"none";
   $("imp-suffix-wrap").style.display=importMode==="join"?"":"none";
-  $("imp-confirm-btn").textContent=importMode==="join"?"Match & attach budget":"Confirm & normalize";
+  $("imp-confirm-btn").textContent=importMode==="join"?"Match & attach budget":"Confirm columns";
   if(importMode==="join"){
     try{
       const d=await api("/datasets");
-      $("imp-target").innerHTML=(d.datasets||[]).map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join("")
+      $("imp-target").innerHTML=(d.datasets||[]).map(x=>`<option value="${esc(x.id)}">${esc(datasetDisplayName(x.name))} · ${esc(datasetCaption(x))}</option>`).join("")
         ||'<option value="">No datasets yet — import actuals first</option>';
     }catch{}
   }
+}
+// "Try it with sample data": the repo's synthetic export, run through the real import steps.
+async function importSample(btn){
+  if(btn)btn.disabled=true;
+  try{
+    const r=await fetch("/samples/fpa.csv");if(!r.ok)throw new Error(r.statusText||"Sample unavailable");
+    const file=new File([await r.text()],"Sample FP&A export.csv",{type:"text/csv"});
+    nav("datahub");await uploadFile(file);
+  }catch(e){toast("Couldn't load the sample: "+errMsg(e));}
+  finally{if(btn)btn.disabled=false;}
 }
 async function uploadFile(file){
   const fd=new FormData();fd.append("file",file);
@@ -2035,14 +2708,22 @@ async function loadSchema(){
   }else{wb.style.display="none";}
   renderMap();
 }
+// Initial role for a profiled column. A measure the profiler found to be the
+// same figure as another (amount_local vs amount_usd) starts as "ignore" —
+// the mapping warning already says only one is kept, and keeping both
+// doubles every metric and sums mixed currencies.
+function roleFor(c){
+  return c.redundant_with&&c.guessed_role==="measure"?"ignore":c.guessed_role;
+}
 const ROLES=["period","metric_label","measure","budget","id","quantity","price","dimension","ignore"];
 function renderMap(){
   if(!profile)return;const layout=$("layout-sel").value;
   $("map-holder").innerHTML=`<table class="map"><thead><tr><th>Column</th><th>Type</th><th>Sample</th><th>Role</th></tr></thead><tbody>`+
     profile.columns.map(c=>{const wp=profile.wide_period_cols.includes(c.column_name);
-      return`<tr><td><b>${esc(c.column_name)}</b>${layout==="wide"&&wp?' <span class="suggest">period col</span>':""}</td>
+      const role=roleFor(c);
+      return`<tr><td><b>${esc(c.column_name)}</b>${layout==="wide"&&wp?' <span class="suggest">period col</span>':""}${c.redundant_with&&role==="ignore"?` <span class="suggest">duplicate of ${esc(c.redundant_with)}</span>`:""}</td>
         <td>${esc(c.dtype)}</td><td class="samp">${c.sample_values.slice(0,3).map(esc).join(" · ")}</td>
-        <td>${layout==="wide"&&wp?'<span class="samp">melted</span>':`<select data-col="${esc(c.column_name)}" class="role" onchange="updateMapHint()">${ROLES.map(r=>`<option value="${r}" ${c.guessed_role===r?"selected":""}>${r.replace("_"," ")}</option>`).join("")}</select>`}</td></tr>`;
+        <td>${layout==="wide"&&wp?'<span class="samp">melted</span>':`<select data-col="${esc(c.column_name)}" class="role" aria-label="Role of column ${esc(c.column_name)}" onchange="updateMapHint()">${ROLES.map(r=>`<option value="${r}" ${role===r?"selected":""}>${r.replace("_"," ")}</option>`).join("")}</select>`}</td></tr>`;
     }).join("")+`</tbody></table>`;
   updateMapHint();
 }
@@ -2078,8 +2759,10 @@ async function confirmMapping(m){
   try{
     const res=await api(`/ingest/${upload.upload_id}/mapping?save_template=${$("save-tpl").checked}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(mapping)});
     $("imp-result").innerHTML="";
-    $("norm-summary").innerHTML=`✓ Normalized ${plural(res.rows_normalized,"row")} · ${plural(res.metrics.length,"metric")} · ${plural(res.periods.length,"period")} · ${res.facts_computed} facts${res.template_id?" · template saved":""}`;
-    lastImport={rows:res.rows_normalized,metrics:res.metrics.length,periods:res.periods.length};
+    $("norm-summary").innerHTML=`Read ${plural(res.rows_normalized,"row")}: ${plural(res.metrics.length,"KPI","KPIs")} across ${plural(res.periods.length,"period")}.${res.template_id?" The column mapping is saved for next month's file.":""}`;
+    // dataset_id is the dataset THIS import created; activeDatasetId is still
+    // whatever was selected before (or null) until loadDatasets() runs.
+    lastImport={rows:res.rows_normalized,metrics:res.metrics.length,periods:res.periods.length,datasetId:res.dataset_id??null};
     // Default the dataset name to the uploaded filename without its extension.
     const fn=(upload&&upload.filename)||"";
     $("imp-name").value=fn.replace(/\.[^.]+$/,"")||"Imported dataset";
@@ -2103,41 +2786,86 @@ async function confirmJoinBudget(){
     if(um.length)html+=`<div class="banner warn" style="margin-top:10px"><b>No matching metric found</b> for: ${um.map(esc).join(", ")}</div>`;
     if(up_.length)html+=`<div class="banner warn" style="margin-top:10px"><b>${plural(up_.length,"period")} had no actuals to attach a budget to</b> — the metric exists, but not for that month yet.</div>`;
     $("imp-join-result").style.display="";$("imp-join-result").innerHTML=html
-      +`<div style="margin-top:16px"><button class="btn primary" onclick="resetImport();nav('dashboard')">Done — view dashboard</button>
+      +`<div style="margin-top:16px"><button class="btn primary" onclick="finishBudgetJoin(${Number(targetId)})">Done — view dashboard</button>
          <button class="btn" style="margin-left:8px" onclick="resetImport()">Import another file</button></div>`;
   }catch(e){$("imp-result").innerHTML=`<div class="banner err">${warnIcon()}${esc(e.message)}</div>`;}
 }
+// QA #9: the dashboard showed pre-join facts ("vs plan –") until a full reload.
+async function finishBudgetJoin(targetId){
+  resetImport();
+  if(targetId&&targetId!==activeDatasetId)await activateDataset(targetId);
+  else await loadPeriods();
+  nav("dashboard");
+}
 async function applyTpl(id){const t=await api(`/templates/${id}`);await confirmMapping(t.mapping);toast("Saved mapping applied");}
+function humanizeKpiName(source){
+  const raw=String(source||"").trim(),acronyms={arr:"ARR",mrr:"MRR",mql:"MQL",mqls:"MQLs",sql:"SQL",sqls:"SQLs",cogs:"COGS",cac:"CAC",ltv:"LTV",ebitda:"EBITDA",roi:"ROI",roas:"ROAS",nps:"NPS",usd:"USD",eur:"EUR",gbp:"GBP"};
+  if(!raw.includes("_")&&raw!==raw.toLowerCase())return raw;
+  const words=raw.toLowerCase().replace(/_(usd|eur|gbp)$/," ").trim().replace(/closed_won/g,"closed-won").split(/[_\s]+/);
+  return words.map((w,i)=>acronyms[w]||(i===0?w.charAt(0).toUpperCase()+w.slice(1):w)).join(" ");
+}
+function kpiRows(){return [...document.querySelectorAll(".kpi-grid[data-src]")];}
+function selectKpis(include){kpiRows().forEach(r=>r.querySelector(".k-include").checked=include);updateKpiSelection();}
+function selectKpiEdits(select){kpiRows().forEach(r=>r.querySelector(".k-select").checked=select);updateKpiSelection();}
+function updateKpiSelection(){
+  const rows=kpiRows(),included=rows.filter(r=>r.querySelector(".k-include").checked).length,selected=rows.filter(r=>r.querySelector(".k-select").checked).length;
+  $("imp-finish").disabled=kpiLoading||kpiSaving||importLeaving||!included;
+  $("kpi-selection").textContent=kpiSaving?"Finishing import…":kpiLoading?"Loading KPI choices…":included?plural(included,"KPI")+" included":"Include at least one KPI to finish.";
+  $("kpi-bulk-apply").disabled=kpiLoading||kpiSaving||importLeaving||!selected;
+  $("kpi-bulk-selection").textContent=plural(selected,"row")+" selected for bulk edit";
+}
+function applyKpiBulk(){
+  const selected=kpiRows().filter(r=>r.querySelector(".k-select").checked);
+  if(!selected.length)return;
+  const fields=[["kpi-bulk-category",".k-cat"],["kpi-bulk-unit",".k-unit"],["kpi-bulk-direction",".k-dir"]],changes=fields.filter(([id])=>$(id).value.trim());
+  if(!changes.length){toast("Choose a category, unit or direction to apply");return;}
+  selected.forEach(r=>changes.forEach(([id,field])=>r.querySelector(field).value=$(id).value.trim()));
+  toast("Updated "+plural(selected.length,"KPI"));
+}
 async function loadKpiPicker(){
-  const metrics=await api(`/ingest/${upload.upload_id}/metrics`);
-  $("kpi-rows").innerHTML=`<div class="kpi-grid hdr"><span>Source metric</span><span>Display name</span><span>Category</span><span>Unit</span><span>Direction</span></div>`+
-    metrics.map(m=>{const s=m.suggestion||{};return`<div class="kpi-grid" data-src="${esc(m.source_metric)}">
-      <span><b>${esc(m.source_metric)}</b>${s.name?`<br><span class="suggest">→ ${esc(s.name)}</span>`:""}</span>
-      <input class="k-name" value="${esc(m.source_metric)}">
-      <input class="k-cat" value="${esc(s.category||"Uncategorized")}">
-      <select class="k-unit">${["USD","%","count"].map(u=>`<option ${u===(s.unit||"USD")?"selected":""}>${u}</option>`).join("")}</select>
-      <select class="k-dir"><option value="up" ${(s.direction_good||"up")==="up"?"selected":""}>↑ good</option><option value="down" ${s.direction_good==="down"?"selected":""}>↓ good</option></select></div>`;}).join("");
+  const current=lastImport;kpiLoading=true;updateKpiSelection();
+  $("kpi-rows").innerHTML='<div class="loading"><span class="spin"></span> Loading KPI choices…</div><div class="kpi-skeleton" aria-hidden="true"></div>';
+  const slow=setTimeout(()=>{if(kpiLoading&&lastImport===current)$("kpi-selection").textContent="Still loading KPI choices…";},4000);
+  try{
+    const metrics=await api(`/ingest/${upload.upload_id}/metrics`);if(lastImport!==current)return;
+    $("kpi-rows").innerHTML=metrics.length?`<div class="kpi-grid hdr"><span>Include / edit</span><span>Display name / source</span><span>Category</span><span>Unit</span><span>Direction</span></div>`+
+      metrics.map(m=>{const s=m.suggestion||{},row=esc(m.source_metric);return`<div class="kpi-grid" data-src="${row}">
+        <div class="kpi-checks"><label><input type="checkbox" class="k-include" checked aria-label="Include ${row}" onchange="updateKpiSelection()"> Include</label><label><input type="checkbox" class="k-select" aria-label="Select ${row} for bulk edit" onchange="updateKpiSelection()"> Bulk edit</label></div>
+        <label class="kpi-field"><span class="kpi-field-label">Display name</span><input class="k-name" aria-label="Display name for ${row}" value="${esc(humanizeKpiName(m.source_metric))}"><small class="kpi-source">Source: ${row}</small></label>
+        <label class="kpi-field"><span class="kpi-field-label">Category</span><input class="k-cat" aria-label="Category for ${row}" value="${esc(s.category||"Uncategorized")}"></label>
+        <label class="kpi-field"><span class="kpi-field-label">Unit</span><select class="k-unit" aria-label="Unit for ${row}">${["USD","%","count"].map(u=>`<option ${u===(s.unit||"USD")?"selected":""}>${esc(u)}</option>`).join("")}</select></label>
+        <label class="kpi-field"><span class="kpi-field-label">Direction</span><select class="k-dir" aria-label="Direction for ${row}"><option value="up" ${(s.direction_good||"up")==="up"?"selected":""}>Up is good</option><option value="down" ${s.direction_good==="down"?"selected":""}>Down is good</option></select></label></div>`;}).join(""):
+      '<div class="banner info">No KPIs were found. Leave this import to delete the unfinished dataset, then upload a file with metric values.</div>';
+  }catch(e){if(lastImport===current)$("kpi-rows").innerHTML=`<div class="banner err">${esc(e.message)} <button class="btn sm" onclick="loadKpiPicker()">Retry</button></div>`;}
+  finally{clearTimeout(slow);if(lastImport===current){kpiLoading=false;updateKpiSelection();}}
 }
 async function confirmKpis(){
-  const kpis=[...document.querySelectorAll(".kpi-grid[data-src]")].map(r=>({source_metric:r.dataset.src,display_name:r.querySelector(".k-name").value,category:r.querySelector(".k-cat").value,unit:r.querySelector(".k-unit").value,direction_good:r.querySelector(".k-dir").value}));
+  if(kpiSaving||importLeaving)return;
+  const kpis=[...document.querySelectorAll(".kpi-grid[data-src]")].filter(r=>r.querySelector(".k-include").checked).map(r=>({source_metric:r.dataset.src,display_name:r.querySelector(".k-name").value,category:r.querySelector(".k-cat").value,unit:r.querySelector(".k-unit").value,direction_good:r.querySelector(".k-dir").value}));
+  if(!kpis.length){updateKpiSelection();return;}
+  kpiSaving=true;updateKpiSelection();
   try{
   await api("/kpis",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({kpis})});
-  // Apply the chosen display name + domain to the freshly-created dataset.
+  // Apply the chosen display name + domain to the freshly-created dataset —
+  // by the id the import returned, never activeDatasetId (that would rename
+  // the previously selected dataset).
   const name=($("imp-name").value||"").trim(),domain=$("imp-domain").value;
-  if(activeDatasetId!=null&&(name||domain)){
-    try{await api(`/datasets/${activeDatasetId}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name||undefined,domain})});}catch{}
+  const newId=lastImport&&lastImport.datasetId;
+  if(newId!=null&&(name||domain)){
+    try{await api(`/datasets/${newId}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name||undefined,domain})});}
+    catch(e){toast("Imported, but couldn't save the dataset name: "+e.message);}
   }
-  resetImport();await loadPeriods();nav("dashboard");
+  const li=lastImport||{};resetImport();await loadPeriods();nav("dashboard");
   // Show a success banner on the dashboard with a one-click Generate action.
-  const li=lastImport||{};
   const el=$("import-banner");
   if(el){el.style.display="";el.className="banner ok";
     el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-      <span>Imported · ${plural(li.rows||0,"row")} · ${plural(kpis.length,"KPI")} · ${plural(li.periods||0,"period")}.</span>
-      <button class="btn sm primary" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Generate narratives</button>
-      <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">✕</button>`;
+      <span>Imported ${plural(li.rows||0,"row")}: ${plural(kpis.length,"KPI","KPIs")} across ${plural(li.periods||0,"period")}. Next, draft the commentary.</span>
+      <button class="write-only btn sm primary" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Draft commentary</button>
+      <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">${XICON}</button>`;
   }
-  }catch(e){toast("Import failed to finalize: "+e.message);}
+  }catch(e){$("imp-result").innerHTML=`<div class="banner err">Import failed to finalize: ${esc(e.message)} <button class="write-only btn sm" onclick="confirmKpis()">Retry</button></div>`;}
+  finally{kpiSaving=false;updateKpiSelection();}
 }
 
 // Entry point: boot() handles auth (creates the Supabase client, checks the

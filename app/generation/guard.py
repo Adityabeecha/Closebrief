@@ -10,12 +10,13 @@ durations and dates ("12-month trend", "March 1") are not treated as KPI
 figures.
 """
 
+import math
 import re
 
 from app.schemas import ComputedFact, ContextSnippet
 
 _NUMBER_RE = re.compile(
-    r"(?<![A-Za-z0-9])(-?\$?\d(?:[\d,]*\d)?(?:\.\d+)?)\s*(million|billion|thousand|[mbk](?![A-Za-z]))?\s*(%)?",
+    r"(?<![A-Za-z0-9])([+\-\u2212]?\$?\d(?:[\d,]*\d)?(?:\.\d+)?)\s*(million|billion|thousand|[mbk](?![A-Za-z]))?\s*(%)?",
     re.IGNORECASE,
 )
 
@@ -29,9 +30,11 @@ _MULTIPLIERS = {
 }
 
 # A bare integer immediately followed by one of these is a duration, not a KPI
-# figure ("12-month trend", "3 quarters").
+# figure ("12-month trend", "3 quarters"). Streak phrasing puts an adjective
+# in between ("4 consecutive months") — that count is ours, not the model's.
 _DURATION_AFTER = re.compile(
-    r"^\s*-?\s*(month|months|day|days|week|weeks|quarter|quarters|year|years|mo|yr)\b",
+    r"^\s*-?\s*(?:(?:consecutive|straight|successive|sequential|trailing|full)\s+)?"
+    r"(month|months|day|days|week|weeks|quarter|quarters|year|years|mo|yr)\b",
     re.IGNORECASE,
 )
 # A bare integer immediately preceded by a month name is a calendar day
@@ -41,19 +44,27 @@ _MONTH_BEFORE = re.compile(
     r"november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\s*$",
     re.IGNORECASE,
 )
+_ISO_DATE = re.compile(r"(?<![\w$])\d{4}-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12]\d|3[01]))?(?![\d%])")
+
+
+class _CompactAmount(float):
+    """Keep a whole-$K token's rounding precision through shared numeric attribution."""
 
 
 def _normalize(raw: str, suffix: str, percent: str) -> tuple[float, bool] | None:
     suffix = suffix or ""
     percent = percent or ""
-    cleaned = raw.replace("$", "").replace(",", "")
+    cleaned = raw.replace("$", "").replace(",", "").replace("\u2212", "-")
     try:
         base = float(cleaned)
     except ValueError:
         return None
     is_percent = bool(percent)
     multiplier = 1.0 if is_percent else _MULTIPLIERS.get(suffix.lower(), 1.0)
-    return base * multiplier, is_percent
+    value = base * multiplier
+    if not is_percent and "$" in raw and suffix.lower() in ("k", "thousand") and "." not in cleaned:
+        value = _CompactAmount(value)
+    return value, is_percent
 
 
 def extract_numbers(text: str) -> list[tuple[float, bool]]:
@@ -73,10 +84,13 @@ def _is_date_or_duration(match: re.Match, text: str, raw: str, suffix: str, perc
     calendar day, rather than a KPI figure."""
     if percent or suffix or "$" in raw or "." in raw:
         return False
-    digits = raw.replace(",", "").lstrip("-")
+    digits = raw.replace(",", "").lstrip("+-\u2212")
     if not digits.isdigit():
         return False
-    after = text[match.end() : match.end() + 12]
+    if any(date.start() <= match.start(1) and match.end(1) <= date.end()
+           for date in _ISO_DATE.finditer(text)):
+        return True
+    after = text[match.end() : match.end() + 32]
     before = text[max(0, match.start() - 12) : match.start()]
     return bool(_DURATION_AFTER.match(after) or _MONTH_BEFORE.search(before))
 
@@ -108,14 +122,14 @@ def _allowed_values(fact: ComputedFact) -> tuple[set[float], set[float]]:
     return magnitudes, percents
 
 
-def _context_values(context: list[ContextSnippet] | None) -> set[float]:
-    """Absolute magnitudes of every number appearing in provided context bodies.
-    These are grounding the model is allowed to cite (PRD Section 11)."""
-    values: set[float] = set()
+def _context_values(context: list[ContextSnippet] | None) -> tuple[set[float], set[float]]:
+    """Keep context magnitudes and percentages in the same buckets as facts."""
+    magnitudes: set[float] = set()
+    percents: set[float] = set()
     for snippet in context or []:
-        for value, _is_percent in extract_numbers(snippet.body):
-            values.add(abs(value))
-    return values
+        for value, is_percent in extract_numbers(snippet.body):
+            (percents if is_percent else magnitudes).add(abs(value))
+    return magnitudes, percents
 
 
 def _excluded_tokens(fact: ComputedFact) -> set[float]:
@@ -126,7 +140,7 @@ def _excluded_tokens(fact: ComputedFact) -> set[float]:
     try:
         year_str, month_str = fact.period.split("-")
         year = int(year_str)
-        excluded.update({float(year), float(year - 1), float(int(month_str))})
+        excluded.update({float(year), float(year - 1)})
     except (ValueError, IndexError):
         pass
     return excluded
@@ -137,6 +151,12 @@ def _matches_any(candidate: float, allowed: set[float], tolerance_pct: float) ->
         tolerance = max(0.5, abs(value) * tolerance_pct)
         if abs(abs(candidate) - abs(value)) <= tolerance:
             return True
+        # Only the UI's whole-thousand currency form gets this extra match.
+        # Do not widen the tolerance for bare counts, percentages or coarse $M.
+        if isinstance(candidate, _CompactAmount) and 1e3 <= abs(value) < 1e6:
+            rounded = math.floor(abs(value) / 1e3 + 0.5) * 1e3
+            if abs(candidate) == rounded:
+                return True
     return False
 
 
@@ -162,7 +182,8 @@ def _check_multiplier_claims(narrative: str, percents: set[float]) -> list[float
     unverified = []
     for word in _MULTIPLIER_RE.findall(narrative):
         implied = _MULTIPLIER_WORDS[word.lower()]
-        if not _matches_any(implied, percents, tolerance_pct=0.10):
+        if not any(abs(implied - value) <= max(0.5, abs(value) * 0.10)
+                   for value in percents):
             unverified.append(implied)
     return unverified
 
@@ -179,7 +200,7 @@ def check_faithfulness(
     """
     magnitudes, percents = _allowed_values(fact)
     excluded = _excluded_tokens(fact)
-    context_vals = _context_values(context)
+    context_magnitudes, context_percents = _context_values(context)
 
     unverified: list[float] = []
     for match in _NUMBER_RE.finditer(narrative):
@@ -189,7 +210,7 @@ def check_faithfulness(
             continue
         value, is_percent = norm
 
-        if value in excluded or -value in excluded:
+        if not percent and not suffix and "$" not in raw and "." not in raw and value in excluded:
             continue
         if _is_date_or_duration(match, narrative, raw, suffix, percent):
             continue
@@ -197,6 +218,7 @@ def check_faithfulness(
         allowed = percents if is_percent else magnitudes
         if _matches_any(value, allowed, tolerance_pct):
             continue
+        context_vals = context_percents if is_percent else context_magnitudes
         if _matches_any(value, context_vals, tolerance_pct):
             continue
         unverified.append(value)
@@ -204,3 +226,47 @@ def check_faithfulness(
     unverified.extend(_check_multiplier_claims(narrative, percents))
 
     return (len(unverified) == 0, unverified)
+
+
+def faithfulness_messages(narrative: str, fact: ComputedFact,
+                          context: list[ContextSnippet] | None = None) -> list[str]:
+    """Human explanations only; check_faithfulness's numeric contract is unchanged."""
+    passed, unverified = check_faithfulness(narrative, fact, context)
+    if passed:
+        return []
+    def amount(value, percent=False):
+        if percent:
+            return f"{value:g}%"
+        if (fact.unit or '').lower() in ('count', 'customers', 'logos'):
+            return f"{value:,.0f}"
+        sign = '-' if value < 0 else ''
+        value = abs(value)
+        if value >= 1e6:
+            return f"{sign}${value / 1e6:.2f}M"
+        if value >= 1e3:
+            return f"{sign}${value / 1e3:g}K"
+        return f"{sign}${value:g}"
+    magnitudes, percents = _allowed_values(fact)
+    ctx_magnitudes, ctx_percents = _context_values(context)
+    excluded = _excluded_tokens(fact)
+    messages = []
+    for match in _NUMBER_RE.finditer(narrative):
+        norm = _normalize(*match.groups())
+        if not norm:
+            continue
+        value, percent = norm
+        raw, suffix, percent_token = match.groups()
+        if not percent_token and not suffix and '$' not in raw and '.' not in raw and value in excluded:
+            continue
+        if _is_date_or_duration(match, narrative, raw, suffix, percent_token):
+            continue
+        if _matches_any(value, percents if percent else magnitudes, .02) or _matches_any(value, ctx_percents if percent else ctx_magnitudes, .02):
+            continue
+        token = match.group().strip()
+        actual = amount(fact.value, (fact.unit or '').lower() in ('%', 'percent'))
+        # Avoid implying a percent mismatch is the current metric's currency value.
+        suffix = f" (the actual is {actual})" if not norm[1] or (fact.unit or '').lower() in ('%', 'percent') else ''
+        messages.append(f"{token} doesn't match any computed figure{suffix}")
+    if not messages:
+        messages.append("The claimed change doesn't match the computed figures. Review the change against the source data.")
+    return list(dict.fromkeys(messages))

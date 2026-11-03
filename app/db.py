@@ -129,6 +129,7 @@ CREATE TABLE IF NOT EXISTS generated_reports (
 
 CREATE TABLE IF NOT EXISTS uploads (
     id TEXT PRIMARY KEY,
+    workspace_id INTEGER,
     filename TEXT NOT NULL,
     file_path TEXT NOT NULL,
     sheets TEXT NOT NULL DEFAULT '[]',
@@ -305,6 +306,7 @@ CREATE TABLE IF NOT EXISTS digest_runs (
 
 # Columns added after first release; applied to pre-existing SQLite DBs on startup.
 _SQLITE_MIGRATIONS = [
+    "ALTER TABLE uploads ADD COLUMN workspace_id INTEGER",
     "ALTER TABLE metric_values ADD COLUMN quantity REAL",
     "ALTER TABLE metric_values ADD COLUMN price REAL",
     "ALTER TABLE metric_values ADD COLUMN budget_quantity REAL",
@@ -419,7 +421,7 @@ class PostgresConnection:
     def _set_rls_scope(self) -> None:
         """Set the app.workspace_id GUC from the current tenant scope so RLS
         policies filter to it. Empty string = 'unscoped' (policies allow all).
-        Best-effort — a failure here must never break the connection."""
+        Failure must prevent the connection from reaching application queries."""
         try:
             from app.datasets import current_workspace
             ws = current_workspace()
@@ -431,6 +433,7 @@ class PostgresConnection:
                 self._raw.rollback()
             except Exception:
                 pass
+            raise
 
     def execute(self, sql: str, params=()):
         pg_sql = _translate(sql, has_params=bool(params))
@@ -455,23 +458,20 @@ class PostgresConnection:
 
     def close(self):
         if self._pool is not None:
-            # Clear the tenant GUC so a pooled connection never carries one
-            # request's workspace scope into the next checkout.
-            if settings.rls_enabled:
-                try:
-                    self._raw.execute("SELECT set_config('app.workspace_id', '', false)")
-                    self._raw.commit()
-                except Exception:
-                    pass
             # Return to the pool clean; psycopg resets state on putconn. If the
             # rollback fails the connection is poisoned (e.g. aborted txn on a
             # broken socket) — discard it instead of handing the fault to the
             # next request that draws it from the pool.
             try:
+                # Discard unfinished application work before scope cleanup.
                 self._raw.rollback()
+                if settings.rls_enabled:
+                    self._raw.execute("SELECT set_config('app.workspace_id', '', false)")
+                    self._raw.commit()
             except Exception:
                 try:
-                    self._pool.putconn(self._raw, close=True)
+                    self._raw.close()
+                    self._pool.putconn(self._raw)
                 except Exception:
                     pass
                 return
@@ -505,7 +505,11 @@ def get_connection():
         pool = _get_pg_pool()
         conn = PostgresConnection(pool.getconn(), pool)
         if settings.rls_enabled:
-            conn._set_rls_scope()   # RLS backstop: scope this connection to the tenant
+            try:
+                conn._set_rls_scope()
+            except Exception:
+                conn.close()
+                raise
         return conn
     Path(settings.db_path).parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(settings.db_path)

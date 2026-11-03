@@ -10,6 +10,7 @@ and accounting negatives ("(1,200)" -> -1200) stripped. Periods are parsed to
 """
 
 import json
+import math
 import re
 import sqlite3
 from typing import Optional
@@ -113,6 +114,8 @@ def coerce_value(raw) -> float | None:
         v = float(s)
     except ValueError:
         return None
+    if not math.isfinite(v):
+        raise MappingError("Numeric values must be finite")
     return -v if negative else v
 
 
@@ -199,6 +202,10 @@ def _drop_total_rows(df: pd.DataFrame, metric_col: str | None, id_col: str | Non
 def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
     """Return the canonical long-format DataFrame."""
     if mapping.layout == "long":
+        for field in ("metric_col", "quantity_col", "price_col", "budget_quantity_col", "budget_price_col"):
+            column = getattr(mapping, field)
+            if column:
+                _check_col(df, column, field)
         literal_period = parse_period(mapping.period_literal) if mapping.period_literal else None
         period_col = None if literal_period else _require(mapping, "period_col")
         if not mapping.value_col and not mapping.value_cols:
@@ -424,7 +431,7 @@ def match_budget_to_dataset(
             metric_id = by_exact.get(metric)
         if metric_id is None:
             candidates = by_normalized.get(_normalize_label(metric), [])
-            if candidates:
+            if len(candidates) == 1:
                 matched_name, metric_id = candidates[0]
         if metric_id is None:
             unmatched_metric.add(metric)

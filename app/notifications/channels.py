@@ -37,14 +37,23 @@ def validate_public_url(url: str) -> str:
     """
     try:
         parsed = urlparse(url)
-    except ValueError as exc:
-        raise NotificationError(f"Invalid URL: {url!r}") from exc
+        port = parsed.port
+    except ValueError:
+        # URLs may contain webhook tokens; never echo them in validation errors.
+        raise NotificationError("Invalid webhook URL or port") from None
     if parsed.scheme not in ("http", "https") or not parsed.hostname:
         raise NotificationError("Webhook URL must be an http(s) URL")
+    if parsed.username is not None or parsed.password is not None:
+        raise NotificationError("Webhook URL must not contain embedded credentials")
     try:
-        infos = socket.getaddrinfo(parsed.hostname, parsed.port or 443, proto=socket.IPPROTO_TCP)
+        infos = socket.getaddrinfo(
+            parsed.hostname, port if port is not None else (443 if parsed.scheme == "https" else 80),
+            proto=socket.IPPROTO_TCP,
+        )
     except OSError as exc:
         raise NotificationError(f"Could not resolve host {parsed.hostname!r}") from exc
+    if not infos:
+        raise NotificationError("Webhook host did not resolve to a public address")
     for info in infos:
         ip = ipaddress.ip_address(info[4][0])
         if (ip.is_private or ip.is_loopback or ip.is_link_local
@@ -53,6 +62,28 @@ def validate_public_url(url: str) -> str:
                 f"Webhook host {parsed.hostname!r} resolves to a non-public address — blocked"
             )
     return url
+
+
+class _PublicRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        validate_public_url(newurl)
+        cross_origin = (urlparse(req.full_url).scheme, urlparse(req.full_url).netloc) != (
+            urlparse(newurl).scheme, urlparse(newurl).netloc)
+        if cross_origin and req.get_method() not in ("GET", "HEAD"):
+            raise NotificationError("Cross-origin redirects for delivery requests are not allowed")
+        redirected = super().redirect_request(req, fp, code, msg, headers, newurl)
+        if cross_origin and redirected is not None:
+            # Public downloads (including Sheets exports) may change host, but
+            # authentication/custom headers belong only to the original origin.
+            redirected.headers.clear()
+            redirected.unredirected_hdrs.clear()
+        return redirected
+
+
+def public_urlopen(req, timeout=10):
+    validate_public_url(req.full_url)
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _PublicRedirectHandler())
+    return opener.open(req, timeout=timeout)
 
 
 class NotificationChannel:
@@ -74,7 +105,7 @@ def _http_post_json(url: str, payload: dict, headers: dict | None = None, timeou
     req.add_header("Content-Type", "application/json")
     for k, v in (headers or {}).items():
         req.add_header(k, v)
-    with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 - url is operator-configured
+    with public_urlopen(req, timeout=timeout) as resp:
         return resp.status
 
 
@@ -182,7 +213,7 @@ class WebhookChannel(NotificationChannel):
         req = urllib.request.Request(self._url(), data=body, method="POST")
         for k, v in headers.items():
             req.add_header(k, v)
-        with urllib.request.urlopen(req, timeout=10):  # noqa: S310 - operator-configured url
+        with public_urlopen(req, timeout=10):
             pass
 
     def send_digest(self, period: str, items: list[dict]) -> None:

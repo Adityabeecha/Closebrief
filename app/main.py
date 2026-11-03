@@ -1,6 +1,7 @@
 import hmac
 import json
 import logging
+import re
 import time
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
@@ -24,17 +25,19 @@ from app.compute.aggregate import (
     sort_key,
     year_ago_key,
 )
+from app.compute.availability import has_usable_value
 from app.compute.correlations import (
     compare_periods,
     compute_correlations,
     correlations_for_metric,
     detect_consecutive_trends,
+    streak_from_history,
 )
 from app.compute.formula import FormulaError
 from app.compute.funnel import compute_funnel
 from app.compute.kpis import compute_and_store
 from app.compute.pvm import bridge_for_metric_row
-from app.config import auth_active, google_enabled, resolved_vector_backend, settings
+from app.config import auth_active, check_production_auth, google_enabled, resolved_vector_backend, settings
 from app.context.conflicts import find_conflicts
 from app.context.store import ContextStore
 from app.datasets import (
@@ -73,10 +76,11 @@ from app.ingestion.upload import (
     MAX_UPLOAD_BYTES,
     UploadError,
     create_upload,
+    get_upload,
     load_upload_frame,
     upload_sheet_period,
 )
-from app.kpis.library import KPI_LIBRARY, suggest_kpi
+from app.kpis.library import library_listing, suggest_import_defaults
 from app.notifications.scheduler import deliver as notif_deliver
 from app.retrieval.retrieve import retrieve
 from app.scheduling import record_digest_run
@@ -115,7 +119,9 @@ logger = logging.getLogger("closebrief")
 async def lifespan(_app: "FastAPI"):
     """Startup: create/migrate schema, add the hot /facts index, and (in demo
     mode) seed the sample dataset off-thread. Failures in the optional steps are
-    logged, never fatal — boot and the health check must not be blocked."""
+    logged, never fatal — boot and the health check must not be blocked.
+    The one fatal check is production auth with no sign-in provider."""
+    check_production_auth()
     try:
         init_db()
     except Exception:  # noqa: BLE001
@@ -179,7 +185,8 @@ from app.services import log_llm_call as _log_llm_call  # noqa: E402
 # the frontend needs to boot the login form, and the API docs.
 # /app.js is the shell's own script (split out of index.html): a browser cannot
 # attach a bearer token to <script src>, so gating it 401s the entire frontend.
-_OPEN_PATHS = {"/", "/app.js", "/health", "/auth/config", "/auth/google", "/openapi.json", "/docs", "/redoc"}
+_OPEN_PATHS = {"/", "/app", "/theme.css", "/app.js", "/health", "/auth/config", "/auth/google", "/openapi.json", "/docs", "/redoc",
+               "/samples/fpa.csv"}
 
 
 
@@ -388,10 +395,32 @@ _UI_INDEX = Path(__file__).resolve().parent.parent / "ui" / "web" / "index.html"
 
 
 @app.get("/", include_in_schema=False)
+def ui_home() -> FileResponse:
+    # Public home page. Old deep links (/#metric=...) are forwarded to /app by
+    # the page itself, since the fragment never reaches the server.
+    return FileResponse(_UI_INDEX.parent / "home.html", headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/app", include_in_schema=False)
 def ui_root() -> FileResponse:
     # no-cache: browsers must revalidate so UI fixes are picked up immediately
     # (stale cached copies of this shell caused hard-to-debug auth errors).
     return FileResponse(_UI_INDEX, headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/samples/fpa.csv", include_in_schema=False)
+def sample_fpa_csv() -> FileResponse:
+    # The synthetic sample export behind "Try it with sample data" on a new
+    # workspace. Public on purpose: it is the same file the repo ships.
+    return FileResponse(_UI_INDEX.parent.parent.parent / "data" / "sample_fpa.csv", media_type="text/csv",
+                        filename="sample_fpa.csv")
+
+
+@app.get("/theme.css", include_in_schema=False)
+def ui_theme() -> FileResponse:
+    # Design tokens shared by the home page and the app.
+    return FileResponse(_UI_INDEX.parent / "theme.css", media_type="text/css",
+                        headers={"Cache-Control": "no-cache"})
 
 
 # Vendored frontend libraries served from our own origin (no CDN dependency, so
@@ -700,7 +729,7 @@ def rename_dataset(dataset_id: int, payload: dict, _: CurrentUser = Depends(requ
         raise HTTPException(status_code=422, detail=f"Unknown domain: {domain}")
     conn = get_connection()
     try:
-        if conn.execute("SELECT 1 FROM datasets WHERE id = ?", (dataset_id,)).fetchone() is None:
+        if conn.execute(f"SELECT 1 FROM datasets WHERE id = ? AND {_scope_pred()}", (dataset_id,)).fetchone() is None:
             raise HTTPException(status_code=404, detail=f"Dataset {dataset_id} not found")
         if name:
             conn.execute("UPDATE datasets SET name = ? WHERE id = ?", (name.strip()[:120], dataset_id))
@@ -760,20 +789,20 @@ def _chart_data(conn, metric_id: int, metric_name: str, period: str) -> dict:
         """,
         (metric_id, period),
     ).fetchall()
+    current = trend_rows[0] if trend_rows and trend_rows[0]["period"] == period else None
+    return _chart_from_rows(trend_rows, current, _load_bridge(conn, metric_name, period))
+
+
+def _chart_from_rows(history_desc, current, vb: dict | None) -> dict:
+    """Build chart_data from a metric's metric_values rows (newest first) and its
+    already-resolved P/V/M bridge."""
     trend = [
         {"period": r["period"], "value": r["value"], "budget": r["budget"]}
-        for r in reversed(trend_rows)
+        for r in reversed(history_desc[:12])
     ]
-
-    current = conn.execute(
-        "SELECT value, budget FROM metric_values WHERE metric_id = ? AND period = ?",
-        (metric_id, period),
-    ).fetchone()
     budget_vs_actual = (
         {"actual": current["value"], "budget": current["budget"]} if current else None
     )
-
-    vb = _load_bridge(conn, metric_name, period)
     bridge = None
     if vb is not None:
         bridge = [
@@ -781,8 +810,48 @@ def _chart_data(conn, metric_id: int, metric_name: str, period: str) -> dict:
             {"component": "Price", "impact": vb["price"]},
             {"component": "Mix", "impact": vb["mix"]},
         ]
-
     return {"trend": trend, "budget_vs_actual": budget_vs_actual, "variance_bridge": bridge}
+
+
+def _prefetch_cards(conn, names_by_id: dict[int, str], period: str) -> dict[int, tuple[dict, dict | None]]:
+    """chart_data and trend streak for every dashboard card in three queries.
+    Per card this was ~7 round trips (trend, current, bridge x3, streak x2),
+    which on a remote Postgres made /facts take ~9 s for 7 KPIs."""
+    if not names_by_id:
+        return {}
+    ids = list(names_by_id)
+    ph = ",".join("?" * len(ids))
+    history: dict[int, list] = {}
+    for r in conn.execute(
+        f"""SELECT metric_id, period, value, budget, quantity, budget_quantity, price, budget_price
+            FROM metric_values WHERE metric_id IN ({ph}) AND period <= ?
+            ORDER BY metric_id, period DESC""",
+        (*ids, period),
+    ).fetchall():
+        history.setdefault(r["metric_id"], []).append(r)
+    pvm = {
+        r["metric_id"]: r
+        for r in conn.execute(
+            f"SELECT metric_id, volume, price, mix FROM pvm_bridges WHERE metric_id IN ({ph}) AND period = ?",
+            (*ids, period),
+        ).fetchall()
+    }
+    moms: dict[int, list] = {}
+    for r in conn.execute(
+        f"""SELECT metric_id, period, mom_pct FROM computed_facts
+            WHERE metric_id IN ({ph}) AND mom_pct IS NOT NULL ORDER BY metric_id, period""",
+        tuple(ids),
+    ).fetchall():
+        moms.setdefault(r["metric_id"], []).append((r["period"], r["mom_pct"]))
+    out = {}
+    for mid, name in names_by_id.items():
+        h = history.get(mid, [])
+        current = h[0] if h and h[0]["period"] == period else None
+        out[mid] = (
+            _chart_from_rows(h, current, _bridge_from_rows(pvm.get(mid), current)),
+            streak_from_history(moms.get(mid, []), period, name),
+        )
+    return out
 
 
 def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_charts: bool = True) -> list[dict]:
@@ -952,9 +1021,14 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
                     if fr["user_email"] is not None:
                         reviewer_by_report[fr["report_id"]] = fr["user_email"]
 
+        card_data = _prefetch_cards(
+            conn,
+            {r["metric_id"]: r["metric"] for r in rows if has_usable_value(r["metric_id"], r["value"])},
+            period,
+        )
         out = []
         for r in rows:
-            has_data = r["metric_id"] is not None and r["value"] is not None
+            has_data = has_usable_value(r["metric_id"], r["value"])
             report = reports_by_metric.get(r["metric_id"]) if has_data else None
             edited = edited_by_report.get(report["id"]) if report else None
             reviewer = reviewer_by_report.get(report["id"]) if report else None
@@ -988,14 +1062,8 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
                 "latency_ms": report["latency_ms"] if (report and sensitive) else None,
                 "generated_by": report["user_email"] if (report and sensitive) else None,
                 "reviewed_by": reviewer if (report and sensitive) else None,
-                "chart_data": (
-                    _chart_data(conn, r["metric_id"], r["metric"], period)
-                    if include_charts and has_data else None
-                ),
-                "trend_streak": (
-                    detect_consecutive_trends(conn, r["metric_id"], period)
-                    if has_data else None
-                ),
+                "chart_data": card_data[r["metric_id"]][0] if include_charts and has_data else None,
+                "trend_streak": card_data[r["metric_id"]][1] if has_data else None,
             })
         return out
     finally:
@@ -1010,7 +1078,7 @@ def ingest(file: UploadFile, user: CurrentUser = Depends(require_write)) -> Inge
 
     Sync def (not async): the parse/compute below is blocking CPU/IO work, so
     FastAPI runs it in a threadpool instead of stalling the event loop."""
-    raw = file.file.read()
+    raw = file.file.read(MAX_UPLOAD_BYTES + 1)
     if len(raw) > MAX_UPLOAD_BYTES:
         raise HTTPException(
             status_code=413,
@@ -1040,7 +1108,7 @@ def ingest(file: UploadFile, user: CurrentUser = Depends(require_write)) -> Inge
 @app.post("/ingest/upload")
 def ingest_upload(file: UploadFile, _: CurrentUser = Depends(require_write)) -> dict:
     # Sync def: create_upload does blocking pandas work (size cap enforced there).
-    raw = file.file.read()
+    raw = file.file.read(MAX_UPLOAD_BYTES + 1)
     conn = get_connection()
     try:
         return create_upload(conn, raw, file.filename or "upload.csv")
@@ -1170,22 +1238,51 @@ def ingest_join_budget(upload_id: str, payload: dict,
         conn.close()
 
 
+_GROUP_DIM = re.compile(r"account_?(group|type|class|section)|^(group|class|section|category)$", re.I)
+
+
+def _metric_ledger_hints(canonical) -> dict[str, tuple[str | None, str | None]]:
+    """metric -> (account group, account code) from the upload itself: the
+    most common value of an account-group-like dimension, and the first id.
+    These are the customer's own classification, so the KPI picker trusts
+    them over name keywords."""
+    hints: dict[str, tuple[str | None, str | None]] = {}
+    for metric, rows in canonical.groupby("metric", sort=False):
+        group = None
+        groups: list[str] = []
+        for raw in rows["dimensions"].dropna():
+            try:
+                dims = json.loads(raw)
+            except (TypeError, ValueError):
+                continue
+            groups += [str(v) for k, v in dims.items() if _GROUP_DIM.search(k) and v not in ("", "nan", "None")]
+        if groups:
+            group = max(set(groups), key=groups.count)
+        ids = rows["id"].dropna() if "id" in rows else []
+        code = str(ids.iloc[0]) if len(ids) else None
+        hints[metric] = (group, code)
+    return hints
+
+
 @app.get("/ingest/{upload_id}/metrics")
 def ingest_metrics(upload_id: str, _: CurrentUser = Depends(require_write)) -> list[dict]:
     """Distinct metric names in this upload's normalized data, each with a
     KPI-library suggestion for auto-filling category/unit/direction."""
     conn = get_connection()
     try:
-        row = conn.execute("SELECT mapping FROM uploads WHERE id = ?", (upload_id,)).fetchone()
-        if row is None:
-            raise HTTPException(status_code=404, detail=f"Upload {upload_id} not found")
+        try:
+            row = get_upload(conn, upload_id)
+        except UploadError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
         if not row["mapping"]:
             raise HTTPException(status_code=409, detail="Confirm a mapping first")
         mapping = MappingSpec(**json.loads(row["mapping"]))
         df = load_upload_frame(conn, upload_id)
         canonical = normalize(df, mapping)
+        hints = _metric_ledger_hints(canonical)
         return [
-            {"source_metric": m, "suggestion": suggest_kpi(m)}
+            {"source_metric": m,
+             "suggestion": suggest_import_defaults(m, *hints.get(m, (None, None)))}
             for m in sorted(canonical["metric"].unique())
         ]
     finally:
@@ -1318,7 +1415,7 @@ def kpi_library(domain: str | None = None, _: CurrentUser = Depends(require_read
     """KPI suggestions. Defaults to FP&A; pass ?domain= for a domain's library."""
     if domain and registry.has(domain):
         return get_domain(domain).kpi_library
-    return [{k: v for k, v in kpi.items() if k != "match"} for kpi in KPI_LIBRARY]
+    return library_listing()
 
 
 @app.post("/compute")
@@ -1360,8 +1457,7 @@ def _load_bridge(conn, metric: str, period: str) -> dict | None:
         (metric_id, period),
     ).fetchone()
     if row is not None:
-        return {"volume": row["volume"], "price": row["price"], "mix": row["mix"]}
-
+        return _bridge_from_rows(row, None)
     mv = conn.execute(
         """
         SELECT quantity, budget_quantity, price, budget_price
@@ -1369,9 +1465,17 @@ def _load_bridge(conn, metric: str, period: str) -> dict | None:
         """,
         (metric_id, period),
     ).fetchone()
-    if mv:
+    return _bridge_from_rows(None, mv)
+
+
+def _bridge_from_rows(pvm_row, mv_row) -> dict | None:
+    """Stored multi-item P/V/M bridge if there is one, else an on-the-fly
+    single-row bridge from the period's qty/price detail."""
+    if pvm_row is not None:
+        return {"volume": pvm_row["volume"], "price": pvm_row["price"], "mix": pvm_row["mix"]}
+    if mv_row:
         vb = bridge_for_metric_row(
-            mv["quantity"], mv["budget_quantity"], mv["price"], mv["budget_price"]
+            mv_row["quantity"], mv_row["budget_quantity"], mv_row["price"], mv_row["budget_price"]
         )
         if vb is not None:
             return {"volume": vb.volume, "price": vb.price, "mix": vb.mix}
@@ -1774,6 +1878,14 @@ def board_pack(period: str, user: CurrentUser = Depends(require_read)) -> HTMLRe
             ds_name = row["name"] if row else None
     finally:
         conn.close()
+    from app.board_pack import collect_facts
+    conn = get_connection()
+    try:
+        approved = {f["metric"]: f["narrative"] for f in collect_facts(conn, ds, period)} if ds else {}
+        for fact in facts:
+            fact["narrative"] = approved.get(fact["metric"])
+    finally:
+        conn.close()
     doc = build_board_pack_html(facts, period, {"dataset_name": ds_name})
     return HTMLResponse(doc)
 
@@ -1842,7 +1954,8 @@ def remove_schedule(job_id: int, _: CurrentUser = Depends(require_admin)) -> Non
 def digest_history(_: CurrentUser = Depends(require_read)) -> list[dict]:
     conn = get_connection()
     try:
-        return scheduling.list_digest_runs(conn, active_dataset_id(conn))
+        dataset_id = active_dataset_id(conn)
+        return scheduling.list_digest_runs(conn, dataset_id) if dataset_id is not None else []
     finally:
         conn.close()
 
@@ -2128,6 +2241,7 @@ def set_workspace_limit(ws_id: int, payload: dict, user: CurrentUser = Depends(g
 
 # ---- Feature routers split out of this module (app/routers/*) ----
 from app.routers import admin as _admin_router  # noqa: E402
+from app.routers import close as _close_router  # noqa: E402
 from app.routers import insights as _insights_router  # noqa: E402
 from app.routers import notifications as _notif_router  # noqa: E402
 from app.routers import review as _review_router  # noqa: E402
@@ -2135,4 +2249,5 @@ from app.routers import review as _review_router  # noqa: E402
 app.include_router(_admin_router.router)
 app.include_router(_notif_router.router)
 app.include_router(_review_router.router)
+app.include_router(_close_router.router)
 app.include_router(_insights_router.router)

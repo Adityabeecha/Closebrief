@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import urllib.request
 
-from app.notifications.channels import validate_public_url
+from app.notifications.channels import public_urlopen, validate_public_url
 
 KINDS = ("csv_url", "google_sheets")
 _MAX_SYNC_BYTES = 10 * 1024 * 1024   # same 10MB cap as manual upload
@@ -41,7 +41,7 @@ def fetch_bytes(url: str) -> bytes:
     size cap. Google's export URL redirects; urllib follows it."""
     validate_public_url(url)   # reuse the webhook SSRF guard
     req = urllib.request.Request(url, headers={"User-Agent": "Closebrief-Connector/1.0"})
-    with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310 - operator-configured, guarded
+    with public_urlopen(req, timeout=30) as resp:
         return resp.read(_MAX_SYNC_BYTES + 1)
 
 
@@ -155,8 +155,10 @@ def sync_connector(conn, connector_id: int, workspace_id: int | None, *, fetch=f
             set_active(conn, ds_id)
         _finish("ok", None)
         return {"status": "ok", "dataset_id": ds_id, "rows": len(df)}
-    except Exception as e:  # noqa: BLE001 - report per-connector, never crash the tick
-        _finish("error", str(e)[:300])
-        return {"status": "error", "error": str(e)}
+    except Exception:  # noqa: BLE001 - upstream errors may contain credentials or source rows
+        conn.rollback()
+        error = "Connector sync failed; check source availability, file format and configuration."
+        _finish("error", error)
+        return {"status": "error", "error": error}
     finally:
         set_workspace_scope(prior_scope)

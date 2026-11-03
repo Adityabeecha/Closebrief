@@ -78,7 +78,8 @@ def _try_decode_session(token: str) -> dict | None:
         return None
     try:
         claims = jwt.decode(token, secret, algorithms=["HS256"], audience="authenticated",
-                            options={"verify_aud": True, "verify_exp": True})
+                            options={"verify_aud": True, "verify_exp": True,
+                                     "require": ["exp", "sub"]})
     except jwt.ExpiredSignatureError:
         raise                      # a genuinely expired session -> 401 "Token expired"
     except Exception:  # noqa: BLE001 - not ours (e.g. a Supabase HS256 token)
@@ -108,7 +109,7 @@ def _decode_token(token: str) -> dict:
             settings.supabase_jwt_secret,
             algorithms=["HS256"],
             audience="authenticated",
-            options={"verify_aud": True},
+            options={"verify_aud": True, "require": ["exp", "sub"]},
         )
 
     # Asymmetric: resolve the signing key from JWKS by the token's kid.
@@ -118,7 +119,7 @@ def _decode_token(token: str) -> dict:
         signing_key.key,
         algorithms=["RS256", "ES256"],
         audience="authenticated",
-        options={"verify_aud": True},
+        options={"verify_aud": True, "require": ["exp", "sub"]},
     )
 
 
@@ -187,7 +188,8 @@ def authenticate(request: Request) -> CurrentUser:
         raise HTTPException(status_code=401, detail=f"Invalid token: {exc}")
 
     user_id = claims.get("sub")
-    email = claims.get("email") or claims.get("user_metadata", {}).get("email", "")
+    metadata = claims.get("user_metadata")
+    email = claims.get("email") or (metadata.get("email", "") if isinstance(metadata, dict) else "")
     if not user_id:
         raise HTTPException(status_code=401, detail="Token missing subject")
 

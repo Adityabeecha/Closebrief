@@ -38,8 +38,8 @@ class PgVectorStore:
         try:
             for doc_id, vec in zip(ids, np.asarray(vectors, dtype=np.float32)):
                 conn.execute(
-                    """
-                    INSERT INTO context_vectors (context_id, embedding, dim)
+                    f"""
+                    INSERT INTO {self._table} (context_id, embedding, dim)
                     VALUES (?, ?::vector, ?)
                     ON CONFLICT (context_id) DO UPDATE
                         SET embedding = excluded.embedding, dim = excluded.dim
@@ -57,7 +57,7 @@ class PgVectorStore:
         try:
             for doc_id in ids:
                 conn.execute(
-                    "DELETE FROM context_vectors WHERE context_id = ?", (int(doc_id),)
+                    f"DELETE FROM {self._table} WHERE context_id = ?", (int(doc_id),)
                 )
             conn.commit()
         finally:
@@ -67,9 +67,9 @@ class PgVectorStore:
         conn = get_connection()
         try:
             rows = conn.execute(
-                """
+                f"""
                 SELECT context_id, 1 - (embedding <=> ?::vector) AS score
-                FROM context_vectors
+                FROM {self._table}
                 WHERE dim = ?
                 ORDER BY embedding <=> ?::vector
                 LIMIT ?
@@ -90,7 +90,7 @@ class PgVectorStore:
         conn = get_connection()
         try:
             row = conn.execute(
-                "SELECT COUNT(*) AS n FROM context_vectors WHERE dim = ?", (self.dim,)
+                f"SELECT COUNT(*) AS n FROM {self._table} WHERE dim = ?", (self.dim,)
             ).fetchone()
             return int(row["n"])
         finally:
