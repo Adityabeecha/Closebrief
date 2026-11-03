@@ -59,6 +59,11 @@ extend-exclude = [".venv", "graphify-out", "data"]
 select = ["E", "F", "W", "I"]
 ignore = ["E402", "E741"]
 
+[tool.ruff.lint.per-file-ignores]
+# Embedded print/email stylesheets and inline-styled HTML rows: one rule per line reads worse wrapped.
+"app/board_pack.py" = ["E501"]
+"app/notifications/templates.py" = ["E501"]
+
 [tool.setuptools.packages.find]
 include = ["app*"]
 

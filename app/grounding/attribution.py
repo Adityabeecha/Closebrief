@@ -16,13 +16,13 @@ import re
 
 from app.generation.guard import (
     _NUMBER_RE,
-    faithfulness_messages,
     _check_multiplier_claims,
     _context_values,
     _excluded_tokens,
     _is_date_or_duration,
     _matches_any,
     _normalize,
+    faithfulness_messages,
 )
 from app.schemas import ComputedFact, ContextSnippet
 

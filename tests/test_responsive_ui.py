@@ -360,7 +360,7 @@ frame.onload=async()=>{
     const importFile=async()=>{await w.uploadFile(new w.File([csv],'sample_fpa.csv',{type:'text/csv'}));await w.confirmMapping();};
     await importFile();
     check($('st-3').getAttribute('aria-current')==='step','Current step missing');
-    check($('st-1').textContent.includes('done')&&$('st-1').textContent.includes('✓'),'Completed step missing');
+    check($('st-1').textContent.includes('done')&&$('st-1').querySelector('.step-tick'),'Completed step missing');
     const rows=[...d.querySelectorAll('.kpi-grid[data-src]')];check(rows.length>2,'Sample KPI rows missing');
     check(rows.every(r=>r.querySelector('.k-include').checked),'Include default');
     check(rows.every(r=>[...r.querySelectorAll('input,select')].every(el=>el.getAttribute('aria-label')?.includes(r.dataset.src))),

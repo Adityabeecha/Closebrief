@@ -13,13 +13,13 @@ import math
 from pathlib import Path
 
 from app.compute.kpis import compute_and_store
-from app.generation.prompts import _fixed
 from app.datasets import create_dataset
 from app.domains.marketing import MARKETING
+from app.generation.prompts import _fixed
 from app.ingestion.ingest import ingest_dataframe, parse_csv
 from app.kpis.library import suggest_kpi
-from app.schemas import ContextDocIn
 from app.scheduling import record_digest_run
+from app.schemas import ContextDocIn
 
 DEMO_DATASET_NAME = "Demo — Sample FP&A"
 _SAMPLE_CSV = Path(__file__).resolve().parent.parent / "data" / "sample_fpa.csv"

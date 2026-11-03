@@ -190,7 +190,7 @@ function paletteActions(){
   const pages=[...MONTH_TABS.filter(t=>t[0]!=="data"||canReview()).map(([k,l])=>[k,currentPeriod?`${l} · ${fmtPeriod(currentPeriod)}`:l]),
     ...PLACES.filter(([k])=>k!=="admin"||currentUser.role==="admin").filter(([k])=>!["costs","notifications"].includes(k)||currentUser.role==="admin").map(([k,,,l])=>[k,l])];
   const acts=[
-    {label:"Generate all narratives",icon:CI.bolt,run:()=>generateAll(),group:"Actions"},
+    {label:"Draft all commentary",icon:CI.bolt,run:()=>generateAll(),group:"Actions"},
     {label:"Export report (PDF)",icon:CI.down,run:()=>exportPDF(),group:"Actions"},
     {label:"Export report (PowerPoint)",icon:CI.down,run:()=>exportPPTX(),group:"Actions"},
     {label:"Toggle dark mode",icon:CI.sun,run:()=>toggleTheme(),group:"Actions"},
@@ -587,7 +587,7 @@ function nav(t,{fromRoute=false}={}){
   document.querySelectorAll("#settings-head .mtabs a").forEach(a=>{
     if(a.dataset.place===r.place)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current");});
   // Overview carries the review queue beneath the checklist for people who approve.
-  for(const s of VIEWS)$("v-"+s).style.display=(s===v||(s==="review"&&v==="overview"&&canReview()))?"":"none";
+  for(const s of VIEWS)$("v-"+s).style.display=(s===v||(s==="review"&&v==="overview"&&canReview()&&currentPeriod))?"":"none";
   // The KPIs tab and the open KPI share one workspace: queue + document + inspector.
   $("v-detail").style.display=(r.detail||(v==="dashboard"&&detailFact))?"":"none";
   $("d-empty").style.display=detailFact?"none":"";
@@ -602,9 +602,9 @@ function nav(t,{fromRoute=false}={}){
     if(!fromRoute)pushRoute(routeHash(r.place?r:{tab:r.tab,period:currentPeriod}));
     const tabLabel=MONTH_TABS.find(x=>x[0]===r.tab);
     setDocTitle(r.place?PLACES.find(p=>p[0]===r.place)[3]
-      :!currentPeriod?"Closebrief":r.tab==="overview"?fmtPeriodTitle(currentPeriod):`${tabLabel[1]} · ${fmtPeriodTitle(currentPeriod)}`);
+      :!currentPeriod?"Start your first close":r.tab==="overview"?fmtPeriodTitle(currentPeriod):`${tabLabel[1]} · ${fmtPeriodTitle(currentPeriod)}`);
   }
-  if(v==="overview"){renderOverview();if(canReview())loadReview();}
+  if(v==="overview"){renderOverview();if(canReview()&&currentPeriod)loadReview();}
   if(v==="context"){ctxScope=r.place?"library":"close";loadContext();}
   if(v==="analytics")loadAnalytics();
   if(v==="digest")loadDigest(false);
@@ -716,6 +716,10 @@ function overviewSteps(s,server){
 }
 let overviewStatus=null,overviewFor=null;
 async function renderOverview(){
+  const first=!currentPeriod;
+  const grid=document.querySelector("#v-overview .ov-grid");
+  if($("ov-welcome"))$("ov-welcome").style.display=first?"":"none";
+  if(grid)grid.style.display=first?"none":"";
   if(!$("v-overview")||!currentPeriod){if($("ov-checklist"))$("ov-checklist").innerHTML=currentPeriod?"":`<li class="cl"><span></span><div><b>No closes yet</b><small>Import a CSV or Excel export to start your first close.</small></div><button class="btn primary write-only" onclick="nav('datahub')">Import data</button></li>`;return;}
   const p=currentPeriod;
   paintOverview();
@@ -1368,7 +1372,7 @@ async function reviewReport(status){
     await api(`/reports/${detailFact.report_id}/review`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({status})});
     detailFact.review_status=status;renderReviewStrip(detailFact);
     const cf=(currentFacts||[]).find(x=>x.report_id===detailFact.report_id);if(cf)cf.review_status=status;
-    toast(status==="approved"?"Narrative approved":"Changes requested");
+    toast(status==="approved"?"Commentary approved":"Changes requested");
     refreshReviewBadge();
   }catch(e){toast("Failed: "+errMsg(e));}
 }
@@ -1785,7 +1789,7 @@ async function loadFacts(){
     const anom=currentFacts.filter(f=>f.is_anomaly).map(f=>f.metric);
     $("dash-title").textContent=fmtPeriodTitle(currentPeriod);
     if($("v-dashboard").style.display!=="none")setDocTitle(fmtPeriodTitle(currentPeriod));
-    const aggNote=granularity==="month"?"":" · narratives are written monthly";
+    const aggNote=granularity==="month"?"":" · commentary is drafted monthly";
     $("dash-sub").innerHTML=`${currentFacts.length} ${currentFacts.length===1?"KPI":"KPIs"} · <b>${anom.length?plural(anom.length,"anomaly","anomalies"):"no anomalies"}</b>${aggNote}`;
     const anomKey=`anomaly:${currentPeriod}`;
     if(anom.length&&!bannerDismissed(anomKey)){
@@ -1813,7 +1817,7 @@ function setFreshness(){
   const narr=currentFacts.filter(f=>f.has_data&&f.narrative).length,tot=currentFacts.filter(f=>f.has_data).length;
   const bits=[`Data through ${fmtPeriod(latest)}`];
   if(imported)bits.push(`imported ${imported}`);
-  if(tot)bits.push(narr===tot?"narratives current":`${narr}/${tot} narratives generated`);
+  if(tot)bits.push(narr===tot?"commentary up to date":`${narr} of ${tot} drafted`);
   el.textContent=bits.join(" · ");
 }
 function maybePromptGenerate(){
@@ -1825,7 +1829,7 @@ function maybePromptGenerate(){
     el.style.display="";el.className="banner info";
     el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>
       <span>No narratives for ${esc(fmtPeriod(currentPeriod,"long"))} yet.</span>
-      <button class="btn sm primary write-only" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Generate narratives</button>
+      <button class="btn sm primary write-only" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Draft commentary</button>
       <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">${XICON}</button>`;
   }
 }
@@ -2030,7 +2034,7 @@ function renderCards(){
   const order=Object.fromEntries(QUEUE_GROUPS.map(([g],i)=>[g,i]));
   facts=facts.map((f,i)=>[f,i]).sort((x,y)=>order[queueGroup(x[0])]-order[queueGroup(y[0])]||x[1]-y[1]).map(x=>x[0]);
   shownFacts=facts;
-  renderStatrow(facts);renderPills();
+  renderStatrow(facts);renderPills();renderBulkApprove();
   if(!currentFacts.length){$("cards").innerHTML=`<div class="empty-state">No KPIs to show. Select KPIs during import, or switch dataset.</div>`;return;}
   if(!facts.length){$("cards").innerHTML=`<div class="empty-state">No KPIs match ${searchQuery?`“${esc(searchQuery)}”`:"these filters"}. <button class="linkbtn" onclick="clearSearch();clearCatFilter()">Clear filters</button></div>`;return;}
   const q=searchQuery;let html="",last=null;
@@ -2231,10 +2235,11 @@ function openDetail(i,{fromRoute=false}={}){
     $("d-narr").textContent=f.narrative;
     renderGroundedNarrative(f.report_id);
   }else{
-    $("d-narr").innerHTML=f.narrative?esc(f.narrative)+(f.edited&&f.original_narrative?`<details class="tbl" style="margin-top:8px"><summary>Show original (pre-edit)</summary><p style="margin-top:6px;color:var(--mut)">${esc(f.original_narrative)}</p></details>`:""):"No narrative yet — generate one from the dashboard card.";
+    $("d-narr").innerHTML=f.narrative?esc(f.narrative)+(f.edited&&f.original_narrative?`<details class="tbl" style="margin-top:8px"><summary>Show original (pre-edit)</summary><p style="margin-top:6px;color:var(--mut)">${esc(f.original_narrative)}</p></details>`:""):"No commentary yet. Draft it with the button at the top of this close.";
   }
   $("d-narr-meta").textContent=narrMeta(f);
   $("d-chips").innerHTML=(f.sources||[]).map(s=>`<span class="chip" role="button" tabindex="0" title="Open source note" onclick="showSourceDoc('${esc(s.id)}')">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
+  renderWhyNone(f);
   $("d-qa-answer").innerHTML="";$("d-qa").value="";qaThread=[];   // fresh conversation per metric
   loadCorrelations(f.metric);
 }
@@ -2344,13 +2349,68 @@ async function genOne(metric,btn){
       body:JSON.stringify({metric,period:gp,force:regen})});
     if(currentPeriod!==gp||activeDatasetId!==gd){generatingSet.delete(metric);return;}   // user moved on — drop result
     applyGenerated(r);generatingSet.delete(metric);renderCards();updateGenButton();
-    toast(r.faithfulness==="failed"?`${metric}: numbers need review`:(r.cached?"Served from cache — no LLM cost":`Narrative written for ${metric}`));
+    toast(r.faithfulness==="failed"?`${metric}: numbers need review`:(r.cached?"Served from cache — no LLM cost":`Commentary drafted for ${metric}`));
   }catch(e){generatingSet.delete(metric);renderCards();toast("Failed: "+errMsg(e));}
 }
 // Rough per-narrative cost estimate (gpt-4o-class: ~1.5k prompt + ~180 completion tokens).
 const EST_COST_PER_NARR=0.006;
 let generatingSet=new Set(), skipRise=false;
 // Simple concurrency pool: run `worker` over `items`, at most `n` in flight.
+/* ---------- a big movement with no recorded reason asks for one, right where it's read ---------- */
+// "Big" is the same rule the close checklist uses: an anomaly, or more than 10% against plan.
+function needsReason(f){
+  if(!f||!f.has_data||(f.sources&&f.sources.length))return false;
+  const plan=f.deltas&&f.deltas.budget_var_pct;
+  return !!f.is_anomaly||(plan!=null&&Math.abs(plan)>10);
+}
+function renderWhyNone(f){
+  const el=$("d-why");if(!el)return;
+  if(!needsReason(f)){el.innerHTML="";return;}
+  el.innerHTML=`<div class="why-none" role="note"><span><b>No reason recorded.</b> ${canReview()
+    ?"Add a context note and the commentary will cite it next time it's drafted."
+    :"An analyst can add the reason as a context note."}</span>${canReview()?`<button class="btn sm" onclick="addReasonFor('${esc(f.metric).replace(/'/g,"\\'")}')">Add a reason</button>`:""}</div>`;
+}
+// Opens the close's Context tab with a new note already pointed at this KPI and month.
+function addReasonFor(metric){
+  nav("context");
+  setTimeout(()=>{
+    ctxNew();
+    $("c-type").value="event_note";
+    if(!$("c-title").value)$("c-title").value=`Why ${metric} moved in ${fmtPeriod(currentPeriod,"long")}`;
+    $("c-tags").value=metric;
+    if(granularity==="month")$("c-date").value=currentPeriod;
+    $("c-body").focus();
+  },60);
+}
+
+/* ---------- bulk approve: only drafts a person doesn't need to read one by one ---------- */
+// A draft qualifies when every figure passed the check and nothing about the KPI is unusual.
+// Anomalies and flagged drafts stay out on purpose: those are the ones worth reading.
+function bulkApprovable(facts){
+  return (facts||[]).filter(f=>f.has_data&&f.report_id&&f.narrative&&f.faithfulness==="passed"
+    &&!f.is_anomaly&&f.review_status!=="approved");
+}
+function renderBulkApprove(){
+  const el=$("q-bulk");if(!el)return;
+  const ok=granularity==="month"?bulkApprovable(currentFacts):[];
+  const held=(currentFacts||[]).filter(f=>f.has_data&&f.narrative&&f.review_status!=="approved").length-ok.length;
+  el.innerHTML=ok.length>1?`<button class="btn" onclick="bulkApprove()">Approve ${plural(ok.length,"checked draft","checked drafts")}</button>
+    <small>Every figure in these passed the check.${held?` ${plural(held,"anomaly or flagged draft stays","anomalies and flagged drafts stay")} for you to read.`:""}</small>`:"";
+}
+async function bulkApprove(){
+  const ok=bulkApprovable(currentFacts);if(!ok.length)return;
+  const names=ok.slice(0,5).map(f=>f.metric).join(", ")+(ok.length>5?` and ${ok.length-5} more`:"");
+  if(!await modalConfirm(`Approve ${plural(ok.length,"draft")}?`,`${names}. Every figure in these drafts passed the check against the computed facts. You can still edit or request changes on any of them later.`,{okLabel:"Approve",danger:false}))return;
+  let done=0,failed=0;
+  await runPool(ok,4,async f=>{
+    try{await api(`/reports/${f.report_id}/review`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:"approved"})});
+      f.review_status="approved";done++;}
+    catch{failed++;}
+  });
+  toast(failed?`Approved ${done}; ${plural(failed,"draft")} failed, try again`:`Approved ${plural(done,"draft")}`);
+  overviewFor=null;renderCards();renderMonthHead();loadCloseMeta();refreshReviewBadge();
+}
+
 async function runPool(items,n,worker){
   let i=0;
   await Promise.all(Array(Math.min(n,items.length)).fill(0).map(async()=>{
@@ -2363,8 +2423,8 @@ function updateGenButton(){
   if(granularity!=="month"){btn.style.display="none";return;}
   btn.style.display="";
   const n=ungeneratedFacts().length;
-  if(!n){btn.innerHTML=`Regenerate all<small>narratives are current</small>`;return;}
-  btn.innerHTML=`Generate ${plural(n,"narrative")}<small>≈ $${(n*EST_COST_PER_NARR).toFixed(2)} · ~${n*7}s</small>`;
+  if(!n){btn.innerHTML=`Redraft all<small>commentary is up to date</small>`;return;}
+  btn.innerHTML=`Draft ${plural(n,"commentary","commentaries")}<small>≈ $${(n*EST_COST_PER_NARR).toFixed(2)} · ~${n*7}s</small>`;
 }
 function applyGenerated(r){
   const f=currentFacts.find(x=>x.metric===r.metric);
@@ -2400,7 +2460,7 @@ async function generateAll(){
   // Head, tiles, banner and cards must agree once generation finishes (QA #8).
   setFreshness();maybePromptGenerate();renderCards();
   const failed=currentFacts.filter(f=>f.faithfulness==="failed").length;
-  toast(failed?`Done — ${plural(failed,"narrative")} need review`:"All narratives generated");
+  toast(failed?`Done: ${plural(failed,"draft needs","drafts need")} review`:"All commentary drafted");
 }
 async function feedback(id,action,btn,extra){
   try{
@@ -2410,14 +2470,14 @@ async function feedback(id,action,btn,extra){
   }catch(e){toast("Couldn't save feedback: "+e.message);}
 }
 async function rejectNarr(id,btn){
-  const r=await modalInput("Reject narrative",{label:"Why is this wrong? (optional)",textarea:true,placeholder:"e.g. attributes the drop to the wrong cause",okLabel:"Reject"});
+  const r=await modalInput("Reject commentary",{label:"Why is this wrong? (optional)",textarea:true,placeholder:"e.g. attributes the drop to the wrong cause",okLabel:"Reject"});
   if(r===null)return;   // cancelled
   feedback(id,"rejected",btn,{reason:r||null});
 }
 async function editNarr(id){
   const f=currentFacts.find(x=>x.report_id===id);
   const cur=(f&&f.narrative)||"";
-  const t=await modalInput(`Edit narrative${f?" — "+f.metric:""}`,{label:"Narrative",value:cur,textarea:true,okLabel:"Save"});
+  const t=await modalInput(`Edit commentary${f?": "+f.metric:""}`,{label:"Narrative",value:cur,textarea:true,okLabel:"Save"});
   if(t==null||t===cur)return;
   await feedback(id,"edited",null,{edited_text:t});loadFacts();
 }
@@ -2549,7 +2609,7 @@ async function addContext(e){
   toast("Added to the context library");["c-title","c-body","c-tags","c-date"].forEach(id=>$(id).value="");ctxComposing=false;ctxSel=null;loadContext();
 }
 async function delContext(id){
-  if(!await modalConfirm("Delete context note","Delete this context document? Narratives will no longer cite it.",{okLabel:"Delete"}))return;
+  if(!await modalConfirm("Delete context note","Delete this context note? Commentary will no longer cite it.",{okLabel:"Delete"}))return;
   try{await api(`/context/${id}`,{method:"DELETE"});toast("Deleted");loadContext();}catch(e){toast(e.message);}
 }
 
@@ -2559,7 +2619,7 @@ let importStep=1,kpiLoading=false,kpiSaving=false,importLeaving=false;
 function setStep(n){importStep=n;for(let i=1;i<=3;i++){const el=$("st-"+i),done=i<n;
     el.className="step"+(done?" done":i===n?" active":"");
     if(i===n)el.setAttribute("aria-current","step");else el.removeAttribute("aria-current");
-    el.innerHTML=(done?'<span aria-hidden="true">✓</span><span class="visually-hidden">done · </span>':esc(i)+" · ")+esc(["Upload","Map columns","Pick KPIs"][i-1]);}
+    el.innerHTML=(done?'<svg class="step-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg><span class="visually-hidden">done · </span>':esc(i)+" · ")+esc(["Upload","Map columns","Pick KPIs"][i-1]);}
   $("imp-upload").style.display=n===1?"":"none";$("imp-map").style.display=n===2?"":"none";$("imp-kpis").style.display=n===3?"":"none";
   if(n!==2)$("imp-join-result").style.display="none";}
 function hasUnfinishedImport(){return importStep===3&&lastImport?.datasetId!=null;}
@@ -2605,7 +2665,7 @@ async function onImportModeChange(){
   importMode=$("imp-mode").value;
   $("imp-target-wrap").style.display=importMode==="join"?"":"none";
   $("imp-suffix-wrap").style.display=importMode==="join"?"":"none";
-  $("imp-confirm-btn").textContent=importMode==="join"?"Match & attach budget":"Confirm & normalize";
+  $("imp-confirm-btn").textContent=importMode==="join"?"Match & attach budget":"Confirm columns";
   if(importMode==="join"){
     try{
       const d=await api("/datasets");
@@ -2613,6 +2673,16 @@ async function onImportModeChange(){
         ||'<option value="">No datasets yet — import actuals first</option>';
     }catch{}
   }
+}
+// "Try it with sample data": the repo's synthetic export, run through the real import steps.
+async function importSample(btn){
+  if(btn)btn.disabled=true;
+  try{
+    const r=await fetch("/samples/fpa.csv");if(!r.ok)throw new Error(r.statusText||"Sample unavailable");
+    const file=new File([await r.text()],"Sample FP&A export.csv",{type:"text/csv"});
+    nav("datahub");await uploadFile(file);
+  }catch(e){toast("Couldn't load the sample: "+errMsg(e));}
+  finally{if(btn)btn.disabled=false;}
 }
 async function uploadFile(file){
   const fd=new FormData();fd.append("file",file);
@@ -2653,7 +2723,7 @@ function renderMap(){
       const role=roleFor(c);
       return`<tr><td><b>${esc(c.column_name)}</b>${layout==="wide"&&wp?' <span class="suggest">period col</span>':""}${c.redundant_with&&role==="ignore"?` <span class="suggest">duplicate of ${esc(c.redundant_with)}</span>`:""}</td>
         <td>${esc(c.dtype)}</td><td class="samp">${c.sample_values.slice(0,3).map(esc).join(" · ")}</td>
-        <td>${layout==="wide"&&wp?'<span class="samp">melted</span>':`<select data-col="${esc(c.column_name)}" class="role" onchange="updateMapHint()">${ROLES.map(r=>`<option value="${r}" ${role===r?"selected":""}>${r.replace("_"," ")}</option>`).join("")}</select>`}</td></tr>`;
+        <td>${layout==="wide"&&wp?'<span class="samp">melted</span>':`<select data-col="${esc(c.column_name)}" class="role" aria-label="Role of column ${esc(c.column_name)}" onchange="updateMapHint()">${ROLES.map(r=>`<option value="${r}" ${role===r?"selected":""}>${r.replace("_"," ")}</option>`).join("")}</select>`}</td></tr>`;
     }).join("")+`</tbody></table>`;
   updateMapHint();
 }
@@ -2689,7 +2759,7 @@ async function confirmMapping(m){
   try{
     const res=await api(`/ingest/${upload.upload_id}/mapping?save_template=${$("save-tpl").checked}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(mapping)});
     $("imp-result").innerHTML="";
-    $("norm-summary").innerHTML=`Normalized ${plural(res.rows_normalized,"row")} · ${plural(res.metrics.length,"metric")} · ${plural(res.periods.length,"period")} · ${res.facts_computed} facts${res.template_id?" · template saved":""}`;
+    $("norm-summary").innerHTML=`Read ${plural(res.rows_normalized,"row")}: ${plural(res.metrics.length,"KPI","KPIs")} across ${plural(res.periods.length,"period")}.${res.template_id?" The column mapping is saved for next month's file.":""}`;
     // dataset_id is the dataset THIS import created; activeDatasetId is still
     // whatever was selected before (or null) until loadDatasets() runs.
     lastImport={rows:res.rows_normalized,metrics:res.metrics.length,periods:res.periods.length,datasetId:res.dataset_id??null};
@@ -2764,7 +2834,7 @@ async function loadKpiPicker(){
         <label class="kpi-field"><span class="kpi-field-label">Display name</span><input class="k-name" aria-label="Display name for ${row}" value="${esc(humanizeKpiName(m.source_metric))}"><small class="kpi-source">Source: ${row}</small></label>
         <label class="kpi-field"><span class="kpi-field-label">Category</span><input class="k-cat" aria-label="Category for ${row}" value="${esc(s.category||"Uncategorized")}"></label>
         <label class="kpi-field"><span class="kpi-field-label">Unit</span><select class="k-unit" aria-label="Unit for ${row}">${["USD","%","count"].map(u=>`<option ${u===(s.unit||"USD")?"selected":""}>${esc(u)}</option>`).join("")}</select></label>
-        <label class="kpi-field"><span class="kpi-field-label">Direction</span><select class="k-dir" aria-label="Direction for ${row}"><option value="up" ${(s.direction_good||"up")==="up"?"selected":""}>↑ good</option><option value="down" ${s.direction_good==="down"?"selected":""}>↓ good</option></select></label></div>`;}).join(""):
+        <label class="kpi-field"><span class="kpi-field-label">Direction</span><select class="k-dir" aria-label="Direction for ${row}"><option value="up" ${(s.direction_good||"up")==="up"?"selected":""}>Up is good</option><option value="down" ${s.direction_good==="down"?"selected":""}>Down is good</option></select></label></div>`;}).join(""):
       '<div class="banner info">No KPIs were found. Leave this import to delete the unfinished dataset, then upload a file with metric values.</div>';
   }catch(e){if(lastImport===current)$("kpi-rows").innerHTML=`<div class="banner err">${esc(e.message)} <button class="btn sm" onclick="loadKpiPicker()">Retry</button></div>`;}
   finally{clearTimeout(slow);if(lastImport===current){kpiLoading=false;updateKpiSelection();}}
@@ -2790,8 +2860,8 @@ async function confirmKpis(){
   const el=$("import-banner");
   if(el){el.style.display="";el.className="banner ok";
     el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-      <span>Imported · ${plural(li.rows||0,"row")} · ${plural(kpis.length,"KPI")} · ${plural(li.periods||0,"period")}.</span>
-      <button class="write-only btn sm primary" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Generate narratives</button>
+      <span>Imported ${plural(li.rows||0,"row")}: ${plural(kpis.length,"KPI","KPIs")} across ${plural(li.periods||0,"period")}. Next, draft the commentary.</span>
+      <button class="write-only btn sm primary" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Draft commentary</button>
       <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">${XICON}</button>`;
   }
   }catch(e){$("imp-result").innerHTML=`<div class="banner err">Import failed to finalize: ${esc(e.message)} <button class="write-only btn sm" onclick="confirmKpis()">Retry</button></div>`;}
