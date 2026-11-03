@@ -9,13 +9,16 @@ visitors get a read-only "demo" session (see the auth middleware).
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 
 from app.compute.kpis import compute_and_store
 from app.datasets import create_dataset
 from app.domains.marketing import MARKETING
+from app.generation.prompts import _fixed
 from app.ingestion.ingest import ingest_dataframe, parse_csv
 from app.kpis.library import suggest_kpi
+from app.scheduling import record_digest_run
 from app.schemas import ContextDocIn
 
 DEMO_DATASET_NAME = "Demo — Sample FP&A"
@@ -31,7 +34,7 @@ _DEMO_CONTEXT = [
      "body": "On March 1 2025 we raised enterprise plan prices by 15%. Expect Net Revenue "
              "uplift of roughly $600K/month from March onward with some churn risk in SMB.",
      "metric_tags": ["Net Revenue"], "effective_date": "2025-03"},
-    {"type": "campaign", "title": "Q1 brand campaign",
+    {"type": "event_note", "title": "Q1 brand campaign",
      "body": "Brand awareness campaign ran January through March 2025 with a $450K budget, "
              "concentrated in February. Expect elevated Marketing Spend in Q1.",
      "metric_tags": ["Marketing Spend"], "effective_date": "2025-02"},
@@ -43,7 +46,7 @@ _DEMO_CONTEXT = [
 
 # Notes that explain the marketing funnel's moves (Feb push, April CTR dip).
 _MARKETING_CONTEXT = [
-    {"type": "campaign", "title": "February paid brand push",
+    {"type": "event_note", "title": "February paid brand push",
      "body": "A concentrated paid brand campaign ran in February 2025, lifting Impressions "
              "roughly 55% and pulling Conversions up with them.",
      "metric_tags": ["Impressions", "Conversions"], "effective_date": "2025-02"},
@@ -116,6 +119,7 @@ def _seed_fpa(conn, context_store=None) -> bool:
     # Pre-generated narratives + a PVM bridge so the demo is full on first view.
     try:
         _seed_narratives(conn, ds, added_docs)
+        _seed_close_history(conn, ds, added_docs)
         _seed_pvm_bridge(conn, ds)
         conn.commit()
     except Exception:  # noqa: BLE001 - demo polish is best-effort
@@ -144,6 +148,7 @@ def _seed_marketing(conn, context_store=None) -> bool:
     added_docs = _seed_context(conn, context_store, _MARKETING_CONTEXT)
     try:
         _seed_narratives(conn, ds, added_docs)
+        _seed_close_history(conn, ds, added_docs)
         conn.commit()
     except Exception:  # noqa: BLE001 - demo polish is best-effort
         pass
@@ -159,10 +164,46 @@ def _latest_period(conn, ds: int) -> str | None:
     return row["p"] if row and row["p"] else None
 
 
-def _seed_narratives(conn, ds: int, docs: list) -> None:
+def format_figure(value: float | None, unit: str = "USD", *, signed: bool = False) -> str:
+    """Mirror the Figures panel's fmt/pct, including JavaScript rounding."""
+    if value is None or not math.isfinite(value):
+        return "–"
+    sign = "−" if value < 0 else "+" if signed and value > 0 else ""
+    amount = abs(value)
+    if unit == "%":
+        return sign + _fixed(amount, 1) + "%"
+    if unit == "count":
+        rounded = math.floor(value + 0.5)
+        return ("−" if rounded < 0 else "") + f"{abs(rounded):,}"
+    if amount >= 1e6:
+        return sign + "$" + _fixed(amount / 1e6, 2) + "M"
+    if amount >= 1e3:
+        return sign + "$" + _fixed(amount / 1e3, 0) + "K"
+    return sign + "$" + _fixed(amount, 2).rstrip("0").rstrip(".")
+
+
+def _demo_reason(doc, period: str, mom: float | None) -> str | None:
+    """Only curated, period-relevant notes may supply a reason; no new figures."""
+    if doc is None or (doc.effective_date and doc.effective_date[:7] > period):
+        return None
+    title = doc.title
+    if title == "March 2025 enterprise pricing change" and mom is not None and mom > 0:
+        return f'The note "{title}" records the enterprise price increase behind the uplift.'
+    if title == "Q1 brand campaign" and period <= "2025-03":
+        return f'The note "{title}" records the campaign behind elevated marketing spend.'
+    if title == "Churn analysis memo" and period <= "2025-03":
+        return f'The note "{title}" attributes churn to SMB logo losses.'
+    if title == "February paid brand push" and period == "2025-02" and mom is not None and mom > 0:
+        return f'The note "{title}" records the campaign that lifted impressions and conversions.'
+    if title == "April creative fatigue" and period == "2025-04" and mom is not None and mom < 0:
+        return f'The note "{title}" attributes the decline in clicks to fatigued ad creative.'
+    return None
+
+
+def _seed_narratives(conn, ds: int, docs: list, period: str | None = None) -> None:
     """Deterministic, grounded narratives from each metric's real computed fact
     plus a matching context note — persisted like any generated report."""
-    period = _latest_period(conn, ds)
+    period = period or _latest_period(conn, ds)
     if not period:
         return
     # Map a metric-tag keyword to the seeded context doc for source chips.
@@ -175,40 +216,31 @@ def _seed_narratives(conn, ds: int, docs: list) -> None:
         """SELECT m.id AS metric_id, m.name AS metric, cf.value, cf.mom_pct,
                   cf.budget_var_pct, cf.is_anomaly, m.unit, m.direction_good
            FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
-           WHERE m.dataset_id = ? AND cf.period = ?""",
+           WHERE m.dataset_id = ? AND cf.period = ? AND cf.value IS NOT NULL
+           ORDER BY m.name""",
         (ds, period),
     ).fetchall()
 
-    def fmt_val(v, unit):
-        v = float(v or 0)
-        u = (unit or "USD").lower()
-        if u in ("%", "percent"):
-            return f"{v:.1f}%"
-        if u in ("count", "customers", "logos"):
-            return f"{v:,.0f}"
-        return f"${v/1e6:.2f}M" if abs(v) >= 1e6 else f"${v/1e3:.0f}K"
-
     for f in facts:
-        mom = f["mom_pct"]
-        bud = f["budget_var_pct"]
-        doc = None
-        for kw, d in tag_to_doc.items():
-            if kw in f["metric"].lower():
-                doc = d
-                break
-        move = "rose" if (mom or 0) > 0 else "declined" if (mom or 0) < 0 else "held flat"
-        vs_plan = ("ahead of" if (bud or 0) > 0 else "behind") + " plan"
-        val = fmt_val(f["value"], f["unit"])
-        narr = (
-            f"{f['metric']} came in at {val} for {period}, {move} "
-            f"{abs(mom):.1f}% month-over-month and {abs(bud or 0):.1f}% {vs_plan}."
-            if mom is not None else
-            f"{f['metric']} came in at {val} for {period}, {abs(bud or 0):.1f}% {vs_plan}."
-        )
-        if doc is not None:
-            narr += f" This aligns with the note “{doc.title}.”"
+        if conn.execute("SELECT 1 FROM generated_reports WHERE metric_id=? AND period=?", (f["metric_id"], period)).fetchone():
+            continue
+        bud, mom = f["budget_var_pct"], f["mom_pct"]
+        val = format_figure(f["value"], f["unit"])
+        if bud is not None:
+            narr = f"{f['metric']} reached {val}, {format_figure(bud, '%', signed=True)} vs plan."
+        elif mom is not None:
+            narr = f"{f['metric']} reached {val}, {format_figure(mom, '%', signed=True)} vs last month. No budget comparison is available."
+        else:
+            narr = f"{f['metric']} reached {val}. No budget or last-month comparison is available."
+        doc = tag_to_doc.get(f["metric"].lower())
+        reason = _demo_reason(doc, period, mom)
+        if reason:
+            narr += " " + reason
+        else:
+            doc = None
+            narr += " No reason recorded yet."
         if f["is_anomaly"]:
-            narr += " The move is flagged as anomalous versus its recent trend and warrants a closer look."
+            narr += " Watch next month for a repeat of this unusual movement."
         sources = (
             [{"id": f"ctx_{doc.id:03d}", "type": doc.type, "title": doc.title}] if doc is not None else []
         )
@@ -244,3 +276,35 @@ def _seed_pvm_bridge(conn, ds: int) -> None:
            ON CONFLICT(metric_id, period) DO NOTHING""",
         (row["metric_id"], period, volume, price, mix, total),
     )
+
+
+def _seed_close_history(conn, ds: int, docs: list) -> None:
+    """Two completed closes lead into a partly approved latest close, without AI."""
+    periods = [r["period"] for r in conn.execute(
+        """SELECT DISTINCT cf.period FROM computed_facts cf JOIN metrics m ON m.id=cf.metric_id
+           WHERE m.dataset_id=? ORDER BY cf.period DESC LIMIT 3""", (ds,)).fetchall()]
+    if not periods:
+        return
+    for period in reversed(periods[1:]):
+        _seed_narratives(conn, ds, docs, period)
+        conn.execute("""UPDATE generated_reports SET review_status='approved'
+                        WHERE period=? AND metric_id IN (SELECT id FROM metrics WHERE dataset_id=?)""", (period, ds))
+        if conn.execute("SELECT 1 FROM digest_runs WHERE dataset_id=? AND period=?", (ds, period)).fetchone():
+            continue
+        movers = conn.execute("""SELECT m.name, cf.value, cf.budget_var_abs, cf.budget_var_pct, gr.id, gr.narrative
+            FROM computed_facts cf JOIN metrics m ON m.id=cf.metric_id
+            JOIN generated_reports gr ON gr.id=(SELECT MAX(g.id) FROM generated_reports g WHERE g.metric_id=m.id AND g.period=cf.period)
+            WHERE m.dataset_id=? AND cf.period=? AND cf.value IS NOT NULL
+            ORDER BY ABS(COALESCE(cf.budget_var_abs,0)) DESC, m.name LIMIT 3""", (ds, period)).fetchall()
+        items = [{"metric": r["name"], "headline": r["narrative"].split('. ', 1)[0] + '.',
+                  "detail": r["narrative"], "budget_var_abs": r["budget_var_abs"],
+                  "budget_var_pct": r["budget_var_pct"], "faithfulness": "passed", "report_id": r["id"]} for r in movers]
+        run_id = record_digest_run(conn, ds, period, 3, items, None, 'scheduled')
+        y, m = int(period[:4]), int(period[5:7])
+        sent = f"{y + (m == 12)}-{m % 12 + 1:02d}-03 09:00:00"   # the digest goes out early the next month
+        conn.execute("UPDATE digest_runs SET created_at=? WHERE id=?", (sent, run_id))
+    # Deterministic minority approved; the rest still need the analyst's decision.
+    conn.execute("""UPDATE generated_reports SET review_status='approved' WHERE id IN (
+        SELECT gr.id FROM generated_reports gr JOIN metrics m ON m.id=gr.metric_id
+        WHERE m.dataset_id=? AND gr.period=? ORDER BY m.name LIMIT 2)""", (ds, periods[0]))
+    conn.commit()

@@ -1,0 +1,77 @@
+/* Closebrief — a review instrument in two lightings.
+   Light ("Precision"): cool white, ink, slate, electric-blue selection.
+   Dark ("Night close"): warm charcoal, emerald action, amber and rose states.
+   Shared by the home page (/) and the app (/app). The theme follows the
+   visitor's system unless the app sets data-theme. */
+
+@font-face{font-family:'Schibsted Grotesk';font-style:normal;font-weight:400 900;font-display:swap;src:url(/vendor/fonts/schibsted-grotesk.woff2) format('woff2')}
+@font-face{font-family:'Red Hat Mono';font-style:normal;font-weight:400 700;font-display:swap;src:url(/vendor/fonts/redhat-mono.woff2) format('woff2')}
+
+:root{
+  --font-sans:'Schibsted Grotesk',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'Red Hat Mono',ui-monospace,Consolas,monospace;
+
+  /* surfaces */
+  --bg:#fbfcfd;  --surface:#ffffff;  --surface-2:#f8fafc;  --surface-3:#f1f4f8;
+  --line:#e6e9ef; --line-strong:#cfd5df;
+  /* text */
+  --text:#0b1220; --text-2:#344054; --text-3:#596579;
+  /* primary action: the brand green */
+  --accent:#047857; --accent-hover:#065f46; --on-accent:#ffffff;
+  /* states: each always paired with a word */
+  --verified:#067647;  --verified-wash:#e8f8ef;
+  --review:#a1450a;    --review-wash:#fff6e5;
+  --exception:#c8281c; --exception-wash:#fdeeed;
+  --select:#2563eb;    --select-wash:#e8f0fe;
+
+  --r-sm:8px; --r-md:12px; --r-lg:16px; --r-pill:999px;
+  --shadow:0 1px 2px rgba(16,24,40,.05),0 12px 32px -18px rgba(16,24,40,.28);
+  --shadow-lg:0 2px 4px rgba(16,24,40,.04),0 40px 80px -30px rgba(16,24,40,.35);
+  --glow-a:rgba(37,99,235,.08); --glow-b:rgba(5,150,105,.08);
+  --ease:cubic-bezier(.2,.7,.2,1);
+  color-scheme:light;
+}
+
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#141311;  --surface:#1c1a17;  --surface-2:#191815;  --surface-3:#26231f;
+    --line:#2e2b27; --line-strong:#44403c;
+    --text:#f3efe8; --text-2:#d6d3d1; --text-3:#a8a29e;
+    --accent:#34d399; --accent-hover:#6ee7b7; --on-accent:#06120c;
+    --verified:#34d399;  --verified-wash:rgba(52,211,153,.14);
+    --review:#fbbf24;    --review-wash:rgba(251,191,36,.12);
+    --exception:#fb7185; --exception-wash:rgba(251,113,133,.13);
+    --select:#8ab4ff;    --select-wash:rgba(138,180,255,.13);
+    --shadow:0 1px 0 rgba(0,0,0,.35),0 18px 44px -24px rgba(0,0,0,.85);
+    --shadow-lg:0 1px 0 rgba(0,0,0,.4),0 40px 90px -30px rgba(0,0,0,.9);
+    --glow-a:rgba(52,211,153,.10); --glow-b:rgba(245,158,11,.06);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141311;  --surface:#1c1a17;  --surface-2:#191815;  --surface-3:#26231f;
+  --line:#2e2b27; --line-strong:#44403c;
+  --text:#f3efe8; --text-2:#d6d3d1; --text-3:#a8a29e;
+  --accent:#34d399; --accent-hover:#6ee7b7; --on-accent:#06120c;
+  --verified:#34d399;  --verified-wash:rgba(52,211,153,.14);
+  --review:#fbbf24;    --review-wash:rgba(251,191,36,.12);
+  --exception:#fb7185; --exception-wash:rgba(251,113,133,.13);
+  --select:#8ab4ff;    --select-wash:rgba(138,180,255,.13);
+  --shadow:0 1px 0 rgba(0,0,0,.35),0 18px 44px -24px rgba(0,0,0,.85);
+  --shadow-lg:0 1px 0 rgba(0,0,0,.4),0 40px 90px -30px rgba(0,0,0,.9);
+  --glow-a:rgba(52,211,153,.10); --glow-b:rgba(245,158,11,.06);
+  color-scheme:dark;
+}
+
+/* Earlier token names, kept so older component CSS resolves into this world. */
+:root{
+  --pad:var(--bg); --pad-deep:var(--surface-3); --sheet:var(--surface);
+  --rule:var(--line); --rule-faint:var(--line); --rule-strong:var(--line-strong);
+  --ink:var(--text); --ink-2:var(--text-2); --ink-3:var(--text-3);
+  --green:var(--accent); --green-deep:var(--accent-hover); --on-green:var(--on-accent); --green-wash:var(--verified-wash);
+  --red-pencil:var(--exception); --red-wash:var(--exception-wash);
+  --amber:var(--review); --amber-wash:var(--review-wash);
+  --blue-pencil:var(--select);
+  --radius:var(--r-md); --lift:var(--shadow);
+}
+::selection{background:var(--select);color:#fff}

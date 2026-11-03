@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Closebrief — close the books, the brief is already written</title>
+<meta name="description" content="Closebrief computes every KPI in code and drafts the month-end variance commentary for review. The AI writes the words; it never computes the numbers, and every figure is traced to its source.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Closebrief — close the books, the brief is already written">
+<meta property="og:description" content="Every KPI computed in code. Commentary drafted for review. Every figure traced to its source.">
+<meta property="og:url" content="https://closebrief.onrender.com">
+<meta name="twitter:card" content="summary">
+<link rel="icon" type="image/svg+xml" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56"><rect width="56" height="56" rx="14" fill="%230b1220"/><path d="M44 24A17 17 0 1 1 36 13" fill="none" stroke="%2334d399" stroke-width="6" stroke-linecap="round"/><path d="M20 28.5l6 6L45 15" fill="none" stroke="white" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>'>
+<link rel="preload" as="font" type="font/woff2" href="/vendor/fonts/schibsted-grotesk.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="/vendor/fonts/redhat-mono.woff2" crossorigin>
+<script>
+  // Links sent before the home page existed pointed at /#metric=… or /#review.
+  // Forward them to the app so old Slack and email links keep working.
+  (function(){var h=location.hash;if(/^#(metric=|dashboard|digest|context|analytics|review|import|costs|notifications|admin)\b/.test(h))location.replace("/app"+h);})();
+</script>
+<link rel="stylesheet" href="/theme.css">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--text);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  a{color:inherit}
+  .num,.fig,td.n{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 40px}
+  :focus-visible{outline:2px solid var(--select);outline-offset:3px;border-radius:8px}
+  .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .skip{position:absolute;left:16px;top:-60px;background:var(--accent);color:var(--on-accent);padding:10px 16px;font-weight:700;border-radius:var(--r-sm);z-index:10}
+  .skip:focus{top:12px}
+  svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+  /* ---- top bar ---- */
+  .bar{position:relative;z-index:2}
+  .bar .wrap{display:flex;align-items:center;gap:8px;min-height:72px}
+  .brand{display:flex;align-items:center;gap:10px;text-decoration:none;margin-right:22px}
+  .brand b{font-size:22px;font-weight:800;letter-spacing:-.03em}
+  .logo-mark{width:30px;height:30px;flex:none;display:block}
+  .wordmark{font-weight:800;letter-spacing:-.035em}
+  .wordmark span{font-weight:500}
+  .bar nav{display:flex;gap:4px;flex:1}
+  .bar a.link{font-size:15px;font-weight:600;color:var(--text-3);text-decoration:none;padding:9px 12px;border-radius:var(--r-sm)}
+  .bar a.link:hover{color:var(--text);background:var(--surface-3)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-family:var(--font-sans);font-weight:700;text-decoration:none;border-radius:var(--r-sm);
+    background:var(--accent);color:var(--on-accent);border:1px solid var(--accent);transition:background-color .15s var(--ease),border-color .15s var(--ease),transform .15s var(--ease)}
+  .btn:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+  .btn:active{transform:translateY(1px)}
+  .btn.md{font-size:15px;padding:11px 18px}
+  .btn.lg{font-size:17px;padding:15px 24px}
+  .btn.ghost{background:transparent;color:var(--text);border-color:var(--line-strong)}
+  .btn.ghost:hover{background:var(--surface-3);border-color:var(--text-3)}
+  .btn .short{display:none}
+
+  /* ---- hero ---- */
+  .hero{position:relative;text-align:center;padding:28px 0 0;isolation:isolate}
+  .hero:before{content:"";position:absolute;inset:-120px 0 0;z-index:-1;pointer-events:none;
+    background:radial-gradient(760px 420px at 72% 8%,var(--glow-a),transparent 62%),radial-gradient(620px 380px at 14% 70%,var(--glow-b),transparent 62%)}
+  h1{font-size:clamp(40px,4.6vw,64px);line-height:1;letter-spacing:-.045em;font-weight:750;max-width:19ch;margin:0 auto;text-wrap:balance}
+  h1 em{font-style:normal;color:var(--accent)}
+  .lede{font-size:clamp(17px,1.5vw,20px);color:var(--text-2);max-width:54em;margin:16px auto 0;text-wrap:balance}
+  .ctas{display:flex;gap:12px;justify-content:center;align-items:center;margin-top:24px;flex-wrap:wrap}
+  .promise{display:inline-flex;align-items:center;gap:8px;margin-left:10px;font-size:15px;color:var(--text-3)}
+  .promise svg{color:var(--verified)}
+
+  /* ---- the live workspace preview ---- */
+  .stage{margin:24px auto 0;max-width:1180px}
+  .ws{display:grid;grid-template-columns:200px minmax(0,1fr);text-align:left;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--surface);box-shadow:var(--shadow);overflow:hidden;font-size:13px}
+  .month-side{background:var(--surface-2);border-right:1px solid var(--line);padding:18px 12px}
+  .month-side .side-h{font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);margin:0 10px 12px}
+  .close-month{display:grid;grid-template-columns:1fr auto;gap:5px 6px;align-items:center;padding:11px 10px;border-radius:8px;text-decoration:none;margin-bottom:5px;min-height:60px}
+  .close-month.selected{background:var(--surface);outline:1px solid var(--line)}
+  .close-month b{font-size:13px;white-space:nowrap}.close-month small{grid-column:1/-1;color:var(--text-3);font-size:12px}
+  .progress{grid-column:1/-1;height:4px;background:var(--surface-3);border-radius:4px;overflow:hidden;margin-top:3px}.progress i{display:block;width:64%;height:100%;background:var(--accent)}
+  .month-side .across{margin-top:24px}.month-side .across a{display:flex;align-items:center;min-height:40px;padding:6px 10px;color:var(--text-2);text-decoration:none}
+  .month-main{min-width:0}.month-head{padding:17px 22px 0;border-bottom:1px solid var(--line)}
+  .month-title{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.month-title h2{font-size:24px;line-height:1.15;letter-spacing:-.03em;max-width:none}.month-title .next-step{margin-left:auto;color:var(--accent);font-size:12px;font-weight:700;min-height:40px;display:flex;align-items:center;text-decoration:none}
+  .sample-caption{color:var(--text-3);font-size:12px;margin:6px 0 8px}
+  .month-tabs{display:flex;gap:16px;flex-wrap:wrap}.month-tabs a{display:flex;gap:5px;align-items:center;min-height:40px;text-decoration:none;color:var(--text-2);font-weight:600;border-bottom:2px solid transparent;white-space:nowrap}
+  .month-tabs .active{color:var(--text);border-color:var(--accent)}.month-tabs .num{color:var(--text-3);font-size:12px}
+  .overview-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:14px;padding:16px 22px 20px;background:var(--bg)}
+  .overview-card{padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--surface);min-width:0}
+  .overview-card h3{font-size:14px;letter-spacing:-.015em;margin-bottom:8px}.overview-right{display:grid;gap:12px}
+  .checklist{list-style:none}.checklist li+li{border-top:1px solid var(--line)}
+  .checklist a{display:grid;grid-template-columns:17px minmax(0,1fr) auto;gap:9px;align-items:center;min-height:54px;padding:8px 0;text-decoration:none}
+  .checklist b{font-weight:600;font-size:12px}.checklist small{display:block;font-size:12px;color:var(--text-3);margin-top:2px}
+  .check-box{width:16px;height:16px;border:1px solid var(--line-strong);border-radius:4px;display:grid;place-items:center}.check-box.done{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}.check-box svg{width:12px;height:12px}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;border-radius:var(--r-pill);padding:2px 8px;white-space:nowrap}
+  .p-ok{color:var(--verified);background:var(--verified-wash)}.p-rev{color:var(--review);background:var(--review-wash)}.p-exc{color:var(--exception);background:var(--exception-wash)}.pill svg{width:13px;height:13px}
+  .c-ok{color:var(--verified)}.c-exc{color:var(--exception)}
+  .glance{margin:0}.glance div{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;border-top:1px solid var(--line);font-size:12px}.glance div:first-child{border:0}.glance dt{color:var(--text-2)}.glance dd{text-align:right;white-space:nowrap;font-family:var(--font-mono);font-size:12px;font-weight:600}.glance dd span{margin-left:5px}
+  .activity{list-style:none;color:var(--text-2);font-size:12px}.activity li{padding:6px 0;border-top:1px solid var(--line);overflow-wrap:anywhere}.activity li:first-child{border:0}.activity time{font-family:var(--font-mono);color:var(--text-3);margin-right:5px}
+  mark.f{background:var(--verified-wash);color:var(--text);font-family:var(--font-mono);font-size:.93em;font-weight:600;border-radius:4px;padding:1px 5px}
+  @media(max-width:1100px){.ws{grid-template-columns:190px minmax(0,1fr)}.month-head{padding:14px 16px 0}.overview-grid{padding:14px 16px;gap:12px}.overview-card{padding:12px}.month-tabs{gap:12px}.month-title h2{font-size:22px}.checklist a{grid-template-columns:16px minmax(0,1fr)}.checklist .pill{display:none}.month-title .next-step{display:none}}
+  @media(max-width:720px){.ws{grid-template-columns:minmax(0,1fr)}.month-side{border-right:0;border-bottom:1px solid var(--line);padding:12px}.month-side .side-h,.month-side .across,.close-month:not(.selected){display:none}.close-month{margin:0;min-height:0}.close-month.selected{outline:0;background:transparent}.month-head{padding:16px 14px 0}.month-title{gap:8px}.month-title h2{font-size:24px}.month-title>.pill{display:none}.month-tabs{column-gap:17px;row-gap:0}.month-tabs a{font-size:12px;min-height:40px}.overview-grid{grid-template-columns:minmax(0,1fr);padding:14px;gap:14px}.overview-card{padding:14px}.overview-card h3{font-size:16px}.checklist b{font-size:13px}.checklist small{font-size:12px}.checklist a{min-height:62px}.glance div,.glance dd{font-size:12px}.activity{font-size:12px}.close-month b{font-size:14px}.close-month small{font-size:12px}.bar .brand{min-height:40px}footer a{min-height:40px;display:inline-flex;align-items:center}.panel header{flex-wrap:wrap}}
+  @media(pointer:coarse){a.link,.btn{min-height:40px}}
+
+  /* ---- sections ---- */
+  section.s{padding:104px 0 0}
+  .split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:64px;align-items:start}
+  h2{font-size:clamp(32px,3.6vw,48px);line-height:1.04;letter-spacing:-.035em;font-weight:750;max-width:16ch;text-wrap:balance}
+  .s .lead{font-size:18px;color:var(--text-2);margin-top:16px;max-width:40ch}
+  .steps{list-style:none;counter-reset:s;margin-top:30px;display:flex;flex-direction:column}
+  .steps li{counter-increment:s;display:grid;grid-template-columns:40px 1fr;gap:2px 14px;padding:16px 0;border-top:1px solid var(--line)}
+  .steps li:before{content:counter(s);grid-row:span 2;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--font-mono);font-size:14px;font-weight:700;color:var(--accent);background:var(--verified-wash)}
+  .steps b{font-size:18px;letter-spacing:-.01em}
+  .steps span{color:var(--text-2);font-size:16px}
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
+  .panel header{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--surface-2);font-size:14px;font-weight:700}
+  .panel header span{font-weight:500;color:var(--text-3)}
+  .draft{padding:22px 20px 6px;font-size:20px;line-height:1.75}
+  .draft s{color:var(--exception);text-decoration-thickness:2px}
+  .checks{padding:4px 20px 18px}
+  .ck{display:grid;grid-template-columns:86px 22px 1fr;gap:10px;align-items:baseline;padding:11px 0;border-top:1px solid var(--line);font-size:15px;color:var(--text-2)}
+  .ck b{font-family:var(--font-mono);font-weight:600;color:var(--text)}
+  .ck svg{width:16px;height:16px;stroke-width:2.8;align-self:center}
+  .ck.ok svg{color:var(--verified)} .ck.no svg{color:var(--exception)} .ck.no b,.ck.no span{color:var(--exception)}
+
+  .flow{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));margin-top:40px;border-top:1px solid var(--line-strong)}
+  .flow li{list-style:none;padding:22px 18px 0 0;position:relative}
+  .flow li:before{content:"";position:absolute;top:-6px;left:0;width:11px;height:11px;border-radius:50%;background:var(--bg);border:2px solid var(--accent)}
+  .flow li.you:before{background:var(--accent)}
+  .flow b{display:block;font-size:18px;letter-spacing:-.01em}
+  .flow span{display:block;color:var(--text-2);font-size:15px;margin-top:6px}
+  .flow em{display:block;font-style:normal;color:var(--text-3);font-size:14px;margin-top:10px}
+
+  table.ctl{width:100%;border-collapse:collapse}
+  table.ctl th{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);text-align:left;padding:13px 20px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+  table.ctl th.r,table.ctl td.r{text-align:right}
+  table.ctl td{padding:18px 20px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--text-2);font-size:16px}
+  table.ctl tr:last-child td{border-bottom:none}
+  table.ctl td b{display:block;font-size:18px;color:var(--text);letter-spacing:-.01em}
+  table.ctl td.res{font-family:var(--font-mono);font-size:22px;font-weight:600;color:var(--text);white-space:nowrap}
+  table.ctl td.res .pill{margin-left:10px;vertical-align:3px;font-family:var(--font-sans)}
+  .note{margin-top:16px;font-size:15px;color:var(--text-3)}
+  .note code{font-family:var(--font-mono);font-size:14px;color:var(--text);background:var(--surface-3);padding:2px 6px;border-radius:4px;white-space:nowrap}
+
+  .close{padding:104px 0 0;text-align:center}
+  .close h2{margin:0 auto;max-width:18ch}
+  .close .lead{margin:16px auto 0}
+  .close .ctas{margin-top:28px}
+  footer{margin-top:88px;border-top:1px solid var(--line);padding:24px 0 40px}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:12px 28px;font-size:14px;color:var(--text-3)}
+  footer a{display:inline-block;padding:6px 0;margin:-6px 0}
+
+  @media (max-width:1100px){
+
+    .ws-i{display:none}
+    .split{grid-template-columns:1fr;gap:36px}
+    .flow{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:28px}
+  }
+  @media (max-width:720px){
+    body{font-size:16px}
+    .wrap{padding:0 16px}
+    .bar .wrap{min-height:62px}
+    .bar nav{display:none}
+    .brand{margin-right:auto}
+    .btn.md{padding:10px 14px}
+    .btn.md .long{display:none}.btn.md .short{display:inline}
+    .hero{padding-top:28px}
+    .promise{display:block;margin:6px 0 0;flex-basis:100%;text-align:center;text-wrap:balance}
+    .promise svg{display:inline-block;vertical-align:-3px;margin-right:6px}
+    .stage{margin-top:36px}
+
+    .ws-q{display:none}
+    .ws-d{padding:20px 18px}
+    .ws-d .ws-h{font-size:24px}
+    .doc{font-size:16px}
+    section.s{padding-top:72px}
+    .flow{grid-template-columns:1fr;border-top:none;border-left:1px solid var(--line-strong);margin-left:6px}
+    .flow li{padding:0 0 22px 22px}
+    .flow li:before{top:4px;left:-6px}
+    .ck{grid-template-columns:72px 20px 1fr}
+    table.ctl thead{display:none}
+    table.ctl,table.ctl tbody,table.ctl tr,table.ctl td{display:block;width:100%}
+    table.ctl tr{border-bottom:1px solid var(--line);padding:8px 0}
+    table.ctl td{border:none;padding:4px 18px}
+    table.ctl td.r{text-align:left}
+    .close{padding-top:72px}
+  }
+  @media (prefers-reduced-motion:reduce){*,*:before,*:after{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ok" viewBox="0 0 24 24"><path d="M5 12.5l4.3 4.3L19 7"/></symbol>
+  <symbol id="no" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="shield" viewBox="0 0 24 24"><path d="M12 3l7 3v6c0 4.4-3 7.6-7 9-4-1.4-7-4.6-7-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
+</svg>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="bar">
+  <div class="wrap">
+    <a class="brand" href="/" aria-label="Closebrief home"><svg class="logo-mark" viewBox="0 0 56 56" aria-hidden="true"><path d="M47 22.5A20 20 0 1 1 37.5 10" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round"/><path d="M19 28.5l7 7L48 13" fill="none" stroke="var(--text)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg><b class="wordmark">close<span>brief</span></b></a>
+    <nav aria-label="Main"><a class="link" href="#verification">Verification</a><a class="link" href="#close">How a close works</a><a class="link" href="#evidence">Evidence</a></nav>
+    <a class="link" href="/app" id="nav-signin" style="font-size:15px;font-weight:600;color:var(--text-2);text-decoration:none;padding:9px 12px">Sign in</a>
+    <a class="btn md" href="/app?demo=1" data-cta><span class="long" data-cta-label>Open the demo</span><span class="short" data-cta-short>Demo</span></a>
+  </div>
+</header>
+
+<main id="main">
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap">
+      <h1 id="hero-title">Close the books. <em>The brief is already written.</em></h1>
+      <p class="lede">Every KPI computed in code, the variance commentary drafted, and every figure traced to its source.</p>
+      <div class="ctas">
+        <a class="btn lg" href="/app?demo=1" data-cta><span data-cta-label>Open the demo close</span><svg class="i" aria-hidden="true"><use href="#arrow"/></svg></a>
+        <a class="btn lg ghost" href="#verification">How verification works</a>
+        <span class="promise"><svg class="i" aria-hidden="true"><use href="#shield"/></svg>The AI writes the words. It never computes the numbers.</span>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div class="stage">
+        <div class="ws" role="group" aria-label="Month Workspace preview — sample data">
+          <aside class="month-side" aria-label="Sample closes">
+            <p class="side-h">Closes</p>
+            <a class="close-month selected" href="/app?demo=1#month=2026-06&tab=overview"><b>June <span class="num">2026</span></b><span class="pill p-rev">Day <span class="num">3</span></span><small><span class="num">9 of 14</span> KPIs approved</small><span class="progress" role="progressbar" aria-label="June close progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="64"><i></i></span></a>
+            <a class="close-month" href="/app?demo=1#month=2026-05&tab=overview"><b>May <span class="num">2026</span></b><span class="pill p-ok">Shared</span><small>Digest sent <span class="num">2</span> Jun</small></a>
+            <a class="close-month" href="/app?demo=1#month=2026-04&tab=overview"><b>April <span class="num">2026</span></b><span class="pill p-ok">Shared</span><small>Board pack <span class="num">5</span> May</small></a>
+            <div class="across"><p class="side-h">Across months</p><a href="/app?demo=1#analyze">Analyze trends</a><a href="/app?demo=1#library">Context library</a><a href="/app?demo=1#data">Data and imports</a></div>
+          </aside>
+          <div class="month-main">
+            <div class="month-head">
+              <div class="month-title"><h2>June <span class="num">2026</span> close</h2><span class="pill p-rev">In progress</span><a class="next-step" href="/app?demo=1#month=2026-06&tab=context">Add <span class="num">&nbsp;3&nbsp;</span> reasons <span aria-hidden="true">→</span></a></div>
+              <p class="sample-caption">Sample data · <span class="num">14</span> KPIs computed in code</p>
+              <nav class="month-tabs" aria-label="Sample month tabs"><a class="active" aria-current="page" href="/app?demo=1#month=2026-06&tab=overview">Overview</a><a href="/app?demo=1#month=2026-06&tab=kpis">KPIs <span class="num">14</span></a><a href="/app?demo=1#month=2026-06&tab=context">Context <span class="num">6</span></a><a href="/app?demo=1#month=2026-06&tab=digest">Digest</a><a href="/app?demo=1#month=2026-06&tab=boardpack">Board pack</a><a href="/app?demo=1#month=2026-06&tab=data">Data</a></nav>
+            </div>
+            <div class="overview-grid">
+              <section class="overview-card" aria-labelledby="checklist-title"><h3 id="checklist-title">What's left before June can be shared</h3>
+                <ol class="checklist">
+                  <li><a href="/app?demo=1#month=2026-06&tab=data"><span class="check-box done"><svg class="i" aria-hidden="true"><use href="#ok"/></svg></span><span><b>Import actuals and budget</b><small><span class="num">2</span> files, all columns mapped · Done</small></span><span class="pill p-ok">Done</span></a></li>
+                  <li><a href="/app?demo=1#month=2026-06&tab=kpis"><span class="check-box done"><svg class="i" aria-hidden="true"><use href="#ok"/></svg></span><span><b>Review the biggest movers</b><small>Anomalies checked · Done</small></span><span class="pill p-ok">Done</span></a></li>
+                  <li><a href="/app?demo=1#month=2026-06&tab=context"><span class="check-box"></span><span><b>Add reasons for <span class="num">3</span> variances</b><small>Bad debt, Marketing spend, DSO</small></span><span class="pill p-rev">Next</span></a></li>
+                  <li><a href="/app?demo=1#month=2026-06&tab=kpis"><span class="check-box"></span><span><b>Approve <span class="num">5</span> drafts</b><small><span class="num">4</span> checked, <span class="num">1</span> figure needs review</small></span><span class="pill p-rev">Review</span></a></li>
+                  <li><a href="/app?demo=1#month=2026-06&tab=digest"><span class="check-box"></span><span><b>Send the digest</b><small>After reasons and approvals</small></span><span class="pill">Waiting</span></a></li>
+                </ol>
+              </section>
+              <div class="overview-right">
+                <section class="overview-card" aria-labelledby="glance-title"><h3 id="glance-title">June at a glance</h3><dl class="glance"><div><dt>Net revenue</dt><dd>$10.7M <span class="c-ok">+3.1%</span></dd></div><div><dt>Gross margin</dt><dd>38.6% <span class="c-ok">+1.2 pts</span></dd></div><div><dt>Bad debt</dt><dd>$212K <span class="c-exc">+136%</span></dd></div><div><dt>COGS</dt><dd>$1.42M <span class="c-exc">+18.4%</span></dd></div></dl></section>
+                <section class="overview-card" aria-labelledby="activity-title"><h3 id="activity-title">Activity</h3><ul class="activity"><li><time>09:22</time><span class="num">4</span> drafts written, <span class="num">11 of 12</span> figures checked</li><li><time>09:15</time><span class="num">7</span> movers found, <span class="num">1</span> exception</li><li><time>09:14</time>Actuals and budget imported</li></ul></section>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="s" id="verification" aria-labelledby="ver-title">
+    <div class="wrap split">
+      <div>
+        <h2 id="ver-title">Every figure, traced before you read it.</h2>
+        <p class="lead">Numbers and words are made by different things. That separation is the product.</p>
+        <ol class="steps">
+          <li><b>Numbers first</b><span>Every KPI is computed in code from your data before any text is written.</span></li>
+          <li><b>Words second</b><span>The model receives those figures already formatted and is told to copy them exactly.</span></li>
+          <li><b>Then a check</b><span>Each number in the draft must match a computed fact or your own context notes. Rounding is fine; invention isn't.</span></li>
+          <li><b>You approve</b><span>Nothing leaves as final until a person signs it off.</span></li>
+        </ol>
+      </div>
+      <figure class="panel" aria-labelledby="guard-cap">
+        <header><span id="guard-cap" style="color:var(--text);font-weight:700">A draft, checked</span><span>Revenue · June 2026 · sample</span></header>
+        <p class="draft">Revenue was <mark class="f">$271K</mark>, up <mark class="f">+1.2%</mark> on May, and <s>$300K</s> for the quarter.</p>
+        <div class="checks">
+          <div class="ck ok"><b>$271K</b><svg class="i" role="img" aria-label="Passed"><use href="#ok"/></svg><span>Rounds from $271,254.84, computed in code.</span></div>
+          <div class="ck ok"><b>+1.2%</b><svg class="i" role="img" aria-label="Passed"><use href="#ok"/></svg><span>Matches the computed month-over-month change.</span></div>
+          <div class="ck no"><b>$300K</b><svg class="i" role="img" aria-label="Failed"><use href="#no"/></svg><span>No computed figure matches. Sent back for a rewrite.</span></div>
+        </div>
+      </figure>
+    </div>
+  </section>
+
+  <section class="s" id="close" aria-labelledby="close-title">
+    <div class="wrap">
+      <h2 id="close-title">Built around the close you already run.</h2>
+      <ol class="flow">
+        <li><b>Import</b><span>Import actuals and budget, with every column mapped.</span></li>
+        <li><b>Review</b><span>Review the biggest movers and check the anomalies.</span></li>
+        <li><b>Explain</b><span>Add reasons for variances using your analyst context notes.</span></li>
+        <li class="you"><b>Approve</b><span>Approve the checked drafts before the close is shared.</span></li>
+        <li><b>Share</b><span>Send the digest and share the board pack.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="s" id="evidence" aria-labelledby="evi-title">
+    <div class="wrap">
+      <div class="split" style="align-items:end;margin-bottom:28px">
+        <h2 id="evi-title">Tested like a control, not a demo.</h2>
+        <p class="lead" style="margin:0">A 15-case evaluation set runs through the real retrieval, generation and checking pipeline.</p>
+      </div>
+      <div class="panel">
+        <table class="ctl">
+          <caption class="vh">Evaluation results</caption>
+          <thead><tr><th scope="col">Control</th><th scope="col">What it tests</th><th scope="col" class="r">Result</th></tr></thead>
+          <tbody>
+            <tr><td><b>Faithfulness</b></td><td>Every generated commentary passed the figure check: no number it couldn't trace.</td><td class="r res">100%<span class="pill p-ok"><svg class="i"><use href="#ok"/></svg>Pass</span></td></tr>
+            <tr><td><b>Recall@5</b></td><td>For every case that needs context, the right note was in the top five results.</td><td class="r res">100%<span class="pill p-ok"><svg class="i"><use href="#ok"/></svg>Pass</span></td></tr>
+            <tr><td><b>Groundedness</b></td><td>Every cause the commentary named appeared in the context it retrieved.</td><td class="r res">100%<span class="pill p-ok"><svg class="i"><use href="#ok"/></svg>Pass</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">From the project's golden set (<code>eval/fixtures/golden.json</code>). Re-run with <code>python -m eval.run</code>.</p>
+    </div>
+  </section>
+
+  <section class="close" aria-labelledby="end-title">
+    <div class="wrap">
+      <h2 id="end-title">Open last month's close and see for yourself.</h2>
+      <p class="lead">A full read-only workspace on sample data: the queue, the commentary, the traces, the digest and the board pack.</p>
+      <div class="ctas">
+        <a class="btn lg" href="/app?demo=1" data-cta><span data-cta-label>Open the demo close</span><svg class="i" aria-hidden="true"><use href="#arrow"/></svg></a>
+        <a class="btn lg ghost" href="/app">Sign in to your workspace</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap"><span>Closebrief</span><span>Figures on this page are sample data.</span><a href="/docs">API docs</a></div>
+</footer>
+
+<script>
+(function(){
+  // Signature interaction: a highlighted figure lights its trace, and back.
+  function link(a,b){
+    ["mouseenter","focus"].forEach(function(e){a.addEventListener(e,function(){a.classList.add("lit");b.classList.add("lit");});});
+    ["mouseleave","blur"].forEach(function(e){a.addEventListener(e,function(){a.classList.remove("lit");b.classList.remove("lit");});});
+  }
+  document.querySelectorAll("mark.f[data-t]").forEach(function(m){
+    var t=document.getElementById(m.getAttribute("data-t"));if(t){link(m,t);link(t,m);}
+  });
+
+  // A saved session opens the newest unfinished month in the same workspace.
+  var token=null;
+  try{
+    token=localStorage.getItem("cb-session-token");
+    if(!token){
+      var key=Object.keys(localStorage).find(function(k){return /^sb-.*-auth-token$/.test(k);});
+      if(key){var session=JSON.parse(localStorage.getItem(key));token=session.access_token||(session.currentSession&&session.currentSession.access_token);}
+    }
+  }catch(e){}
+  if(token){
+    function returning(label,href){
+      document.querySelectorAll("[data-cta],#nav-signin").forEach(function(a){a.href=href;});
+      document.querySelectorAll("[data-cta-label],#nav-signin").forEach(function(el){el.textContent=label;});
+      document.querySelectorAll("[data-cta-short]").forEach(function(el){el.textContent=label.indexOf("Continue")===0?"Continue":"Open";});
+      document.getElementById("nav-signin").hidden=true;
+    }
+    returning("Open your workspace","/app");
+    var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},8000);
+    var headers={Authorization:"Bearer "+token};
+    try{var ws=localStorage.getItem("cb-ws");if(/^[1-9]\d*$/.test(ws||""))headers["X-Workspace-Id"]=ws;}catch(e){}
+    fetch("/close/months",{headers:headers,signal:controller.signal}).then(function(r){if(!r.ok)throw new Error("Months unavailable");return r.json();}).then(function(months){
+      if(!Array.isArray(months))throw new Error("Invalid months");
+      var month=months.filter(function(m){return m.status==="in_progress"&&/^\d{4}-(0[1-9]|1[0-2])$/.test(m.period);}).sort(function(a,b){return b.period.localeCompare(a.period);})[0];
+      if(!month)return;
+      var name=new Intl.DateTimeFormat("en",{month:"long",timeZone:"UTC"}).format(new Date(month.period+"-01T00:00:00Z"));
+      returning("Continue "+name+" close","/app#month="+month.period+"&tab=overview");
+    }).catch(function(){}).finally(function(){clearTimeout(timer);});
+  }
+
+})();
+</script>
+</body>
+</html>

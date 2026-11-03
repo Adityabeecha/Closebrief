@@ -107,6 +107,25 @@ def test_duration_and_calendar_day_not_flagged():
     assert passed, f"unexpected unverified numbers: {unverified}"
 
 
+def test_trend_streak_count_not_flagged():
+    # The streak length comes from our own trend detector and is fed to the
+    # prompt; "4 consecutive months" must not fail the narrative (QA P0 #3).
+    narrative = (
+        "Net revenue fell 12% to $4.2M and has declined for 4 consecutive months, "
+        "after 3 straight quarters of growth."
+    )
+    passed, unverified = check_faithfulness(narrative, make_fact())
+    assert passed, f"unexpected unverified numbers: {unverified}"
+
+
+def test_bare_count_still_flagged_without_duration_noun():
+    # Loosening the duration rule must not let a bare invented count through.
+    narrative = "Net revenue fell 12% to $4.2M across 4 consecutive regions."
+    passed, unverified = check_faithfulness(narrative, make_fact())
+    assert not passed
+    assert 4.0 in unverified
+
+
 def test_number_from_context_is_allowed():
     # A figure the model cites from provided context counts as grounded.
     context = [
@@ -131,3 +150,22 @@ def test_invented_number_still_fails_with_context():
     passed, unverified = check_faithfulness(narrative, make_fact(), context)
     assert not passed
     assert 47.0 in unverified
+
+
+def test_human_guard_message_preserves_numeric_result():
+    from app.generation.guard import faithfulness_messages
+    fact = make_fact(value=1420000)
+    assert check_faithfulness('Revenue was $1.5M.', fact) == (False, [1500000.0])
+    assert faithfulness_messages('Revenue was $1.5M.', fact) == ["$1.5M doesn't match any computed figure (the actual is $1.42M)"]
+
+
+def test_human_guard_message_keeps_percent_and_count_distinct():
+    from app.generation.guard import faithfulness_messages
+    fact = make_fact(value=12, unit='count', deltas=Deltas())
+    assert faithfulness_messages('12 customers, up 12%.', fact) == ["12% doesn't match any computed figure"]
+
+
+def test_human_guard_message_is_empty_for_verified_context():
+    from app.generation.guard import faithfulness_messages
+    context = [ContextSnippet(id='ctx-1', body='A campaign cost $50K.')]
+    assert faithfulness_messages('A campaign cost $50K.', make_fact(), context) == []
