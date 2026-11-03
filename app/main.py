@@ -37,7 +37,7 @@ from app.compute.formula import FormulaError
 from app.compute.funnel import compute_funnel
 from app.compute.kpis import compute_and_store
 from app.compute.pvm import bridge_for_metric_row
-from app.config import auth_active, google_enabled, resolved_vector_backend, settings
+from app.config import auth_active, check_production_auth, google_enabled, resolved_vector_backend, settings
 from app.context.conflicts import find_conflicts
 from app.context.store import ContextStore
 from app.datasets import (
@@ -119,7 +119,9 @@ logger = logging.getLogger("closebrief")
 async def lifespan(_app: "FastAPI"):
     """Startup: create/migrate schema, add the hot /facts index, and (in demo
     mode) seed the sample dataset off-thread. Failures in the optional steps are
-    logged, never fatal — boot and the health check must not be blocked."""
+    logged, never fatal — boot and the health check must not be blocked.
+    The one fatal check is production auth with no sign-in provider."""
+    check_production_auth()
     try:
         init_db()
     except Exception:  # noqa: BLE001

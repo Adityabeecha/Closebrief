@@ -157,6 +157,17 @@ def auth_active() -> bool:
     return settings.auth_enabled and (bool(settings.supabase_url) or google_enabled())
 
 
+def check_production_auth() -> None:
+    """Fail closed in production: auth on but no identity provider would make
+    every request an anonymous admin, so refuse to start instead of serving data.
+    Set AUTH_ENABLED=false explicitly if an open deploy is really intended."""
+    if settings.environment == "prod" and settings.auth_enabled and not auth_active():
+        raise RuntimeError(
+            "AUTH_ENABLED is true in production but no sign-in provider is configured. "
+            "Set SUPABASE_URL (+ SUPABASE_JWT_SECRET) or GOOGLE_CLIENT_ID (+ a session secret), "
+            "or set AUTH_ENABLED=false to run without sign-in on purpose.")
+
+
 def resolved_vector_backend() -> str:
     if settings.vector_backend in ("faiss", "pgvector"):
         return settings.vector_backend
