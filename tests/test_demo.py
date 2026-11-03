@@ -27,6 +27,7 @@ def client(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "demo_mode", True)
 
     from app.deps import shared_cache, shared_embedder, shared_vector_store
+
     shared_cache.cache_clear()
     shared_embedder.cache_clear()
     shared_vector_store.cache_clear()
@@ -35,14 +36,17 @@ def client(tmp_path, monkeypatch):
     # A "real" dataset the demo must never see, plus the seeded demo dataset.
     conn = main.get_connection()
     from app.datasets import create_dataset
+
     create_dataset(conn, "REAL secret upload", is_demo=False)
     conn.close()
     from app.demo import seed_demo
+
     conn = main.get_connection()
     seed_demo(conn)
     conn.close()
 
     from fastapi.testclient import TestClient
+
     with TestClient(main.app) as c:
         yield c
 
@@ -78,14 +82,23 @@ def test_demo_cannot_activate_real_dataset(client):
 
 def test_demo_writes_are_forbidden(client):
     # Every write path the visitor might hit must 403 (role guard), not 200.
-    assert client.post("/context", headers=DEMO, json={
-        "type": "event_note", "title": "x", "body": "y",
-        "metric_tags": [], "effective_date": "2025-01"}).status_code == 403
+    assert (
+        client.post(
+            "/context",
+            headers=DEMO,
+            json={"type": "event_note", "title": "x", "body": "y", "metric_tags": [], "effective_date": "2025-01"},
+        ).status_code
+        == 403
+    )
     assert client.request("DELETE", "/datasets/1", headers=DEMO).status_code == 403
-    assert client.post(
-        "/ingest", headers=DEMO,
-        files={"file": ("x.csv", io.BytesIO(b"period,metric,value,budget\n"), "text/csv")},
-    ).status_code == 403
+    assert (
+        client.post(
+            "/ingest",
+            headers=DEMO,
+            files={"file": ("x.csv", io.BytesIO(b"period,metric,value,budget\n"), "text/csv")},
+        ).status_code
+        == 403
+    )
     assert client.post("/kpis", headers=DEMO, json={"kpis": []}).status_code == 403
 
 
@@ -103,11 +116,10 @@ def test_no_demo_header_still_401(client):
 def test_seed_demo_idempotent(client):
     import app.main as main
     from app.demo import DEMO_DATASET_NAME, seed_demo
+
     conn = main.get_connection()
     assert seed_demo(conn) is False  # both already seeded by the fixture
-    n = conn.execute(
-        "SELECT COUNT(*) AS n FROM datasets WHERE name = ?", (DEMO_DATASET_NAME,)
-    ).fetchone()["n"]
+    n = conn.execute("SELECT COUNT(*) AS n FROM datasets WHERE name = ?", (DEMO_DATASET_NAME,)).fetchone()["n"]
     conn.close()
     assert n == 1
 
@@ -116,79 +128,127 @@ def test_seeded_closes_have_two_shared_months_and_one_in_progress(client):
     import app.main as main
     from app.demo import seed_demo
     from app.scheduling import list_digest_runs
+
     conn = main.get_connection()
     for ds in conn.execute("SELECT id FROM datasets WHERE is_demo = true").fetchall():
-        periods = [r['period'] for r in conn.execute(
-            "SELECT DISTINCT cf.period FROM computed_facts cf JOIN metrics m ON m.id=cf.metric_id WHERE m.dataset_id=? ORDER BY cf.period DESC LIMIT 3", (ds['id'],)).fetchall()]
+        periods = [
+            r["period"]
+            for r in conn.execute(
+                "SELECT DISTINCT cf.period FROM computed_facts cf JOIN metrics m ON m.id=cf.metric_id "
+                "WHERE m.dataset_id=? ORDER BY cf.period DESC LIMIT 3",
+                (ds["id"],),
+            ).fetchall()
+        ]
         for i, period in enumerate(periods):
-            reports = conn.execute("SELECT gr.* FROM generated_reports gr JOIN metrics m ON m.id=gr.metric_id WHERE m.dataset_id=? AND gr.period=?", (ds['id'], period)).fetchall()
+            reports = conn.execute(
+                "SELECT gr.* FROM generated_reports gr JOIN metrics m ON m.id=gr.metric_id WHERE m.dataset_id=? AND gr.period=?",
+                (ds["id"], period),
+            ).fetchall()
             assert reports
-            approved = sum(r['review_status'] == 'approved' for r in reports)
+            approved = sum(r["review_status"] == "approved" for r in reports)
             assert (0 < approved < len(reports)) if i == 0 else approved == len(reports)
-        runs = list_digest_runs(conn, ds['id'])
-        assert {r['period'] for r in runs} == set(periods[1:])
-        assert all(r['trigger'] == 'scheduled' and len(r['items']) == 3 for r in runs)
-        assert all({'metric','headline','detail','budget_var_abs','budget_var_pct','faithfulness'} <= item.keys()
-                   and item['faithfulness'] == 'passed' for r in runs for item in r['items'])
-    before = conn.execute('SELECT COUNT(*) AS n FROM digest_runs').fetchone()['n']
+        runs = list_digest_runs(conn, ds["id"])
+        assert {r["period"] for r in runs} == set(periods[1:])
+        assert all(r["trigger"] == "scheduled" and len(r["items"]) == 3 for r in runs)
+        assert all(
+            {"metric", "headline", "detail", "budget_var_abs", "budget_var_pct", "faithfulness"} <= item.keys()
+            and item["faithfulness"] == "passed"
+            for r in runs
+            for item in r["items"]
+        )
+    before = conn.execute("SELECT COUNT(*) AS n FROM digest_runs").fetchone()["n"]
     assert seed_demo(conn) is False
-    assert conn.execute('SELECT COUNT(*) AS n FROM digest_runs').fetchone()['n'] == before
+    assert conn.execute("SELECT COUNT(*) AS n FROM digest_runs").fetchone()["n"] == before
     conn.close()
 
 
-@pytest.mark.parametrize("value,unit,signed,want", [
-    (102400,'USD',False,'$102K'),(1420000,'USD',False,'$1.42M'),
-    (-370000,'USD',False,'−$370K'),(12.5,'USD',False,'$12.5'),(0,'USD',False,'$0'),
-    (-5.64,'%',True,'−5.6%'),(5.64,'%',True,'+5.6%'),(5,'%',False,'5.0%'),
-    (1234.5,'count',False,'1,235'),(-1234.5,'count',False,'−1,234'),
-])
-def test_demo_figure_formatter_matches_figures_panel(value,unit,signed,want):
+@pytest.mark.parametrize(
+    "value,unit,signed,want",
+    [
+        (102400, "USD", False, "$102K"),
+        (1420000, "USD", False, "$1.42M"),
+        (-370000, "USD", False, "−$370K"),
+        (12.5, "USD", False, "$12.5"),
+        (0, "USD", False, "$0"),
+        (-5.64, "%", True, "−5.6%"),
+        (5.64, "%", True, "+5.6%"),
+        (5, "%", False, "5.0%"),
+        (1234.5, "count", False, "1,235"),
+        (-1234.5, "count", False, "−1,234"),
+    ],
+)
+def test_demo_figure_formatter_matches_figures_panel(value, unit, signed, want):
     from app.demo import format_figure
-    assert format_figure(value,unit,signed=signed) == want
+
+    assert format_figure(value, unit, signed=signed) == want
 
 
 def test_every_seeded_demo_narrative_passes_faithfulness(client):
     import app.main as main
     from app.generation.guard import check_faithfulness
+
     conn = main.get_connection()
-    reports = conn.execute("SELECT gr.* FROM generated_reports gr JOIN metrics m ON m.id=gr.metric_id JOIN datasets d ON d.id=m.dataset_id WHERE d.is_demo=true").fetchall()
+    reports = conn.execute(
+        "SELECT gr.* FROM generated_reports gr JOIN metrics m ON m.id=gr.metric_id JOIN datasets d ON d.id=m.dataset_id WHERE d.is_demo=true"
+    ).fetchall()
     assert len(reports) > 20
     for r in reports:
-        fact = main._fact_by_metric_id(conn,r['metric_id'],r['period'])
-        passed, bad = check_faithfulness(r['narrative'],fact)
-        assert passed, (fact.metric,r['period'],r['narrative'],bad)
-        assert len(r['narrative'].split()) < 90
-        assert 'No reason recorded yet.' in r['narrative']
-        assert 'vs plan' in r['narrative'] or 'vs last month' in r['narrative']
+        fact = main._fact_by_metric_id(conn, r["metric_id"], r["period"])
+        passed, bad = check_faithfulness(r["narrative"], fact)
+        assert passed, (fact.metric, r["period"], r["narrative"], bad)
+        assert len(r["narrative"].split()) < 90
+        assert "No reason recorded yet." in r["narrative"]
+        assert "vs plan" in r["narrative"] or "vs last month" in r["narrative"]
     conn.close()
 
 
-@pytest.mark.parametrize("period,budget,mom,cited", [
-    ('2025-06',5.6,4.0,True),('2025-02',-5.6,-4.0,False),
-    ('2025-06',None,-5.6,False),
-])
-def test_template_uses_only_relevant_cited_reasons_and_real_comparisons(client,period,budget,mom,cited):
+@pytest.mark.parametrize(
+    "period,budget,mom,cited",
+    [
+        ("2025-06", 5.6, 4.0, True),
+        ("2025-02", -5.6, -4.0, False),
+        ("2025-06", None, -5.6, False),
+    ],
+)
+def test_template_uses_only_relevant_cited_reasons_and_real_comparisons(client, period, budget, mom, cited):
     import json
     from types import SimpleNamespace
+
     import app.main as main
     from app.datasets import create_dataset
     from app.demo import _seed_narratives
     from app.generation.guard import check_faithfulness
     from app.schemas import ContextSnippet
-    conn=main.get_connection()
-    ds=create_dataset(conn,'Template regression')
-    mid=conn.execute("INSERT INTO metrics (dataset_id,name) VALUES (?, 'Net Revenue')",(ds,)).lastrowid
-    conn.execute("INSERT INTO computed_facts (metric_id,period,value,mom_pct,budget_var_pct) VALUES (?,?,1420000,?,?)",(mid,period,mom,budget))
-    doc=SimpleNamespace(id=999,type='event_note',title='March 2025 enterprise pricing change',
-                        body='Enterprise prices increased in March.',effective_date='2025-03',metric_tags=['Net Revenue'])
-    _seed_narratives(conn,ds,[doc])
-    report=conn.execute('SELECT * FROM generated_reports WHERE metric_id=?',(mid,)).fetchone()
-    text=report['narrative']
+
+    conn = main.get_connection()
+    ds = create_dataset(conn, "Template regression")
+    mid = conn.execute("INSERT INTO metrics (dataset_id,name) VALUES (?, 'Net Revenue')", (ds,)).lastrowid
+    conn.execute(
+        "INSERT INTO computed_facts (metric_id,period,value,mom_pct,budget_var_pct) VALUES (?,?,1420000,?,?)",
+        (mid, period, mom, budget),
+    )
+    doc = SimpleNamespace(
+        id=999,
+        type="event_note",
+        title="March 2025 enterprise pricing change",
+        body="Enterprise prices increased in March.",
+        effective_date="2025-03",
+        metric_tags=["Net Revenue"],
+    )
+    _seed_narratives(conn, ds, [doc])
+    report = conn.execute("SELECT * FROM generated_reports WHERE metric_id=?", (mid,)).fetchone()
+    text = report["narrative"]
     assert len(text.split()) < 90
-    assert '$1.42M' in text
-    assert ('vs last month' in text and 'No budget comparison is available.' in text) if budget is None else 'vs plan' in text
-    assert bool(json.loads(report['sources'])) is cited
+    assert "$1.42M" in text
+    assert (
+        ("vs last month" in text and "No budget comparison is available." in text)
+        if budget is None
+        else "vs plan" in text
+    )
+    assert bool(json.loads(report["sources"])) is cited
     assert (doc.title in text) is cited
-    assert ('No reason recorded yet.' in text) is not cited
-    assert check_faithfulness(text,main._fact_by_metric_id(conn,mid,period),[ContextSnippet(id='ctx_999',body=doc.body)])[0]
+    assert ("No reason recorded yet." in text) is not cited
+    assert check_faithfulness(
+        text, main._fact_by_metric_id(conn, mid, period), [ContextSnippet(id="ctx_999", body=doc.body)]
+    )[0]
     conn.close()

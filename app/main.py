@@ -16,7 +16,6 @@ from app.auth import CurrentUser, authenticate, get_current_user
 from app.board_pack import build_board_pack_html
 from app.cache import make_insight_key
 from app.compute import derived as derived_metrics
-from app.compute.availability import has_usable_value
 from app.compute.aggregate import (
     GRANULARITIES,
     aggregate_series,
@@ -26,6 +25,7 @@ from app.compute.aggregate import (
     sort_key,
     year_ago_key,
 )
+from app.compute.availability import has_usable_value
 from app.compute.correlations import (
     compare_periods,
     compute_correlations,
@@ -183,7 +183,8 @@ from app.services import log_llm_call as _log_llm_call  # noqa: E402
 # the frontend needs to boot the login form, and the API docs.
 # /app.js is the shell's own script (split out of index.html): a browser cannot
 # attach a bearer token to <script src>, so gating it 401s the entire frontend.
-_OPEN_PATHS = {"/", "/app", "/theme.css", "/app.js", "/health", "/auth/config", "/auth/google", "/openapi.json", "/docs", "/redoc"}
+_OPEN_PATHS = {"/", "/app", "/theme.css", "/app.js", "/health", "/auth/config", "/auth/google", "/openapi.json", "/docs", "/redoc",
+               "/samples/fpa.csv"}
 
 
 
@@ -403,6 +404,14 @@ def ui_root() -> FileResponse:
     # no-cache: browsers must revalidate so UI fixes are picked up immediately
     # (stale cached copies of this shell caused hard-to-debug auth errors).
     return FileResponse(_UI_INDEX, headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/samples/fpa.csv", include_in_schema=False)
+def sample_fpa_csv() -> FileResponse:
+    # The synthetic sample export behind "Try it with sample data" on a new
+    # workspace. Public on purpose: it is the same file the repo ships.
+    return FileResponse(_UI_INDEX.parent.parent.parent / "data" / "sample_fpa.csv", media_type="text/csv",
+                        filename="sample_fpa.csv")
 
 
 @app.get("/theme.css", include_in_schema=False)
@@ -2230,10 +2239,10 @@ def set_workspace_limit(ws_id: int, payload: dict, user: CurrentUser = Depends(g
 
 # ---- Feature routers split out of this module (app/routers/*) ----
 from app.routers import admin as _admin_router  # noqa: E402
+from app.routers import close as _close_router  # noqa: E402
 from app.routers import insights as _insights_router  # noqa: E402
 from app.routers import notifications as _notif_router  # noqa: E402
 from app.routers import review as _review_router  # noqa: E402
-from app.routers import close as _close_router  # noqa: E402
 
 app.include_router(_admin_router.router)
 app.include_router(_notif_router.router)

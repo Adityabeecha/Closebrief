@@ -73,7 +73,7 @@ def test_import_steps_expose_current_and_completed_status():
       const $=id=>(els[id]??={style:{},attrs:{},setAttribute(k,v){this.attrs[k]=v},removeAttribute(k){delete this.attrs[k]}});
     """, """
       setStep(3);assert.equal($('st-3').attrs['aria-current'],'step');
-      assert.equal($('st-1').attrs['aria-current'],undefined);assert.match($('st-1').innerHTML,/✓/);
+      assert.equal($('st-1').attrs['aria-current'],undefined);assert.match($('st-1').innerHTML,/step-tick/);
       assert.match($('st-2').innerHTML,/done/);assert.equal($('imp-kpis').style.display,'');
       setStep(1);assert.equal($('st-3').attrs['aria-current'],undefined);assert.doesNotMatch($('st-1').innerHTML,/done/);
     """)
@@ -199,5 +199,6 @@ def test_powerpoint_export_keeps_failed_faithfulness_warning():
       const shownFacts=[{has_data:true,metric:'Revenue',value:100,deltas:{},narrative:'Some claim',faithfulness:'failed'}];
       const $=()=>({classList:{remove(){}}}),toast=()=>{},loadPptx=async()=>{},fmt=()=>'$100',pct=()=>'';
       const document={documentElement:{getAttribute:()=>null}};
-      class PptxGenJS{constructor(){this.ShapeType={line:'line',rect:'rect'}}addSlide(){return {addText(value){text.push(value)},addShape(){},addTable(){}}} async writeFile(){}}
+      class PptxGenJS{constructor(){this.ShapeType={line:'line',rect:'rect'}}
+        addSlide(){return {addText(value){text.push(value)},addShape(){},addTable(){}}} async writeFile(){}}
     """, "await exportPPTX(); assert.match(text.join(' '),/numbers need review/i);")

@@ -10,12 +10,12 @@ and reuses the exact numbers shown on the dashboard.
 
 from __future__ import annotations
 
-import html
 import base64
 import calendar
+import html
 import re
-from pathlib import Path
 from datetime import datetime, timezone
+from pathlib import Path
 
 
 def dataset_display_name(name: str) -> str:
@@ -117,7 +117,7 @@ h1{font-size:38px;letter-spacing:-.035em;line-height:1.1;margin:36px 0 16px}.sub
 
 
 def _checked_narrative(text, fact):
-    from app.generation.guard import _NUMBER_RE, _normalize, _allowed_values, _matches_any
+    from app.generation.guard import _NUMBER_RE, _allowed_values, _matches_any, _normalize
     from app.schemas import ComputedFact
     model = ComputedFact(metric=fact['metric'], period=fact.get('period', ''),
                          value=fact['value'], unit=fact.get('unit') or 'USD',

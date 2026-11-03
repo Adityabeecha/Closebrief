@@ -286,3 +286,25 @@ def test_overview_no_budget_guidance_links_only_for_writers():
       currentFacts[0].deltas.budget_var_pct=2;paintOverview();
       assert.doesNotMatch($('ov-glance').innerHTML,/No budget loaded/);
     """,)
+
+
+def test_bulk_approve_skips_anomalies_flagged_and_approved_drafts():
+    # Bulk approve is for drafts nobody needs to read one by one.
+    run_js("function bulkApprovable(", "function renderBulkApprove(", "", """
+      const f=o=>({has_data:true,report_id:1,narrative:'x',faithfulness:'passed',is_anomaly:false,review_status:null,...o});
+      const ok=bulkApprovable([f({metric:'A'}),f({metric:'B',is_anomaly:true}),f({metric:'C',faithfulness:'failed'}),
+        f({metric:'D',review_status:'approved'}),f({metric:'E',narrative:null}),f({metric:'F',has_data:false})]);
+      assert.deepEqual(ok.map(x=>x.metric),['A']);
+    """)
+
+
+def test_reason_prompt_only_for_big_moves_without_a_cited_note():
+    run_js("function needsReason(", "function renderWhyNone(", "", """
+      const f=o=>({has_data:true,is_anomaly:false,sources:[],deltas:{budget_var_pct:2},...o});
+      assert.equal(needsReason(f({})),false);
+      assert.equal(needsReason(f({is_anomaly:true})),true);
+      assert.equal(needsReason(f({deltas:{budget_var_pct:-12}})),true);
+      assert.equal(needsReason(f({deltas:{budget_var_pct:10}})),false);
+      assert.equal(needsReason(f({is_anomaly:true,sources:[{id:'n1'}]})),false);
+      assert.equal(needsReason(f({has_data:false,is_anomaly:true})),false);
+    """)

@@ -126,8 +126,8 @@ def test_email_drill_link_encodes_slashes_and_uses_month(monkeypatch):
 
 
 def test_review_nudge_uses_month_link(monkeypatch):
-    from app.config import settings
     import app.routers.review as review
+    from app.config import settings
     from app.notifications.channels import EmailChannel
     sent = []
     monkeypatch.setattr(settings, 'app_base_url', 'https://example.com')

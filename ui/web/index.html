@@ -980,6 +980,8 @@
   body.in-settings #v-costs>.head,body.in-settings #v-notifications>.head,body.in-settings #v-admin>.head{justify-content:flex-end}
   .data-health{margin-bottom:22px}
   .data-health .dh-meta{color:var(--text-3);font-size:14px;margin:-6px 0 6px}
+  .imp-say{font-size:15px;color:var(--text-2);margin:0 0 14px;max-width:70ch}
+  .step-tick{width:12px;height:12px;vertical-align:-1px;margin-right:4px}
   .imp-h{font-size:18px;font-weight:700;letter-spacing:-.015em;margin:0 0 12px}
   body:not(.in-month) .imp-h{display:none}
   #v-import .steps{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
@@ -1003,6 +1005,20 @@
   .an-grid.an-one>.panel>h2{font-size:22px;font-weight:750;letter-spacing:-.025em;text-transform:none;color:var(--text);margin:0 0 4px}
   @media (max-width:900px){.ctx-split{grid-template-columns:1fr}}
   .period-ctl[hidden]{display:none!important}
+  .welcome{max-width:720px;margin:24px auto 0;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);padding:36px clamp(20px,4vw,48px)}
+  .welcome h1{font-size:clamp(26px,2.6vw,34px);font-weight:750;letter-spacing:-.03em;line-height:1.1;margin:0 0 10px}
+  .welcome-lede{font-size:17px;line-height:1.55;color:var(--text-2);margin:0 0 20px;max-width:56ch}
+  .welcome-steps{margin-bottom:22px}
+  .welcome-actions{display:flex;gap:10px;flex-wrap:wrap}
+  .welcome-ro{font-size:14px;color:var(--text-3);margin:0}
+  :root:not([data-role="viewer"]):not([data-role="executive"]) .welcome-ro{display:none}
+  .q-bulk{margin:10px 2px 0}
+  .q-bulk:empty{display:none}
+  .q-bulk .btn{width:100%;justify-content:center}
+  .q-bulk small{display:block;margin-top:6px;font-size:12px;color:var(--text-3)}
+  .why-none{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding:12px 14px;border-radius:var(--r-md);background:var(--review-wash);color:var(--text-2);font-size:14px}
+  .why-none b{color:var(--text)}
+  .why-none .btn{margin-left:auto}
   /* Phones: the month header already carries the next step and Board pack carries the exports,
      so the KPI queue starts right under the tabs. */
   @media (max-width:900px){
@@ -1204,6 +1220,20 @@
 
     <!-- ---------- OVERVIEW: what's left before this close can be shared ---------- -->
     <section id="v-overview" class="wrap" style="display:none">
+      <div class="welcome" id="ov-welcome" style="display:none">
+        <h1>Start your first close</h1>
+        <p class="welcome-lede">Bring a month-end export and Closebrief computes every KPI in code, then drafts the variance commentary for you to check and approve.</p>
+        <ol class="checklist welcome-steps">
+          <li class="cl"><span class="box"></span><div><b>Import a CSV or Excel export</b><small>NetSuite, QuickBooks or a spreadsheet, wide or long layout. You confirm how the columns map.</small></div></li>
+          <li class="cl"><span class="box"></span><div><b>Pick the KPIs to track</b><small>Say which way is good for each one, so costs going down read as good news.</small></div></li>
+          <li class="cl"><span class="box"></span><div><b>Draft, check and approve the commentary</b><small>Every figure in a draft is checked against the computed numbers before anyone reads it.</small></div></li>
+        </ol>
+        <div class="welcome-actions write-only">
+          <button class="btn primary" onclick="nav('datahub')">Import your first file</button>
+          <button class="btn" onclick="importSample(this)">Try it with sample data</button>
+        </div>
+        <p class="welcome-ro">Nothing has been imported into this workspace yet. An analyst or admin can import the first file.</p>
+      </div>
       <div class="ov-grid">
         <div class="pane ov-left">
           <h2 id="ov-check-title">What's left before this close can be shared</h2>
@@ -1254,7 +1284,7 @@
               <button onclick="exportPPTX()"><b>PowerPoint</b><span>Editable .pptx deck</span></button>
             </div>
           </div>
-          <button class="btn primary write-only cta" id="gen-all" onclick="generateAll()">Generate narratives</button>
+          <button class="btn primary write-only cta" id="gen-all" onclick="generateAll()">Draft commentary</button>
         </div>
       </div>
       <div class="banner ok" id="import-banner" style="display:none" role="status"></div>
@@ -1266,6 +1296,7 @@
       <div class="ws-split" id="ws-split">
         <div class="q-col" aria-label="KPI queue">
           <div class="statrow" id="statrow"></div>
+          <div class="q-bulk write-only" id="q-bulk"></div>
         <div class="toolbar">
         <div class="search">
           <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
@@ -1299,6 +1330,7 @@
         <div class="panel full">
           <h2 class="panel-h">Commentary</h2><div class="psub" id="d-narr-meta"></div>
           <div class="narr" id="d-narr"></div>
+          <div id="d-why"></div>
           <div id="d-grounding" class="grounding" style="display:none"></div>
           <div class="chips" id="d-chips" style="margin-top:12px"></div>
           <div class="rev-strip" id="d-rev-strip" style="display:none">
@@ -1522,6 +1554,7 @@
       </div>
       <div class="write-only" id="imp-map" style="display:none">
         <button class="back" onclick="resetImport()" style="margin-bottom:12px">Choose a different file</button>
+        <p class="imp-say">We matched each column to what it holds. Check the Role column, change anything that's wrong, then confirm.</p>
         <div class="banner info" id="tpl-banner" style="display:none"></div>
         <div class="banner info" id="map-warnings" style="display:none"></div>
         <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap">
@@ -1531,7 +1564,7 @@
           <div id="imp-suffix-wrap" style="display:none"><label for="imp-suffix" class="lbl" title="If the target dataset's metrics are named '<name> spend_usd' rather than just '<name>', enter the suffix here so budgets attach to the right one.">Metric name suffix (optional)</label>
             <input class="pill-btn" id="imp-suffix" placeholder="e.g. spend_usd" style="width:160px"></div>
           <div style="flex:1"></div>
-          <button class="write-only btn primary" id="imp-confirm-btn" onclick="confirmMapping()">Confirm &amp; normalize</button>
+          <button class="write-only btn primary" id="imp-confirm-btn" onclick="confirmMapping()">Confirm columns</button>
         </div>
         <div id="map-holder"></div>
         <div id="map-hint" class="banner info" style="display:none;margin-top:12px"></div>
@@ -1555,7 +1588,7 @@
           <div class="kpi-bulk">
             <label class="kpi-field">Category<input id="kpi-bulk-category" aria-label="Category for selected rows" placeholder="Keep current"></label>
             <label class="kpi-field">Unit<select id="kpi-bulk-unit" aria-label="Unit for selected rows"><option value="">Keep current</option><option>USD</option><option>%</option><option>count</option></select></label>
-            <label class="kpi-field">Direction<select id="kpi-bulk-direction" aria-label="Direction for selected rows"><option value="">Keep current</option><option value="up">↑ good</option><option value="down">↓ good</option></select></label>
+            <label class="kpi-field">Direction<select id="kpi-bulk-direction" aria-label="Direction for selected rows"><option value="">Keep current</option><option value="up">Up is good</option><option value="down">Down is good</option></select></label>
             <button class="btn" id="kpi-bulk-apply" disabled onclick="applyKpiBulk()">Apply to selected</button>
           </div>
           <small id="kpi-bulk-selection" role="status">0 rows selected for bulk edit</small>

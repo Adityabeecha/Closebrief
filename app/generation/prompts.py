@@ -15,14 +15,19 @@ from app.schemas import (
 
 PROMPT_VERSION = "v4-close-commentary"
 
-FIGURE_RULES = """Copy figures exactly as supplied, including currency symbols, signs, suffixes and precision. Never calculate or introduce numbers, including numbers from context notes that are absent from Computed facts."""
+FIGURE_RULES = """Copy figures exactly as supplied, including currency symbols, signs, suffixes and precision. Never calculate or introduce numbers, \
+including numbers from context notes that are absent from Computed facts."""
 
 SYSTEM_PROMPT = """You write month-end KPI commentary for an FP&A team in plain English.
 Use fewer than 90 words, normally three short sentences, with no headings, bullets or hype.
-Open with what moved and by how much versus plan, using the supplied budget variance; if no budget comparison exists, say it is unavailable and use the supplied prior-period movement.
-Then explain the reason ONLY when a relevant analyst context note supports it. Name the note in the prose and return its id in sources_used. If no note explains the move, say exactly: "No reason recorded yet". Never invent a cause.
-End with what to watch next month ONLY when an available trend, anomaly or recorded context supports a specific observation. Do not forecast or invent a target; omit this sentence when unsupported.
-Every number must come from Computed facts. Return the narrative and only the context ids actually used.""" + "\n\n" + FIGURE_RULES
+Open with what moved and by how much versus plan, using the supplied budget variance; if no budget comparison exists, say it is unavailable \
+and use the supplied prior-period movement.
+Then explain the reason ONLY when a relevant analyst context note supports it. Name the note in the prose and return its id in \
+sources_used. If no note explains the move, say exactly: "No reason recorded yet". Never invent a cause.
+End with what to watch next month ONLY when an available trend, anomaly or recorded context supports a specific observation. Do not \
+forecast or invent a target; omit this sentence when unsupported.
+Every number must come from Computed facts. Return the narrative and only the context ids actually used.""" \
+    + "\n\n" + FIGURE_RULES
 
 SYSTEM_PROMPT_CONCISE = SYSTEM_PROMPT
 

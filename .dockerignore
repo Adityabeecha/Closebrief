@@ -16,3 +16,14 @@ ui/mockup/
 tests/
 *.md
 !README.md
+
+# Local tooling and working files (never part of the app)
+.claude/
+.impeccable/
+SKILL.md
+.pytest-*/
+.ruff_cache/
+.coverage
+htmlcov/
+artifacts/
+node_modules/
