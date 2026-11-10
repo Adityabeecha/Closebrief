@@ -1,7 +1,6 @@
 name: CI
 
-# Gates mergeability to main. Render auto-deploys on merge (autoDeploy in
-# render.yaml) — this workflow does NOT deploy, it only decides if code is sound.
+# Gates mergeability to main. Deploys are promoted manually in Render after CI is green.
 on:
   push:
     branches: [main]
@@ -24,11 +23,14 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: pip
 
       - name: Install (app + dev deps)
-        run: pip install .[dev]
+        run: pip install -r requirements.lock && pip install .[dev]
+
+      - name: Audit runtime dependencies
+        run: pip install pip-audit && pip-audit -r requirements.lock
 
       - name: Lint (ruff)
         run: ruff check app/ tests/ eval/
@@ -78,11 +80,11 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
           cache: pip
 
       - name: Install (app + dev deps)
-        run: pip install .[dev]
+        run: pip install -r requirements.lock && pip install .[dev]
 
       - name: Test on Postgres (skip SQLite-only attribution tests)
         run: pytest -q -m "not sqlite_only"
