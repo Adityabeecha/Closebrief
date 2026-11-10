@@ -115,3 +115,24 @@ python -c "import secrets;print(secrets.token_urlsafe(48))"
 Changing this key signs every Google user out once. The Supabase secret remains
 a backwards-compatible fallback; production logs a warning once per process
 when `SESSION_JWT_SECRET` is missing.
+
+## Visitor sandbox retention
+
+The scheduled `retention_purge` job deletes inactive visitor workspaces after
+`SANDBOX_RETENTION_DAYS` (default 30); `0` disables workspace deletion. Ensure
+that job is enabled and the scheduler tick is called regularly.
+
+Activity is the latest `created_at` still stored in datasets, generated reports
+(joined through their metrics/dataset), context documents, or LLM calls in the
+workspace. Workspaces with none of those rows use workspace creation time.
+The inactivity check runs before the existing telemetry retention cleanup.
+A shorter telemetry policy can remove LLM-call activity before the sandbox
+window; only records still present contribute to the activity clock.
+Sign-in and browsing alone do not refresh this activity clock.
+
+A workspace is preserved if any member is a global `app_roles` admin, if its
+existing `retention_days` is explicitly non-positive (keep indefinitely), or if
+it contains demo data. Callers of `purge_inactive_sandboxes` may also protect
+member IDs with `keep_user_ids`. Unscoped demo data is untouched. Workspace data,
+notification channels, connectors, staged uploads, dataset job history and
+report versions are deleted; the immutable audit log and user roles remain.
