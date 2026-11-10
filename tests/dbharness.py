@@ -20,7 +20,10 @@ def use_test_db(monkeypatch):
     tmp db_path), but Postgres when TEST_DATABASE_URL is set — building the
     schema once and truncating every table so each test starts clean."""
     from app.config import settings
+    from app.workspaces import invalidate_membership_cache
 
+    # A fresh test database must never reuse another database's memberships.
+    invalidate_membership_cache()
     if not TEST_DATABASE_URL:
         monkeypatch.setattr(settings, "database_url", "")
         return

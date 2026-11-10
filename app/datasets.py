@@ -134,7 +134,7 @@ def list_datasets(conn) -> list[dict]:
 
 def delete_dataset(conn, dataset_id: int) -> bool:
     """Remove a dataset and everything scoped to it (facts, values, reports,
-    bridges, KPI configs, metrics). Reactivates the newest remaining dataset."""
+    bridges, KPI configs, metrics, version history and jobs). Reactivates the newest remaining dataset."""
     row = conn.execute(
         f"SELECT id FROM datasets WHERE id = ? AND {_scope_pred()}", (dataset_id,)
     ).fetchone()
@@ -153,11 +153,18 @@ def delete_dataset(conn, dataset_id: int) -> bool:
             ).fetchall()
         ]
         for rid in report_ids:
+            conn.execute("DELETE FROM report_versions WHERE report_id = ?", (rid,))
             conn.execute("DELETE FROM feedback WHERE report_id = ?", (rid,))
         conn.execute("DELETE FROM generated_reports WHERE metric_id = ?", (mid,))
         conn.execute("DELETE FROM computed_facts WHERE metric_id = ?", (mid,))
         conn.execute("DELETE FROM metric_values WHERE metric_id = ?", (mid,))
         conn.execute("DELETE FROM pvm_bridges WHERE metric_id = ?", (mid,))
+    conn.execute(
+        "DELETE FROM scheduler_runs WHERE job_id IN (SELECT id FROM scheduled_jobs WHERE dataset_id = ?)",
+        (dataset_id,),
+    )
+    for table in ("scheduled_jobs", "digest_runs", "derived_metrics"):
+        conn.execute(f"DELETE FROM {table} WHERE dataset_id = ?", (dataset_id,))
     conn.execute("DELETE FROM kpi_configs WHERE dataset_id = ?", (dataset_id,))
     conn.execute("DELETE FROM metrics WHERE dataset_id = ?", (dataset_id,))
     was_active = conn.execute(
