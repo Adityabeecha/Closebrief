@@ -11,6 +11,7 @@ from pathlib import Path
 
 from app.config import resolved_vector_backend, settings
 from app.ingestion.upload import purge_old_uploads
+from app.workspaces import invalidate_membership_cache
 
 
 def _cutoff(days: int) -> str:
@@ -88,12 +89,6 @@ def purge_inactive_sandboxes(conn, days: int = 30, keep_user_ids=()) -> dict:
                                  (ws,)).fetchall()
             for dataset in owned:
                 ds = int(dataset["id"])
-                # These newer child tables are not handled by delete_dataset.
-                conn.execute("DELETE FROM report_versions WHERE report_id IN ("
-                             "SELECT r.id FROM generated_reports r JOIN metrics m ON m.id = r.metric_id WHERE m.dataset_id = ?)", (ds,))
-                conn.execute("DELETE FROM scheduler_runs WHERE job_id IN (SELECT id FROM scheduled_jobs WHERE dataset_id = ?)", (ds,))
-                for table in ("scheduled_jobs", "digest_runs", "derived_metrics"):
-                    conn.execute(f"DELETE FROM {table} WHERE dataset_id = ?", (ds,))
                 if not datasets.delete_dataset(conn, ds):
                     raise RuntimeError(f"Sandbox dataset {ds} could not be deleted in workspace {ws}")
                 result["datasets_purged"] += 1
@@ -107,6 +102,8 @@ def purge_inactive_sandboxes(conn, days: int = 30, keep_user_ids=()) -> dict:
                 conn.execute(f"DELETE FROM {table} WHERE workspace_id = ?", (ws,))
             conn.execute("DELETE FROM workspaces WHERE id = ?", (ws,))
             conn.commit()
+            for member in members:
+                invalidate_membership_cache(str(member["user_id"]))
             # pgvector rows cascade with context_documents; FAISS needs removal.
             if documents and resolved_vector_backend() == "faiss":
                 from app.deps import shared_vector_store
