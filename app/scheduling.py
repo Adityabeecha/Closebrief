@@ -168,6 +168,11 @@ def _resolve_dataset(conn, job: dict) -> int | None:
     return job["dataset_id"] if job["dataset_id"] is not None else active_dataset_id(conn)
 
 
+def _dataset_workspace(conn, dataset_id: int | None) -> int | None:
+    row = conn.execute("SELECT workspace_id FROM datasets WHERE id = ?", (dataset_id,)).fetchone()
+    return row["workspace_id"] if row else None
+
+
 def _run_digest_job(conn, job: dict, llm_client) -> dict:
     from app.digest.digest import generate_digest
     from app.notifications.scheduler import deliver
@@ -184,7 +189,7 @@ def _run_digest_job(conn, job: dict, llm_client) -> dict:
     out = generate_digest(conn, period, llm_client, top_n=top_n, dataset_id=ds)
     items = [it.model_dump() for it in out.items]
     record_digest_run(conn, ds, period, top_n, items, out.cost_usd, "scheduled")
-    delivery = deliver(conn, "digest_generated", period=period, items=[
+    delivery = deliver(conn, "digest_generated", workspace_id=_dataset_workspace(conn, ds), period=period, items=[
         {"metric": it.metric, "period": period, "value": it.headline,
          "delta": f"{it.budget_var_pct:+.1f}% vs plan" if it.budget_var_pct is not None else "",
          "narrative": it.detail}
@@ -247,7 +252,7 @@ def _run_anomaly_job(conn, job: dict, llm_client) -> dict:
         "delta": f"{r['mom_pct']:+.1f}% MoM" if r["mom_pct"] is not None else "",
         "narrative": _anomaly_narrative(conn, ds, r["metric"], period, llm_client),
     } for r in rows]
-    delivery = deliver(conn, "anomaly_detected", period=period, items=items)
+    delivery = deliver(conn, "anomaly_detected", workspace_id=_dataset_workspace(conn, ds), period=period, items=items)
     return {"period": period, "anomalies": len(items), "delivered_to": delivery["sent"]}
 
 
@@ -281,7 +286,7 @@ def _alert_job_failure(conn, job: dict, error: str) -> None:
     """After repeated failures, tell the operator via the configured channels."""
     from app.notifications.scheduler import deliver
     try:
-        deliver(conn, "anomaly_detected", items=[{
+        deliver(conn, "anomaly_detected", workspace_id=_dataset_workspace(conn, _resolve_dataset(conn, job)), items=[{
             "metric": f"Scheduled {job['kind']} job #{job['id']}",
             "period": "", "value": "failing",
             "delta": f"{FAIL_ALERT_THRESHOLD}+ consecutive failures",

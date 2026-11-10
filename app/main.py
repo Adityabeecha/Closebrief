@@ -406,11 +406,15 @@ def _notify_async(event: str, period: str | None = None, items: list[dict] | Non
     """Fan a notification event out to configured channels on the background pool
     — delivery (SMTP/HTTP) must never add latency or failures to the request.
     When `detected_at` is given, record the detection→delivery latency."""
+    from app.datasets import current_workspace
+
+    workspace_id = current_workspace()
+
     def _run():
         try:
             conn = get_connection()
             try:
-                notif_deliver(conn, event, period=period, items=items)
+                notif_deliver(conn, event, workspace_id=workspace_id, period=period, items=items)
                 if detected_at is not None:
                     _ALERT_LATENCIES.append((time.time() - detected_at) * 1000)
             finally:
