@@ -9,7 +9,8 @@ services:
     plan: free               # $0, sleeps after ~15 min idle (cold start ~50s).
                              # Change to `starter` (~$7/mo) to avoid sleeps.
     branch: main
-    autoDeploy: true
+    # Deploys are promoted manually from the Render dashboard after CI is green.
+    autoDeploy: false
     healthCheckPath: /health
     # NOTE: free plan does not support preDeployCommand, so migrations are NOT
     # applied automatically. Run once from your machine against the Supabase URL:
