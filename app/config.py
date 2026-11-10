@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     )
 
     environment: str = APP_ENV
+    trust_proxy_headers: bool = False
 
     @field_validator("*", mode="before")
     @classmethod

@@ -212,8 +212,8 @@ _last_bucket_sweep = 0.0
 
 
 def _sweep_rate_buckets(now: float) -> None:
-    """Drop IP buckets with no requests in the last minute, at most once a minute,
-    so _RATE_BUCKETS stays proportional to *recently active* IPs, not all-time."""
+    """Drop visitor buckets with no requests in the last minute, at most once a minute,
+    so _RATE_BUCKETS stays proportional to *recently active* visitors, not all-time."""
     global _last_bucket_sweep
     if now - _last_bucket_sweep < 60:
         return
@@ -322,10 +322,21 @@ async def _security_headers(request, call_next):
 
 @app.middleware("http")
 async def _telemetry_middleware(request, call_next):
-    client_ip = request.client.host if request.client else "?"
+    import hashlib
+
+    authorization = request.headers.get("authorization", "")
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() == "bearer" and token.strip():
+        visitor_key = "token:" + hashlib.sha256(authorization.encode()).hexdigest()
+    else:
+        client_ip = request.client.host if request.client else "?"
+        if settings.trust_proxy_headers:
+            forwarded = request.headers.get("x-forwarded-for", "").split(",", 1)[0].strip()
+            client_ip = forwarded or client_ip
+        visitor_key = "ip:" + client_ip
     now = time.time()
     _sweep_rate_buckets(now)
-    bucket = _RATE_BUCKETS[client_ip]
+    bucket = _RATE_BUCKETS[visitor_key]
     while bucket and now - bucket[0] > 60:
         bucket.popleft()
     if len(bucket) >= _RATE_LIMIT_PER_MINUTE:
