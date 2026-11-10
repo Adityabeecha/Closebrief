@@ -89,12 +89,6 @@ def purge_inactive_sandboxes(conn, days: int = 30, keep_user_ids=()) -> dict:
                                  (ws,)).fetchall()
             for dataset in owned:
                 ds = int(dataset["id"])
-                # These newer child tables are not handled by delete_dataset.
-                conn.execute("DELETE FROM report_versions WHERE report_id IN ("
-                             "SELECT r.id FROM generated_reports r JOIN metrics m ON m.id = r.metric_id WHERE m.dataset_id = ?)", (ds,))
-                conn.execute("DELETE FROM scheduler_runs WHERE job_id IN (SELECT id FROM scheduled_jobs WHERE dataset_id = ?)", (ds,))
-                for table in ("scheduled_jobs", "digest_runs", "derived_metrics"):
-                    conn.execute(f"DELETE FROM {table} WHERE dataset_id = ?", (ds,))
                 if not datasets.delete_dataset(conn, ds):
                     raise RuntimeError(f"Sandbox dataset {ds} could not be deleted in workspace {ws}")
                 result["datasets_purged"] += 1

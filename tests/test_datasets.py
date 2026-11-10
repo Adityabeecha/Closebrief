@@ -128,3 +128,40 @@ def test_default_period_is_latest_in_active_dataset(client):
                 "period,metric,value,budget\n2025-06,Beta,1,1\n2025-07,Beta,2,2\n")
     periods = client.get("/periods").json()
     assert periods == ["2025-06", "2025-07"]  # B's periods only, not 2024
+
+
+def test_delete_dataset_removes_history_and_jobs_without_touching_other_datasets(client):
+    from app import datasets, scheduling
+    from app.db import get_connection
+
+    conn = get_connection()
+    scope_token = datasets._workspace_scope.set(None)
+    try:
+        target = datasets.create_dataset(conn, "Delete me", activate=False, workspace_id=101)
+        keep = datasets.create_dataset(conn, "Keep me", activate=False, workspace_id=202)
+        for ds in (target, keep):
+            metric = datasets.get_or_create_metric(conn, ds, "Revenue")
+            report = conn.execute(
+                "INSERT INTO generated_reports (metric_id, period, confidence, faithfulness) "
+                "VALUES (?, '2026-01', 'high', 'passed') RETURNING id", (metric,),
+            ).fetchone()["id"]
+            for version in (1, 2):
+                conn.execute("INSERT INTO report_versions (report_id, version, narrative) VALUES (?, ?, 'private draft')",
+                             (report, version))
+            scheduling.record_digest_run(conn, ds, "2026-01", 1, [{"metric": "Revenue"}], None, "manual")
+            job = scheduling.create_job(conn, "digest", "daily", dataset_id=ds)
+            conn.execute("INSERT INTO scheduler_runs (job_id, kind, status) VALUES (?, 'digest', 'ok')", (job,))
+            conn.execute("INSERT INTO derived_metrics (dataset_id, name, formula) VALUES (?, 'Double revenue', 'Revenue * 2')", (ds,))
+        conn.commit()
+        datasets.set_workspace_scope(202)
+        assert datasets.delete_dataset(conn, target) is False
+        assert conn.execute("SELECT COUNT(*) AS n FROM report_versions").fetchone()["n"] == 4
+        datasets.set_workspace_scope(101)
+        assert datasets.delete_dataset(conn, target) is True
+        assert conn.execute("SELECT id FROM datasets WHERE id = ?", (keep,)).fetchone() is not None
+        for table, count in {"report_versions": 2, "generated_reports": 1, "digest_runs": 1,
+                             "scheduled_jobs": 1, "scheduler_runs": 1, "derived_metrics": 1}.items():
+            assert conn.execute(f"SELECT COUNT(*) AS n FROM {table}").fetchone()["n"] == count, table
+    finally:
+        datasets._workspace_scope.reset(scope_token)
+        conn.close()
