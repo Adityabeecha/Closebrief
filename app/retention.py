@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
+from app.ingestion.upload import purge_old_uploads
+
 
 def _cutoff(days: int) -> str:
     # ISO date the retained window starts; compares against TEXT (SQLite) and
@@ -32,8 +34,8 @@ def purge_workspace(conn, workspace_id: int, retention_days: int) -> dict:
 
 
 def run_retention(conn) -> dict:
-    """Purge every workspace that has a retention policy set. Used by the
-    scheduled 'retention_purge' job."""
+    """Purge configured workspace telemetry and staged uploads older than 7 days.
+    Used by the scheduled 'retention_purge' job."""
     rows = conn.execute(
         "SELECT id, retention_days FROM workspaces WHERE retention_days IS NOT NULL"
     ).fetchall()
@@ -43,4 +45,5 @@ def run_retention(conn) -> dict:
         if days <= 0:
             continue
         total += purge_workspace(conn, int(r["id"]), days)["llm_calls_purged"]
-    return {"workspaces": len(rows), "llm_calls_purged": total}
+    uploads_purged = purge_old_uploads(conn)
+    return {"workspaces": len(rows), "llm_calls_purged": total, "uploads_purged": uploads_purged}
