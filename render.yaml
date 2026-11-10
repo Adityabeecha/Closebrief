@@ -23,6 +23,8 @@ services:
         value: openai
       - key: VECTOR_BACKEND
         value: pgvector
+      - key: TRUST_PROXY_HEADERS # Render supplies X-Forwarded-For for visitor rate limits
+        value: "true"
       - key: AUTH_ENABLED
         value: "true"
       - key: DEMO_MODE           # seeds sample data; anonymous read-only browsing
@@ -45,6 +47,8 @@ services:
         sync: false
       - key: SUPABASE_JWT_SECRET
         sync: false
+      - key: SESSION_JWT_SECRET
+        sync: false          # separate key for Google user sessions
       - key: SENTRY_DSN
         sync: false
       - key: SCHEDULER_TOKEN   # shared secret; an external cron sends it as

@@ -212,8 +212,8 @@ _last_bucket_sweep = 0.0
 
 
 def _sweep_rate_buckets(now: float) -> None:
-    """Drop IP buckets with no requests in the last minute, at most once a minute,
-    so _RATE_BUCKETS stays proportional to *recently active* IPs, not all-time."""
+    """Drop visitor buckets with no requests in the last minute, at most once a minute,
+    so _RATE_BUCKETS stays proportional to *recently active* visitors, not all-time."""
     global _last_bucket_sweep
     if now - _last_bucket_sweep < 60:
         return
@@ -322,10 +322,24 @@ async def _security_headers(request, call_next):
 
 @app.middleware("http")
 async def _telemetry_middleware(request, call_next):
-    client_ip = request.client.host if request.client else "?"
+    import hashlib
+
+    authorization = request.headers.get("authorization", "")
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() == "bearer" and token.strip():
+        visitor_key = "token:" + hashlib.sha256(authorization.encode()).hexdigest()
+    else:
+        client_ip = request.client.host if request.client else "?"
+        if settings.trust_proxy_headers:
+            # The visitor can write anything at the START of X-Forwarded-For; each
+            # proxy appends what it saw at the END. Cloudflare's own header can't
+            # be set by the visitor, so prefer it, else take the last hop.
+            hops = [h.strip() for h in request.headers.get("x-forwarded-for", "").split(",") if h.strip()]
+            client_ip = request.headers.get("cf-connecting-ip", "").strip() or (hops[-1] if hops else client_ip)
+        visitor_key = "ip:" + client_ip
     now = time.time()
     _sweep_rate_buckets(now)
-    bucket = _RATE_BUCKETS[client_ip]
+    bucket = _RATE_BUCKETS[visitor_key]
     while bucket and now - bucket[0] > 60:
         bucket.popleft()
     if len(bucket) >= _RATE_LIMIT_PER_MINUTE:
@@ -406,11 +420,15 @@ def _notify_async(event: str, period: str | None = None, items: list[dict] | Non
     """Fan a notification event out to configured channels on the background pool
     — delivery (SMTP/HTTP) must never add latency or failures to the request.
     When `detected_at` is given, record the detection→delivery latency."""
+    from app.datasets import current_workspace
+
+    workspace_id = current_workspace()
+
     def _run():
         try:
             conn = get_connection()
             try:
-                notif_deliver(conn, event, period=period, items=items)
+                notif_deliver(conn, event, workspace_id=workspace_id, period=period, items=items)
                 if detected_at is not None:
                     _ALERT_LATENCIES.append((time.time() - detected_at) * 1000)
             finally:

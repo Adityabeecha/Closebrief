@@ -13,9 +13,10 @@ import json
 from app.notifications.channels import make_channel
 
 
-def list_configs(conn) -> list[dict]:
+def list_configs(conn, workspace_id: int | None) -> list[dict]:
     rows = conn.execute(
-        "SELECT id, channel, config, enabled, created_at FROM notification_configs ORDER BY id"
+        "SELECT id, channel, config, enabled, created_at FROM notification_configs WHERE workspace_id IS ? ORDER BY id",
+        (workspace_id,),
     ).fetchall()
     out = []
     for r in rows:
@@ -29,12 +30,12 @@ def list_configs(conn) -> list[dict]:
     return out
 
 
-def deliver(conn, event: str, *, period: str | None = None, items: list[dict] | None = None) -> dict:
-    """Send `event` (digest_generated | anomaly_detected) to every enabled config
-    subscribed to it. Returns {sent: [...], failed: [{id, error}]}."""
+def deliver(conn, event: str, *, workspace_id: int | None, period: str | None = None, items: list[dict] | None = None) -> dict:
+    """Send `event` (digest_generated | anomaly_detected) to enabled configs in the given workspace
+    subscribed to it. NULL configs belong only to the unscoped local-dev scope. Returns {sent: [...], failed: [{id, error}]}."""
     items = items or []
     sent, failed = [], []
-    for cfg in list_configs(conn):
+    for cfg in list_configs(conn, workspace_id):
         if not cfg["enabled"]:
             continue
         events = cfg["config"].get("events")
