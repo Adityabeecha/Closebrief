@@ -1,102 +1,92 @@
-# Closebrief — Narrative BI
+# CloseBrief
 
-Executive commentary on your KPIs, the moment the books close. Closebrief ingests monthly financials, computes KPI variance deterministically, retrieves your curated business context, and writes grounded, audit-ready variance commentary.
+CloseBrief is a month-end close workspace for turning financial data into
+reviewed commentary and a leadership digest. Numbers are computed in code;
+AI drafts the commentary around those facts and the business context you add.
 
-**The core rule:** the LLM never computes numbers. All KPI values, deltas, and trends are computed in pandas ([app/compute/kpis.py](app/compute/kpis.py)); the LLM only phrases prose around pre-computed facts, and every generated number is verified by the faithfulness guard ([app/generation/guard.py](app/generation/guard.py)) before it leaves the system.
+Every generated figure is checked against supplied facts or source context at
+its written precision. Checks also compare rise/fall wording with the direction
+of the computed change. Reviewers can inspect, edit, and approve the draft.
+The digest uses approved commentary; sending is blocked until every KPI in the
+close has approved commentary.
 
-## Architecture
+## Main flow
 
-```
-CSV ─► Ingestion ─► KPI Compute (pandas, deterministic)
-                          │ computed facts
-context docs ─► OpenAI embeddings ─► FAISS ─► top-k retrieval ──┤
-                          ▼                                     ▼
-                Narrative Generator (LLM: prose only)
-                          ▼
-                Numeric-faithfulness guard (reject/flag)
-                          ▼
-                Structured JSON ─► FastAPI (OpenAPI docs at /docs)
-```
+**Import -> review -> add reasons -> approve -> send digest**
 
-## Setup
+1. Import a CSV or Excel workbook, map its columns, and choose the KPIs to track.
+2. Review the month's values, changes against plan, trends, and flagged movements.
+3. Add reasons as context notes for the relevant metrics and period, then draft
+   or revise commentary using those notes and computed facts.
+4. Review the figures and explanation, assign a reviewer if needed, and approve
+   each KPI's commentary. Edits are recorded in version history.
+5. Preview the digest of approved commentary, then send it through configured
+   email, Slack, or webhook channels once all KPIs are approved.
 
-```bash
+## Run locally
+
+Use Python 3.11 or later. From the repository root (PowerShell):
+
+```powershell
 python -m venv .venv
-.venv\Scripts\activate          # Windows
-pip install -e ".[dev]"
-copy .env.example .env           # then put your OPENAI_API_KEY in .env
-```
-
-One OpenAI key powers both narrative generation (`OPENAI_MODEL`, default gpt-4o) and embeddings (`OPENAI_EMBEDDING_MODEL`, default text-embedding-3-small). The provider is swappable: set `LLM_PROVIDER=anthropic` + `ANTHROPIC_API_KEY` to use Claude instead (interfaces in [app/generation/llm_client.py](app/generation/llm_client.py) and [app/context/embeddings.py](app/context/embeddings.py)). Without any key, generation degrades gracefully to facts-only responses and embeddings fall back to a deterministic offline hasher.
-
-## Run
-
-```bash
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e ".[dev]"
 uvicorn app.main:app --reload
 ```
 
-Then exercise the loop (sample dataset included):
+On macOS/Linux, activate with `source .venv/bin/activate`.
 
-```bash
-# 1. ingest 24 months x 10 metrics of synthetic FP&A data
-curl -X POST http://127.0.0.1:8000/ingest -F "file=@data/sample_fpa.csv"
+Open [the app](http://127.0.0.1:8000/app), or the
+[development API docs](http://127.0.0.1:8000/docs). With no `DATABASE_URL`, storage
+uses local SQLite and FAISS. With no sign-in provider configured, local requests
+use the development admin identity. Import and computed facts work without an
+LLM key; drafting new AI commentary requires a configured provider and API key
+(`OPENAI_API_KEY`, or `LLM_PROVIDER=anthropic` with `ANTHROPIC_API_KEY`).
 
-# 2. compute all KPI facts deterministically
-curl -X POST http://127.0.0.1:8000/compute
+Import [data/sample_fpa.csv](data/sample_fpa.csv) to try the editable close flow;
+[data/sample_marketing.csv](data/sample_marketing.csv) is another sample.
+To seed separate demo datasets, set this before starting the server:
 
-# 3. add business context (embedded into FAISS automatically)
-curl -X POST http://127.0.0.1:8000/context -H "Content-Type: application/json" -d "{\"type\":\"event_note\",\"title\":\"March 2025 pricing change\",\"body\":\"On March 1 2025 we raised enterprise prices 15%...\",\"metric_tags\":[\"Net Revenue\"],\"effective_date\":\"2025-03\"}"
-
-# 4. generate a grounded narrative (context auto-retrieved top-k)
-curl -X POST http://127.0.0.1:8000/generate-insight -H "Content-Type: application/json" -d "{\"metric\":\"Net Revenue\",\"period\":\"2025-03\"}"
-
-# 5. executive digest: top movements by budget variance
-curl -X POST "http://127.0.0.1:8000/digest?period=2025-03&top_n=5"
-
-# 6. analyst feedback loop
-curl -X POST http://127.0.0.1:8000/feedback -H "Content-Type: application/json" -d "{\"report_id\":1,\"action\":\"accepted\"}"
+```powershell
+$env:DEMO_MODE = "true"
 ```
 
-Interactive API docs: http://127.0.0.1:8000/docs
+When authentication is configured, **Open the demo close** on the home page
+opens those samples as a read-only visitor. Demo seeding runs in the background
+at startup; it does not replace uploaded datasets. See [DEPLOY.md](DEPLOY.md)
+for identity-provider and service configuration.
 
-## Endpoints
+## Tests and evaluation
 
-| Endpoint | Purpose |
-|---|---|
-| `POST /ingest` | Upload CSV (`period, metric, value, budget`); 422 with the missing column named on bad files |
-| `POST /compute` | Deterministic KPI math: value, MoM, YoY, budget variance, 12-mo trend, anomaly flag (z-score) |
-| `POST /context`, `GET /context`, `PUT/DELETE /context/{id}` | Context Library CRUD; embeds on create/edit, removes vector on delete; FAISS index persists to disk |
-| `POST /generate-insight` | Facts + retrieved context → 2–4 sentence narrative with sources, confidence, faithfulness verdict; enriched with correlated metrics + trend streaks; persisted with a `report_id`; LLM failure returns facts-only 503, never a bare 500 |
-| `POST /digest` | Top-N movements for a period ranked by absolute budget variance |
-| `POST /feedback` | accept / edit / reject a narrative, linked to its report |
-| `GET /correlations` | Metric pairs that move together (\|Pearson r\| ≥ 0.7) in the active dataset |
-| `GET /compare` | One metric across two periods incl. delta-of-deltas (momentum) |
-| `GET /costs` | LLM spend by day/endpoint, request latency p50/p95, cache hit rate |
-
-## Faithfulness guard
-
-Every number in a generated narrative is parsed (handles `$4.2M`, `370,000`, `12%`) and matched against the computed facts within rounding tolerance — percent figures only match percent facts, magnitudes only match magnitudes. On failure the system regenerates once with a stricter prompt; if it still fails, the narrative is flagged `faithfulness: failed` and confidence is downgraded. Nothing unverified passes silently.
-
-## Tests
-
-```bash
-pytest -q     # 105 tests: KPI math, guard, retrieval, auth, cache, datasets, ingestion, PVM, correlations
+```powershell
+python -m pytest -q
+python -m ruff check app/ tests/ eval/
+python -m eval.run --no-llm
 ```
 
-## Project layout
+The test suite uses isolated test databases. Leave `TEST_DATABASE_URL` unset for
+SQLite; use only a dedicated disposable database to exercise PostgreSQL tests.
+The retrieval-only eval skips LLM generation. For a fully offline run, ensure
+`OPENAI_API_KEY` is absent from both shell and dotenv settings: embeddings use
+OpenAI whenever that key is configured, and local hashing otherwise.
+`python -m eval.run` also evaluates generated commentary and Q&A; it requires
+an LLM key and makes API calls.
 
-Matches the PRD (Section 10): `app/ingestion`, `app/compute`, `app/context` (store, embeddings, FAISS vector store), `app/retrieval`, `app/generation` (LLM client, prompts, generate, guard), `app/digest`, `tests/`, `data/` (sample dataset + generator), `eval/` (harness — next milestone).
+## Architecture
 
-A graphify knowledge graph of the codebase lives in `graphify-out/` (`graphify query "<question>"` to navigate without re-reading files).
+- **API:** FastAPI serves the app, auth middleware, and feature routers.
+- **UI:** Vanilla JavaScript, HTML, and CSS in `ui/web/` call the same API.
+- **Import and compute:** `app/ingestion/` maps uploads; `app/compute/` calculates
+  KPI values, deltas, trends, anomalies, and bridges with pandas/numpy.
+- **Context:** `app/context/` and `app/retrieval/` store notes and retrieve
+  relevant context using FAISS locally or pgvector when configured.
+- **Drafting and checks:** `app/generation/` wraps the configured LLM provider,
+  builds prompts, and checks numeric precision, direction, and grounding.
+- **Review and digest:** `app/review.py` records decisions and versions;
+  `app/digest/` assembles approved commentary without another AI call.
+- **Storage and operations:** SQLite/PostgreSQL hold workspace-scoped data;
+  optional Redis caches responses, while scheduling, notifications, retention,
+  audit history, and usage metering live in their respective `app/` modules.
 
-## Status / roadmap
-
-- ✅ Milestone 1 — deterministic engine + guarded generation + API
-- ✅ Milestone 2 — RAG core: Context Library, FAISS retrieval, digest, feedback
-- ✅ Eval harness (`python -m eval.run`, add `--no-llm` for retrieval-only): **Recall@5 100% · Faithfulness 100% · Groundedness 100%** on a 15-case golden set ([eval/fixtures/golden.json](eval/fixtures/golden.json))
-- ✅ Web UI at `/` — Insights Dashboard (cards with deltas, narratives, source chips, confidence + verified-numbers badges, trend-streak badges, 👍/👎/edit feedback), metric detail with interactive Chart.js charts, Executive Digest, Context Library CRUD, CSV import, **Cost & Usage** page ([ui/web/index.html](ui/web/index.html))
-- ✅ Milestone 3 — Supabase/pgvector, Redis caching + cost logging, Dockerized deploy on Render with CI/CD (see [DEPLOY.md](DEPLOY.md))
-- ✅ v2 UX — dark mode, command palette (Ctrl+K), metric search, skeleton loaders, PDF/PPTX export, Sentry (backend + frontend)
-- ✅ v2.1 analytics — multi-metric correlations, consecutive-trend streaks, period comparison (`app/compute/correlations.py`)
-- ✅ v2.1 notifications — email/Slack/webhook channels with HMAC-signed webhooks (`app/notifications/`)
-- ✅ v2.1 multi-domain foundation — pluggable domains (FP&A default + Marketing/Ops stubs) with domain-aware prompts + KPI libraries (`app/domains/`)
+Deployment instructions are in [DEPLOY.md](DEPLOY.md). Product requirements and
+the historical QA review are under [docs/](docs/).
