@@ -67,7 +67,7 @@ class OpenAILLMClient:
             raise LLMGenerationError(
                 "OPENAI_API_KEY is not set. Add it to .env to enable narrative generation."
             )
-        self._client = openai.OpenAI(api_key=settings.openai_api_key)
+        self._client = openai.OpenAI(api_key=settings.openai_api_key, timeout=60, max_retries=1)
         self._model = model or settings.openai_model
 
     def generate_narrative(
@@ -78,6 +78,7 @@ class OpenAILLMClient:
         try:
             completion = self._client.chat.completions.parse(
                 model=self._model,
+                temperature=0.2,
                 max_completion_tokens=600,
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -108,7 +109,7 @@ class AnthropicLLMClient:
             raise LLMGenerationError(
                 "ANTHROPIC_API_KEY is not set. Add it to .env to enable narrative generation."
             )
-        self._client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        self._client = anthropic.Anthropic(api_key=settings.anthropic_api_key, timeout=60, max_retries=1)
         self._model = model or settings.anthropic_model
 
     def generate_narrative(
@@ -119,6 +120,7 @@ class AnthropicLLMClient:
         try:
             response = self._client.messages.parse(
                 model=self._model,
+                temperature=0.2,
                 max_tokens=600,
                 system=system_prompt,
                 messages=[{"role": "user", "content": user_prompt}],
