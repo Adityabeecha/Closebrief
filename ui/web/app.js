@@ -1,5 +1,7 @@
 const $=id=>document.getElementById(id);
 let currentPeriod=null, currentFacts=[], detailFact=null, activeDatasetId=null, searchQuery="", datasetsCache=[];
+// Reopen the dataset this browser was last looking at (the server ignores it if it no longer exists).
+try{const v=+localStorage.getItem("cb-ds");if(v)activeDatasetId=v;}catch{}
 /* auth state */
 let sb=null, authToken=null, authMode="signin", currentUser={email:"local@dev",role:"admin"};
 
@@ -366,6 +368,8 @@ async function api(path,opts,_retried){
   else if(demoSession){opts.headers={...(opts.headers||{}),"X-Closebrief-Demo":"1"};}
   // Tenant scope: the server validates membership, so a spoofed id can't leak data.
   if(activeWorkspaceId!=null)opts.headers={...(opts.headers||{}),"X-Workspace-Id":String(activeWorkspaceId)};
+  // The dataset this tab is looking at; the server checks it belongs to the caller.
+  if(activeDatasetId!=null)opts.headers={...(opts.headers||{}),"X-Dataset-Id":String(activeDatasetId)};
   const r=await fetch(path,opts);
   if(r.status===401){
     // A stored session's access-token expires after ~1h. Before bouncing to
@@ -388,7 +392,7 @@ async function api(path,opts,_retried){
     let data=null;try{data=await r.json();}catch{}
     if(r.status===503&&path==="/generate-insight"&&data&&typeof data.metric==="string"&&
       typeof data.period==="string"&&Number.isFinite(data.value)&&data.narrative===null&&data.faithfulness==="unchecked")return data;
-    throw new Error((data&&data.detail)||r.statusText||"Request failed");
+    const err=new Error((data&&data.detail)||r.statusText||"Request failed");err.status=r.status;throw err;
   }
   if(r.status===204)return null; return r.json();
 }
@@ -645,7 +649,7 @@ function renderCloses(){
   el.innerHTML=shown.map(p=>{
     const s=closeStateFor(p),[word,cls]=CLOSE_STATUS[s?s.status:"not_started"]||CLOSE_STATUS.not_started;
     const sub=s&&s.n?`${s.approved} of ${s.n} approved`:"";
-    return `<button class="ci" data-p="${esc(p)}" onclick="selectClose('${esc(p)}')">
+    return `<button class="ci" data-p="${esc(p)}" data-act="close" data-arg="${esc(p)}">
       <b>${esc(fmtPeriod(p,"long"))}</b>${s?`<span class="cs ${cls}">${word}</span>`:""}
       ${sub?`<small>${sub}</small>`:""}${s&&s.n&&!["not_started","empty"].includes(s.status)?`<span class="cbar" aria-hidden="true"><i style="width:${Math.round(s.progress*100)}%"></i></span>`:""}</button>`;
   }).join("")+(newest.length>6?`<button class="more" onclick="showAllCloses=!showAllCloses;renderCloses()">${showAllCloses?"Show fewer":`Show all ${newest.length}`}</button>`:"");
@@ -743,7 +747,7 @@ function paintOverview(){
   $("ov-glance-title").textContent=`${fmtPeriod(currentPeriod,"long")} at a glance`;
   $("ov-glance").innerHTML=movers.length?`<div class="glance">${movers.map(({f,v,plan})=>{
     const good=v===0?null:(f.direction_good==="down"?v<0:v>0);
-    return `<button onclick="openMetricByName('${esc(f.metric).replace(/'/g,"\\'")}')"><span>${esc(f.metric)}</span><b>${fmt(f.value,f.unit)} <span class="${good===null?"":good?"c-ok":"c-exc"}">${pct(v)}</span><span class="visually-hidden"> ${plan?"vs plan":"vs prior period"}</span></b></button>`;}).join("")}</div>`
+    return `<button data-act="metric" data-arg="${esc(f.metric)}"><span>${esc(f.metric)}</span><b>${fmt(f.value,f.unit)} <span class="${good===null?"":good?"c-ok":"c-exc"}">${pct(v)}</span><span class="visually-hidden"> ${plan?"vs plan":"vs prior period"}</span></b></button>`;}).join("")}</div>`
     :`<p class="mh-sub">No movements to show for this close.</p>`;
   if(movers.length&&movers.every(x=>!x.plan)){
     const dataCopy="Add a budget on the Data tab.";
@@ -1567,7 +1571,7 @@ async function loadAdmin(){
     $("admin-rows").innerHTML=users.map(u=>`<tr>
       <td><b>${esc(u.email)}</b></td>
       <td style="color:var(--mut2);font-family:ui-monospace,Menlo,monospace;font-size:12px">${esc(u.user_id).slice(0,18)}…</td>
-      <td><select class="write-only" aria-label="Role for ${esc(u.email)}" onchange="setUserRole('${esc(u.user_id)}',this.value)">
+      <td><select class="write-only" aria-label="Role for ${esc(u.email)}" data-uid="${esc(u.user_id)}" onchange="setUserRole(this.dataset.uid,this.value)">
         ${["analyst","executive","admin"].map(r=>`<option ${u.role===r?"selected":""}>${r}</option>`).join("")}</select></td>
       <td style="color:var(--mut);white-space:nowrap">${esc(fmtDate(u.created_at))}</td></tr>`).join("")
       ||screenRow(screenState("No users yet","People who sign in appear here so you can manage their access.","inviteUser()","Invite a user","empty",{writeOnly:true}),4);
@@ -1585,6 +1589,7 @@ function datasetCaption(ds){return plural(ds.metric_count||0,"KPI")+" · importe
 async function loadDatasets(){
   const d=await api("/datasets");
   activeDatasetId=d.active_id;
+  try{localStorage.setItem("cb-ds",String(activeDatasetId??""));}catch{}
   datasetsCache=d.datasets;                       // for id -> name lookups (no strings in onclick)
   const active=d.datasets.find(x=>x.is_active);
   activeDatasetObj=active||null;
@@ -1696,8 +1701,9 @@ document.addEventListener("keydown",e=>{
 async function activateDataset(id){
   if(!await leaveImport())return;
   closeSidebar();$("statrow").innerHTML="";$("cards").innerHTML=skeletonCards();  // brief loading state
+  const prev=activeDatasetId;activeDatasetId=id;   // later requests carry the new dataset
   try{await api(`/datasets/${id}/activate`,{method:"POST"});toast("Switched dataset");await loadPeriods();}
-  catch(e){toast("Couldn't switch dataset: "+e.message);}
+  catch(e){activeDatasetId=prev;toast("Couldn't switch dataset: "+e.message);}
 }
 async function deleteDataset(id){
   const ok=await modalConfirm("Delete dataset",`Delete "${dsName(id)}" and all its data? This can't be undone.`,{okLabel:"Delete"});
@@ -1835,7 +1841,7 @@ function maybePromptGenerate(){
 }
 function dismissKey(type){return `cb-dismiss:${(currentUser&&currentUser.email)||"anon"}:${activeDatasetId}:${type}`;}
 function bannerDismissed(type){try{return localStorage.getItem(dismissKey(type))==="1";}catch{return false;}}
-function dismissX(type,elId){return `<button class="ico" style="border:none;margin-left:auto" aria-label="Dismiss" onclick="try{localStorage.setItem('${dismissKey(type)}','1')}catch{};$('${elId}').style.display='none'">${XICON}</button>`;}
+function dismissX(type,elId){return `<button class="ico" style="border:none;margin-left:auto" aria-label="Dismiss" data-act="dismiss" data-arg="${esc(dismissKey(type))}" data-target="${esc(elId)}">${XICON}</button>`;}
 async function loadConflicts(){
   try{
     const cf=await api("/context/conflicts");const el=$("conflict-banner");
@@ -2238,7 +2244,7 @@ function openDetail(i,{fromRoute=false}={}){
     $("d-narr").innerHTML=f.narrative?esc(f.narrative)+(f.edited&&f.original_narrative?`<details class="tbl" style="margin-top:8px"><summary>Show original (pre-edit)</summary><p style="margin-top:6px;color:var(--mut)">${esc(f.original_narrative)}</p></details>`:""):"No commentary yet. Draft it with the button at the top of this close.";
   }
   $("d-narr-meta").textContent=narrMeta(f);
-  $("d-chips").innerHTML=(f.sources||[]).map(s=>`<span class="chip" role="button" tabindex="0" title="Open source note" onclick="showSourceDoc('${esc(s.id)}')">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
+  $("d-chips").innerHTML=(f.sources||[]).map(s=>`<span class="chip" role="button" tabindex="0" title="Open source note" data-act="source" data-arg="${esc(s.id)}">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
   renderWhyNone(f);
   $("d-qa-answer").innerHTML="";$("d-qa").value="";qaThread=[];   // fresh conversation per metric
   loadCorrelations(f.metric);
@@ -2275,7 +2281,7 @@ function showSentenceGrounding(idx){
       +s.facts.map(f=>`<div class="g-fact">${gCheck}<span>${esc(G_FIELD[f.field]||f.field)}</span> = <b>${gFmtVal(f.value,f.is_percent)}</b></div>`).join("");
   }
   if(s.context_ids&&s.context_ids.length){
-    const chips=s.context_ids.map(id=>`<span class="chip" role="button" tabindex="0" onclick="showSourceDoc('${esc(id)}')">${DOCICON}${esc(id)}</span>`).join("");
+    const chips=s.context_ids.map(id=>`<span class="chip" role="button" tabindex="0" data-act="source" data-arg="${esc(id)}">${DOCICON}${esc(id)}</span>`).join("");
     html+=`<div class="g-lbl" style="margin-top:${s.facts&&s.facts.length?"11px":"0"}">Cited context</div><div class="chips">${chips}</div>`;
   }
   if(s.kind==="numeric-unverified")
@@ -2311,7 +2317,7 @@ function renderQAThread(pending){
   const el=$("d-qa-answer");if(!el)return;
   if(!qaThread.length&&!pending){el.innerHTML="";return;}
   const turns=qaThread.map(t=>{
-    const srcs=(t.sources||[]).map(s=>`<span class="chip" role="button" tabindex="0" onclick="showSourceDoc('${esc(s.id)}')">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
+    const srcs=(t.sources||[]).map(s=>`<span class="chip" role="button" tabindex="0" data-act="source" data-arg="${esc(s.id)}">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
     return `<div class="qa-turn">
       <div class="qa-q">${esc(t.question)}</div>
       <div class="qa-a"><div class="narr" style="font-size:15px">${esc(t.answer)}</div>
@@ -2368,7 +2374,7 @@ function renderWhyNone(f){
   if(!needsReason(f)){el.innerHTML="";return;}
   el.innerHTML=`<div class="why-none" role="note"><span><b>No reason recorded.</b> ${canReview()
     ?"Add a context note and the commentary will cite it next time it's drafted."
-    :"An analyst can add the reason as a context note."}</span>${canReview()?`<button class="btn sm" onclick="addReasonFor('${esc(f.metric).replace(/'/g,"\\'")}')">Add a reason</button>`:""}</div>`;
+    :"An analyst can add the reason as a context note."}</span>${canReview()?`<button class="btn sm" data-act="reason" data-arg="${esc(f.metric)}">Add a reason</button>`:""}</div>`;
 }
 // Opens the close's Context tab with a new note already pointed at this KPI and month.
 function addReasonFor(metric){
@@ -2442,14 +2448,15 @@ async function generateAll(){
   const gp=currentPeriod,gg=granularity,gd=activeDatasetId,force=!targets.length,total=list.length;
   generatingSet=new Set(list.map(f=>f.metric));skipRise=true;renderCards();
   {const b=$("import-banner");if(b&&b.classList.contains("info"))b.style.display="none";}
-  let done=0;
+  let done=0,errors=0,stopMsg=null;
   await runPool(list,3,async(f)=>{
+    if(stopMsg){generatingSet.delete(f.metric);return;}   // an allowance or budget limit was hit: don't keep trying
     try{
       const r=await api("/generate-insight",{method:"POST",headers:{"Content-Type":"application/json"},
         body:JSON.stringify({metric:f.metric,period:gp,force})});
       if(currentPeriod!==gp||granularity!==gg||activeDatasetId!==gd)return;   // user moved on — drop the result
       applyGenerated(r);
-    }catch(e){/* leave card un-narrated; user can retry */}
+    }catch(e){errors++;if(e.status===429||e.status===402)stopMsg=e.message;}   // leave the card un-drafted; user can retry
     if(currentPeriod!==gp||granularity!==gg||activeDatasetId!==gd)return;
     generatingSet.delete(f.metric);done++;
     btn.innerHTML=`<span class="spin"></span> ${done} of ${total}`;
@@ -2459,6 +2466,8 @@ async function generateAll(){
   if(currentPeriod!==gp)return;
   // Head, tiles, banner and cards must agree once generation finishes (QA #8).
   setFreshness();maybePromptGenerate();renderCards();
+  if(stopMsg){toast(stopMsg);return;}
+  if(errors){toast(`${plural(errors,"KPI wasn't","KPIs weren't")} drafted. Try again in a moment.`);return;}
   const failed=currentFacts.filter(f=>f.faithfulness==="failed").length;
   toast(failed?`Done: ${plural(failed,"draft needs","drafts need")} review`:"All commentary drafted");
 }
@@ -2546,7 +2555,7 @@ async function loadDigestHistory(keepCurrent=false){
       }
     }
     const past=runs.filter(r=>r!==mine);
-    $("digest-history").innerHTML=past.length?'<h2 class="digest-history-title">Earlier digests</h2>'+past.map(r=>`<button class="dg-past" onclick="selectClose('${esc(r.period)}')">
+    $("digest-history").innerHTML=past.length?'<h2 class="digest-history-title">Earlier digests</h2>'+past.map(r=>`<button class="dg-past" data-act="close" data-arg="${esc(r.period)}">
       <b>${esc(fmtPeriod(r.period))}</b><small>Sent ${esc(fmtDate(r.created_at))}${r.trigger==="scheduled"?" on schedule":""}</small>
       <small>${esc((r.items||[]).slice(0,3).map(it=>it.metric).join(", "))}</small></button>`).join(""):"";
   }catch(e){if(done()&&revision===digestRevision)$(id).innerHTML=screenError(e,keepCurrent?"loadDigestHistory(true)":"loadDigest()");}
@@ -2763,6 +2772,9 @@ async function confirmMapping(m){
     // dataset_id is the dataset THIS import created; activeDatasetId is still
     // whatever was selected before (or null) until loadDatasets() runs.
     lastImport={rows:res.rows_normalized,metrics:res.metrics.length,periods:res.periods.length,datasetId:res.dataset_id??null};
+    // The import made the new dataset active on the server; point this tab at it too,
+    // so picking KPIs (POST /kpis) configures the new dataset, not the previous one.
+    if(res.dataset_id!=null)activeDatasetId=res.dataset_id;
     // Default the dataset name to the uploaded filename without its extension.
     const fn=(upload&&upload.filename)||"";
     $("imp-name").value=fn.replace(/\.[^.]+$/,"")||"Imported dataset";
@@ -2872,3 +2884,20 @@ async function confirmKpis(){
 // session) and then calls startApp(), which loads periods and applies the hash.
 console.log("Closebrief UI build: v5.0.0 (ledger identity: green ink, serif brief, mono figures, verified seal)");
 boot();
+
+/* ---------- delegated actions ----------
+   Buttons built from user text (KPI names, note titles, periods) carry it in
+   data-arg instead of an inline onclick string, so a quote or tag in a name can
+   never break out into code. */
+const DATA_ACTIONS={
+  close:a=>selectClose(a),
+  metric:a=>openMetricByName(a),
+  reason:a=>addReasonFor(a),
+  source:a=>showSourceDoc(a),
+  dismiss:(a,el)=>{try{localStorage.setItem(a,"1");}catch{} const t=$(el.dataset.target);if(t)t.style.display="none";},
+};
+document.addEventListener("click",e=>{
+  const el=e.target.closest&&e.target.closest("[data-act]");if(!el)return;
+  const fn=DATA_ACTIONS[el.dataset.act];if(fn){e.preventDefault();fn(el.dataset.arg||"",el,e);}
+});
+/* ---------- end delegated actions ---------- */

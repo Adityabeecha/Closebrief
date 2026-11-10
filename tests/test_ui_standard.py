@@ -308,3 +308,56 @@ def test_reason_prompt_only_for_big_moves_without_a_cited_note():
       assert.equal(needsReason(f({is_anomaly:true,sources:[{id:'n1'}]})),false);
       assert.equal(needsReason(f({has_data:false,is_anomaly:true})),false);
     """)
+
+
+def test_no_inline_handler_is_built_from_text():
+    # S1: esc() turns ' into &#39;, which the browser decodes back to ' before
+    # running an inline handler, so a KPI named "Men's" broke the button and a
+    # crafted name could run script. Text must travel in data-arg instead.
+    import re
+    from pathlib import Path
+    web = Path(__file__).resolve().parents[1] / "ui" / "web"
+    for name in ("app.js", "index.html"):
+        src = (web / name).read_text(encoding="utf-8")
+        bad = re.findall(r"""on[a-z]+="[^"]*'\$\{""", src)
+        assert not bad, f"{name}: inline handler with interpolated text: {bad[:3]}"
+
+
+def test_delegated_actions_pass_text_as_data():
+    run_js("const DATA_ACTIONS=", "/* ---------- end delegated actions", """
+      const calls=[];const store={};
+      const selectClose=a=>calls.push(['close',a]),openMetricByName=a=>calls.push(['metric',a]),
+            addReasonFor=a=>calls.push(['reason',a]),showSourceDoc=a=>calls.push(['source',a]);
+      const els={banner:{style:{}}};const $=id=>els[id];
+      const localStorage={setItem:(k,v)=>store[k]=v};
+      let handler;const document={addEventListener:(t,h)=>handler=h};
+    """, """
+      const click=(act,arg,extra={})=>handler({preventDefault(){},target:{closest:()=>({dataset:{act,arg,...extra}})}});
+      const odd=`Men's <b>Q1</b>`;
+      click('metric',odd);click('reason',`O'Brien`);click('close','2026-06');click('source','ctx_001');
+      click('dismiss',`cb:x:conflict:Note's`,{target:'banner'});
+      assert.deepEqual(calls,[['metric',odd],['reason',`O'Brien`],['close','2026-06'],['source','ctx_001']]);
+      assert.equal(store[`cb:x:conflict:Note's`],'1');assert.equal(els.banner.style.display,'none');
+    """)
+
+
+def test_bulk_drafting_stops_at_the_allowance_and_says_so():
+    # S3: a 429 from the daily cap used to be swallowed and the run ended with
+    # "All commentary drafted". It must stop trying and show the real reason.
+    run_js("async function generateAll(", "async function feedback(", """
+      const toasts=[];let tries=0;
+      let currentUser={role:'analyst'},granularity='month',currentPeriod='2026-06',activeDatasetId=1;
+      let currentFacts=['A','B','C','D'].map(m=>({metric:m,has_data:true,narrative:null}));
+      let generatingSet=new Set(),skipRise=false;
+      const els={'gen-all':{style:{}},'import-banner':{style:{},classList:{contains:()=>false}}};
+      const $=id=>els[id];
+      const ungeneratedFacts=()=>currentFacts.filter(f=>!f.narrative);
+      const runPool=async(items,n,w)=>{for(const it of items)await w(it);};
+      const api=async()=>{tries++;const e=new Error("You've used today's AI allowance ($0.50)");e.status=429;throw e;};
+      const applyGenerated=()=>{};const plural=(n,w)=>n+' '+w,toast=m=>toasts.push(m);
+      const renderCards=()=>{},updateGenButton=()=>{},setFreshness=()=>{},maybePromptGenerate=()=>{};
+    """, """
+      await generateAll();
+      assert.equal(tries,1);
+      assert.deepEqual(toasts,["You've used today's AI allowance ($0.50)"]);
+    """)
