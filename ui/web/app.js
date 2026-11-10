@@ -1347,7 +1347,8 @@ const REVIEW_LABELS={none:"Not approved yet",pending:"Awaiting approval",approve
 // Figures check and explanation confidence, as two clearly separate statements.
 function narrMeta(f){
   const bits=[];
-  if(f.faithfulness==="passed")bits.push("Figures verified");
+  if(f.faithfulness==="passed")bits.push("Figures checked");
+  else if(f.faithfulness==="unchecked"&&f.narrative)bits.push("Figures changed since this was written");
   else if(f.faithfulness==="failed")bits.push("Figures need review");
   if(f.confidence)bits.push(`Explanation: ${f.confidence} confidence`);
   if(f.edited)bits.push("edited by analyst");
@@ -1904,8 +1905,8 @@ const XICON='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke=
 // The pencil tick from the home page's legend: figures computed in code.
 const TICK='<svg viewBox="0 0 26 22" fill="none" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12.2c1.9 1.4 3.6 3.3 5.2 5.6C12.4 11 16.8 6.2 22.6 3.4"/></svg>';
 const seal=ok=>ok
-  ?`<span class="seal" title="Every figure checked against computed facts">${TICK}Figures verified</span>`
-  :`<span class="seal failed" title="A figure couldn't be verified — review before sharing"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Needs review</span>`;
+  ?`<span class="seal" title="Each number matches a computed figure or a cited note as written, and every rise or fall matches the data">${TICK}Figures checked</span>`
+  :`<span class="seal failed" title="A number doesn't match the computed figures, or calls a fall a rise. Review before sharing"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Needs review</span>`;
 const DOCICON='<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
 /* Icon registry for JS-rendered markup. The bell mirrors the static sidebar-nav
    bell — change both together. */
@@ -1975,7 +1976,7 @@ function narrativeBlock(f,q,i){
   let html=`<div class="narr ${narrState}">${f.narrative?hl(f.narrative,q):"No narrative yet — generate one to explain this movement."}</div>`;
   if(f.faithfulness==="failed")
     // The guard caught an unverifiable number. Surface it — do NOT hide it.
-    html+=`<div class="banner err" style="margin:8px 0 0;font-size:12px;padding:8px 10px">${warnIcon()}<span>Numbers couldn't be verified — review manually.</span><button class="btn sm write-only" style="margin-left:auto;padding:3px 9px" onclick="event.stopPropagation();retryCard(${i})">Retry</button></div>`;
+    html+=`<div class="banner err" style="margin:8px 0 0;font-size:12px;padding:8px 10px">${warnIcon()}<span>A number doesn't match the computed figures. Review it before approving.</span><button class="btn sm write-only" style="margin-left:auto;padding:3px 9px" onclick="event.stopPropagation();retryCard(${i})">Retry</button></div>`;
   return html;
 }
 // Index-based wrappers so no user string is interpolated into inline onclick.
@@ -2494,13 +2495,15 @@ async function editNarr(id){
 /* ---------- digest ---------- */
 let digestGenerating=false;
 let digestRevision=0;
+let digestNow=null;   // this close's digest as leadership would receive it
 // The digest reads as one document: a title, then each mover as a numbered section.
 function renderDigest(d){
-  const items=d.items||[];
+  const items=(d&&d.items)||[];
   const judged=items.filter(it=>it.faithfulness).length,checked=items.filter(it=>it.faithfulness==="passed").length;
-  const meta=[d.created_at?`Saved ${esc(fmtDate(d.created_at))}`:"Generated just now",
-    judged?`${checked} of ${judged} checked against the computed figures`:null,
-    d.cost_usd!=null?`${esc(fmt(d.cost_usd,"USD"))} this run`:null].filter(Boolean).join(" · ");
+  const sentAt=d&&(d.sent_at||d.created_at);
+  const meta=[d&&d.total_kpis?`${d.approved_kpis} of ${plural(d.total_kpis,"KPI","KPIs")} approved`:null,
+    sentAt?`Sent ${esc(fmtDate(sentAt))}`:"Not sent yet",
+    judged?`${checked} of ${judged} figure checks passed`:null].filter(Boolean).join(" · ");
   const heading=`<header class="dg-head"><p class="dg-kick">Executive digest · ${esc(fmtPeriod(d.period))}</p>
     <h2>${esc(fmtPeriod(d.period,"long"))}: the largest movements against plan</h2><p class="dg-meta">${meta}</p></header>`;
   return heading+(items.map((it,i)=>{
@@ -2511,54 +2514,61 @@ function renderDigest(d){
       <div class="dg-figs">
         ${v!=null?`<span class="nbi-num ${v<0?"c-exc":"c-ok"}">${esc(fmt(v,"USD"))} vs plan (${esc(pct(it.budget_var_pct)||"–")})</span>`:""}
         ${it.faithfulness==="passed"?seal(true):it.faithfulness==="failed"?seal(false):""}
-        ${it.report_id?`<span class="dg-act write-only"><button class="write-only txtact" onclick="feedback(${esc(it.report_id)},'accepted',this)">Accept</button><button class="write-only txtact bad" onclick="rejectNarr(${esc(it.report_id)},this)">Reject</button></span>`:""}
-      </div></div></section>`;}).join("")||screenState("No movers with budget data","This saved digest has no budget comparisons. Add budget data to explain the largest movements.","nav('data')","Import budget data","empty",{writeOnly:true}));
+      </div></div></section>`;}).join(""));
 }
-async function loadDigest(force){
-  if(force&&!canReview())return;
-  if(digestGenerating)return;
-  if(!force)return loadDigestHistory();
-  digestGenerating=true;const btn=$("digest-generate");if(btn)btn.disabled=true;
-  let done;
-  try{
-    const estimate=fmt(5*EST_COST_PER_NARR,"USD");
-    if(!await modalConfirm("Generate a new digest?",`The estimated AI cost is ${estimate} for up to five movers. The actual cost may vary.`,{okLabel:"Generate digest",danger:false}))return;
-    done=screenLoading("digest-status","Writing a new executive digest…");
-    // Digests use monthly facts even when the dashboard shows a quarter or year.
-    let dp=currentPeriod;
-    if(granularity!=="month"){const months=await api("/periods?granularity=month");dp=months[months.length-1]||currentPeriod;}
-    if(!dp){done();$("digest-status").innerHTML=screenState("No monthly data yet","Import monthly metrics and budgets to explain the largest movements.","nav('import')","Import data","empty",{writeOnly:true});return;}
-    const d=await api(`/digest?period=${encodeURIComponent(dp)}&top_n=5&force=true`,{method:"POST"});
-    if(!done())return;
-    digestRevision++;$("digest-status").innerHTML="";$("digest-list").innerHTML=renderDigest(d);toast("Digest generated");
-    // Refresh saved history without discarding the digest if that refresh fails.
-    await loadDigestHistory(true);
-  }catch(e){if(!done||done())$("digest-status").innerHTML=screenError(e,"loadDigest(true)");}
-  finally{digestGenerating=false;if(btn)btn.disabled=false;}
+// Where the close's digest stands: sent, ready to send, or waiting on approvals.
+function digestStateBar(d){
+  if(d.sent_at)return `<div class="dg-state ready" role="status"><b>Sent ${esc(fmtDate(d.sent_at))}.</b> Leadership received the approved commentary below.</div>`;
+  if(d.ready)return `<div class="dg-state ready" role="status"><b>Every KPI is approved.</b> Sending delivers this digest to the channels set up in Settings.</div>`;
+  const n=(d.pending||[]).length,names=(d.pending||[]).slice(0,3).join(", ")+(n>3?` and ${n-3} more`:"");
+  return `<div class="dg-state wait" role="status"><span><b>${plural(n,"KPI still needs","KPIs still need")} approval</b> before this can be sent: ${esc(names)}.</span>
+    <button class="btn sm" onclick="nav('kpis')">Open KPIs</button></div>`;
 }
-// History is newest first and scoped to the active dataset by the server.
-// In a close, the digest tab shows that close's digest; earlier ones sit beside it.
-async function loadDigestHistory(keepCurrent=false){
-  const revision=digestRevision;
-  const id=keepCurrent?"digest-history":"digest-list",done=screenLoading(id,"Loading saved executive digests…");
-  if(!keepCurrent){$("digest-history").innerHTML="";$("digest-status").innerHTML="";}
+async function loadDigest(){return loadDigestHistory();}
+// In a close, the digest tab shows that close's digest; earlier sent ones sit beside it.
+async function loadDigestHistory(){
+  const revision=++digestRevision;
+  const done=screenLoading("digest-list","Loading the digest…");
+  $("digest-history").innerHTML="";$("digest-status").innerHTML="";$("digest-generate").style.display="none";
   try{
-    const runs=await api("/digests/history");if(!done()||revision!==digestRevision)return;
-    const mine=granularity==="month"&&currentPeriod?runs.find(r=>r.period===currentPeriod):runs[0];
-    $("digest-generate").style.display=mine?"":"none";
-    if(!keepCurrent){
-      if(mine)$("digest-list").innerHTML=renderDigest(mine);
-      else if(canReview())$("digest-list").innerHTML=screenState(`No saved digest for ${fmtPeriod(currentPeriod)} yet`,"An executive digest explains the largest budget movements in this close, with every figure checked.","loadDigest(true)","Generate a new digest","empty",{writeOnly:true});
-      else{
-        const s=closeStateFor(currentPeriod)||closeProgress(currentFacts,false);
-        $("digest-list").innerHTML=screenState(`${fmtPeriod(currentPeriod,"long")}'s digest isn't ready yet`,`${s.approved} of ${s.n} KPIs are approved. Leadership gets the digest once the close is approved.`,"nav('kpis')","Open KPIs");
-      }
+    const monthly=granularity==="month"&&currentPeriod;
+    const [d,runs]=await Promise.all([
+      monthly?api(`/digest?period=${encodeURIComponent(currentPeriod)}&top_n=5`):Promise.resolve(null),
+      api("/digests/history")]);
+    if(!done()||revision!==digestRevision)return;
+    digestNow=d&&d.items?d:null;
+    if(!monthly){
+      $("digest-list").innerHTML=screenState("Digests are prepared per month","Switch the closes list to months to read or send a month's digest.","setGranularity('month')","Show months");
+    }else if(!digestNow||!digestNow.items.length){
+      const n=digestNow?digestNow.total_kpis:0,a=digestNow?digestNow.approved_kpis:0;
+      $("digest-list").innerHTML=screenState(`Nothing approved yet for ${fmtPeriod(currentPeriod,"long")}`,
+        n?`The digest is built from approved commentary only. ${a} of ${plural(n,"KPI","KPIs")} are approved so far.`
+         :"The digest is built from approved commentary only. Import data and approve drafts to build it.",
+        "nav('kpis')","Open KPIs");
+    }else{
+      $("digest-list").innerHTML=digestStateBar(digestNow)+renderDigest(digestNow);
+      $("digest-generate").style.display=digestNow.ready&&!digestNow.sent_at?"":"none";
     }
-    const past=runs.filter(r=>r!==mine);
+    const past=(Array.isArray(runs)?runs:[]).filter(r=>r.period!==currentPeriod);
     $("digest-history").innerHTML=past.length?'<h2 class="digest-history-title">Earlier digests</h2>'+past.map(r=>`<button class="dg-past" data-act="close" data-arg="${esc(r.period)}">
       <b>${esc(fmtPeriod(r.period))}</b><small>Sent ${esc(fmtDate(r.created_at))}${r.trigger==="scheduled"?" on schedule":""}</small>
       <small>${esc((r.items||[]).slice(0,3).map(it=>it.metric).join(", "))}</small></button>`).join(""):"";
-  }catch(e){if(done()&&revision===digestRevision)$(id).innerHTML=screenError(e,keepCurrent?"loadDigestHistory(true)":"loadDigest()");}
+  }catch(e){if(done()&&revision===digestRevision)$("digest-list").innerHTML=screenError(e,"loadDigest()");}
+}
+// Sending is the one step that reaches leadership; the server refuses it until every KPI is approved.
+async function sendDigest(){
+  if(!canReview()||digestGenerating||!digestNow||!digestNow.ready)return;
+  const n=digestNow.items.length;
+  if(!await modalConfirm(`Send the ${fmtPeriod(currentPeriod,"long")} digest?`,
+    `${plural(n,"item","items")} of approved commentary go to every channel set up in Settings (Slack, email, webhook).`,
+    {okLabel:"Send digest",danger:false}))return;
+  digestGenerating=true;const btn=$("digest-generate");btn.disabled=true;
+  try{
+    await api(`/digest/send?period=${encodeURIComponent(currentPeriod)}&top_n=5`,{method:"POST"});
+    toast("Digest sent");closeShared.add(currentPeriod);
+    await loadDigestHistory();loadCloseMeta();
+  }catch(e){toast("Couldn't send the digest: "+errMsg(e));}
+  finally{digestGenerating=false;btn.disabled=false;}
 }
 
 

@@ -214,8 +214,10 @@ def _seed_narratives(conn, ds: int, docs: list, period: str | None = None) -> No
 
     facts = conn.execute(
         """SELECT m.id AS metric_id, m.name AS metric, cf.value, cf.mom_pct,
-                  cf.budget_var_pct, cf.is_anomaly, m.unit, m.direction_good
+                  cf.budget_var_pct, cf.is_anomaly,
+                  COALESCE(kc.unit, m.unit) AS unit, m.direction_good
            FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
+           LEFT JOIN kpi_configs kc ON kc.dataset_id = m.dataset_id AND kc.source_metric = m.name
            WHERE m.dataset_id = ? AND cf.period = ? AND cf.value IS NOT NULL
            ORDER BY m.name""",
         (ds, period),

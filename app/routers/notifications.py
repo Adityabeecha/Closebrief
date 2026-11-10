@@ -7,6 +7,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.api import CurrentUser, require_admin
+from app.datasets import current_workspace
 from app.db import get_connection
 from app.notifications.channels import NotificationError, make_channel
 from app.notifications.scheduler import list_configs as notif_list_configs
@@ -18,7 +19,7 @@ router = APIRouter(tags=["notifications"])
 def list_notification_configs(_: CurrentUser = Depends(require_admin)) -> list[dict]:
     conn = get_connection()
     try:
-        return notif_list_configs(conn)
+        return notif_list_configs(conn, current_workspace())
     finally:
         conn.close()
 
@@ -33,14 +34,11 @@ def create_notification_config(payload: dict, _: CurrentUser = Depends(require_a
     enabled = bool(payload.get("enabled", True))
     conn = get_connection()
     try:
-        cur = conn.execute(
-            "INSERT INTO notification_configs (channel, config, enabled) VALUES (?, ?, ?)",
-            (channel, json.dumps(config), enabled),
-        )
-        conn.commit()
-        new_id = cur.lastrowid if hasattr(cur, "lastrowid") and cur.lastrowid else conn.execute(
-            "SELECT MAX(id) AS id FROM notification_configs"
+        new_id = conn.execute(
+            "INSERT INTO notification_configs (channel, config, enabled, workspace_id) VALUES (?, ?, ?, ?) RETURNING id",
+            (channel, json.dumps(config), enabled, current_workspace()),
         ).fetchone()["id"]
+        conn.commit()
         return {"id": new_id, "channel": channel, "config": config, "enabled": bool(enabled)}
     finally:
         conn.close()
@@ -51,7 +49,7 @@ def update_notification_config(config_id: int, payload: dict, _: CurrentUser = D
     conn = get_connection()
     try:
         row = conn.execute(
-            "SELECT id FROM notification_configs WHERE id = ?", (config_id,)
+            "SELECT id FROM notification_configs WHERE id = ? AND workspace_id IS ?", (config_id, current_workspace())
         ).fetchone()
         if row is None:
             raise HTTPException(status_code=404, detail="config not found")
@@ -59,13 +57,13 @@ def update_notification_config(config_id: int, payload: dict, _: CurrentUser = D
         enabled = payload.get("enabled")
         if config is not None:
             conn.execute(
-                "UPDATE notification_configs SET config = ? WHERE id = ?",
-                (json.dumps(config), config_id),
+                "UPDATE notification_configs SET config = ? WHERE id = ? AND workspace_id IS ?",
+                (json.dumps(config), config_id, current_workspace()),
             )
         if enabled is not None:
             conn.execute(
-                "UPDATE notification_configs SET enabled = ? WHERE id = ?",
-                (bool(enabled), config_id),
+                "UPDATE notification_configs SET enabled = ? WHERE id = ? AND workspace_id IS ?",
+                (bool(enabled), config_id, current_workspace()),
             )
         conn.commit()
         return {"id": config_id, "updated": True}
@@ -77,7 +75,7 @@ def update_notification_config(config_id: int, payload: dict, _: CurrentUser = D
 def delete_notification_config(config_id: int, _: CurrentUser = Depends(require_admin)) -> None:
     conn = get_connection()
     try:
-        conn.execute("DELETE FROM notification_configs WHERE id = ?", (config_id,))
+        conn.execute("DELETE FROM notification_configs WHERE id = ? AND workspace_id IS ?", (config_id, current_workspace()))
         conn.commit()
     finally:
         conn.close()
@@ -89,7 +87,7 @@ def test_notification_config(config_id: int, _: CurrentUser = Depends(require_ad
     conn = get_connection()
     try:
         row = conn.execute(
-            "SELECT channel, config FROM notification_configs WHERE id = ?", (config_id,)
+            "SELECT channel, config FROM notification_configs WHERE id = ? AND workspace_id IS ?", (config_id, current_workspace())
         ).fetchone()
         if row is None:
             raise HTTPException(status_code=404, detail="config not found")

@@ -56,7 +56,7 @@ from app.datasets import (
 from app.db import get_connection, init_db
 from app.demo import seed_demo
 from app.deps import shared_cache, shared_embedder, shared_vector_store
-from app.digest.digest import DigestOutput, generate_digest
+from app.digest.digest import DigestOutput, build_approved_digest, last_sent_at
 from app.domains import get_domain, list_domains, registry
 from app.generation.generate import GenerationFailedFactsOnly, generate_insight
 from app.generation.llm_client import LLMGenerationError, get_llm_client
@@ -212,8 +212,8 @@ _last_bucket_sweep = 0.0
 
 
 def _sweep_rate_buckets(now: float) -> None:
-    """Drop IP buckets with no requests in the last minute, at most once a minute,
-    so _RATE_BUCKETS stays proportional to *recently active* IPs, not all-time."""
+    """Drop visitor buckets with no requests in the last minute, at most once a minute,
+    so _RATE_BUCKETS stays proportional to *recently active* visitors, not all-time."""
     global _last_bucket_sweep
     if now - _last_bucket_sweep < 60:
         return
@@ -322,10 +322,24 @@ async def _security_headers(request, call_next):
 
 @app.middleware("http")
 async def _telemetry_middleware(request, call_next):
-    client_ip = request.client.host if request.client else "?"
+    import hashlib
+
+    authorization = request.headers.get("authorization", "")
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() == "bearer" and token.strip():
+        visitor_key = "token:" + hashlib.sha256(authorization.encode()).hexdigest()
+    else:
+        client_ip = request.client.host if request.client else "?"
+        if settings.trust_proxy_headers:
+            # The visitor can write anything at the START of X-Forwarded-For; each
+            # proxy appends what it saw at the END. Cloudflare's own header can't
+            # be set by the visitor, so prefer it, else take the last hop.
+            hops = [h.strip() for h in request.headers.get("x-forwarded-for", "").split(",") if h.strip()]
+            client_ip = request.headers.get("cf-connecting-ip", "").strip() or (hops[-1] if hops else client_ip)
+        visitor_key = "ip:" + client_ip
     now = time.time()
     _sweep_rate_buckets(now)
-    bucket = _RATE_BUCKETS[client_ip]
+    bucket = _RATE_BUCKETS[visitor_key]
     while bucket and now - bucket[0] > 60:
         bucket.popleft()
     if len(bucket) >= _RATE_LIMIT_PER_MINUTE:
@@ -406,11 +420,15 @@ def _notify_async(event: str, period: str | None = None, items: list[dict] | Non
     """Fan a notification event out to configured channels on the background pool
     — delivery (SMTP/HTTP) must never add latency or failures to the request.
     When `detected_at` is given, record the detection→delivery latency."""
+    from app.datasets import current_workspace
+
+    workspace_id = current_workspace()
+
     def _run():
         try:
             conn = get_connection()
             try:
-                notif_deliver(conn, event, period=period, items=items)
+                notif_deliver(conn, event, workspace_id=workspace_id, period=period, items=items)
                 if detected_at is not None:
                     _ALERT_LATENCIES.append((time.time() - detected_at) * 1000)
             finally:
@@ -1873,47 +1891,52 @@ def ask_endpoint(payload: dict, user: CurrentUser = Depends(require_member)) -> 
     return {"answer": qa.answer, "sources": sources, "grounded": qa.grounded}
 
 
-@app.post("/digest", response_model=DigestOutput)
-def digest_endpoint(period: str, top_n: int = 5, force: bool = False,
-                    user: CurrentUser = Depends(require_member)) -> DigestOutput:
-    _enforce_budget(user)
-    cache = shared_cache()
-    # Keyed by the active dataset so a demo-universe digest can never be served
-    # to a real session for the same period (and vice-versa), nor across datasets.
+def _items_for_channels(digest: DigestOutput) -> list[dict]:
+    return [{
+        "metric": it.metric, "period": digest.period, "value": it.headline,
+        "delta": f"{it.budget_var_pct:+.1f}% vs plan" if it.budget_var_pct is not None else "",
+        "narrative": it.detail,
+    } for it in digest.items]
+
+
+@app.get("/digest", response_model=DigestOutput)
+def digest_preview(period: str, top_n: int = 5, _: CurrentUser = Depends(require_read)) -> DigestOutput:
+    """The close's digest as leadership would receive it: approved commentary
+    only, plus how many KPIs are still waiting and whether it was already sent.
+    Deterministic and free (no AI call)."""
     conn = get_connection()
     try:
         ds = active_dataset_id(conn)
+        digest = build_approved_digest(conn, period, dataset_id=ds, top_n=top_n)
+        digest.sent_at = last_sent_at(conn, ds, period)
+        return digest
     finally:
         conn.close()
-    cache_key = f"digest:ds{ds}:{period}:top{top_n}:{PROMPT_VERSION}"
-    if not force:
-        hit = cache.get(cache_key)
-        if hit is not None:
-            cache.record(hit=True)
-            return DigestOutput(**{**hit, "cached": True})
-    cache.record(hit=False)
 
+
+@app.post("/digest/send", response_model=DigestOutput)
+def digest_send(period: str, top_n: int = 5, user: CurrentUser = Depends(require_write)) -> DigestOutput:
+    """Send the close's digest to the configured channels. Refused until every
+    KPI in the close is approved, so leadership never receives unreviewed text."""
     conn = get_connection()
     try:
-        llm_client = get_llm_client()
-        digest = generate_digest(conn, period, llm_client, top_n, dataset_id=ds)
-        # Persist to history so the Digest page can compare period-over-period.
-        record_digest_run(conn, ds, period, top_n,
-                          [it.model_dump() for it in digest.items], digest.cost_usd, "manual")
-    except LLMGenerationError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        ds = active_dataset_id(conn)
+        digest = build_approved_digest(conn, period, dataset_id=ds, top_n=top_n)
+        if not digest.total_kpis:
+            raise HTTPException(status_code=409, detail="This close has no KPIs to send.")
+        if not digest.ready:
+            n = len(digest.pending)
+            names = ", ".join(digest.pending[:3]) + (f" and {n - 3} more" if n > 3 else "")
+            raise HTTPException(
+                status_code=409,
+                detail=f"{n} KPI{'s' if n != 1 else ''} still need approval before the digest can go out: {names}.")
+        record_digest_run(conn, ds, period, top_n, [it.model_dump() for it in digest.items], None, "sent")
+        audit.record(conn, "send", "digest", period, actor_id=user.id, actor_email=user.email,
+                     summary={"dataset_id": ds, "items": len(digest.items)})
+        digest.sent_at = last_sent_at(conn, ds, period)
     finally:
         conn.close()
-
-    _log_llm_call("/digest", None, None, None, digest.cost_usd, None, user.id)
-    cache.set(cache_key, digest.model_dump(), settings.cache_ttl_seconds)
-    # Fan the fresh digest out to subscribed channels (email/Slack/webhook).
-    _notify_async("digest_generated", period=period, items=[{
-        "metric": it.metric, "period": period,
-        "value": it.headline,
-        "delta": f"{it.budget_var_pct:+.1f}% vs plan" if it.budget_var_pct is not None else "",
-        "narrative": it.detail,
-    } for it in digest.items])
+    _notify_async("digest_generated", period=period, items=_items_for_channels(digest))
     return digest
 
 
@@ -2040,7 +2063,7 @@ def scheduler_tick(request: Request) -> dict:
 
 
 @app.post("/feedback", status_code=201)
-def feedback_endpoint(fb: FeedbackIn, user: CurrentUser = Depends(require_member)) -> dict:
+def feedback_endpoint(fb: FeedbackIn, user: CurrentUser = Depends(require_write)) -> dict:
     conn = get_connection()
     try:
         # Scope the report to the caller's universe (demo vs real) so feedback can

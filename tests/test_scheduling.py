@@ -166,8 +166,15 @@ class _BoomLLM:
         raise RuntimeError("llm down")
 
 
-def test_failure_increments_fail_count(client):
+def test_failure_increments_fail_count(client, monkeypatch):
     from app import scheduling
+    from app.digest import digest
+
+    def _boom(*a, **k):
+        raise RuntimeError("digest builder failed")
+
+    # The digest job no longer calls an LLM; fail the builder it does call.
+    monkeypatch.setattr(digest, "build_approved_digest", _boom)
     ds = _ingest(client, "period,metric,value,budget\n2025-01,Rev,100,100\n2025-02,Rev,200,100\n")
     conn = _conn()
     try:
@@ -257,3 +264,18 @@ def test_board_pack_schedule_stores_recipients(client):
     assert r.status_code == 201, r.text
     job = next(j for j in client.get("/schedules").json() if j["id"] == r.json()["id"])
     assert job["config"]["recipients"] == ["a@co.com", "b@co.com"]   # blanks stripped
+
+
+def test_scheduled_digest_waits_for_approval(client):
+    # P1: the schedule obeys the same rule as the Send button.
+    from app import scheduling
+    ds = _ingest(client, "period,metric,value,budget\n2025-01,Rev,100,100\n2025-02,Rev,200,100\n")
+    conn = _conn()
+    try:
+        scheduling.create_job(conn, "digest", "daily", dataset_id=ds)
+        scheduling.run_due_jobs(conn, llm_client=None)
+        assert scheduling.list_digest_runs(conn, ds) == []
+        job = scheduling.list_jobs(conn)[0]
+        assert job["last_status"] != "error"
+    finally:
+        conn.close()

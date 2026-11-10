@@ -5,6 +5,7 @@ the LLM never computes numbers. Everything here must be unit-testable
 without a network connection or an API key.
 """
 
+import math
 import sqlite3
 
 import numpy as np
@@ -165,6 +166,19 @@ def compute_and_store(
         groups.append(computed)
     facts = pd.concat(groups, ignore_index=True)
 
+    # Facts as they stood before this recompute, to spot figures that change.
+    metric_ids = sorted({int(m) for m in facts["metric_id"]})
+    before = {}
+    if metric_ids:
+        marks = ",".join("?" * len(metric_ids))
+        for r in conn.execute(
+            f"""SELECT metric_id, period, value, prior_value, mom_pct, yoy_pct,
+                       budget_var_abs, budget_var_pct
+                FROM computed_facts WHERE metric_id IN ({marks})""",
+            tuple(metric_ids),
+        ).fetchall():
+            before[(int(r["metric_id"]), r["period"])] = tuple(r[k] for k in _COMPARED)
+
     cur = conn.cursor()
     for _, f in facts.iterrows():
         cur.execute(
@@ -192,5 +206,41 @@ def compute_and_store(
                 int(bool(f["is_anomaly"])),
             ),
         )
+    changed = [
+        key for key in ((int(f["metric_id"]), f["period"]) for _, f in facts.iterrows())
+        if key in before and _figures_differ(before[key], tuple(facts_row(facts, key)))
+    ]
+    reset_changed_commentary(conn, changed)
     conn.commit()
     return facts.drop(columns=["metric_id"])
+
+
+_COMPARED = ("value", "prior_value", "mom_pct", "yoy_pct", "budget_var_abs", "budget_var_pct")
+
+
+def facts_row(facts: pd.DataFrame, key: tuple[int, str]) -> list:
+    row = facts[(facts["metric_id"] == key[0]) & (facts["period"] == key[1])].iloc[0]
+    return [None if pd.isna(row[k]) else float(row[k]) for k in _COMPARED]
+
+
+def _figures_differ(old: tuple, new: tuple) -> bool:
+    for a, b in zip(old, new):
+        if (a is None) != (b is None):
+            return True
+        if a is not None and not math.isclose(float(a), float(b), rel_tol=1e-9, abs_tol=1e-9):
+            return True
+    return False
+
+
+def reset_changed_commentary(conn, changed: list[tuple[int, str]]) -> None:
+    """A re-import changed these figures, so commentary written about the old
+    numbers can't stay approved or count as checked. Approval is cleared (the
+    KPI goes back to review) and the figure check is marked as not run."""
+    for metric_id, period in changed:
+        conn.execute(
+            """UPDATE generated_reports
+               SET review_status = CASE WHEN review_status = 'approved' THEN NULL ELSE review_status END,
+                   faithfulness = 'unchecked'
+               WHERE metric_id = ? AND period = ?""",
+            (metric_id, period),
+        )

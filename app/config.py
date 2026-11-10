@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     )
 
     environment: str = APP_ENV
+    trust_proxy_headers: bool = False
+    sandbox_retention_days: int = 30  # 0 disables inactive visitor workspace deletion
 
     @field_validator("*", mode="before")
     @classmethod
