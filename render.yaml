@@ -23,6 +23,8 @@ services:
         value: openai
       - key: VECTOR_BACKEND
         value: pgvector
+      - key: TRUST_PROXY_HEADERS # Render supplies X-Forwarded-For for visitor rate limits
+        value: "true"
       - key: AUTH_ENABLED
         value: "true"
       - key: DEMO_MODE           # seeds sample data; anonymous read-only browsing
