@@ -64,14 +64,33 @@ def test_demo_can_switch_datasets_and_see_funnel(client):
     ds = client.get("/datasets", headers=DEMO).json()["datasets"]
     mkt = next(d for d in ds if d["name"] == "Demo — Marketing Funnel")
     assert client.post(f"/datasets/{mkt['id']}/activate", headers=DEMO).status_code == 200
-    # ...and the marketing dataset renders the acquisition funnel.
-    dom = client.get("/domain", headers=DEMO).json()
+    # ...and, sending that choice with each request, sees the acquisition funnel.
+    mine = {**DEMO, "X-Dataset-Id": str(mkt["id"])}
+    dom = client.get("/domain", headers=mine).json()
     assert dom["slug"] == "marketing" and dom["funnel"]
-    periods = client.get("/periods", headers=DEMO).json()
-    r = client.get(f"/funnel?period={periods[-1]}", headers=DEMO)
+    periods = client.get("/periods", headers=mine).json()
+    r = client.get(f"/funnel?period={periods[-1]}", headers=mine)
     assert r.status_code == 200
     stages = [s["name"] for s in r.json()["stages"]]
     assert stages == ["Impressions", "Clicks", "Signups", "Conversions"]
+
+
+def test_one_visitors_switch_does_not_change_what_others_see(client):
+    # S2: a read-only visitor's switch is theirs alone; the shared default is untouched.
+    ds = client.get("/datasets", headers=DEMO).json()
+    default = ds["active_id"]
+    other = next(d["id"] for d in ds["datasets"] if d["id"] != default)
+    assert client.post(f"/datasets/{other}/activate", headers=DEMO).status_code == 200
+    assert client.get("/datasets", headers=DEMO).json()["active_id"] == default
+    mine = client.get("/datasets", headers={**DEMO, "X-Dataset-Id": str(other)}).json()
+    assert mine["active_id"] == other
+    assert [d["id"] for d in mine["datasets"] if d["is_active"]] == [other]
+
+
+def test_a_dataset_header_cannot_reach_another_universe(client):
+    # The real dataset (id 1) is invisible to a demo session even when asked for by id.
+    r = client.get("/datasets", headers={**DEMO, "X-Dataset-Id": "1"}).json()
+    assert r["active_id"] != 1 and all(d["id"] != 1 for d in r["datasets"])
 
 
 def test_demo_cannot_activate_real_dataset(client):
@@ -252,3 +271,9 @@ def test_template_uses_only_relevant_cited_reasons_and_real_comparisons(client, 
         text, main._fact_by_metric_id(conn, mid, period), [ContextSnippet(id="ctx_999", body=doc.body)]
     )[0]
     conn.close()
+
+
+def test_read_only_sessions_cannot_create_or_join_workspaces(client):
+    # S2: guests and demo visitors could create unlimited workspace rows.
+    assert client.post("/workspaces", json={"name": "spam"}, headers=DEMO).status_code == 403
+    assert client.post("/workspaces/join", json={"token": "x"}, headers=DEMO).status_code == 403
