@@ -14,6 +14,7 @@ token. The frontend only ever stores ours — never Google's.
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from typing import Any
@@ -24,6 +25,27 @@ from jwt import PyJWKClient
 from app.auth import VALID_ROLES, CurrentUser, invalidate_role_cache
 from app.config import google_enabled, session_secret, settings
 from app.db import get_connection
+
+_session_secret_warned = False
+_session_secret_warning_lock = threading.Lock()
+
+
+def warn_session_secret_fallback() -> None:
+    """Warn once per process about shared signing keys in production."""
+    global _session_secret_warned
+    if settings.environment != "prod" or settings.session_jwt_secret:
+        return
+    with _session_secret_warning_lock:
+        if _session_secret_warned:
+            return
+        logging.getLogger(__name__).warning(
+            "SESSION_JWT_SECRET is not set in production; session signing falls back "
+            "to SUPABASE_JWT_SECRET. Set a dedicated session signing key."
+        )
+        _session_secret_warned = True
+
+
+warn_session_secret_fallback()
 
 GOOGLE_CERTS_URL = "https://www.googleapis.com/oauth2/v3/certs"
 # Google mints both forms; accept either.
