@@ -1554,14 +1554,11 @@ async function ntTest(id,btn){btn.disabled=true;btn.textContent="Sending…";
 }
 function inviteUser(){
   const url=location.origin;
-  _openModalRaw({title:"Add a user",okLabel:"Copy invite link",
-    body:`<div style="font-size:14px;line-height:1.6;color:var(--ink2)">
-      <p style="margin-bottom:10px">Closebrief uses Supabase sign-in. To add a teammate:</p>
-      <ol style="margin:0 0 12px 18px;display:flex;flex-direction:column;gap:6px">
-        <li>Send them this link — they create their own account:</li>
-      </ol>
-      <div style="display:flex;gap:8px;margin-bottom:12px"><input class="modal-field" id="invite-url" value="${esc(url)}" readonly></div>
-      <p style="color:var(--mut2);font-size:13px">New accounts join as <b>analyst</b> by default. Once they've signed in they appear in the table below, where you can change their role.</p>
+  _openModalRaw({title:"Share the sign-in link",okLabel:"Copy link",
+    body:`<div style="font-size:14px;line-height:1.6;color:var(--text-2)">
+      <p style="margin-bottom:10px">Anyone with this link can sign in and get their own private workspace. They can't see your data, and you can't see theirs.</p>
+      <div style="display:flex;gap:8px;margin-bottom:12px"><input class="modal-field" id="invite-url" value="${esc(url)}" readonly aria-label="Sign-in link"></div>
+      <p style="color:var(--text-3);font-size:13px">New accounts start as <b>analyst</b>. Once they've signed in they appear in this table, where you can change their role.</p>
     </div>`,
     getValue:()=>{const el=$("invite-url");el.select();try{navigator.clipboard.writeText(el.value);}catch{}toast("Invite link copied");return true;}});
 }
@@ -1575,7 +1572,7 @@ async function loadAdmin(){
       <td><select class="write-only" aria-label="Role for ${esc(u.email)}" data-uid="${esc(u.user_id)}" onchange="setUserRole(this.dataset.uid,this.value)">
         ${["analyst","executive","admin"].map(r=>`<option ${u.role===r?"selected":""}>${r}</option>`).join("")}</select></td>
       <td style="color:var(--mut);white-space:nowrap">${esc(fmtDate(u.created_at))}</td></tr>`).join("")
-      ||screenRow(screenState("No users yet","People who sign in appear here so you can manage their access.","inviteUser()","Invite a user","empty",{writeOnly:true}),4);
+      ||screenRow(screenState("No users yet","People who sign in appear here so you can manage their role.","inviteUser()","Share the sign-in link","empty",{writeOnly:true}),4);
   }catch(e){if(done())$("admin-rows").innerHTML=screenRow(screenError(e,"loadAdmin()"),4);}
 }
 async function setUserRole(uid,role){
@@ -1627,41 +1624,16 @@ async function renameDataset(id){
   catch(e){toast(e.message);}
 }
 function toggleWs(e){e.stopPropagation();$("ws-menu").classList.toggle("open");}
-document.addEventListener("click",()=>{$("ws-menu").classList.remove("open");$("wsp-menu")?.classList.remove("open");$("export-menu")?.classList.remove("open");document.querySelectorAll(".ws-kmenu").forEach(m=>m.classList.remove("open"));});
-/* ---------- workspaces (v4.0 tenancy) ---------- */
+document.addEventListener("click",()=>{$("ws-menu").classList.remove("open");$("export-menu")?.classList.remove("open");document.querySelectorAll(".ws-kmenu").forEach(m=>m.classList.remove("open"));});
+/* ---------- workspaces (v4.0 tenancy) ----------
+   Each person has one private workspace, resolved by the server from their
+   membership. The client only remembers its id so requests stay scoped. */
 async function loadWorkspaces(){
-  if(!authToken){$("wsp-wrap").style.display="none";$("wsp-label").style.display="none";return;}
+  if(!authToken)return;
   let d;try{d=await api("/workspaces");}catch{return;}
   const list=d.workspaces||[];
   activeWorkspaceId=d.active_id!=null?d.active_id:((list[0]&&list[0].id)||null);
   try{if(activeWorkspaceId!=null)localStorage.setItem("cb-ws",String(activeWorkspaceId));}catch{}
-  const active=list.find(w=>w.id===activeWorkspaceId)||list[0];
-  $("wsp-name").textContent=active?active.name:"Workspace";
-  $("wsp-wrap").style.display="";$("wsp-label").style.display="";
-  $("wsp-menu").innerHTML=list.map(w=>`
-    <button class="ws-item" onclick="switchWorkspace(${w.id})" style="width:100%">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${w.id===activeWorkspaceId?'var(--accent)':'var(--mut2)'}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M6 21V8l6-4 6 4v13"/></svg>
-      <span class="ws-info"><b>${esc(w.name)}</b><span style="text-transform:capitalize">${esc(w.role)}</span></span>
-    </button>`).join("")
-    +`<button class="write-only ws-newbtn" onclick="createWorkspaceUI()">+ New workspace</button>`;
-}
-function toggleWsp(e){e.stopPropagation();$("wsp-menu").classList.toggle("open");}
-async function switchWorkspace(id){
-  if(!await leaveImport())return;
-  $("wsp-menu").classList.remove("open");
-  if(id===activeWorkspaceId)return;
-  activeWorkspaceId=id;try{localStorage.setItem("cb-ws",String(id));}catch{}
-  toast("Switched workspace");
-  await loadWorkspaces();await loadPeriods();
-}
-async function createWorkspaceUI(){
-  if(!await leaveImport())return;
-  const name=await modalInput("New workspace",{label:"Workspace name",placeholder:"Acme Finance",okLabel:"Create",required:true});
-  if(!name)return;
-  try{const r=await api("/workspaces",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});
-    activeWorkspaceId=r.id;try{localStorage.setItem("cb-ws",String(r.id));}catch{}
-    toast("Workspace created");await loadWorkspaces();await loadPeriods();
-  }catch(e){toast(e.message);}
 }
 // Keyboard shortcuts. Ignore while typing in a field.
 document.addEventListener("keydown",e=>{
@@ -2894,6 +2866,44 @@ async function confirmKpis(){
 // session) and then calls startApp(), which loads periods and applies the hash.
 console.log("Closebrief UI build: v5.0.0 (ledger identity: green ink, serif brief, mono figures, verified seal)");
 boot();
+
+/* ---------- dialog focus ----------
+   While an overlay (.cmdk-back.open) is showing, Tab and Shift+Tab cycle inside
+   its dialog, focus starts inside it, and closing it returns focus to whatever
+   opened it. One observer covers every overlay, however it is opened or closed. */
+const FOCUSABLE='a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+function openOverlay(){return [...document.querySelectorAll(".cmdk-back.open")].pop()||null;}
+function dialogFocusables(back){
+  return [...back.querySelectorAll(FOCUSABLE)].filter(el=>el.offsetParent!==null||el===document.activeElement);
+}
+function trapDialogTab(e){
+  if(e.key!=="Tab")return false;
+  const back=openOverlay();if(!back)return false;
+  const items=dialogFocusables(back);
+  if(!items.length){e.preventDefault();return true;}
+  const first=items[0],last=items[items.length-1],inside=back.contains(document.activeElement);
+  if(e.shiftKey&&(document.activeElement===first||!inside)){e.preventDefault();last.focus();return true;}
+  if(!e.shiftKey&&(document.activeElement===last||!inside)){e.preventDefault();first.focus();return true;}
+  return false;
+}
+const _dialogReturn=new Map();
+function watchDialogs(){
+  if(typeof MutationObserver==="undefined")return;
+  document.querySelectorAll(".cmdk-back").forEach(back=>{
+    new MutationObserver(()=>{
+      const open=back.classList.contains("open");
+      if(open&&!_dialogReturn.has(back)){
+        _dialogReturn.set(back,document.activeElement);
+        setTimeout(()=>{if(!back.contains(document.activeElement)){const f=dialogFocusables(back)[0];if(f)f.focus();}},60);
+      }else if(!open&&_dialogReturn.has(back)){
+        const el=_dialogReturn.get(back);_dialogReturn.delete(back);
+        if(el&&el.isConnected&&typeof el.focus==="function")el.focus();
+      }
+    }).observe(back,{attributes:true,attributeFilter:["class"]});
+  });
+}
+document.addEventListener("keydown",e=>{trapDialogTab(e);},true);
+watchDialogs();
 
 /* ---------- delegated actions ----------
    Buttons built from user text (KPI names, note titles, periods) carry it in
