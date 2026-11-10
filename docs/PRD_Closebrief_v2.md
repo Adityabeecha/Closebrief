@@ -2,8 +2,8 @@
 
 **Version:** 2.0 (post-MVP scope)
 **Owner:** Aditya
-**Status:** Ready for build — **after** `../PRD_Narrative_BI_Addendum_v1.1.md`
-**Predecessor:** `../PRD_Narrative_BI.md` (v1) + Addendum v1.1 (flexible ingestion, KPI selection, charts, P/V/M — ✅ implemented 2026-07-04)
+**Status:** Ready for build — **after** `PRD_Narrative_BI_Addendum_v1.1.md`
+**Predecessor:** `PRD_Narrative_BI.md` (v1) + Addendum v1.1 (flexible ingestion, KPI selection, charts, P/V/M — ✅ implemented 2026-07-04)
 **Primary reader:** Claude Code (executable spec — build top to bottom, milestone by milestone)
 
 > **Precedence note:** where this document and Addendum v1.1 conflict, the addendum wins.

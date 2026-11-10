@@ -296,7 +296,7 @@ Expose an eval report (`python -m eval.run`) that prints these metrics. This is 
 ```
 narrative-bi/
 ├── README.md
-├── PRD_Narrative_BI.md
+├── docs/PRD_Narrative_BI.md
 ├── .env.example
 ├── pyproject.toml
 ├── app/
