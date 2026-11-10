@@ -85,10 +85,10 @@ class Settings(BaseSettings):
     # OAuth client id. Empty = Google sign-in disabled entirely (the frontend
     # never even loads Google's script). Safe to expose — it's built for the page.
     google_client_id: str = ""
-    # Role a brand-new Google user gets. COST WARNING: anyone with a Google
-    # account can sign in, and LLM endpoints spend money — default to the lowest
-    # role ("viewer") so a new self-service user can read but not spend.
-    google_default_role: str = "viewer"
+    # Role a brand-new Google user gets. "analyst" gives each visitor a working
+    # private sandbox; AI spend is bounded by the daily caps below, not by role.
+    # ("viewer" is the read-only demo identity and would show sample data only.)
+    google_default_role: str = "analyst"
     # Comma-separated allowlist of emails that are (re)granted admin on Google
     # sign-in. Compared case-insensitively.
     google_admin_emails: str = ""
@@ -99,6 +99,12 @@ class Settings(BaseSettings):
     # Let unauthenticated visitors use the app read-only (lowest role). Keeps the
     # app usable without signing in. Independent of demo_mode's sample data.
     allow_guest: bool = False
+
+    # --- AI spend caps (portfolio safety) ---
+    # Anyone can sign in, so AI calls are capped per visitor per UTC day and in
+    # total per day. Admins are exempt. 0 disables a cap.
+    user_daily_ai_budget_usd: float = 0.50
+    global_daily_ai_budget_usd: float = 5.00
 
     # --- Demo mode (v2.9) ---
     # True -> seed a sample FP&A dataset at startup and let unauthenticated

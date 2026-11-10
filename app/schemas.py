@@ -120,7 +120,8 @@ class GenerateInsightRequest(BaseModel):
     period: str
     # When context is empty and use_retrieval is True, context is pulled from
     # the Context Library via semantic retrieval. Passing context explicitly
-    # overrides retrieval (useful for tests / manual grounding).
+    # overrides retrieval only when sign-in is off (local dev and tests); with
+    # sign-in on it is ignored, so a caller can't invent the sources a draft cites.
     context: list[ContextSnippet] = Field(default_factory=list)
     use_retrieval: bool = True
     # Bypass the response cache and regenerate (UI "Regenerate" button).

@@ -2,10 +2,12 @@
 bounded background pool, LLM-cost logging, and workspace budget enforcement."""
 
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
 
 from fastapi import HTTPException
 
 from app import billing
+from app.config import settings
 from app.datasets import current_workspace
 from app.db import get_connection
 
@@ -33,9 +35,47 @@ def log_llm_call(endpoint: str, model, prompt_tokens, completion_tokens, cost_us
         pass  # cost logging must never fail a request
 
 
-def enforce_budget() -> None:
-    """Pre-flight spend limit: block LLM work when the active workspace is over its
-    monthly budget. No-op outside a workspace scope (local-dev/tests/demo)."""
+def _today_utc() -> str:
+    # 'YYYY-MM-DD 00:00:00' compares correctly against TEXT (SQLite) and TIMESTAMPTZ (PG).
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d 00:00:00")
+
+
+def _spent_today(conn, user_id: str | None = None) -> float:
+    sql = "SELECT COALESCE(SUM(cost_usd), 0) AS s FROM llm_calls WHERE created_at >= ?"
+    params: tuple = (_today_utc(),)
+    if user_id is not None:
+        sql += " AND user_id = ?"
+        params += (user_id,)
+    return float(conn.execute(sql, params).fetchone()["s"] or 0.0)
+
+
+def enforce_daily_caps(conn, user) -> None:
+    """Portfolio safety: anyone can sign in, so cap AI spend per visitor per UTC
+    day and in total per day. Admins (the owner) are exempt."""
+    if user is None or getattr(user, "role", None) == "admin":
+        return
+    per_user, overall = settings.user_daily_ai_budget_usd, settings.global_daily_ai_budget_usd
+    if overall and _spent_today(conn) >= overall:
+        raise HTTPException(
+            status_code=429,
+            detail="Today's AI allowance for this demo is used up. Drafting resets at midnight UTC; "
+                   "everything else still works.")
+    if per_user and _spent_today(conn, user.id) >= per_user:
+        raise HTTPException(
+            status_code=429,
+            detail=f"You've used today's AI allowance (${per_user:.2f}). It resets at midnight UTC; "
+                   "everything else still works.")
+
+
+def enforce_budget(user=None) -> None:
+    """Pre-flight spend limits before any LLM call: the visitor's and the overall
+    daily caps, then the active workspace's monthly budget (no-op outside a
+    workspace scope: local-dev/tests/demo)."""
+    conn = get_connection()
+    try:
+        enforce_daily_caps(conn, user)
+    finally:
+        conn.close()
     ws = current_workspace()
     if ws is None:
         return
