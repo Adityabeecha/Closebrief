@@ -129,7 +129,7 @@ def run_scenario_endpoint(payload: dict, _: CurrentUser = Depends(require_read))
 def forecast_narrative(payload: dict, user: CurrentUser = Depends(require_member)) -> dict:
     """Forward-looking commentary phrased by the LLM around the deterministic
     forecast numbers."""
-    enforce_budget()
+    enforce_budget(user)
     metric = (payload.get("metric") or "").strip()
     if not metric:
         raise HTTPException(status_code=422, detail="metric is required")
@@ -174,7 +174,7 @@ def root_cause(metric: str, period: str, _: CurrentUser = Depends(require_read))
 def root_cause_narrative(payload: dict, user: CurrentUser = Depends(require_member)) -> dict:
     """Grounded 'why did it move' commentary phrased by the LLM around the
     deterministic root-cause decomposition."""
-    enforce_budget()
+    enforce_budget(user)
     metric = (payload.get("metric") or "").strip()
     period = (payload.get("period") or "").strip()
     if not metric or not period:

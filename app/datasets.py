@@ -18,6 +18,12 @@ _demo_scope: contextvars.ContextVar[bool] = contextvars.ContextVar("demo_scope",
 _workspace_scope: contextvars.ContextVar[int | None] = contextvars.ContextVar(
     "workspace_scope", default=None
 )
+# The dataset this request asked for (X-Dataset-Id). Honoured only when it exists
+# in the caller's universe/workspace; otherwise the stored default applies. This
+# keeps one visitor's dataset switch from changing what everyone else sees.
+_dataset_choice: contextvars.ContextVar[int | None] = contextvars.ContextVar(
+    "dataset_choice", default=None
+)
 
 
 def set_demo_scope(is_demo: bool) -> None:
@@ -36,6 +42,10 @@ def set_workspace_scope(workspace_id: int | None) -> None:
 
 def current_workspace() -> int | None:
     return _workspace_scope.get()
+
+
+def set_dataset_choice(dataset_id: int | None) -> None:
+    _dataset_choice.set(int(dataset_id) if dataset_id is not None else None)
 
 
 def _scope_pred(alias: str = "") -> str:
@@ -84,6 +94,13 @@ def set_active(conn, dataset_id: int) -> None:
 
 
 def active_dataset_id(conn) -> int | None:
+    chosen = _dataset_choice.get()
+    if chosen is not None:
+        row = conn.execute(
+            f"SELECT id FROM datasets WHERE id = ? AND {_scope_pred()}", (chosen,)
+        ).fetchone()
+        if row is not None:
+            return int(row["id"])
     row = conn.execute(
         f"SELECT id FROM datasets WHERE is_active = 1 AND {_scope_pred()} ORDER BY id DESC LIMIT 1"
     ).fetchone()
@@ -103,10 +120,11 @@ def list_datasets(conn) -> list[dict]:
         FROM datasets d WHERE {_scope_pred('d')} ORDER BY d.id DESC
         """
     ).fetchall()
+    active = active_dataset_id(conn)
     return [
         {
             "id": r["id"], "name": r["name"], "source_upload_id": r["source_upload_id"],
-            "is_active": bool(r["is_active"]), "created_at": str(r["created_at"]),
+            "is_active": r["id"] == active, "created_at": str(r["created_at"]),
             "domain": r["domain"] or "fpa",
             "metric_count": r["metric_count"],
         }

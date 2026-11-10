@@ -49,6 +49,7 @@ from app.datasets import (
     is_demo_scope,
     list_datasets,
     set_active,
+    set_dataset_choice,
     set_demo_scope,
     set_workspace_scope,
 )
@@ -158,12 +159,18 @@ async def lifespan(_app: "FastAPI"):
     yield
 
 
+# The interactive API docs are for development; production doesn't publish its endpoint map.
+_PUBLIC_DOCS = settings.environment != "prod"
+
 app = FastAPI(
     title="Closebrief",
     description="RAG-based AI agent for automated FP&A variance commentary. "
     "The LLM never computes numbers — see app/compute/kpis.py for the deterministic layer.",
     version="0.1.0",
     lifespan=lifespan,
+    docs_url="/docs" if _PUBLIC_DOCS else None,
+    redoc_url="/redoc" if _PUBLIC_DOCS else None,
+    openapi_url="/openapi.json" if _PUBLIC_DOCS else None,
 )
 
 # CORS: the frontend authenticates against Supabase directly (cross-origin) and
@@ -224,7 +231,7 @@ async def _auth_middleware(request: Request, call_next):
     if (
         request.method == "OPTIONS"
         or path in _OPEN_PATHS
-        or path.startswith("/docs")
+        or (_PUBLIC_DOCS and path.startswith("/docs"))
         or path.startswith("/vendor/")   # static frontend libs, needed pre-login
         or path.startswith("/internal/")  # cron endpoints: gated by their own shared token
     ):
@@ -234,6 +241,11 @@ async def _auth_middleware(request: Request, call_next):
     except HTTPException as exc:
         return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
     request.state.user = user
+    requested_ds = request.headers.get("x-dataset-id")
+    try:
+        set_dataset_choice(int(requested_ds) if requested_ds else None)
+    except ValueError:
+        set_dataset_choice(None)
     # Scope every dataset query to the caller's universe: demo (viewer) sessions
     # see only the demo dataset; everyone else sees only real datasets.
     is_demo = user.role == "viewer"
@@ -263,6 +275,49 @@ async def _auth_middleware(request: Request, call_next):
         finally:
             conn.close()
     return await call_next(request)
+
+
+def _content_security_policy() -> str:
+    """Where pages may load from: this site, plus Google sign-in, Supabase auth and
+    Sentry when configured. 'unsafe-inline' is still needed because the UI uses
+    inline handlers and styles; the rest of the policy limits what an injected
+    script could reach (no foreign scripts, frames, or data exfiltration hosts)."""
+    connect = ["'self'"]
+    if settings.supabase_url:
+        connect.append(settings.supabase_url.rstrip("/"))
+    if settings.sentry_dsn:
+        connect.append("https://*.sentry.io")
+    google = "https://accounts.google.com"
+    if settings.google_client_id:
+        connect.append(google)
+    return "; ".join([
+        "default-src 'self'",
+        f"script-src 'self' 'unsafe-inline' {google}",
+        f"style-src 'self' 'unsafe-inline' {google}",
+        "img-src 'self' data: blob: https:",
+        "font-src 'self' data:",
+        "connect-src " + " ".join(connect),
+        f"frame-src 'self' {google}",
+        "frame-ancestors 'self'",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+    ])
+
+
+@app.middleware("http")
+async def _security_headers(request, call_next):
+    """Standard browser protections on every response."""
+    response = await call_next(request)
+    h = response.headers
+    h.setdefault("X-Content-Type-Options", "nosniff")
+    h.setdefault("X-Frame-Options", "SAMEORIGIN")
+    h.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    h.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+    h.setdefault("Content-Security-Policy", _content_security_policy())
+    if settings.environment == "prod":
+        h.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    return response
 
 
 @app.middleware("http")
@@ -647,7 +702,7 @@ def get_funnel(period: str, _: CurrentUser = Depends(require_read)) -> dict:
 def funnel_narrative(payload: dict, user: CurrentUser = Depends(require_member)) -> dict:
     """A grounded prose summary of the funnel — numbers computed here, phrased by
     the LLM under the funnel prompt."""
-    _enforce_budget()
+    _enforce_budget(user)
     period = (payload.get("period") or "").strip()
     if not period:
         raise HTTPException(status_code=422, detail="period is required")
@@ -701,11 +756,11 @@ def get_datasets(_: CurrentUser = Depends(require_read)) -> dict:
 
 
 @app.post("/datasets/{dataset_id}/activate")
-def activate_dataset(dataset_id: int, _: CurrentUser = Depends(require_read)) -> dict:
-    # Switching the active dataset is navigation, not a data mutation, so the
-    # read-only demo viewer may do it — but only within its own universe. The
-    # scoped existence check also prevents a viewer from flipping is_active on a
-    # real dataset (which set_active would otherwise do by raw id).
+def activate_dataset(dataset_id: int, user: CurrentUser = Depends(require_read)) -> dict:
+    # Switching dataset is navigation. The browser sends X-Dataset-Id on every
+    # request, so the switch itself lives client-side. Writers also store it as
+    # their default for the next visit; read-only sessions (demo, guests) only
+    # validate, so one visitor can never change what other visitors see.
     conn = get_connection()
     try:
         exists = conn.execute(
@@ -713,10 +768,10 @@ def activate_dataset(dataset_id: int, _: CurrentUser = Depends(require_read)) ->
         ).fetchone()
         if not exists:
             raise HTTPException(status_code=404, detail=f"Dataset {dataset_id} not found")
-        set_active(conn, dataset_id)
+        if user.role in ("analyst", "admin"):
+            set_active(conn, dataset_id)
     finally:
         conn.close()
-    shared_cache().bump_namespace()
     return {"active_id": dataset_id}
 
 
@@ -1621,7 +1676,7 @@ def delete_context(doc_id: int, _: CurrentUser = Depends(require_write)) -> None
 
 @app.post("/generate-insight", response_model=InsightOutput)
 def generate_insight_endpoint(req: GenerateInsightRequest, user: CurrentUser = Depends(require_member)) -> InsightOutput:
-    _enforce_budget()
+    _enforce_budget(user)
     conn = get_connection()
     try:
         fact = _load_computed_fact(conn, req.metric, req.period)
@@ -1647,7 +1702,10 @@ def generate_insight_endpoint(req: GenerateInsightRequest, user: CurrentUser = D
                 if streak is not None:
                     trend_streak = TrendStreak(**streak)
 
-        context = req.context
+        # Sources are only ever retrieved from the caller's own Context Library.
+        # Hand-supplied context (a local-dev/testing convenience) is ignored when
+        # sign-in is on, so nobody can make a draft cite a note that doesn't exist.
+        context = [] if auth_active() else req.context
         retrieval_scores: list[float] | None = None
         if not context and req.use_retrieval:
             # Retrieval (query embedding + vector search) is itself cached,
@@ -1774,7 +1832,7 @@ def ask_endpoint(payload: dict, user: CurrentUser = Depends(require_member)) -> 
     """Grounded Q&A about one metric (v2.9). Same guarantees as narratives:
     numbers only from computed facts, causes only from retrieved context, and
     an honest "the data doesn't answer that" when neither covers the question."""
-    _enforce_budget()
+    _enforce_budget(user)
     metric = (payload.get("metric") or "").strip()
     period = (payload.get("period") or "").strip()
     question = (payload.get("question") or "").strip()
@@ -1818,7 +1876,7 @@ def ask_endpoint(payload: dict, user: CurrentUser = Depends(require_member)) -> 
 @app.post("/digest", response_model=DigestOutput)
 def digest_endpoint(period: str, top_n: int = 5, force: bool = False,
                     user: CurrentUser = Depends(require_member)) -> DigestOutput:
-    _enforce_budget()
+    _enforce_budget(user)
     cache = shared_cache()
     # Keyed by the active dataset so a demo-universe digest can never be served
     # to a real session for the same period (and vice-versa), nor across datasets.
@@ -2053,7 +2111,7 @@ def list_workspaces(request: Request, user: CurrentUser = Depends(get_current_us
 
 
 @app.post("/workspaces", status_code=201)
-def create_workspace_endpoint(payload: dict, user: CurrentUser = Depends(get_current_user)) -> dict:
+def create_workspace_endpoint(payload: dict, user: CurrentUser = Depends(require_write)) -> dict:
     name = (payload.get("name") or "").strip()
     if not name:
         raise HTTPException(status_code=422, detail="name is required")
@@ -2094,7 +2152,7 @@ def create_ws_invite(ws_id: int, payload: dict, request: Request,
 
 
 @app.post("/workspaces/join")
-def join_workspace(payload: dict, user: CurrentUser = Depends(get_current_user)) -> dict:
+def join_workspace(payload: dict, user: CurrentUser = Depends(require_member)) -> dict:
     token = (payload.get("token") or "").strip()
     if not token:
         raise HTTPException(status_code=422, detail="token is required")
@@ -2219,8 +2277,9 @@ def set_workspace_retention(ws_id: int, payload: dict,
 
 
 @app.put("/workspaces/{ws_id}/limit")
-def set_workspace_limit(ws_id: int, payload: dict, user: CurrentUser = Depends(get_current_user)) -> dict:
-    """Set the workspace's plan and/or explicit monthly budget (admin only)."""
+def set_workspace_limit(ws_id: int, payload: dict, user: CurrentUser = Depends(require_admin)) -> dict:
+    """Set a workspace's plan and/or explicit monthly budget. App admin only: a
+    visitor who owns their sandbox must not be able to lift their own limits."""
     conn = get_connection()
     try:
         _require_ws_admin(conn, ws_id, user)
