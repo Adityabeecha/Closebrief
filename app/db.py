@@ -207,6 +207,7 @@ CREATE TABLE IF NOT EXISTS app_roles (
 
 CREATE TABLE IF NOT EXISTS notification_configs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    workspace_id INTEGER,
     channel TEXT NOT NULL,            -- 'email' | 'slack' | 'webhook'
     config TEXT NOT NULL,             -- JSON: {recipients, schedule, events, ...}
     enabled INTEGER NOT NULL DEFAULT 1,
@@ -307,6 +308,7 @@ CREATE TABLE IF NOT EXISTS digest_runs (
 
 # Columns added after first release; applied to pre-existing SQLite DBs on startup.
 _SQLITE_MIGRATIONS = [
+    "ALTER TABLE notification_configs ADD COLUMN workspace_id INTEGER",
     "ALTER TABLE uploads ADD COLUMN workspace_id INTEGER",
     "ALTER TABLE uploads ADD COLUMN content BLOB",
     "ALTER TABLE metric_values ADD COLUMN quantity REAL",

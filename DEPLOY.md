@@ -94,3 +94,10 @@ uvicorn app.main:app --reload                        # http://127.0.0.1:8000
 With no `DATABASE_URL`/`REDIS_URL` the app falls back to local SQLite + FAISS +
 in-memory cache, and with no `SUPABASE_URL` auth is bypassed — so it runs fully
 offline for development.
+
+## Workspace notification channels
+
+After deploying migration `025_notification_workspace.sql`, the owner should
+re-create notification channels once while signed into the intended workspace.
+Existing channels keep `workspace_id = NULL` and deliver only for the unscoped
+local-development scope; they are never assigned to a visitor or owner implicitly.
