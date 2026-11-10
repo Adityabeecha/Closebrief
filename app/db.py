@@ -131,7 +131,8 @@ CREATE TABLE IF NOT EXISTS uploads (
     id TEXT PRIMARY KEY,
     workspace_id INTEGER,
     filename TEXT NOT NULL,
-    file_path TEXT NOT NULL,
+    file_path TEXT,
+    content BLOB,
     sheets TEXT NOT NULL DEFAULT '[]',
     chosen_sheet TEXT,
     profiled_schema TEXT,
@@ -307,6 +308,7 @@ CREATE TABLE IF NOT EXISTS digest_runs (
 # Columns added after first release; applied to pre-existing SQLite DBs on startup.
 _SQLITE_MIGRATIONS = [
     "ALTER TABLE uploads ADD COLUMN workspace_id INTEGER",
+    "ALTER TABLE uploads ADD COLUMN content BLOB",
     "ALTER TABLE metric_values ADD COLUMN quantity REAL",
     "ALTER TABLE metric_values ADD COLUMN price REAL",
     "ALTER TABLE metric_values ADD COLUMN budget_quantity REAL",
@@ -360,6 +362,26 @@ _SQLITE_MIGRATIONS = [
 ]
 
 PG_SCHEMA_PATH = Path(__file__).parent / "migrations" / "pg_schema.sql"
+
+
+def _migrate_sqlite_uploads(conn: sqlite3.Connection) -> None:
+    """SQLite cannot drop NOT NULL in place; rebuild only legacy uploads tables."""
+    columns = conn.execute("PRAGMA table_info(uploads)").fetchall()
+    if not any(col["name"] == "file_path" and col["notnull"] for col in columns):
+        return
+    ddl = _SQLITE_SCHEMA.split("CREATE TABLE IF NOT EXISTS uploads (", 1)[1].split(");", 1)[0]
+    names = ", ".join(f'"{col["name"]}"' for col in columns)
+    conn.execute("SAVEPOINT migrate_uploads")
+    try:
+        conn.execute(f"CREATE TABLE uploads_new ({ddl})")
+        conn.execute(f"INSERT INTO uploads_new ({names}) SELECT {names} FROM uploads")
+        conn.execute("DROP TABLE uploads")
+        conn.execute("ALTER TABLE uploads_new RENAME TO uploads")
+        conn.execute("RELEASE SAVEPOINT migrate_uploads")
+    except Exception:
+        conn.execute("ROLLBACK TO SAVEPOINT migrate_uploads")
+        conn.execute("RELEASE SAVEPOINT migrate_uploads")
+        raise
 
 
 # --------------------------------------------------------------------------
@@ -547,6 +569,7 @@ def init_db() -> None:
                 conn.execute(stmt)
             except sqlite3.OperationalError:
                 pass  # column already exists (fresh DBs get it from _SCHEMA)
+        _migrate_sqlite_uploads(conn)
         conn.commit()
     finally:
         conn.close()

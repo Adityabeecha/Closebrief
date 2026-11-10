@@ -76,7 +76,7 @@ def test_upload_database_failure_does_not_leave_raw_file(conn, tmp_path, monkeyp
     conn.commit()
     with pytest.raises(sqlite3.DatabaseError):
         upload.create_upload(conn, b"A,B\n1,2\n", "data.csv")
-    assert not list(folder.iterdir())
+    assert not folder.exists() or not list(folder.iterdir())
     assert conn.execute("SELECT count(*) FROM uploads").fetchone()[0] == 0
 
 
