@@ -27,7 +27,7 @@ const EST_COST_PER_NARR=0.006,modalConfirm=async(...args)=>{modalCalls.push(args
 """
 
 LOADERS = [
-    ("loadDigest", "digest-list", "async function loadDigest(", "/* ---------- context", "No saved digest", "Generate a new digest"),
+    ("loadDigest", "digest-list", "async function loadDigest(", "/* ---------- context", "Nothing approved yet", "Open KPIs"),
     ("loadContext", "ctx-rows", "async function loadContext(", "async function addContext(", "No context", "Add a context note"),
     ("loadAnalytics", "analytics-state", "function _metricList(", "/* ---- Forecast", "No metrics", "Import data"),
     ("loadReview", "rq-list", "async function loadReview(", "async function openReviewItem(", "Nothing assigned to you", "Open KPIs"),
@@ -46,6 +46,7 @@ def run_screen(case, assertions, extra=""):
     if case[0] == "loadDigest":
         extra += section("const TICK=", "const DOCICON=")
         extra += section("let digestGenerating=false;", "async function loadDigest(")
+        extra += "const closeShared=new Set(),loadCloseMeta=()=>{},setGranularity=()=>{};"
     formats = section("const fmt=", "/* ---------- reusable modal")
     run_js(start, end, SETUP + formats + helpers + extra, assertions)
 
@@ -89,39 +90,13 @@ def test_loading_names_screen_and_reassures_after_four_seconds(case):
     """)
 
 
-def test_digest_tab_shows_latest_saved_run_with_date_without_generation():
-    run_screen(LOADERS[0], r"""
-      response=[{id:2,period:'2026-06',created_at:'2026-07-02T09:00:00Z',trigger:'manual',cost_usd:0.03,
-        items:[{metric:'<Revenue>',headline:'Latest saved headline',detail:'Saved detail',budget_var_abs:-3500,budget_var_pct:-4.5}]},
-        {id:1,period:'2026-05',created_at:'2026-06-02',trigger:'scheduled',items:[]}];
-      await loadDigest();assert.equal(calls.length,1);assert.equal(calls[0][0],'/digests/history');
-      assert.equal(calls[0][1],undefined);const html=$('digest-list').innerHTML;
-      assert.match(html,/Latest saved headline/);assert.match(html,/02 Jul 2026/);assert.match(html,/Jun 2026/);
-      assert.match(html,/&lt;Revenue&gt;/);assert.doesNotMatch(html,/2026-06|2026-07-02|<Revenue>/);
-      assert.match($('digest-history').innerHTML,/May 2026/);
-    """)
 
 
-def test_digest_generation_requires_cost_confirmation_and_cancel_is_free():
-    run_screen(LOADERS[0], r"""
-      await loadDigest(true);assert.equal(calls.length,0);assert.equal(modalCalls.length,1);
-      assert.match(modalCalls[0][1],/estimated.*\$0\.03.*actual.*vary/i);
-      modalAnswer=true;response=p=>p==='/digests/history'
-        ?[{period:'2026-06',items:[{metric:'Revenue',headline:'New digest'}]}]
-        :{period:'2026-06',items:[{metric:'Revenue',headline:'New digest',detail:'New detail'}],cost_usd:0.03};
-      await loadDigest(true);assert.ok(calls.some(([p,o])=>p.startsWith('/digest?')&&o.method==='POST'));
-      assert.match($('digest-list').innerHTML,/New digest/);assert.doesNotMatch($('digest-history').innerHTML,/Retry/);
-      assert.equal($('digest-generate').disabled,false);
-    """)
 
 
-def test_digest_generation_error_preserves_saved_digest_and_retry_confirms_cost():
-    run_screen(LOADERS[0], r"""
-      $('digest-list').innerHTML='Saved digest';modalAnswer=true;failure='Failed to fetch';
-      await loadDigest(true);assert.match($('digest-list').innerHTML,/Saved digest/);
-      assert.match($('digest-status').innerHTML,/Retry/);assert.match($('digest-status').innerHTML,/loadDigest\(true\)/);
-      assert.equal($('digest-generate').disabled,false);
-    """)
+
+
+
 
 
 def test_analytics_sorts_both_dropdowns_by_latest_absolute_value_and_keeps_selection():
@@ -173,20 +148,7 @@ def test_cross_dataset_signals_have_loading_empty_and_retry_states():
     """)
 
 
-@pytest.mark.parametrize("late_error", [False, True])
-def test_slow_saved_history_cannot_overwrite_a_newly_generated_digest(late_error):
-    run_screen(LOADERS[0], r"""
-      let resolveOld,rejectOld;const old=new Promise((r,j)=>{resolveOld=r;rejectOld=j});response=()=>old;
-      const initial=loadDigest();await Promise.resolve();
-      modalAnswer=true;response=p=>p==='/digests/history'
-        ?[{period:'2026-06',items:[{headline:'Fresh digest'}]}]
-        :{period:'2026-06',items:[{metric:'Revenue',headline:'Fresh digest'}]};
-      await loadDigest(true);assert.match($('digest-list').innerHTML,/Fresh digest/);
-      if(lateError)rejectOld(Error('Failed to fetch'));
-      else resolveOld([{period:'2026-05',items:[{metric:'Revenue',headline:'Stale digest'}]}]);
-      await initial;
-      assert.match($('digest-list').innerHTML,/Fresh digest/);assert.doesNotMatch($('digest-list').innerHTML,/Stale digest|Retry/);
-    """, f"const lateError={str(late_error).lower()};")
+
 
 
 def test_schedule_failed_runs_explain_recovery_without_raw_provider_errors():
@@ -215,15 +177,7 @@ def test_read_only_context_empty_state_offers_a_reachable_action():
     """)
 
 
-def test_digest_distinguishes_no_budget_comparisons_and_unchecked_figures():
-    run_screen(LOADERS[0], r"""
-      response=[{period:'2026-06',created_at:'2026-07-02',items:[]}];await loadDigest();
-      assert.match($('digest-list').innerHTML,/No movers with budget data.*Import budget data/s);
-      response=[{period:'2026-06',items:[{metric:'Revenue',headline:'Revenue moved',faithfulness:'unchecked'}]}];await loadDigest();
-      assert.doesNotMatch($('digest-list').innerHTML,/Figures verified|Needs review/);
-      response[0].items[0].faithfulness='passed';await loadDigest();assert.match($('digest-list').innerHTML,/Figures verified/);
-      response[0].items[0].faithfulness='failed';await loadDigest();assert.match($('digest-list').innerHTML,/Needs review/);
-    """)
+
 
 
 def test_analytics_empty_period_does_not_claim_the_dataset_has_no_metrics():
@@ -234,22 +188,75 @@ def test_analytics_empty_period_does_not_claim_the_dataset_has_no_metrics():
     """)
 
 
-@pytest.mark.parametrize("role", ["viewer", "executive"])
-def test_read_only_digest_empty_state_offers_kpis_without_generation(role):
-    run_screen(LOADERS[0], f"""
-      currentUser.role='{role}';await loadDigest();
-      const html=$('digest-list').innerHTML;
-      assert.match(html,/June 2026&#39;s digest isn&#39;t ready yet/);
-      assert.match(html,/2 of 7 KPIs are approved/);assert.match(html,/Open KPIs/);
-      assert.doesNotMatch(html,/Generate a new digest|loadDigest\\(true/);
-      assert.equal($('digest-generate').style.display,'none');
-    """, extra="const closeStateFor=()=>({approved:2,n:7});")
+_DIGEST = {"period": "2026-06", "total_kpis": 3, "approved_kpis": 1, "pending": ["Cash", "Cost"], "ready": False,
+           "sent_at": None, "items": [{"metric": "<Revenue>", "headline": "Revenue fell to $4.2M.",
+                                       "detail": "Pricing churned legacy accounts.", "budget_var_abs": -370000,
+                                       "budget_var_pct": -8.1, "faithfulness": "passed", "report_id": 7}]}
 
 
-def test_writer_digest_empty_state_has_only_one_generate_action():
-    run_screen(LOADERS[0], """
-      await loadDigest();assert.match($('digest-list').innerHTML,/Generate a new digest/);
+def _digest_response(digest, runs="[]"):
+    import json
+    return f"response=p=>p.startsWith('/digest?')?{json.dumps(digest)}:{runs};"
+
+
+def test_digest_shows_only_approved_items_and_what_is_still_waiting():
+    run_screen(LOADERS[0], _digest_response(_DIGEST) + r"""
+      await loadDigest();const html=$('digest-list').innerHTML;
+      assert.ok(calls.some(([p])=>p==='/digest?period=2026-06&top_n=5'));
+      assert.ok(!calls.some(([p,o])=>o&&o.method==='POST'),'loading never generates or sends');
+      assert.match(html,/Revenue fell to \$4\.2M\./);assert.match(html,/&lt;Revenue&gt;/);
+      assert.match(html,/2 KPIs still need approval/);assert.match(html,/Cash, Cost/);assert.match(html,/Open KPIs/);
+      assert.match(html,/1 of 3 KPIs approved/);assert.match(html,/Not sent yet/);
       assert.equal($('digest-generate').style.display,'none');
-      response=[{period:'2026-06',items:[]}];await loadDigest();
+    """)
+
+
+def test_ready_digest_offers_send_and_a_sent_one_says_when():
+    ready = {**_DIGEST, "approved_kpis": 3, "pending": [], "ready": True}
+    run_screen(LOADERS[0], _digest_response(ready) + r"""
+      await loadDigest();assert.match($('digest-list').innerHTML,/Every KPI is approved/);
       assert.equal($('digest-generate').style.display,'');
     """)
+    sent = {**ready, "sent_at": "2026-07-03T09:00:00Z"}
+    run_screen(LOADERS[0], _digest_response(sent) + r"""
+      await loadDigest();assert.match($('digest-list').innerHTML,/Sent 03 Jul 2026/);
+      assert.equal($('digest-generate').style.display,'none');
+    """)
+
+
+def test_sending_needs_confirmation_and_cancel_sends_nothing():
+    ready = {**_DIGEST, "approved_kpis": 3, "pending": [], "ready": True}
+    run_screen(LOADERS[0], _digest_response(ready) + r"""
+      await loadDigest();calls.length=0;
+      modalAnswer=false;await sendDigest();assert.equal(modalCalls.length,1);assert.equal(calls.length,0);
+      modalAnswer=true;await sendDigest();
+      assert.ok(calls.some(([p,o])=>p==='/digest/send?period=2026-06&top_n=5'&&o.method==='POST'));
+      assert.equal($('digest-generate').disabled,false);
+    """)
+
+
+def test_read_only_people_cannot_send(  ):
+    ready = {**_DIGEST, "approved_kpis": 3, "pending": [], "ready": True}
+    run_screen(LOADERS[0], _digest_response(ready) + r"""
+      currentUser.role='executive';await loadDigest();calls.length=0;modalAnswer=true;
+      await sendDigest();assert.equal(calls.length,0);assert.equal(modalCalls.length,0);
+    """)
+
+
+def test_digest_marks_each_items_figure_check():
+    for status, pattern, present in (("passed", "Figures checked", True), ("failed", "Needs review", True),
+                                     ("unchecked", "Figures checked|Needs review", False)):
+        d = {**_DIGEST, "items": [{**_DIGEST["items"][0], "faithfulness": status}]}
+        check = "assert.match" if present else "assert.doesNotMatch"
+        run_screen(LOADERS[0], _digest_response(d) + f"""
+          await loadDigest();{check}($('digest-list').innerHTML,/{pattern}/);
+        """)
+
+
+def test_quarter_and_year_views_point_to_months():
+    run_screen(LOADERS[0], r"""
+      granularity='quarter';currentPeriod='2026-Q2';response=[];
+      await loadDigest();assert.match($('digest-list').innerHTML,/Digests are prepared per month/);
+      assert.ok(!calls.some(([p])=>p.startsWith('/digest?')));
+    """)
+

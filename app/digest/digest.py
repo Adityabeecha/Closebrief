@@ -1,19 +1,17 @@
-"""Executive digest (US-C2): top-N movements for a period ranked by absolute
-budget variance, each as a one-line headline + one explanatory sentence.
-Ranking and number selection are deterministic; the LLM only phrases prose,
-and each item is checked by the faithfulness guard against its own facts.
+"""Executive digest (US-C2), built only from approved commentary.
+
+The digest is what leadership reads, so it never contains text a person hasn't
+approved: each item is the latest approved commentary for one of the close's
+biggest movers (ranked by absolute variance against plan, then by the change
+since last period). Building it is deterministic and free; sending it is a
+separate, explicit step that is refused until every KPI in the close is
+approved (see `ready`).
 """
 
-import json
+import re
 import sqlite3
-import time
 
-from pydantic import BaseModel
-
-from app.generation.guard import check_faithfulness
-from app.generation.llm_client import LLMClient, TokenUsage
-from app.generation.prompts import PROMPT_VERSION
-from app.schemas import ComputedFact, Deltas
+from pydantic import BaseModel, Field
 
 
 class DigestItem(BaseModel):
@@ -23,7 +21,6 @@ class DigestItem(BaseModel):
     budget_var_abs: float | None = None
     budget_var_pct: float | None = None
     faithfulness: str = "unchecked"
-    # Persisted like any narrative so it is auditable and feedback-able.
     report_id: int | None = None
 
 
@@ -32,169 +29,78 @@ class DigestOutput(BaseModel):
     items: list[DigestItem]
     cached: bool = False
     cost_usd: float | None = None
+    total_kpis: int = 0
+    approved_kpis: int = 0
+    pending: list[str] = Field(default_factory=list)   # KPIs still waiting for approval
+    ready: bool = False                                 # every KPI approved: may be sent
+    sent_at: str | None = None
 
 
-DIGEST_SYSTEM_PROMPT = """You are a financial narrative writer producing an executive digest.
-For the single metric provided, respond with EXACTLY two lines:
-Line 1 — headline: one plain-English line stating the movement (may include the provided numbers).
-Line 2 — detail: exactly one sentence explaining the scale of the move vs budget.
-
-Separate the two lines with a single newline character.
-Use ONLY the numbers provided. Never invent or derive new figures."""
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9$\u2212+-])")
 
 
-def _load_facts_for_period(conn: sqlite3.Connection, period: str,
-                           dataset_id: int | None = None) -> list[ComputedFact]:
+def _split_headline(narrative: str) -> tuple[str, str]:
+    """First sentence as the headline, the rest as detail."""
+    text = " ".join((narrative or "").split())
+    parts = _SENTENCE_END.split(text, maxsplit=1)
+    return parts[0], (parts[1] if len(parts) > 1 else "")
+
+
+def build_approved_digest(conn: sqlite3.Connection, period: str,
+                          dataset_id: int | None = None, top_n: int = 5) -> DigestOutput:
+    """The digest for one close from approved commentary only. Counts the same
+    KPI set as the close checklist: KPIs with a value this period, limited to
+    the dataset's selected KPIs when a selection exists."""
     from app.datasets import active_dataset_id
 
     ds = dataset_id if dataset_id is not None else active_dataset_id(conn)
+    if ds is None:
+        return DigestOutput(period=period, items=[])
     rows = conn.execute(
         """
-        SELECT m.name AS metric, m.category, m.unit, cf.period, cf.value, cf.prior_value,
-               cf.mom_pct, cf.yoy_pct, cf.budget_var_abs, cf.budget_var_pct, cf.trend, cf.is_anomaly
+        SELECT m.name AS metric, cf.budget_var_abs, cf.budget_var_pct, cf.mom_pct,
+               gr.id AS report_id, gr.narrative, gr.review_status, gr.faithfulness
         FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
-        WHERE cf.period = ? AND m.dataset_id = ?
+        LEFT JOIN generated_reports gr ON gr.id = (
+            SELECT MAX(g.id) FROM generated_reports g
+            WHERE g.metric_id = cf.metric_id AND g.period = cf.period
+              AND (g.prompt_version IS NULL OR g.prompt_version NOT LIKE '%-digest'))
+        WHERE m.dataset_id = ? AND cf.period = ? AND cf.value IS NOT NULL
+          AND (NOT EXISTS (SELECT 1 FROM kpi_configs k WHERE k.dataset_id = m.dataset_id)
+               OR EXISTS (SELECT 1 FROM kpi_configs k
+                          WHERE k.dataset_id = m.dataset_id AND k.source_metric = m.name))
+        ORDER BY m.name
         """,
-        (period, ds),
+        (ds, period),
     ).fetchall()
-    return [
-        ComputedFact(
-            metric=r["metric"],
-            category=r["category"],
-            period=r["period"],
-            value=r["value"],
-            unit=r["unit"],
-            prior_value=r["prior_value"],
-            deltas=Deltas(
-                mom_pct=r["mom_pct"],
-                yoy_pct=r["yoy_pct"],
-                budget_var_abs=r["budget_var_abs"],
-                budget_var_pct=r["budget_var_pct"],
-            ),
-            trend=r["trend"],
-            is_anomaly=bool(r["is_anomaly"]),
-        )
-        for r in rows
-    ]
-
-
-def _fmt_amount(value: float | None, unit: str | None) -> str:
-    """Executive-readable magnitude: $271.3K / $2.59M for USD, 1,234 otherwise.
-    The guard's 2% tolerance verifies these against the raw fact."""
-    if value is None:
-        return "n/a"
-    sign = "-" if value < 0 else ""
-    v = abs(value)
-    if (unit or "").upper() == "USD":
-        if v >= 1e9:
-            return f"{sign}${v / 1e9:.2f}B"
-        if v >= 1e6:
-            return f"{sign}${v / 1e6:.2f}M"
-        if v >= 1e4:
-            return f"{sign}${v / 1e3:.1f}K"
-        return f"{sign}${v:,.0f}"
-    if (unit or "") == "%":
-        return f"{value:.1f}%"
-    return f"{sign}{v:,.0f}" if v >= 100 else f"{sign}{v:,.2f}".rstrip("0").rstrip(".")
-
-
-def _fmt_pct(value: float | None) -> str:
-    return "n/a" if value is None else f"{value:+.1f}%"
-
-
-def build_digest_prompt(fact: ComputedFact) -> str:
-    """Numbers are pre-rounded here: the system prompt forbids re-rounding, so
-    raw floats (1.1999997910746822) would otherwise be copied verbatim."""
-    return (
-        f"Metric: {fact.metric}\nPeriod: {fact.period}\n"
-        f"value: {_fmt_amount(fact.value, fact.unit)}\n"
-        f"month_over_month: {_fmt_pct(fact.deltas.mom_pct)}\n"
-        f"budget_variance: {_fmt_amount(fact.deltas.budget_var_abs, fact.unit)}\n"
-        f"budget_variance_pct: {_fmt_pct(fact.deltas.budget_var_pct)}\n"
-        "Quote these figures exactly as written.\n"
-    )
-
-
-def generate_digest(
-    conn: sqlite3.Connection, period: str, llm_client: LLMClient, top_n: int = 5,
-    dataset_id: int | None = None,
-) -> DigestOutput:
-    facts = _load_facts_for_period(conn, period, dataset_id=dataset_id)
+    approved = [r for r in rows if r["review_status"] == "approved" and (r["narrative"] or "").strip()]
+    pending = [r["metric"] for r in rows if r not in approved]
     ranked = sorted(
-        (f for f in facts if f.deltas.budget_var_abs is not None),
-        key=lambda f: abs(f.deltas.budget_var_abs),
+        approved,
+        key=lambda r: (abs(r["budget_var_abs"]) if r["budget_var_abs"] is not None else -1,
+                       abs(r["mom_pct"]) if r["mom_pct"] is not None else -1),
         reverse=True,
     )[:top_n]
-
-    items: list[DigestItem] = []
-    total_cost = 0.0
-    for fact in ranked:
-        user_prompt = build_digest_prompt(fact)
-        t0 = time.perf_counter()
-        result, usage = llm_client.generate_narrative(DIGEST_SYSTEM_PROMPT, user_prompt)
-        latency_ms = round((time.perf_counter() - t0) * 1000, 1)
-        total_cost += usage.cost_usd or 0.0
-        text = result.narrative
-        lines = [l.strip() for l in text.splitlines() if l.strip()]
-        headline = lines[0] if lines else text
-        detail = " ".join(lines[1:]) if len(lines) > 1 else ""
-        passed, _ = check_faithfulness(text, fact)
-        report_id = _persist_digest_item(conn, fact, text, passed, usage, latency_ms, dataset_id)
-        items.append(
-            DigestItem(
-                metric=fact.metric,
-                headline=headline,
-                detail=detail,
-                budget_var_abs=fact.deltas.budget_var_abs,
-                budget_var_pct=fact.deltas.budget_var_pct,
-                faithfulness="passed" if passed else "failed",
-                report_id=report_id,
-            )
-        )
+    items = []
+    for r in ranked:
+        headline, detail = _split_headline(r["narrative"])
+        items.append(DigestItem(
+            metric=r["metric"], headline=headline, detail=detail,
+            budget_var_abs=r["budget_var_abs"], budget_var_pct=r["budget_var_pct"],
+            faithfulness=r["faithfulness"] or "unchecked", report_id=r["report_id"],
+        ))
     return DigestOutput(
-        period=period, items=items, cost_usd=round(total_cost, 6) if items else None
+        period=period, items=items, total_kpis=len(rows), approved_kpis=len(approved),
+        pending=pending, ready=bool(rows) and not pending,
     )
 
 
-def _persist_digest_item(
-    conn: sqlite3.Connection,
-    fact: ComputedFact,
-    text: str,
-    passed: bool,
-    usage: TokenUsage,
-    latency_ms: float,
-    dataset_id: int | None = None,
-) -> int | None:
-    """Digest lines are narratives too: persist them with full telemetry so
-    they are auditable and can receive feedback."""
-    from app.datasets import active_dataset_id
-
-    ds = dataset_id if dataset_id is not None else active_dataset_id(conn)
-    mrow = conn.execute(
-        "SELECT id FROM metrics WHERE name = ? AND dataset_id = ?", (fact.metric, ds)
-    ).fetchone()
-    if mrow is None:
+def last_sent_at(conn: sqlite3.Connection, dataset_id: int | None, period: str) -> str | None:
+    """When this close's digest last went out (manual send or schedule)."""
+    if dataset_id is None:
         return None
-    cur = conn.execute(
-        """
-        INSERT INTO generated_reports (metric_id, period, narrative, sources,
-                    confidence, faithfulness, prompt_tokens, completion_tokens,
-                    cost_usd, latency_ms, prompt_version)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            int(mrow["id"]),
-            fact.period,
-            text,
-            json.dumps([]),
-            "Medium",
-            "passed" if passed else "failed",
-            usage.prompt_tokens,
-            usage.completion_tokens,
-            usage.cost_usd,
-            latency_ms,
-            f"{PROMPT_VERSION}-digest",
-        ),
-    )
-    conn.commit()
-    return int(cur.lastrowid) if cur.lastrowid else None
+    row = conn.execute(
+        "SELECT MAX(created_at) AS t FROM digest_runs WHERE dataset_id = ? AND period = ?",
+        (dataset_id, period),
+    ).fetchone()
+    return str(row["t"]) if row and row["t"] else None

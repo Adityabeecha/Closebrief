@@ -111,7 +111,7 @@ def test_deliver_filters_by_event(monkeypatch, tmp_path):
     from app.notifications import scheduler
     # Only the second config subscribes to anomaly_detected; its delivery will
     # fail (unroutable url) but must be reported, not raised.
-    result = scheduler.deliver(conn, "anomaly_detected", items=SAMPLE)
+    result = scheduler.deliver(conn, "anomaly_detected", workspace_id=None, items=SAMPLE)
     conn.close()
     assert result["sent"] == []
     assert len(result["failed"]) == 1 and result["failed"][0]["id"] == 2

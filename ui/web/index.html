@@ -928,6 +928,11 @@
   /* Tabs inside a close: the month header names the page, so the view's own title steps aside. */
   body.in-month #v-digest>.head>div:first-child,body.in-month #v-context>.head>div:first-child,body.in-month #v-import>.head>div:first-child{display:none}
   body.in-month #v-digest>.head,body.in-month #v-context>.head{justify-content:flex-end;margin-bottom:10px}
+  .dg-state{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-radius:var(--r-md);margin-bottom:16px;font-size:14px;color:var(--text-2);background:var(--surface-3)}
+  .dg-state b{color:var(--text)}
+  .dg-state.ready{background:var(--verified-wash)}
+  .dg-state.wait{background:var(--review-wash)}
+  .dg-state .btn{margin-left:auto}
   .dg-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:start}
   .dg-grid .dg-aside:empty{display:none}
   .dg-grid:has(.dg-aside:empty){grid-template-columns:minmax(0,1fr)}
@@ -1485,8 +1490,8 @@
     <!-- ---------- DIGEST ---------- -->
     <section id="v-digest" class="wrap" style="display:none">
       <div class="head">
-        <div><h1>Executive Digest</h1><div class="sub">Most recent saved digest, ranked by budget variance</div></div>
-        <div class="head-actions"><button class="write-only btn primary" id="digest-generate" onclick="loadDigest(true)">Generate a new digest</button></div>
+        <div><h1>Executive digest</h1><div class="sub">Built only from approved commentary, biggest movements first</div></div>
+        <div class="head-actions"><button class="write-only btn primary" id="digest-generate" style="display:none" onclick="sendDigest()">Send to leadership</button></div>
       </div>
       <div id="digest-status"></div>
       <div class="dg-grid">

@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app import audit
 from app import review as review_svc
-from app.api import CurrentUser, require_member, require_read
+from app.api import CurrentUser, require_read, require_write
 from app.config import settings
 from app.datasets import _scope_pred, active_dataset_id
 from app.db import get_connection
@@ -61,7 +61,7 @@ def _scoped_report(conn, report_id: int):
 
 
 @router.post("/reports/{report_id}/assign")
-def assign_report(report_id: int, payload: dict, user: CurrentUser = Depends(require_member)) -> dict:
+def assign_report(report_id: int, payload: dict, user: CurrentUser = Depends(require_write)) -> dict:
     """Assign a narrative to a reviewer (status → pending) and email them a nudge."""
     email = (payload.get("email") or "").strip() or None
     conn = get_connection()
@@ -84,8 +84,9 @@ def assign_report(report_id: int, payload: dict, user: CurrentUser = Depends(req
 
 
 @router.post("/reports/{report_id}/review")
-def review_report(report_id: int, payload: dict, user: CurrentUser = Depends(require_member)) -> dict:
-    """Record a review decision (approved | changes_requested)."""
+def review_report(report_id: int, payload: dict, user: CurrentUser = Depends(require_write)) -> dict:
+    """Record a review decision (approved | changes_requested). Analysts and
+    admins only: executives read the result, they don't sign it off."""
     status = (payload.get("status") or "").strip()
     if status not in review_svc.REVIEW_STATUSES:
         raise HTTPException(status_code=422, detail=f"status must be one of {review_svc.REVIEW_STATUSES}")
