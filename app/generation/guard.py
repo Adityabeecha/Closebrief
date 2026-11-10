@@ -1,8 +1,11 @@
 """Numeric-faithfulness guard (PRD Section 6.4 / 9.2).
 
-Extracts every number from a generated narrative and verifies each one traces,
-within tolerance, to a value that was *provided* to the model — either a
-computed fact or a number appearing in a retrieved context document. This is
+Extracts every number from a generated narrative and verifies each one traces
+to a value that was *provided* to the model — either a computed fact or a number
+appearing in a retrieved context document — to the precision it is written in
+("$102K" may stand for $102,074, "12%" may not stand for 12.6%). Rise/fall
+wording next to a figure ("fell 12%", "3.1% ahead of plan", "−$370K") must also
+agree with the sign of the computed change it cites. This is
 the enforcement point for the project's core rule: the LLM never computes
 numbers, and a narrative containing an unverifiable figure must never silently
 pass. Invented KPI figures (e.g. "we lost 47 accounts") still fail; bare
@@ -16,7 +19,7 @@ import re
 from app.schemas import ComputedFact, ContextSnippet
 
 _NUMBER_RE = re.compile(
-    r"(?<![A-Za-z0-9])([+\-\u2212]?\$?\d(?:[\d,]*\d)?(?:\.\d+)?)\s*(million|billion|thousand|[mbk](?![A-Za-z]))?\s*(%)?",
+    r"(?<![A-Za-z0-9_])([+\-\u2212]?\$?\d(?:[\d,]*\d)?(?:\.\d+)?)\s*(million|billion|thousand|[mbk](?![A-Za-z]))?\s*(%|percent\b|per\s+cent\b)?",
     re.IGNORECASE,
 )
 
@@ -47,8 +50,23 @@ _MONTH_BEFORE = re.compile(
 _ISO_DATE = re.compile(r"(?<![\w$])\d{4}-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12]\d|3[01]))?(?![\d%])")
 
 
-class _CompactAmount(float):
-    """Keep a whole-$K token's rounding precision through shared numeric attribution."""
+class _Token(float):
+    """A number read from prose. `half_unit` is half of its last written digit
+    (scaled by any K/M/B suffix): the most rounding the writer could have done.
+    "$4.2M" -> 50,000; "5.64%" -> 0.005; "48,210" -> 0.5."""
+    half_unit: float = 0.0
+    is_pct: bool = False
+
+
+class _CompactAmount(_Token):
+    """A whole-$K token (kept as a name for callers that check for it)."""
+
+
+def _token(value: float, half_unit: float, cls: type = _Token, is_pct: bool = False) -> _Token:
+    t = cls(value)
+    t.half_unit = half_unit
+    t.is_pct = is_pct
+    return t
 
 
 def _normalize(raw: str, suffix: str, percent: str) -> tuple[float, bool] | None:
@@ -61,10 +79,10 @@ def _normalize(raw: str, suffix: str, percent: str) -> tuple[float, bool] | None
         return None
     is_percent = bool(percent)
     multiplier = 1.0 if is_percent else _MULTIPLIERS.get(suffix.lower(), 1.0)
-    value = base * multiplier
-    if not is_percent and "$" in raw and suffix.lower() in ("k", "thousand") and "." not in cleaned:
-        value = _CompactAmount(value)
-    return value, is_percent
+    decimals = len(cleaned.split(".", 1)[1]) if "." in cleaned else 0
+    half = 0.5 * (10 ** -decimals) * multiplier
+    whole_k = not is_percent and "$" in raw and suffix.lower() in ("k", "thousand") and "." not in cleaned
+    return _token(base * multiplier, half, _CompactAmount if whole_k else _Token, is_percent), is_percent
 
 
 def extract_numbers(text: str) -> list[tuple[float, bool]]:
@@ -147,17 +165,105 @@ def _excluded_tokens(fact: ComputedFact) -> set[float]:
 
 
 def _matches_any(candidate: float, allowed: set[float], tolerance_pct: float) -> bool:
+    """True when `candidate` is one of `allowed` as written. A number read from
+    prose matches only within its own rounding (half its last digit). Amounts
+    are also held to 2.5% of the real value, so a coarse "$1M" can't stand for
+    $1.5M. A plain float (older callers) falls back to `tolerance_pct`."""
+    half = getattr(candidate, "half_unit", None)
+    is_pct = getattr(candidate, "is_pct", False)
     for value in allowed:
-        tolerance = max(0.5, abs(value) * tolerance_pct)
+        if value is None:
+            continue
+        # The UI's whole-thousand currency form ("$102K") rounds half-up to the
+        # nearest $1K, so it matches exactly that rounding of a $1K–$1M value.
+        if isinstance(candidate, _CompactAmount) and 1e3 <= abs(value) < 1e6:
+            if abs(candidate) == math.floor(abs(value) / 1e3 + 0.5) * 1e3:
+                return True
+            continue
+        if half is None:
+            tolerance = max(0.5, abs(value) * tolerance_pct)
+        elif is_pct:
+            tolerance = half * (1 + 1e-9) + 1e-9
+        else:
+            tolerance = min(half, max(0.5, abs(value) * 0.025)) * (1 + 1e-9) + 1e-9
         if abs(abs(candidate) - abs(value)) <= tolerance:
             return True
-        # Only the UI's whole-thousand currency form gets this extra match.
-        # Do not widen the tolerance for bare counts, percentages or coarse $M.
-        if isinstance(candidate, _CompactAmount) and 1e3 <= abs(value) < 1e6:
-            rounded = math.floor(abs(value) / 1e3 + 0.5) * 1e3
-            if abs(candidate) == rounded:
-                return True
     return False
+
+
+# ---- Direction: "rose", "fell", "ahead of", "below", or an explicit +/− sign ----
+_UP_WORDS = {"rose", "rise", "rises", "risen", "rising", "increase", "increased", "increases",
+             "increasing", "grew", "grow", "grows", "growth", "grown", "gain", "gained", "gains",
+             "climbed", "climb", "climbs", "jumped", "jump", "jumps", "surged", "surge", "up",
+             "higher", "ahead", "above", "exceeded", "exceeds", "beat", "beats"}
+_DOWN_WORDS = {"fell", "fall", "falls", "fallen", "falling", "decrease", "decreased", "decreases",
+               "decreasing", "decline", "declined", "declines", "declining", "drop", "dropped",
+               "drops", "down", "lower", "behind", "below", "missed", "lost", "shrank", "shrunk",
+               "slipped", "slid", "contracted", "short"}
+_AFTER_UP = {"higher", "ahead", "above", "up", "more"}
+_AFTER_DOWN = {"lower", "behind", "below", "down", "less"}
+_PLAN_WORDS = {"plan", "budget", "target", "forecast"}
+_CLAUSE_BREAK = re.compile(r"[.;:!?,]|\b(?:and|but|while|whereas|although|though)\b", re.I)
+_WORD = re.compile(r"[A-Za-z]+")
+
+
+def _claimed_direction(text: str, match: re.Match) -> tuple[int, bool]:
+    """(+1 up / -1 down / 0 none, follows "to") for the number at `match`.
+    An explicit sign wins; otherwise the nearest rise/fall word earlier in the
+    same clause (up to six words back); otherwise a comparative right after
+    ("3.1% ahead of plan", "12% higher")."""
+    raw = match.group(1)
+    before = text[:match.start()]
+    breaks = [m.end() for m in _CLAUSE_BREAK.finditer(before)]
+    words = [w.lower() for w in _WORD.findall(before[breaks[-1] if breaks else 0:])][-6:]
+    after_to = bool(words) and words[-1] == "to"
+    if raw[:1] == "+":
+        return 1, after_to
+    if raw[:1] in ("-", "\u2212"):
+        return -1, after_to
+    for w in reversed(words):
+        if w in _UP_WORDS:
+            return 1, after_to
+        if w in _DOWN_WORDS:
+            return -1, after_to
+    nxt = [w.lower() for w in _WORD.findall(text[match.end():match.end() + 40])][:3]
+    for i, w in enumerate(nxt):
+        if w in _AFTER_UP:
+            return 1, False
+        if w in _AFTER_DOWN:
+            return -1, False
+        if w in ("over", "under") and i + 1 < len(nxt) and nxt[i + 1] in _PLAN_WORDS:
+            return (1 if w == "over" else -1), False
+    return 0, after_to
+
+
+def _sign(v: float | None) -> int:
+    return 0 if v is None or v == 0 else (1 if v > 0 else -1)
+
+
+def direction_issue(text: str, match: re.Match, value: float, is_percent: bool,
+                    fact: ComputedFact) -> str | None:
+    """A sentence that says a figure rose when it fell (or the reverse). Only the
+    computed changes are judged (vs last period, vs last year, vs plan, bridge
+    effects), plus a level reached "to" ("rose to $4.2M") against the change
+    since last period. Returns a plain-English problem, or None."""
+    claim, after_to = _claimed_direction(text, match)
+    if claim == 0:
+        return None
+    d = fact.deltas
+    if is_percent:
+        changes = [d.mom_pct, d.yoy_pct, d.budget_var_pct]
+        levels = [fact.value, fact.prior_value] if (fact.unit or "").lower() in ("%", "percent") else []
+    else:
+        changes = [d.budget_var_abs, *((fact.variance_bridge or {}).values())]
+        levels = [fact.value, fact.prior_value]
+    signs = [_sign(v) for v in changes if v is not None and _matches_any(value, {v}, 0.0)]
+    if after_to and any(v is not None and _matches_any(value, {v}, 0.0) for v in levels):
+        signs.append(_sign(d.mom_pct))
+    signs = [s for s in signs if s != 0]
+    if not signs or claim in signs:
+        return None
+    return "rose" if claim < 0 else "fell"   # what the figure actually did
 
 
 # Spelled-out multiplier claims ("revenue doubled") are numeric claims too.
@@ -195,8 +301,10 @@ def check_faithfulness(
     tolerance_pct: float = 0.02,
 ) -> tuple[bool, list[float]]:
     """Returns (passed, unverified_numbers). `passed` is True iff every KPI-like
-    number in the narrative maps, within tolerance, to a computed fact or a
-    number present in the provided context.
+    number in the narrative maps, to its written precision, to a computed fact
+    or a number present in the provided context, and any rise/fall wording on a
+    computed change agrees with its sign. (`tolerance_pct` only applies to plain
+    floats from older callers; numbers read from text use their precision.)
     """
     magnitudes, percents = _allowed_values(fact)
     excluded = _excluded_tokens(fact)
@@ -217,6 +325,8 @@ def check_faithfulness(
 
         allowed = percents if is_percent else magnitudes
         if _matches_any(value, allowed, tolerance_pct):
+            if direction_issue(narrative, match, value, is_percent, fact):
+                unverified.append(value)
             continue
         context_vals = context_percents if is_percent else context_magnitudes
         if _matches_any(value, context_vals, tolerance_pct):
@@ -260,9 +370,15 @@ def faithfulness_messages(narrative: str, fact: ComputedFact,
             continue
         if _is_date_or_duration(match, narrative, raw, suffix, percent_token):
             continue
-        if _matches_any(value, percents if percent else magnitudes, .02) or _matches_any(value, ctx_percents if percent else ctx_magnitudes, .02):
-            continue
         token = match.group().strip()
+        if _matches_any(value, percents if percent else magnitudes, .02):
+            went = direction_issue(narrative, match, value, percent, fact)
+            if went:
+                messages.append(f"The text calls {token} a {'fall' if went == 'rose' else 'rise'}, "
+                                f"but the computed figure {went}")
+            continue
+        if _matches_any(value, ctx_percents if percent else ctx_magnitudes, .02):
+            continue
         actual = amount(fact.value, (fact.unit or '').lower() in ('%', 'percent'))
         # Avoid implying a percent mismatch is the current metric's currency value.
         suffix = f" (the actual is {actual})" if not norm[1] or (fact.unit or '').lower() in ('%', 'percent') else ''

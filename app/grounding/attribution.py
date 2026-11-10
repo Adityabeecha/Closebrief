@@ -22,6 +22,7 @@ from app.generation.guard import (
     _is_date_or_duration,
     _matches_any,
     _normalize,
+    direction_issue,
     faithfulness_messages,
 )
 from app.schemas import ComputedFact, ContextSnippet
@@ -117,7 +118,9 @@ def attribute(narrative: str, fact: ComputedFact,
             pool = percents if is_percent else magnitudes
             hit = next((lbl for (lbl, v) in pool
                         if _matches_any(value, {v}, tolerance_pct)), None)
-            if hit is not None:
+            if hit is not None and direction_issue(text, m, value, is_percent, fact):
+                unverified.append(value)   # right number, wrong direction
+            elif hit is not None:
                 cited_facts.append({"field": hit, "value": value, "is_percent": is_percent})
             elif not _matches_any(value, ctx_percents if is_percent else ctx_magnitudes, tolerance_pct):
                 # Not a fact and not a number present in context → unverified.
