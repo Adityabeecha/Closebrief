@@ -286,7 +286,11 @@ def _alert_job_failure(conn, job: dict, error: str) -> None:
     """After repeated failures, tell the operator via the configured channels."""
     from app.notifications.scheduler import deliver
     try:
-        deliver(conn, "anomaly_detected", workspace_id=_dataset_workspace(conn, _resolve_dataset(conn, job)), items=[{
+        # Global maintenance jobs can fail in any workspace; never pick a visitor's active dataset.
+        workspace_id = None
+        if job["kind"] in ("digest", "anomaly_scan", "board_pack"):
+            workspace_id = _dataset_workspace(conn, _resolve_dataset(conn, job))
+        deliver(conn, "anomaly_detected", workspace_id=workspace_id, items=[{
             "metric": f"Scheduled {job['kind']} job #{job['id']}",
             "period": "", "value": "failing",
             "delta": f"{FAIL_ALERT_THRESHOLD}+ consecutive failures",
@@ -322,6 +326,9 @@ def run_due_jobs(conn, now: datetime | None = None, llm_client=None) -> dict:
     for job in list_jobs(conn):
         if not job["enabled"]:
             continue
+        # An earlier retention job may have deleted this dataset and its jobs.
+        if conn.execute("SELECT id FROM scheduled_jobs WHERE id = ?", (job["id"],)).fetchone() is None:
+            continue
         nxt = _parse(job["next_run_at"])
         if nxt is not None and nxt > now:
             continue
@@ -348,6 +355,11 @@ def run_due_jobs(conn, now: datetime | None = None, llm_client=None) -> dict:
         latency_ms = round((time.perf_counter() - t0) * 1000, 1)
         status, detail = _status_of(result)
         fail_count = (job["fail_count"] + 1) if status == "error" else 0
+        ran.append({"id": job["id"], "kind": job["kind"], "status": status,
+                    "latency_ms": latency_ms, **result})
+        # A dataset-bound retention job can delete itself while it runs.
+        if conn.execute("SELECT id FROM scheduled_jobs WHERE id = ?", (job["id"],)).fetchone() is None:
+            continue
 
         conn.execute(
             """INSERT INTO scheduler_runs (job_id, kind, status, detail, latency_ms)
@@ -364,6 +376,4 @@ def run_due_jobs(conn, now: datetime | None = None, llm_client=None) -> dict:
         conn.commit()
         if status == "error" and fail_count == FAIL_ALERT_THRESHOLD:
             _alert_job_failure(conn, job, detail or "")
-        ran.append({"id": job["id"], "kind": job["kind"], "status": status,
-                    "latency_ms": latency_ms, **result})
     return {"now": now.isoformat(), "ran": ran}

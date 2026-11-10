@@ -54,7 +54,9 @@ def test_purge_removes_old_keeps_recent(client):
         conn.close()
 
 
-def test_run_retention_only_purges_configured_workspaces(client):
+def test_run_retention_only_purges_configured_workspaces(client, monkeypatch):
+    from app.config import settings
+    monkeypatch.setattr(settings, "sandbox_retention_days", 0)
     from app import retention, workspaces
     conn = _conn()
     try:
