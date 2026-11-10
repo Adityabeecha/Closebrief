@@ -591,7 +591,7 @@ _COPY_TABLES = [
                            "faithfulness", "prompt_tokens", "completion_tokens", "cost_usd",
                            "latency_ms", "prompt_version", "created_at"]),
     ("feedback", ["id", "report_id", "action", "edited_text", "reason", "created_at"]),
-    ("uploads", ["id", "filename", "file_path", "sheets", "chosen_sheet",
+    ("uploads", ["id", "filename", "file_path", "content", "sheets", "chosen_sheet",
                  "profiled_schema", "mapping", "column_signature", "created_at"]),
     ("mapping_templates", ["id", "column_signature", "mapping", "kpi_config", "created_at"]),
     ("kpi_configs", ["id", "source_metric", "display_name", "category", "unit",
