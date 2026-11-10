@@ -262,18 +262,11 @@ async def _auth_middleware(request: Request, call_next):
             req_ws = int(requested) if requested else None
         except ValueError:
             req_ws = None
-        conn = get_connection()
-        try:
-            ws_id, ws_role = resolve_workspace(conn, user.id, user.email, req_ws)
-            set_workspace_scope(ws_id)
-            request.state.workspace_id = ws_id
-            # The caller's membership role in the active workspace (resolved in the
-            # same query, for /me and the UI). Workspace-scoped admin actions
-            # (invites, limits, members) enforce this via _require_ws_admin; global
-            # RBAC (app_roles) still governs app-level admin.
-            request.state.ws_role = ws_role
-        finally:
-            conn.close()
+        ws_id, ws_role = resolve_workspace(None, user.id, user.email, req_ws, connection_factory=get_connection)
+        set_workspace_scope(ws_id)
+        request.state.workspace_id = ws_id
+        # Membership changes invalidate the cached per-workspace role immediately.
+        request.state.ws_role = ws_role
     return await call_next(request)
 
 
