@@ -426,6 +426,7 @@
   .lg-field input:focus{outline:none;border-color:var(--accent)}
   .lg-btn{width:100%;padding:13px;border-radius:var(--r-sm);background:var(--accent);color:var(--on-accent);border:1px solid var(--accent);font-weight:700;font-size:15px}
   .lg-btn:hover{background:var(--green-deep);border-color:var(--green-deep)}
+  .lg-sandbox{margin:16px 0 0;font-size:13px;line-height:1.5;color:var(--text-3)}
   .lg-toggle{margin-top:18px;text-align:center;font-size:13px;color:var(--mut)}
   .lg-toggle button{border:none;background:none;color:var(--accent);font-weight:700;font-size:inherit;padding:4px 2px;min-height:24px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
   .lg-ferr{font-size:13px;font-weight:600;color:var(--red);margin-top:6px;min-height:0}
@@ -1091,6 +1092,7 @@
         Google sign-in couldn’t load (an ad blocker may be blocking it). Use your email and password above.
       </div>
     </div>
+    <p class="lg-sandbox" id="lg-sandbox">Each account gets its own private workspace. Use sample or anonymised figures, not confidential data. Workspaces with no activity for 30 days are deleted.</p>
     <div class="lg-toggle" id="lg-toggle">Need an account? <button type="button" onclick="toggleAuthMode()">Sign up</button></div>
     <button id="lg-demo" style="display:none;margin-top:14px;width:100%;padding:11px;border-radius:8px;border:1.5px dashed var(--accent);background:var(--accent-bg);color:var(--accent);font-weight:700;font-size:14px" onclick="enterDemo()">Demo</button>
     <button type="button" class="lg-guest" id="lg-guest" style="display:none" onclick="enterGuest()">Continue as guest</button>
@@ -1127,14 +1129,6 @@
         <button class="collapse-btn" onclick="toggleCollapse()" title="Collapse sidebar" aria-label="Collapse sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>
       </div>
       <div>
-        <div class="nav-label" id="wsp-label" style="padding:0 2px 6px;display:none">Workspace</div>
-        <div class="ws" id="wsp-wrap" style="display:none">
-          <button class="ws-btn" onclick="toggleWsp(event)" aria-haspopup="true" aria-labelledby="wsp-label wsp-name">
-            <span id="wsp-name">…</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
-          </button>
-          <div class="ws-menu" id="wsp-menu"></div>
-        </div>
         <div class="nav-label" id="ds-label" style="padding:0 2px 6px">Dataset</div>
         <div class="ws">
           <button class="ws-btn" onclick="toggleWs(event)" aria-haspopup="true" aria-labelledby="ds-label ws-name">
@@ -1677,8 +1671,8 @@
 
     <!-- ---------- ADMIN ---------- -->
     <section id="v-admin" class="wrap" style="display:none">
-      <div class="head"><div><h1>User Management</h1><div class="sub">Assign roles. Analysts can write; executives read-only; admins manage users.</div></div>
-        <div class="head-actions"><button class="write-only btn primary" onclick="inviteUser()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>Add user</button></div>
+      <div class="head"><div><h1>Users</h1><div class="sub">Everyone who has signed in. Each person works in their own private workspace; roles decide what they can do there.</div></div>
+        <div class="head-actions"><button class="write-only btn primary" onclick="inviteUser()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>Share sign-in link</button></div>
       </div>
       <table class="admin-table"><thead><tr><th>Email</th><th>User ID</th><th>Role</th><th>Since</th></tr></thead>
         <tbody id="admin-rows"></tbody></table>
@@ -1687,7 +1681,7 @@
 </div>
 <!-- Command palette -->
 <div class="cmdk-back" id="cmdk-back" onclick="if(event.target===this)closePalette()">
-  <div class="cmdk" role="dialog" aria-label="Command palette">
+  <div class="cmdk" role="dialog" aria-modal="true" aria-label="Command palette">
     <div class="cmdk-in">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="cmdk-input" placeholder="Search metrics, pages, actions…" aria-label="Command palette search" oninput="renderPalette()" autocomplete="off">
@@ -1698,7 +1692,7 @@
 </div>
 <!-- KPI manager: edit board selections without re-importing -->
 <div class="cmdk-back" id="kpi-back" onclick="if(event.target===this)$('kpi-back').classList.remove('open')">
-  <div class="cmdk" role="dialog" aria-label="Manage KPIs" style="width:min(720px,94vw)">
+  <div class="cmdk" role="dialog" aria-modal="true" aria-label="Manage KPIs" style="width:min(720px,94vw)">
     <div class="cmdk-in" style="justify-content:space-between"><b style="font-size:15px">Manage KPIs</b>
       <button class="ico" onclick="$('kpi-back').classList.remove('open')" aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <div style="padding:14px 16px;max-height:56vh;overflow-y:auto" id="kpim-rows"></div>
@@ -1711,7 +1705,7 @@
 </div>
 <!-- Source doc viewer (the trust moment: chip -> the underlying context note) -->
 <div class="cmdk-back" id="src-back" onclick="if(event.target===this)$('src-back').classList.remove('open')">
-  <div class="cmdk" role="dialog" aria-label="Context source" style="width:min(600px,92vw)">
+  <div class="cmdk" role="dialog" aria-modal="true" aria-label="Context source" style="width:min(600px,92vw)">
     <div class="cmdk-in" style="justify-content:space-between">
       <div style="min-width:0"><span class="ctx-type" id="src-type"></span> <b id="src-title" style="font-size:15px;margin-left:6px"></b></div>
       <button class="ico" onclick="$('src-back').classList.remove('open')" aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
@@ -1734,7 +1728,7 @@
 </div>
 <!-- How Closebrief works -->
 <div class="cmdk-back" id="help-back" onclick="if(event.target===this)$('help-back').classList.remove('open')">
-  <div class="cmdk" role="dialog" aria-label="How Closebrief works" style="width:min(560px,92vw)">
+  <div class="cmdk" role="dialog" aria-modal="true" aria-label="How Closebrief works" style="width:min(560px,92vw)">
     <div class="cmdk-in" style="justify-content:space-between"><b style="font-size:15px">How Closebrief works</b>
       <button class="ico" onclick="$('help-back').classList.remove('open')" aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <div style="padding:18px 20px;font-size:14px;line-height:1.6;color:var(--ink2)">
@@ -1752,7 +1746,7 @@
 </div>
 <!-- Shortcuts help -->
 <div class="cmdk-back" id="sc-back" onclick="if(event.target===this)$('sc-back').classList.remove('open')">
-  <div class="cmdk" role="dialog" aria-label="Keyboard shortcuts" style="width:min(520px,92vw)">
+  <div class="cmdk" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts" style="width:min(520px,92vw)">
     <div class="cmdk-in" style="justify-content:space-between"><b style="font-size:15px">Keyboard shortcuts</b>
       <button class="ico" onclick="$('sc-back').classList.remove('open')" aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <div class="sc-grid">
