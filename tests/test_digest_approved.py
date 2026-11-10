@@ -72,9 +72,13 @@ def test_send_records_the_run_and_notifies_once_ready(make_client, monkeypatch):
     assert client.get("/digest?period=2026-06").json()["sent_at"]
 
 
+# Postgres stores user ids as UUIDs.
+EXEC_ID = "00000000-0000-4000-8000-0000000000e1"
+
+
 def test_executives_cannot_approve_or_send(make_client):  # noqa: F811
-    client = make_client(auth_on=True, seed_roles={"exec1": ("e@co.com", "executive")})
-    h = _bearer(sub="exec1", email="e@co.com")
+    client = make_client(auth_on=True, seed_roles={EXEC_ID: ("e@co.com", "executive")})
+    h = _bearer(sub=EXEC_ID, email="e@co.com")
     assert client.post("/reports/1/review", json={"status": "approved"}, headers=h).status_code == 403
     assert client.post("/digest/send?period=2026-06", headers=h).status_code == 403
 
