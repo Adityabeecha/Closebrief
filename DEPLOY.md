@@ -33,6 +33,7 @@ so they are never committed):
 | `SUPABASE_URL` | Supabase → Settings → API | `https://xxxx.supabase.co` |
 | `SUPABASE_ANON_KEY` | Supabase → Settings → API | Public anon key |
 | `SUPABASE_JWT_SECRET` | Supabase → Settings → API → JWT | HS256 secret |
+| `SESSION_JWT_SECRET` | Generate with the command below | Separate Google session signing key |
 | `REDIS_URL` | Upstash → your Redis DB | `rediss://…` (TLS) |
 | `SENTRY_DSN` | Sentry → project → Client keys (DSN) | Public by design; also enables **frontend** error tracking |
 
@@ -46,7 +47,7 @@ Non-secret config (`APP_ENV=prod`, `LLM_PROVIDER=openai`, `VECTOR_BACKEND=pgvect
    `app/migrations/pg_schema.sql`), so no manual SQL is required.
 2. **Render** → New → **Blueprint** → connect `Adityabeecha/Closebrief` → it reads
    `render.yaml` and provisions one `free` web service.
-3. Paste the 7 secrets above into the service's **Environment** tab.
+3. Paste the secrets above into the service's **Environment** tab.
 4. Create. On first boot the app **auto-migrates** the Postgres schema
    (`auto_migrate=true` in `app/config.py`), because the free tier has no
    `preDeployCommand`. On the paid `starter` plan you can instead restore the
@@ -101,3 +102,16 @@ After deploying migration `025_notification_workspace.sql`, the owner should
 re-create notification channels once while signed into the intended workspace.
 Existing channels keep `workspace_id = NULL` and deliver only for the unscoped
 local-development scope; they are never assigned to a visitor or owner implicitly.
+
+## Session signing key
+
+Set `SESSION_JWT_SECRET` in Render independently of `SUPABASE_JWT_SECRET`.
+Generate it locally with:
+
+```bash
+python -c "import secrets;print(secrets.token_urlsafe(48))"
+```
+
+Changing this key signs every Google user out once. The Supabase secret remains
+a backwards-compatible fallback; production logs a warning once per process
+when `SESSION_JWT_SECRET` is missing.
