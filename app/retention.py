@@ -11,6 +11,7 @@ from pathlib import Path
 
 from app.config import resolved_vector_backend, settings
 from app.ingestion.upload import purge_old_uploads
+from app.workspaces import invalidate_membership_cache
 
 
 def _cutoff(days: int) -> str:
@@ -107,6 +108,8 @@ def purge_inactive_sandboxes(conn, days: int = 30, keep_user_ids=()) -> dict:
                 conn.execute(f"DELETE FROM {table} WHERE workspace_id = ?", (ws,))
             conn.execute("DELETE FROM workspaces WHERE id = ?", (ws,))
             conn.commit()
+            for member in members:
+                invalidate_membership_cache(str(member["user_id"]))
             # pgvector rows cascade with context_documents; FAISS needs removal.
             if documents and resolved_vector_backend() == "faiss":
                 from app.deps import shared_vector_store
