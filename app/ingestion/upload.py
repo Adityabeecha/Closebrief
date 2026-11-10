@@ -1,6 +1,6 @@
 """Stage 1 — Parse (Addendum v1.1 Section 1.3).
 
-Accepts .csv/.xlsx/.xls bytes, persists the raw file under data/uploads/,
+Accepts .csv/.xlsx/.xls bytes, persists the raw content in the database,
 records the upload row, and returns a preview + sheet list. No type coercion
 assumptions at this stage.
 """
@@ -10,6 +10,7 @@ import json
 import re
 import sqlite3
 import uuid
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zipfile import BadZipFile
 
@@ -152,12 +153,20 @@ def get_upload(conn: sqlite3.Connection, upload_id: str):
     return row
 
 
+def _upload_bytes(row) -> bytes:
+    if row["content"] is not None:
+        return bytes(row["content"])
+    if row["file_path"]:
+        try:
+            return Path(row["file_path"]).read_bytes()
+        except OSError as exc:
+            raise UploadError("Uploaded file is unavailable; please upload it again") from exc
+    raise UploadError("Uploaded file is unavailable; please upload it again")
+
+
 def load_upload_frame(conn: sqlite3.Connection, upload_id: str, sheet: str | None = None) -> pd.DataFrame:
     row = get_upload(conn, upload_id)
-    try:
-        raw = Path(row["file_path"]).read_bytes()
-    except OSError as exc:
-        raise UploadError("Uploaded file is unavailable; please upload it again") from exc
+    raw = _upload_bytes(row)
     chosen = sheet or row["chosen_sheet"]
     df = _read_frame(raw, row["filename"], chosen)
     if len(df) > MAX_ROWS:
@@ -174,7 +183,7 @@ def upload_sheet_period(conn: sqlite3.Connection, upload_id: str, sheet: str | N
     filename = row["filename"]
     if not filename.lower().endswith(".xlsx"):
         return None
-    raw = Path(row["file_path"]).read_bytes()
+    raw = _upload_bytes(row)
     chosen = sheet or row["chosen_sheet"]
     probe = pd.read_excel(io.BytesIO(raw), sheet_name=chosen or 0, header=None,
                           dtype=str, engine="openpyxl")
@@ -197,8 +206,6 @@ def create_upload(conn: sqlite3.Connection, raw: bytes, filename: str) -> dict:
         raise UploadError("Uploaded file is empty")
 
     upload_id = uuid.uuid4().hex[:12]
-    suffix = Path(filename).suffix or ".csv"
-    file_path = UPLOAD_DIR / f"{upload_id}{suffix}"
     try:
         sheets = list_sheets(raw, filename)
     except (ValueError, OSError, BadZipFile) as exc:
@@ -212,28 +219,18 @@ def create_upload(conn: sqlite3.Connection, raw: bytes, filename: str) -> dict:
         raise UploadError(f"File has {len(df):,} rows; the limit is {MAX_ROWS:,}")
 
     signature = column_signature(list(df.columns))
-    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    created = False
     try:
-        # Do not overwrite another upload in the unlikely event of an ID collision.
-        with file_path.open("xb") as target:
-            created = True
-            target.write(raw)
         conn.execute(
             """
-            INSERT INTO uploads (id, filename, file_path, sheets, chosen_sheet, column_signature, workspace_id)
+            INSERT INTO uploads (id, filename, content, sheets, chosen_sheet, column_signature, workspace_id)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (upload_id, filename, str(file_path), json.dumps(sheets),
+            (upload_id, filename, raw, json.dumps(sheets),
              sheets[0] if sheets else None, signature, current_workspace()),
         )
         conn.commit()
     except Exception:
-        try:
-            conn.rollback()
-        finally:
-            if created:
-                file_path.unlink(missing_ok=True)
+        conn.rollback()
         raise
 
     from app.ingestion.templates import match_template
@@ -249,3 +246,23 @@ def create_upload(conn: sqlite3.Connection, raw: bytes, filename: str) -> dict:
         "row_count": int(len(df)),
         "suggested_template_id": template["id"] if template else None,
     }
+
+
+def purge_old_uploads(conn: sqlite3.Connection, days: int = 7) -> int:
+    """Expire staged uploads globally, including legacy files. Return rows removed."""
+    if days <= 0:
+        raise ValueError("Upload retention days must be positive")
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+    rows = conn.execute(
+        "SELECT id, file_path FROM uploads WHERE created_at < ?", (cutoff,),
+    ).fetchall()
+    try:
+        for row in rows:
+            if row["file_path"]:
+                Path(row["file_path"]).unlink(missing_ok=True)
+            conn.execute("DELETE FROM uploads WHERE id = ?", (row["id"],))
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    return len(rows)
