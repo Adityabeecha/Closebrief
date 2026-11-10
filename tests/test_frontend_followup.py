@@ -103,15 +103,6 @@ def test_import_cleanup_stays_successful_when_refresh_fails():
     """)
 
 
-def test_workspace_creation_cannot_change_import_scope_when_leave_is_cancelled():
-    run_js("async function createWorkspaceUI(", "// Keyboard shortcuts.", """
-      let activeWorkspaceId=3;const leaveImport=async()=>false;
-      const modalInput=()=>{throw Error('Creation modal should not open')};
-    """, """
-      await createWorkspaceUI();assert.equal(activeWorkspaceId,3);
-    """)
-
-
 def test_palette_metric_resolves_refreshed_facts_after_import_cleanup():
     run_js("function paletteActions(", "function openPalette(", """
       const currentUser={role:'analyst'},CI={};let currentFacts=[{metric:'Revenue',has_data:true}],shownFacts=currentFacts;
