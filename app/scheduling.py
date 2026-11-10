@@ -169,11 +169,11 @@ def _resolve_dataset(conn, job: dict) -> int | None:
 
 
 def _run_digest_job(conn, job: dict, llm_client) -> dict:
-    from app.digest.digest import generate_digest
+    """Send the latest close's digest on schedule: approved commentary only, and
+    only once every KPI in that close is approved (no AI call involved)."""
+    from app.digest.digest import build_approved_digest
     from app.notifications.scheduler import deliver
 
-    if llm_client is None:
-        return {"skipped": "no LLM configured"}
     ds = _resolve_dataset(conn, job)
     if ds is None:
         return {"skipped": "no dataset"}
@@ -181,9 +181,11 @@ def _run_digest_job(conn, job: dict, llm_client) -> dict:
     if not period:
         return {"skipped": "no data"}
     top_n = int(job["config"].get("top_n", 5))
-    out = generate_digest(conn, period, llm_client, top_n=top_n, dataset_id=ds)
+    out = build_approved_digest(conn, period, dataset_id=ds, top_n=top_n)
+    if not out.ready:
+        return {"skipped": f"waiting for approval: {len(out.pending)} of {out.total_kpis} KPIs", "period": period}
     items = [it.model_dump() for it in out.items]
-    record_digest_run(conn, ds, period, top_n, items, out.cost_usd, "scheduled")
+    record_digest_run(conn, ds, period, top_n, items, None, "scheduled")
     delivery = deliver(conn, "digest_generated", period=period, items=[
         {"metric": it.metric, "period": period, "value": it.headline,
          "delta": f"{it.budget_var_pct:+.1f}% vs plan" if it.budget_var_pct is not None else "",
