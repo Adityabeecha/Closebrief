@@ -118,9 +118,10 @@ class AnthropicLLMClient:
         import anthropic
 
         try:
+            # No temperature here: some newer Claude models reject sampling
+            # parameters, and the structured output keeps the format stable.
             response = self._client.messages.parse(
                 model=self._model,
-                temperature=0.2,
                 max_tokens=600,
                 system=system_prompt,
                 messages=[{"role": "user", "content": user_prompt}],

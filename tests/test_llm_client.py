@@ -58,5 +58,8 @@ def test_provider_call_safety(monkeypatch, provider, timeout):
         narrative, usage = client.generate_narrative("system", "user")
         assert narrative.narrative == "Test narrative"
         assert (usage.prompt_tokens, usage.completion_tokens) == (10, 5)
-    assert sent["temperature"] == 0.2
+    if provider == "openai":
+        assert sent["temperature"] == 0.2
+    else:
+        assert "temperature" not in sent   # newer Claude models reject sampling params
     assert sent["model"] == "test-model"
