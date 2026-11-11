@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS datasets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     source_upload_id TEXT,
+    currency TEXT NOT NULL DEFAULT 'USD' CHECK (currency IN ('USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'SGD', 'CHF')),
     is_active INTEGER NOT NULL DEFAULT 0,
     domain TEXT NOT NULL DEFAULT 'fpa',
     is_demo INTEGER NOT NULL DEFAULT 0,
@@ -133,6 +134,7 @@ CREATE TABLE IF NOT EXISTS uploads (
     id TEXT PRIMARY KEY,
     workspace_id INTEGER,
     filename TEXT NOT NULL,
+    currency TEXT NOT NULL DEFAULT 'USD' CHECK (currency IN ('USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'SGD', 'CHF')),
     file_path TEXT,
     content BLOB,
     sheets TEXT NOT NULL DEFAULT '[]',
@@ -317,6 +319,10 @@ CREATE TABLE IF NOT EXISTS digest_runs (
 
 # Columns added after first release; applied to pre-existing SQLite DBs on startup.
 _SQLITE_MIGRATIONS = [
+    "ALTER TABLE datasets ADD COLUMN currency TEXT NOT NULL DEFAULT 'USD' "
+    "CHECK (currency IN ('USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'SGD', 'CHF'))",
+    "ALTER TABLE uploads ADD COLUMN currency TEXT NOT NULL DEFAULT 'USD' "
+    "CHECK (currency IN ('USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'SGD', 'CHF'))",
     "ALTER TABLE notification_configs ADD COLUMN workspace_id INTEGER",
     "ALTER TABLE uploads ADD COLUMN workspace_id INTEGER",
     "ALTER TABLE uploads ADD COLUMN content BLOB",

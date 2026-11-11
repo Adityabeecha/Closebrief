@@ -26,6 +26,7 @@ class ComputedFact(BaseModel):
     period: str
     value: float
     unit: str = "USD"
+    currency: str = "USD"
     prior_value: Optional[float] = None
     deltas: Deltas
     trend: Optional[Trend] = None
@@ -160,6 +161,7 @@ class InsightOutput(BaseModel):
     period: str
     value: float
     unit: str
+    currency: str = "USD"
     deltas: Deltas
     is_anomaly: bool
     narrative: Optional[str] = None

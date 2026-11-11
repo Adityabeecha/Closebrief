@@ -11,6 +11,8 @@ real dataset, and vice-versa, enforced in SQL rather than by hiding UI.
 
 import contextvars
 
+from app.currency import validate_currency
+
 # True while serving a demo (viewer) request. Default False = the real universe.
 _demo_scope: contextvars.ContextVar[bool] = contextvars.ContextVar("demo_scope", default=False)
 # v4.0 tenancy: the active workspace for the request (None = unscoped, e.g. tests
@@ -63,14 +65,15 @@ def _scope_pred(alias: str = "") -> str:
 
 def create_dataset(conn, name: str, source_upload_id: str | None = None, activate: bool = True,
                    uploaded_by: str | None = None, uploaded_by_email: str | None = None,
-                   is_demo: bool = False, workspace_id: int | None = None) -> int:
+                   is_demo: bool = False, workspace_id: int | None = None, currency: str = "USD") -> int:
+    currency = validate_currency(currency)
     # Real datasets belong to the active workspace (if any); demo datasets don't.
     ws = None if is_demo else (workspace_id if workspace_id is not None else current_workspace())
     cur = conn.execute(
         """INSERT INTO datasets (name, source_upload_id, is_active, uploaded_by,
-                                 uploaded_by_email, is_demo, workspace_id)
-           VALUES (?, ?, 0, ?, ?, ?, ?)""",
-        (name, source_upload_id, uploaded_by, uploaded_by_email, bool(is_demo), ws),
+                                 uploaded_by_email, is_demo, workspace_id, currency)
+           VALUES (?, ?, 0, ?, ?, ?, ?, ?)""",
+        (name, source_upload_id, uploaded_by, uploaded_by_email, bool(is_demo), ws, currency),
     )
     dataset_id = int(cur.lastrowid)
     if activate:
@@ -115,7 +118,7 @@ def active_dataset_id(conn) -> int | None:
 def list_datasets(conn) -> list[dict]:
     rows = conn.execute(
         f"""
-        SELECT d.id, d.name, d.source_upload_id, d.is_active, d.created_at, d.domain,
+        SELECT d.id, d.name, d.source_upload_id, d.is_active, d.created_at, d.domain, d.currency,
                (SELECT COUNT(*) FROM metrics m WHERE m.dataset_id = d.id) AS metric_count
         FROM datasets d WHERE {_scope_pred('d')} ORDER BY d.id DESC
         """
@@ -125,7 +128,7 @@ def list_datasets(conn) -> list[dict]:
         {
             "id": r["id"], "name": r["name"], "source_upload_id": r["source_upload_id"],
             "is_active": r["id"] == active, "created_at": str(r["created_at"]),
-            "domain": r["domain"] or "fpa",
+            "domain": r["domain"] or "fpa", "currency": r["currency"],
             "metric_count": r["metric_count"],
         }
         for r in rows
@@ -202,3 +205,11 @@ def get_or_create_metric(conn, dataset_id: int, name: str, external_id: str | No
         (dataset_id, name, external_id),
     )
     return int(cur.lastrowid)
+
+
+def dataset_currency(conn, dataset_id: int | None) -> str:
+    """Currency for an already scope-checked dataset (USD for an empty workspace)."""
+    if dataset_id is None:
+        return "USD"
+    row = conn.execute("SELECT currency FROM datasets WHERE id = ?", (dataset_id,)).fetchone()
+    return row["currency"] if row else "USD"
