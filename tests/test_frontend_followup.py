@@ -32,7 +32,7 @@ KPI_SELECTION_SETUP = """
 def test_import_include_none_disables_finish_and_all_restores_it():
     run_js("function kpiRows(", "async function loadKpiPicker(", KPI_SELECTION_SETUP, """
       selectKpis(false);assert.ok(rows.every(r=>!r.fields['.k-include'].checked));
-      assert.equal($('imp-finish').disabled,true);assert.match($('kpi-selection').textContent,/include.*at least one/i);
+      assert.equal($('imp-finish').disabled,true);assert.match($('kpi-selection').textContent,/pick at least one/i);
       selectKpis(true);assert.ok(rows.every(r=>r.fields['.k-include'].checked));assert.equal($('imp-finish').disabled,false);
       assert.equal(rows[2].fields['.k-select'].checked,false);
     """)
