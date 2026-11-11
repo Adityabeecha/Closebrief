@@ -539,14 +539,15 @@ function toggleCollapse(){
 }
 // Restore collapsed state on load.
 try{if(localStorage.getItem("cb-side-collapsed")==="1")document.body.classList.add("side-collapsed");}catch{}
-const VIEWS=["overview","dashboard","digest","context","boardpack","analytics","review","import","costs","notifications","admin"];
+const VIEWS=["overview","dashboard","digest","context","boardpack","analytics","review","import","costs","notifications","admin","activity"];
 // Each close (a month, quarter or year) is a workspace with tabs: [URL key, label, the view that renders it].
 const MONTH_TABS=[["overview","Overview","overview"],["kpis","KPIs","dashboard"],["context","Context","context"],
   ["digest","Digest","digest"],["boardpack","Board pack","boardpack"],["data","Data","import"]];
 // Places that span closes: [place, view, hash, title].
 const PLACES=[["analyze","analytics","#analyze","Analyze"],["library","context","#library","Context library"],
   ["datahub","import","#data","Data and imports"],["costs","costs","#settings=costs","Cost and usage"],
-  ["notifications","notifications","#settings=notifications","Notifications"],["admin","admin","#settings=users","Users"]];
+  ["notifications","notifications","#settings=notifications","Notifications"],["admin","admin","#settings=users","Users"],
+  ["activity","activity","#settings=activity","Activity"]];
 // Hashes from before the month workspace (bookmarks, sent emails) and where they live now.
 const LEGACY_HASH={dashboard:{tab:"kpis"},digest:{tab:"digest"},context:{tab:"context"},review:{tab:"overview"},
   import:{tab:"data"},analytics:{place:"analyze"},costs:{place:"costs"},notifications:{place:"notifications"},admin:{place:"admin"}};
@@ -615,7 +616,7 @@ function nav(t,{fromRoute=false}={}){
   const inMonth=!r.place;
   document.body.classList.toggle("in-month",inMonth);
   $("month-head").style.display=inMonth&&currentPeriod?"":"none";
-  const inSettings=["costs","notifications","admin"].includes(r.place);
+  const inSettings=["costs","notifications","admin","activity"].includes(r.place);
   document.body.classList.toggle("in-settings",inSettings);
   $("settings-head").style.display=inSettings?"":"none";
   document.querySelectorAll("#settings-head .mtabs a").forEach(a=>{
@@ -643,7 +644,8 @@ function nav(t,{fromRoute=false}={}){
   if(v==="analytics")loadAnalytics();
   if(v==="digest")loadDigest(false);
   if(v==="boardpack")loadBoardPack();
-  if(v==="import")renderDataHealth();
+  if(v==="import"){renderDataHealth();const sp=$("sync-panel");if(sp){sp.hidden=r.place!=="datahub";if(r.place==="datahub")loadSyncSources();}}
+  if(v==="activity")loadActivity();
   if(v==="costs")loadCosts();
   if(v==="notifications")loadNotifications();
   if(v==="admin")loadAdmin();
@@ -1691,6 +1693,93 @@ async function setDatasetCurrency(id){
   try{await api(`/datasets/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({currency:code})});
     toast(`Amounts now shown in ${code}`);await loadDatasets();if(id===activeDatasetId){overviewFor=null;await loadFacts();}}
   catch(e){toast(errMsg(e));}
+}
+/* ---------- Settings → Activity: the workspace's audit trail ---------- */
+const ACT_VERB={approved:"Approved",changes_requested:"Asked for changes on",pending:"Sent for review",reopened:"Reopened",
+  assign:"Assigned",generate:"Drafted",create:"Created",delete:"Deleted",sync:"Synced",send:"Sent",login:"Signed in",
+  approve:"Approved",edit:"Edited",reject:"Rejected",update:"Updated"};
+const ACT_THING={report:"commentary",dataset:"dataset",connector:"linked source",context:"context note",
+  derived_kpi:"custom KPI",digest:"digest",user:"",workspace:"workspace"};
+// "Approved commentary · Net Revenue, December 2025" from an audit row.
+function describeActivity(a){
+  const verb=ACT_VERB[a.action]||(a.action||"").replace(/_/g," ").replace(/^./,c=>c.toUpperCase());
+  const thing=a.entity_type in ACT_THING?ACT_THING[a.entity_type]:(a.entity_type||"").replace(/_/g," ");
+  const s=a.summary||{},about=a.metric?`${a.metric}, ${fmtPeriod(a.period,"long")}`
+    :s.name||(a.entity_type==="digest"&&s.period?fmtPeriod(s.period,"long"):"")
+    ||(a.action==="sync"?(s.status==="ok"?plural(s.rows||0,"row"):"Failed"):"");
+  return {text:[verb,thing].filter(Boolean).join(" "),about};
+}
+function fmtWhen(iso){
+  if(!iso)return "—";
+  const s=String(iso),t=/[T ](\d{2}:\d{2})/.exec(s);if(!t)return fmtDate(s);
+  const d=new Date(/Z|[+-]\d{2}:?\d{2}$/.test(s)?s.replace(" ","T"):s.replace(" ","T")+"Z");
+  return isNaN(d)?fmtDate(s):`${fmtDate(s)} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+}
+async function loadActivity(){
+  const done=screenLoading("act-rows","Loading activity…",3);$("act-check").innerHTML="";
+  try{
+    const rows=await api("/audit");if(!done())return;
+    $("act-rows").innerHTML=rows.length?rows.map(a=>{const d=describeActivity(a);
+      return `<tr><td>${esc(fmtWhen(a.created_at))}</td><td>${esc(a.actor_email||(a.actor_id?"A team member":"Closebrief"))}</td><td>${esc(d.text)}${d.about?`<small>${esc(d.about)}</small>`:""}</td></tr>`;}).join("")
+      :screenRow(screenState("No activity yet","Approvals, edits, imports and sends appear here as they happen.","","",),3);
+  }catch(e){if(done())$("act-rows").innerHTML=screenRow(screenError(e,"loadActivity()"),3);}
+}
+async function verifyActivity(){
+  const btn=$("act-verify"),box=$("act-check");btn.disabled=true;box.innerHTML='<div class="loading"><span class="spin"></span> Checking every entry…</div>';
+  try{
+    const r=await api("/audit/verify");
+    box.innerHTML=r.ok
+      ?`<div class="banner ok">All ${plural(r.checked,"entry","entries")} check out: nothing in this log has been edited or removed.</div>`
+      :`<div class="banner err">${warnIcon()}Entry #${esc(r.first_bad_id)} doesn't match the chain: it, or an entry before it, was changed or removed outside Closebrief.</div>`;
+  }catch(e){box.innerHTML=`<div class="banner err">${warnIcon()}${esc(errMsg(e))}</div>`;}
+  finally{btn.disabled=false;}
+}
+
+/* ---------- Data and imports → keep a dataset in sync with a link ---------- */
+// A Google Sheets URL becomes {kind:"google_sheets",sheet_id,gid}; any other https link is a CSV link.
+function syncSourceFrom(link){
+  const s=String(link||"").trim();if(!s)return null;
+  const g=/docs\.google\.com\/spreadsheets\/d\/([A-Za-z0-9_-]+)/.exec(s);
+  if(g){const gid=/[#&?]gid=(\d+)/.exec(s);return {kind:"google_sheets",config:{sheet_id:g[1],gid:gid?gid[1]:"0"}};}
+  if(/^https:\/\//i.test(s))return {kind:"csv_url",config:{url:s}};
+  return null;
+}
+async function loadSyncSources(){
+  const box=$("sync-list");if(!box)return;
+  try{
+    const rows=await api("/connectors");
+    box.innerHTML=rows.map(c=>{
+      const last=c.last_sync_at?`Last synced ${fmtWhen(c.last_sync_at)}`:"Not synced yet";
+      const status=c.last_status==="error"?` · <span class="bad">${esc(c.last_error||"Last sync failed")}</span>`:"";
+      return `<div class="sync-row"><div class="grow"><b>${esc(c.name)}</b><small>${c.kind==="google_sheets"?"Google Sheet":"CSV link"} → dataset “${esc(c.dataset_name||c.name)}” · ${esc(last)}${status}</small></div>
+        <button class="btn sm" data-act="sync-now" data-arg="${esc(c.id)}">Sync now</button>
+        <button class="btn sm ghost" data-act="sync-remove" data-arg="${esc(c.id)}">Remove</button></div>`;}).join("");
+  }catch(e){box.innerHTML=`<div class="banner err">${warnIcon()}${esc(errMsg(e))}</div>`;}
+}
+async function addSyncSource(){
+  const src=syncSourceFrom($("sync-url").value),name=$("sync-name").value.trim();
+  if(!src){toast("Paste a Google Sheet link or an https link to a CSV file");$("sync-url").focus();return;}
+  if(!name){toast("Give the dataset a name");$("sync-name").focus();return;}
+  const btn=$("sync-add");btn.disabled=true;
+  try{
+    const r=await api("/connectors",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...src,name,dataset_name:name})});
+    $("sync-url").value="";$("sync-name").value="";await loadSyncSources();await syncSourceNow(r.id);
+  }catch(e){toast(errMsg(e));}
+  finally{btn.disabled=false;}
+}
+async function syncSourceNow(id){
+  toast("Syncing…");
+  try{
+    const r=await api(`/connectors/${id}/sync`,{method:"POST"});
+    if(r.status==="ok"){toast(`Synced ${plural(r.rows||0,"row")}`);await loadDatasets();await loadPeriods();}
+    else toast(r.error||"Sync failed");
+  }catch(e){toast(errMsg(e));}
+  await loadSyncSources();
+}
+async function removeSyncSource(id){
+  if(!await modalConfirm("Remove linked source","Stop syncing from this link? The dataset and its data stay; only the link is removed.",{okLabel:"Remove"}))return;
+  try{await api(`/connectors/${id}`,{method:"DELETE"});toast("Linked source removed");}catch(e){toast(errMsg(e));}
+  await loadSyncSources();
 }
 function toggleWs(e){e.stopPropagation();$("ws-menu").classList.toggle("open");}
 document.addEventListener("click",()=>{$("ws-menu").classList.remove("open");$("export-menu")?.classList.remove("open");document.querySelectorAll(".ws-kmenu").forEach(m=>m.classList.remove("open"));});
@@ -3030,6 +3119,8 @@ const DATA_ACTIONS={
   metric:a=>openMetricByName(a),
   reason:a=>addReasonFor(a),
   source:a=>showSourceDoc(a),
+  "sync-now":a=>syncSourceNow(Number(a)),
+  "sync-remove":a=>removeSyncSource(Number(a)),
   dismiss:(a,el)=>{try{localStorage.setItem(a,"1");}catch{} const t=$(el.dataset.target);if(t)t.style.display="none";},
 };
 document.addEventListener("click",e=>{

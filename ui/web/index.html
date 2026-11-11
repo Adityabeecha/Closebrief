@@ -481,6 +481,17 @@
   .admin-table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--b08);border-radius:16px;overflow:hidden}
   .admin-table th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);padding:11px 14px;background:var(--bg2);border-bottom:1px solid var(--b08);font-weight:700}
   .admin-table td{padding:11px 14px;border-bottom:1px solid var(--bg3);font-size:13px}
+  .act-table td:first-child{white-space:nowrap;color:var(--text-3);font-family:var(--font-mono);font-size:12px}
+  .act-table td small{display:block;color:var(--text-3);font-size:12px;margin-top:2px}
+  .sync-panel{margin-top:28px}
+  .sync-form{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto;gap:10px;align-items:end;margin-bottom:14px}
+  .sync-form input{width:100%;min-height:36px;padding:8px 10px;border:1px solid var(--line-strong);border-radius:var(--r-sm);background:var(--surface);color:var(--text);font:inherit}
+  .sync-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+  .sync-row .grow{flex:1;min-width:180px}
+  .sync-row small{display:block;color:var(--text-3);font-size:12px;margin-top:2px}
+  .sync-row .bad{color:var(--exception)}
+  .sync-note{font-size:12px;color:var(--text-3);margin-top:12px}
+  @media (max-width:700px){.sync-form{grid-template-columns:1fr}}
   .admin-table select{padding:5px 9px;border:1px solid var(--b12);border-radius:8px;font-weight:600}
 
   /* ---------------- A11Y ---------------- */
@@ -1219,6 +1230,7 @@
         <a href="#settings=costs" data-place="costs">Cost and usage</a>
         <a href="#settings=notifications" data-place="notifications">Notifications</a>
         <a href="#settings=users" data-place="admin" id="st-users">Users</a>
+        <a href="#settings=activity" data-place="activity">Activity</a>
       </nav>
     </header>
 
@@ -1613,6 +1625,17 @@
         </div>
       </div>
       <div id="imp-result" style="margin-top:16px"></div>
+      <div class="panel sync-panel write-only" id="sync-panel" hidden>
+        <h2>Keep a dataset in sync with a link</h2>
+        <p class="psub">Connect a Google Sheet (shared as “Anyone with the link can view”) or a link to a CSV file. Each sync pulls the latest rows into a dataset of the same name, using the same column rules as an upload.</p>
+        <div class="sync-form">
+          <div><label class="lbl" for="sync-url">Google Sheet or CSV link</label><input id="sync-url" placeholder="https://docs.google.com/spreadsheets/d/…" autocomplete="off"></div>
+          <div><label class="lbl" for="sync-name">Dataset name</label><input id="sync-name" placeholder="e.g. Monthly actuals"></div>
+          <button class="btn primary" id="sync-add" onclick="addSyncSource()">Connect</button>
+        </div>
+        <div id="sync-list"></div>
+        <p class="sync-note">Syncs also run on the schedule while the app is awake. On a free host that sleeps, use Sync now.</p>
+      </div>
     </section>
 
     <!-- ---------- COST & USAGE ---------- -->
@@ -1683,6 +1706,15 @@
     </section>
 
     <!-- ---------- ADMIN ---------- -->
+    <section id="v-activity" class="wrap" style="display:none">
+      <div class="head"><div><h1>Activity</h1><div class="sub">Every approval, edit, import, sync and send in this workspace, newest first. Each entry is chained to the one before it, so a change to a past entry can be detected.</div></div>
+        <div class="head-actions"><button class="btn admin-only" id="act-verify" onclick="verifyActivity()">Check the log</button></div>
+      </div>
+      <div id="act-check" role="status"></div>
+      <table class="admin-table act-table"><thead><tr><th>When</th><th>Who</th><th>What</th></tr></thead>
+        <tbody id="act-rows"></tbody></table>
+    </section>
+
     <section id="v-admin" class="wrap" style="display:none">
       <div class="head"><div><h1>Users</h1><div class="sub">Everyone who has signed in. Each person works in their own private workspace; roles decide what they can do there.</div></div>
         <div class="head-actions"><button class="write-only btn primary" onclick="inviteUser()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>Share sign-in link</button></div>
