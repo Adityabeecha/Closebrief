@@ -295,7 +295,20 @@ def audit_list(_: CurrentUser = Depends(require_read)) -> list[dict]:
     readable by any member for transparency."""
     conn = get_connection()
     try:
-        return audit.list_entries(conn, current_workspace())
+        entries = audit.list_entries(conn, current_workspace())
+        # Say which KPI and close a report entry is about, not just its id.
+        ids = sorted({int(e["entity_id"]) for e in entries
+                      if e["entity_type"] == "report" and str(e["entity_id"]).isdigit()})
+        if ids:
+            marks = ",".join("?" * len(ids))
+            names = {r["id"]: (r["name"], r["period"]) for r in conn.execute(
+                f"SELECT gr.id, m.name, gr.period FROM generated_reports gr JOIN metrics m ON m.id = gr.metric_id "
+                f"WHERE gr.id IN ({marks})", ids).fetchall()}
+            for e in entries:
+                hit = names.get(int(e["entity_id"])) if str(e["entity_id"]).isdigit() else None
+                if e["entity_type"] == "report" and hit:
+                    e["metric"], e["period"] = hit
+        return entries
     finally:
         conn.close()
 
