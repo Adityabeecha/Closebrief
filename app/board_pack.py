@@ -17,6 +17,8 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
+from app.currency import symbol
+
 
 def dataset_display_name(name: str) -> str:
     """Present filenames as names while preserving deliberately named datasets."""
@@ -26,7 +28,7 @@ def dataset_display_name(name: str) -> str:
     return words.lower().capitalize()
 
 
-def _fmt(v: float | None, unit: str | None) -> str:
+def _fmt(v: float | None, unit: str | None, currency: str | None = "USD") -> str:
     """Finance formatting, mirroring the frontend's fmt(): sign before the
     currency symbol, K/M magnitudes, one-dp percents."""
     if v is None:
@@ -35,12 +37,12 @@ def _fmt(v: float | None, unit: str | None) -> str:
         return f"{round(v, 1):g}%"
     if unit == "count":
         return f"{round(v):,}"
-    a, sign = abs(v), "-" if v < 0 else ""
+    a, sign, mark = abs(v), "-" if v < 0 else "", symbol(currency)
     if a >= 1_000_000:
-        return f"{sign}${a / 1_000_000:.2f}M"
+        return f"{sign}{mark}{a / 1_000_000:.2f}M"
     if a >= 1_000:
-        return f"{sign}${a / 1_000:.0f}K"
-    return f"{sign}${a:,.2f}"
+        return f"{sign}{mark}{a / 1_000:.0f}K"
+    return f"{sign}{mark}{a:,.0f}" if currency == "JPY" else f"{sign}{mark}{a:,.2f}"
 
 
 def _pct(v: float | None) -> str:
@@ -234,7 +236,7 @@ def build_board_pack_html(facts: list[dict], period: str, meta: dict | None = No
             f'<div class="kpi-head"><span class="kpi-name">{e(f["metric"])}</span>'
             f'<span class="cat">{e(f.get("category") or "")}</span>{anom}</div>'
             f'<div class="chips">{chips}</div></div>'
-            f'<div><div class="k">Actual</div><div class="kpi-val">{_fmt(f.get("value"), unit)}</div>{spark}</div>'
+            f'<div><div class="k">Actual</div><div class="kpi-val">{_fmt(f.get("value"), unit, f.get("currency"))}</div>{spark}</div>'
             f'{narr}</div>'
         )
     body = "".join(rows) or '<div class="narr muted">No KPIs with data for this period.</div>'

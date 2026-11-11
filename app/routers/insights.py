@@ -140,7 +140,8 @@ def forecast_narrative(payload: dict, user: CurrentUser = Depends(require_member
     try:
         result, usage = get_llm_client().generate_narrative(
             FORECAST_SYSTEM_PROMPT,
-            build_forecast_prompt(metric, fc["unit"], fc["history"], fc["projections"], fc["mape"]))
+            build_forecast_prompt(metric, fc["unit"], fc["history"], fc["projections"], fc["mape"],
+                                  currency=fc["currency"]))
     except LLMGenerationError as exc:
         raise HTTPException(status_code=503, detail=f"Forecast narrative unavailable: {exc}") from exc
     log_llm_call("/forecast/narrative",
