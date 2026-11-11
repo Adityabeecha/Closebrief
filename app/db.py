@@ -14,6 +14,8 @@ from pathlib import Path
 
 from app.config import session_pool_url, settings
 
+# SQLite has no row-level security DDL. Migration 026 extends PostgreSQL RLS;
+# SQLite continues to enforce tenancy through the request-scoped SQL predicates.
 _SQLITE_SCHEMA = """
 -- v4.0 multi-tenancy: a workspace is a tenant. Data roots (datasets,
 -- context_documents) carry workspace_id; everything else hangs off a dataset.
@@ -182,6 +184,13 @@ CREATE TABLE IF NOT EXISTS pvm_bridges (
     total REAL NOT NULL,
     n_items INTEGER NOT NULL DEFAULT 1,
     UNIQUE(metric_id, period)
+);
+
+-- Global totals contain no tenant identifiers and intentionally have no RLS.
+-- Keep the global AI cap meaningful while llm_calls is workspace-isolated.
+CREATE TABLE IF NOT EXISTS ai_spend_daily (
+    day DATE PRIMARY KEY,
+    cost_usd NUMERIC NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS llm_calls (
@@ -361,6 +370,11 @@ _SQLITE_MIGRATIONS = [
     "ALTER TABLE generated_reports ADD COLUMN assigned_email TEXT",
     # budget-join by external id (GL code / SKU) rather than label alone
     "ALTER TABLE metrics ADD COLUMN external_id TEXT",
+    # Backfill once per UTC day on legacy SQLite databases. Never recompute an
+    # existing total: retention may have removed the detailed call rows.
+    "INSERT INTO ai_spend_daily (day, cost_usd) "
+    "SELECT date('now'), COALESCE(SUM(cost_usd), 0) FROM llm_calls "
+    "WHERE created_at >= date('now') ON CONFLICT (day) DO NOTHING",
 ]
 
 PG_SCHEMA_PATH = Path(__file__).parent / "migrations" / "pg_schema.sql"
