@@ -227,25 +227,33 @@ def _render_probe(width: int, target: str) -> dict:
     browser = _chrome_path()
     if not browser:
         pytest.skip("Chrome, Chromium, or Edge is required for rendered responsive tests")
-    with _ui_server() as base_url, tempfile.TemporaryDirectory() as profile:
-        proc = subprocess.run(
-            [
-                browser,
-                "--headless=new",
-                "--disable-gpu",
-                "--hide-scrollbars",
-                "--no-first-run",
-                f"--user-data-dir={profile}",
-                "--virtual-time-budget=5000",
-                "--window-size=1400,1400",
-                "--dump-dom",
-                f"{base_url}/probe?width={width}&target={target}",
-            ],
-            capture_output=True,
-            check=True,
-            text=True,
-            timeout=30,
-        )
+    # The first Chrome launch on a fresh CI runner builds its font cache and can
+    # take most of a minute, so allow time and retry once before failing.
+    for attempt in (1, 2):
+        try:
+            with _ui_server() as base_url, tempfile.TemporaryDirectory() as profile:
+                proc = subprocess.run(
+                    [
+                        browser,
+                        "--headless=new",
+                        "--disable-gpu",
+                        "--hide-scrollbars",
+                        "--no-first-run",
+                        f"--user-data-dir={profile}",
+                        "--virtual-time-budget=5000",
+                        "--window-size=1400,1400",
+                        "--dump-dom",
+                        f"{base_url}/probe?width={width}&target={target}",
+                    ],
+                    capture_output=True,
+                    check=True,
+                    text=True,
+                    timeout=60,
+                )
+            break
+        except subprocess.TimeoutExpired:
+            if attempt == 2:
+                raise
     marker = '<pre id="result">'
     assert marker in proc.stdout, proc.stderr
     payload = proc.stdout.split(marker, 1)[1].split("</pre>", 1)[0]
