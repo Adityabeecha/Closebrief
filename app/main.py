@@ -19,7 +19,6 @@ from app.compute.aggregate import (
     GRANULARITIES,
     aggregate_series,
     infer_aggregation_type,
-    period_key,
     prior_key,
     sort_key,
     year_ago_key,
@@ -39,17 +38,14 @@ from app.compute.pvm import bridge_for_metric_row
 from app.config import auth_active, check_production_auth, google_enabled, resolved_vector_backend, settings
 from app.context.conflicts import find_conflicts
 from app.context.store import ContextStore
-from app.currency import Currency, validate_currency
+from app.currency import Currency
 from app.datasets import (
     _scope_pred,
     active_dataset_id,
     create_dataset,
     current_workspace,
     dataset_currency,
-    delete_dataset,
     is_demo_scope,
-    list_datasets,
-    set_active,
     set_dataset_choice,
     set_demo_scope,
     set_workspace_scope,
@@ -702,105 +698,6 @@ def context_conflicts(_: CurrentUser = Depends(require_read)) -> list[dict]:
     finally:
         conn.close()
     return find_conflicts(docs)
-
-
-@app.get("/datasets")
-def get_datasets(_: CurrentUser = Depends(require_read)) -> dict:
-    """All datasets + which is active, for the dashboard's dataset switcher."""
-    conn = get_connection()
-    try:
-        ds = active_dataset_id(conn)
-        return {"datasets": list_datasets(conn), "active_id": ds, "currency": dataset_currency(conn, ds)}
-    finally:
-        conn.close()
-
-
-@app.post("/datasets/{dataset_id}/activate")
-def activate_dataset(dataset_id: int, user: CurrentUser = Depends(require_read)) -> dict:
-    # Switching dataset is navigation. The browser sends X-Dataset-Id on every
-    # request, so the switch itself lives client-side. Writers also store it as
-    # their default for the next visit; read-only sessions (demo, guests) only
-    # validate, so one visitor can never change what other visitors see.
-    conn = get_connection()
-    try:
-        exists = conn.execute(
-            f"SELECT 1 FROM datasets WHERE id = ? AND {_scope_pred()}", (dataset_id,)
-        ).fetchone()
-        if not exists:
-            raise HTTPException(status_code=404, detail=f"Dataset {dataset_id} not found")
-        dataset_currency_value = dataset_currency(conn, dataset_id)
-        if user.role in ("analyst", "admin"):
-            set_active(conn, dataset_id)
-    finally:
-        conn.close()
-    return {"active_id": dataset_id, "currency": dataset_currency_value}
-
-
-@app.patch("/datasets/{dataset_id}")
-def rename_dataset(dataset_id: int, payload: dict, _: CurrentUser = Depends(require_write)) -> dict:
-    """Rename a dataset and/or set its analytics domain or currency."""
-    name = payload.get("name")
-    domain = payload.get("domain")
-    if "currency" in payload:
-        try:
-            validate_currency(payload["currency"])
-        except ValueError as exc:
-            raise HTTPException(status_code=422, detail=str(exc)) from exc
-    if domain is not None and not registry.has(domain):
-        raise HTTPException(status_code=422, detail=f"Unknown domain: {domain}")
-    conn = get_connection()
-    try:
-        if conn.execute(f"SELECT 1 FROM datasets WHERE id = ? AND {_scope_pred()}", (dataset_id,)).fetchone() is None:
-            raise HTTPException(status_code=404, detail=f"Dataset {dataset_id} not found")
-        if name:
-            conn.execute("UPDATE datasets SET name = ? WHERE id = ?", (name.strip()[:120], dataset_id))
-        if domain is not None:
-            conn.execute("UPDATE datasets SET domain = ? WHERE id = ?", (domain, dataset_id))
-        if "currency" in payload:
-            conn.execute("UPDATE datasets SET currency = ? WHERE id = ?", (payload["currency"], dataset_id))
-        conn.commit()
-        currency = dataset_currency(conn, dataset_id)
-    finally:
-        conn.close()
-    shared_cache().bump_namespace()
-    return {"id": dataset_id, "name": name, "domain": domain, "currency": currency}
-
-
-@app.delete("/datasets/{dataset_id}", status_code=204)
-def remove_dataset(dataset_id: int, _: CurrentUser = Depends(require_write)) -> None:
-    conn = get_connection()
-    try:
-        ok = delete_dataset(conn, dataset_id)
-    finally:
-        conn.close()
-    if not ok:
-        raise HTTPException(status_code=404, detail=f"Dataset {dataset_id} not found")
-    shared_cache().bump_namespace()
-
-
-@app.get("/periods")
-def list_periods(granularity: str = "month", _: CurrentUser = Depends(require_read)) -> list[str]:
-    """Period keys the active dataset covers at the given granularity
-    (month=YYYY-MM, quarter=YYYY-Qn, year=YYYY), oldest to newest."""
-    if granularity not in GRANULARITIES:
-        raise HTTPException(status_code=422, detail=f"granularity must be one of {GRANULARITIES}")
-    conn = get_connection()
-    try:
-        ds = active_dataset_id(conn)
-        if ds is None:
-            return []
-        rows = conn.execute(
-            """
-            SELECT DISTINCT cf.period FROM computed_facts cf
-            JOIN metrics m ON m.id = cf.metric_id
-            WHERE m.dataset_id = ?
-            """,
-            (ds,),
-        ).fetchall()
-        keys = {period_key(r["period"], granularity) for r in rows}
-        return sorted(keys, key=sort_key)
-    finally:
-        conn.close()
 
 
 def _chart_data(conn, metric_id: int, metric_name: str, period: str) -> dict:
@@ -2177,12 +2074,14 @@ def audit_verify(_: CurrentUser = Depends(require_admin)) -> dict:
 # ---- Feature routers split out of this module (app/routers/*) ----
 from app.routers import admin as _admin_router  # noqa: E402
 from app.routers import close as _close_router  # noqa: E402
+from app.routers import datasets as _datasets_router
 from app.routers import insights as _insights_router  # noqa: E402
 from app.routers import notifications as _notif_router  # noqa: E402
 from app.routers import review as _review_router  # noqa: E402
 from app.routers import ui as _ui_router
 
 app.include_router(_ui_router.router)
+app.include_router(_datasets_router.router)
 app.include_router(_admin_router.router)
 app.include_router(_notif_router.router)
 app.include_router(_review_router.router)
