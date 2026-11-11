@@ -11,7 +11,6 @@ from fastapi.responses import JSONResponse
 from app import audit, connectors, review, scheduling, workspaces
 from app.auth import CurrentUser, authenticate, get_current_user
 from app.config import auth_active, check_production_auth, google_enabled, resolved_vector_backend, settings
-from app.context.conflicts import find_conflicts
 from app.datasets import (
     _scope_pred,
     current_workspace,
@@ -29,8 +28,6 @@ from app.routes_common import (
     _context_store,
 )
 from app.schemas import (
-    ContextDoc,
-    ContextDocIn,
     FeedbackIn,
 )
 from app.workspaces import resolve_workspace
@@ -428,76 +425,7 @@ def costs(_: CurrentUser = Depends(require_admin)) -> dict:
     }
 
 
-@app.get("/context/conflicts")
-def context_conflicts(_: CurrentUser = Depends(require_read)) -> list[dict]:
-    """Pairs of context documents citing different figures about the same
-    thing (mockup's conflict banner). Deterministic heuristic, no LLM."""
-    conn = get_connection()
-    try:
-        docs = _context_store(conn).list()
-    finally:
-        conn.close()
-    return find_conflicts(docs)
-
-
 # ---------- Flexible ingestion (Addendum v1.1: detect -> map -> pick) ----------
-
-
-@app.post("/context", response_model=ContextDoc, status_code=201)
-def add_context(doc: ContextDocIn, user: CurrentUser = Depends(require_write)) -> ContextDoc:
-    conn = get_connection()
-    try:
-        added = _context_store(conn).add(doc)
-        conn.execute(
-            "UPDATE context_documents SET created_by = ?, updated_by = ? WHERE id = ?",
-            (user.id, user.id, added.id),
-        )
-        conn.commit()
-        audit.record(conn, "create", "context", added.id, actor_id=user.id,
-                     actor_email=user.email, summary={"title": added.title})
-    finally:
-        conn.close()
-    shared_cache().bump_namespace()  # context changes change retrieval results
-    return added
-
-
-@app.get("/context", response_model=list[ContextDoc])
-def list_context(_: CurrentUser = Depends(require_read)) -> list[ContextDoc]:
-    conn = get_connection()
-    try:
-        return _context_store(conn).list()
-    finally:
-        conn.close()
-
-
-@app.put("/context/{doc_id}", response_model=ContextDoc)
-def update_context(doc_id: int, doc: ContextDocIn, user: CurrentUser = Depends(require_write)) -> ContextDoc:
-    conn = get_connection()
-    try:
-        updated = _context_store(conn).update(doc_id, doc)
-        if updated is not None:
-            conn.execute(
-                "UPDATE context_documents SET updated_by = ? WHERE id = ?", (user.id, doc_id)
-            )
-            conn.commit()
-    finally:
-        conn.close()
-    if updated is None:
-        raise HTTPException(status_code=404, detail=f"Context document {doc_id} not found")
-    shared_cache().bump_namespace()
-    return updated
-
-
-@app.delete("/context/{doc_id}", status_code=204)
-def delete_context(doc_id: int, _: CurrentUser = Depends(require_write)) -> None:
-    conn = get_connection()
-    try:
-        deleted = _context_store(conn).delete(doc_id)
-    finally:
-        conn.close()
-    if not deleted:
-        raise HTTPException(status_code=404, detail=f"Context document {doc_id} not found")
-    shared_cache().bump_namespace()
 
 
 # ---------- Scheduling: jobs, digest history, and the cron tick (v3.1) ----------
@@ -739,6 +667,7 @@ def audit_verify(_: CurrentUser = Depends(require_admin)) -> dict:
 # ---- Feature routers split out of this module (app/routers/*) ----
 from app.routers import admin as _admin_router  # noqa: E402
 from app.routers import close as _close_router  # noqa: E402
+from app.routers import context as _context_router
 from app.routers import datasets as _datasets_router
 from app.routers import facts as _facts_router
 from app.routers import generate as _generate_router
@@ -753,6 +682,7 @@ app.include_router(_datasets_router.router)
 app.include_router(_ingest_router.router)
 app.include_router(_facts_router.router)
 app.include_router(_generate_router.router)
+app.include_router(_context_router.router)
 app.include_router(_admin_router.router)
 app.include_router(_notif_router.router)
 app.include_router(_review_router.router)
