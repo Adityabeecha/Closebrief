@@ -16,6 +16,7 @@ figures.
 import math
 import re
 
+from app.currency import symbol
 from app.schemas import ComputedFact, ContextSnippet
 
 _CURRENCY_SYMBOLS = "$\u20ac\u00a3\u20b9\u00a5"
@@ -356,13 +357,13 @@ def faithfulness_messages(narrative: str, fact: ComputedFact,
             return f"{value:g}%"
         if (fact.unit or '').lower() in ('count', 'customers', 'logos'):
             return f"{value:,.0f}"
-        sign = '-' if value < 0 else ''
+        sign, mark = ('-' if value < 0 else ''), symbol(fact.currency)
         value = abs(value)
         if value >= 1e6:
-            return f"{sign}${value / 1e6:.2f}M"
+            return f"{sign}{mark}{value / 1e6:.2f}M"
         if value >= 1e3:
-            return f"{sign}${value / 1e3:g}K"
-        return f"{sign}${value:g}"
+            return f"{sign}{mark}{value / 1e3:g}K"
+        return f"{sign}{mark}{value:g}"
     magnitudes, percents = _allowed_values(fact)
     ctx_magnitudes, ctx_percents = _context_values(context)
     excluded = _excluded_tokens(fact)
