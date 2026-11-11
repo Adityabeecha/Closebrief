@@ -184,9 +184,6 @@ def test_analytics_amount_responses_preserve_currency(client, monkeypatch):
     from app.routers import insights
 
     _import(client, "GBP")
-    comparison = client.get("/compare?metric=Revenue&period_a=2025-01&period_b=2025-02")
-    assert comparison.status_code == 200
-    assert comparison.json()["currency"] == "GBP"
     scenario = client.post("/scenario", json={"metric": "Revenue", "period": "2025-02", "price_pct": 10})
     assert scenario.status_code == 200
     assert scenario.json()["currency"] == "GBP"

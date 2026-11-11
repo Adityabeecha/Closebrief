@@ -120,26 +120,6 @@
     ]
   ],
   [
-    "/compare",
-    [
-      "GET"
-    ],
-    true,
-    [
-      "require_read"
-    ]
-  ],
-  [
-    "/compute",
-    [
-      "POST"
-    ],
-    true,
-    [
-      "require_write"
-    ]
-  ],
-  [
     "/connectors",
     [
       "GET"
@@ -358,16 +338,6 @@
     ]
   ],
   [
-    "/domains",
-    [
-      "GET"
-    ],
-    true,
-    [
-      "require_read"
-    ]
-  ],
-  [
     "/facts",
     [
       "GET"
@@ -571,16 +541,6 @@
     true,
     [
       "require_write"
-    ]
-  ],
-  [
-    "/kpis/library",
-    [
-      "GET"
-    ],
-    true,
-    [
-      "require_read"
     ]
   ],
   [
