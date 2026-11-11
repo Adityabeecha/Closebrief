@@ -402,6 +402,8 @@
   .tip small{opacity:.7}
   .toast{position:fixed;bottom:22px;right:22px;background:var(--pop);color:var(--pop-ink);padding:11px 18px;border-radius:8px;font-size:13px;font-weight:600;box-shadow:0 12px 34px rgba(11,18,32,.16);opacity:0;transition:opacity .25s;pointer-events:none;z-index:50}
   .toast.show{opacity:1}
+  .toast.show.has-act{pointer-events:auto}
+  .toast-act{margin-left:14px;background:none;border:0;padding:0;color:inherit;font:inherit;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 
   /* ---------------- LOGIN GATE ---------------- */
   /* Login gate is always its own dark-left/light-right design, independent of app theme. */
@@ -1553,13 +1555,13 @@
       </div>
       <div class="write-only" id="imp-map" style="display:none">
         <button class="back" onclick="resetImport()" style="margin-bottom:12px">Choose a different file</button>
-        <p class="imp-say">We matched each column to what it holds. Check the Role column, change anything that's wrong, then confirm.</p>
+        <p class="imp-say">We matched each column to what it holds. Check the last column, change anything that's wrong, then confirm.</p>
         <div class="banner info" id="tpl-banner" style="display:none"></div>
         <div class="banner info" id="map-warnings" style="display:none"></div>
         <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap">
           <div id="sheet-pick" style="display:none"><label for="sheet-sel" class="lbl">Sheet</label><select class="pill-btn" id="sheet-sel" onchange="loadSchema()"></select></div>
           <div><label for="layout-sel" class="lbl">Layout</label><select class="pill-btn" id="layout-sel" onchange="renderMap()">
-            <option value="long">Long (one row per period)</option><option value="wide">Wide (months as columns)</option></select></div>
+            <option value="long">One row per month</option><option value="wide">Months across the top</option></select></div>
           <div id="imp-suffix-wrap" style="display:none"><label for="imp-suffix" class="lbl" title="If the target dataset's metrics are named '<name> spend_usd' rather than just '<name>', enter the suffix here so budgets attach to the right one.">Metric name suffix (optional)</label>
             <input class="pill-btn" id="imp-suffix" placeholder="e.g. spend_usd" style="width:160px"></div>
           <div style="flex:1"></div>
