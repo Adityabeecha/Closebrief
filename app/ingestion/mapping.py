@@ -119,10 +119,18 @@ def coerce_value(raw) -> float | None:
     return -v if negative else v
 
 
+_MISSING = {
+    "period_col": "No column is set as the month or date. Pick the column that says which month each row "
+                  "belongs to, or choose the month the whole file covers.",
+    "value_col": "No column is set as the amount to track. Pick the column with the actual values.",
+    "metric_col": "No column is set as the KPI name.",
+}
+
+
 def _require(mapping: MappingSpec, field: str) -> str:
     v = getattr(mapping, field)
     if not v:
-        raise MappingError(f"Mapping is missing required field '{field}' for layout={mapping.layout}")
+        raise MappingError(_MISSING.get(field, f"Mapping is missing required field '{field}' for layout={mapping.layout}"))
     return v
 
 
@@ -209,7 +217,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
         literal_period = parse_period(mapping.period_literal) if mapping.period_literal else None
         period_col = None if literal_period else _require(mapping, "period_col")
         if not mapping.value_col and not mapping.value_cols:
-            raise MappingError("Mapping is missing required field 'value_col' for layout=long")
+            raise MappingError(_MISSING["value_col"])
         if period_col:
             _check_col(df, period_col, "Period")
         if mapping.budget_col:
