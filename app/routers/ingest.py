@@ -23,7 +23,6 @@ from app.datasets import (
 )
 from app.db import get_connection
 from app.deps import shared_cache
-from app.domains import get_domain, registry
 from app.ingestion.ingest import IngestValidationError, ingest_dataframe, parse_csv
 from app.ingestion.mapping import MappingError, MappingSpec, match_budget_to_dataset, normalize, store_normalized
 from app.ingestion.profiler import profile_columns, suggest_mapping
@@ -37,7 +36,7 @@ from app.ingestion.upload import (
     load_upload_frame,
     upload_sheet_period,
 )
-from app.kpis.library import library_listing, suggest_import_defaults
+from app.kpis.library import suggest_import_defaults
 from app.routes_common import _notify_anomalies
 from app.schemas import (
     IngestSummary,
@@ -384,11 +383,3 @@ def delete_kpi(kpi_id: int, _: CurrentUser = Depends(require_write)) -> None:
     finally:
         conn.close()
     shared_cache().bump_namespace()
-
-
-@router.get("/kpis/library")
-def kpi_library(domain: str | None = None, _: CurrentUser = Depends(require_read)) -> list[dict]:
-    """KPI suggestions. Defaults to FP&A; pass ?domain= for a domain's library."""
-    if domain and registry.has(domain):
-        return get_domain(domain).kpi_library
-    return library_listing()

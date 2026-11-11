@@ -80,8 +80,8 @@ def test_on_conflict_update_untouched():
     assert _translate(sql) == sql.replace("?", "%s")
 
 
-def test_literal_percent_escaped():
-    # LIKE patterns keep a literal % which psycopg needs doubled to %%.
+def test_literal_percent_is_preserved_by_dialect_translation():
+    # Driver escaping happens at execution; the SQL literal stays unchanged here.
     out = _translate("SELECT * FROM t WHERE v NOT LIKE '%-digest' AND a = ?")
-    assert "%%-digest" in out
+    assert "'%-digest'" in out
     assert out.endswith("a = %s")

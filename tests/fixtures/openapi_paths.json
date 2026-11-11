@@ -349,86 +349,6 @@
       ]
     }
   },
-  "/compare": {
-    "get": {
-      "description": "Side-by-side comparison of one metric across two periods, including the\ndelta-of-deltas (whether the MoM movement accelerated or decelerated).",
-      "operationId": "compare_endpoint_compare_get",
-      "parameters": [
-        {
-          "in": "query",
-          "name": "metric",
-          "required": true,
-          "schema": {
-            "title": "Metric",
-            "type": "string"
-          }
-        },
-        {
-          "in": "query",
-          "name": "period_a",
-          "required": true,
-          "schema": {
-            "title": "Period A",
-            "type": "string"
-          }
-        },
-        {
-          "in": "query",
-          "name": "period_b",
-          "required": true,
-          "schema": {
-            "title": "Period B",
-            "type": "string"
-          }
-        }
-      ],
-      "responses": {
-        "200": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Response Compare Endpoint Compare Get",
-                "type": "object"
-              }
-            }
-          },
-          "description": "Successful Response"
-        },
-        "422": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/HTTPValidationError"
-              }
-            }
-          },
-          "description": "Validation Error"
-        }
-      },
-      "summary": "Compare Endpoint"
-    }
-  },
-  "/compute": {
-    "post": {
-      "operationId": "compute_compute_post",
-      "responses": {
-        "200": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Response Compute Compute Post",
-                "type": "object"
-              }
-            }
-          },
-          "description": "Successful Response"
-        }
-      },
-      "summary": "Compute"
-    }
-  },
   "/connectors": {
     "get": {
       "operationId": "list_connectors_endpoint_connectors_get",
@@ -1143,30 +1063,6 @@
         }
       },
       "summary": "Set Active Domain"
-    }
-  },
-  "/domains": {
-    "get": {
-      "description": "Available analytics domains (v2.1 foundation).",
-      "operationId": "list_domains_endpoint_domains_get",
-      "responses": {
-        "200": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "items": {
-                  "additionalProperties": true,
-                  "type": "object"
-                },
-                "title": "Response List Domains Endpoint Domains Get",
-                "type": "array"
-              }
-            }
-          },
-          "description": "Successful Response"
-        }
-      },
-      "summary": "List Domains Endpoint"
     }
   },
   "/facts": {
@@ -2064,58 +1960,6 @@
         }
       },
       "summary": "Create Derived Kpi"
-    }
-  },
-  "/kpis/library": {
-    "get": {
-      "description": "KPI suggestions. Defaults to FP&A; pass ?domain= for a domain's library.",
-      "operationId": "kpi_library_kpis_library_get",
-      "parameters": [
-        {
-          "in": "query",
-          "name": "domain",
-          "required": false,
-          "schema": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Domain"
-          }
-        }
-      ],
-      "responses": {
-        "200": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "items": {
-                  "additionalProperties": true,
-                  "type": "object"
-                },
-                "title": "Response Kpi Library Kpis Library Get",
-                "type": "array"
-              }
-            }
-          },
-          "description": "Successful Response"
-        },
-        "422": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/HTTPValidationError"
-              }
-            }
-          },
-          "description": "Validation Error"
-        }
-      },
-      "summary": "Kpi Library"
     }
   },
   "/kpis/{kpi_id}": {
