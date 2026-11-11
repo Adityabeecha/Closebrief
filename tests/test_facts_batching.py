@@ -35,7 +35,13 @@ def client(tmp_path, monkeypatch):
     with TestClient(main.app) as c:
         r = c.post("/ingest", files={"file": ("sample_fpa.csv", SAMPLE.read_bytes(), "text/csv")})
         assert r.status_code == 200, r.text
-        assert c.post("/compute").status_code == 200
+        from app.compute.kpis import compute_and_store
+
+        conn = main.get_connection()
+        try:
+            assert not compute_and_store(conn, route_facts.active_dataset_id(conn)).empty
+        finally:
+            conn.close()
         yield c
 
 

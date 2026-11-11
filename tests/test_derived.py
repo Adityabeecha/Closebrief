@@ -108,7 +108,7 @@ def test_derived_unit_propagated_to_metrics_row(client):
 
 
 def test_derived_refreshes_on_recompute(client):
-    # Regression: new base data + /compute must re-materialize the derived metric.
+    # Regression: refreshing new base data must re-materialize the derived metric.
     _ingest(client, "period,metric,value,budget\n2025-02,Rev,90,90\n2025-02,COGS,40,40\n")
     client.post("/kpis/derived", json={"name": "GM", "formula": "[Rev]-[COGS]"})
     import app.main as main
@@ -118,8 +118,12 @@ def test_derived_refreshes_on_recompute(client):
         mid = conn.execute("SELECT id FROM metrics WHERE dataset_id=? AND name=?", (ds, m)).fetchone()["id"]
         conn.execute("INSERT INTO metric_values (metric_id, period, value) VALUES (?, '2025-03', ?)", (mid, v))
     conn.commit()
-    conn.close()
-    client.post("/compute")
+    from app.compute.derived import refresh
+
+    try:
+        refresh(conn, ds)
+    finally:
+        conn.close()
     facts = client.get("/facts", params={"period": "2025-03"}).json()
     gm = next(f for f in facts if f["metric"] == "GM")
     assert gm["value"] == 55.0   # 100 - 45, freshly materialized for the new period
