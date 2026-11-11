@@ -7,7 +7,7 @@ from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
@@ -40,11 +40,13 @@ from app.compute.pvm import bridge_for_metric_row
 from app.config import auth_active, check_production_auth, google_enabled, resolved_vector_backend, settings
 from app.context.conflicts import find_conflicts
 from app.context.store import ContextStore
+from app.currency import Currency, validate_currency
 from app.datasets import (
     _scope_pred,
     active_dataset_id,
     create_dataset,
     current_workspace,
+    dataset_currency,
     delete_dataset,
     is_demo_scope,
     list_datasets,
@@ -638,7 +640,7 @@ def compare_endpoint(
         result = compare_periods(conn, mrow["id"], period_a, period_b)
         if result is None:
             raise HTTPException(status_code=404, detail="No computed facts for both periods")
-        return result
+        return {**result, "currency": dataset_currency(conn, ds)}
     finally:
         conn.close()
 
@@ -660,7 +662,7 @@ def get_active_domain(_: CurrentUser = Depends(require_read)) -> dict:
             row = conn.execute("SELECT domain FROM datasets WHERE id = ?", (ds,)).fetchone()
             if row and row["domain"]:
                 slug = row["domain"]
-        return get_domain(slug).public()
+        return {**get_domain(slug).public(), "currency": dataset_currency(conn, ds)}
     finally:
         conn.close()
 
@@ -677,7 +679,7 @@ def set_active_domain(payload: dict, _: CurrentUser = Depends(require_write)) ->
             raise HTTPException(status_code=400, detail="No active dataset")
         conn.execute("UPDATE datasets SET domain = ? WHERE id = ?", (slug, ds))
         conn.commit()
-        return get_domain(slug).public()
+        return {**get_domain(slug).public(), "currency": dataset_currency(conn, ds)}
     finally:
         conn.close()
 
@@ -761,7 +763,8 @@ def get_datasets(_: CurrentUser = Depends(require_read)) -> dict:
     """All datasets + which is active, for the dashboard's dataset switcher."""
     conn = get_connection()
     try:
-        return {"datasets": list_datasets(conn), "active_id": active_dataset_id(conn)}
+        ds = active_dataset_id(conn)
+        return {"datasets": list_datasets(conn), "active_id": ds, "currency": dataset_currency(conn, ds)}
     finally:
         conn.close()
 
@@ -779,18 +782,24 @@ def activate_dataset(dataset_id: int, user: CurrentUser = Depends(require_read))
         ).fetchone()
         if not exists:
             raise HTTPException(status_code=404, detail=f"Dataset {dataset_id} not found")
+        dataset_currency_value = dataset_currency(conn, dataset_id)
         if user.role in ("analyst", "admin"):
             set_active(conn, dataset_id)
     finally:
         conn.close()
-    return {"active_id": dataset_id}
+    return {"active_id": dataset_id, "currency": dataset_currency_value}
 
 
 @app.patch("/datasets/{dataset_id}")
 def rename_dataset(dataset_id: int, payload: dict, _: CurrentUser = Depends(require_write)) -> dict:
-    """Rename a dataset and/or set its analytics domain."""
+    """Rename a dataset and/or set its analytics domain or currency."""
     name = payload.get("name")
     domain = payload.get("domain")
+    if "currency" in payload:
+        try:
+            validate_currency(payload["currency"])
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
     if domain is not None and not registry.has(domain):
         raise HTTPException(status_code=422, detail=f"Unknown domain: {domain}")
     conn = get_connection()
@@ -801,10 +810,14 @@ def rename_dataset(dataset_id: int, payload: dict, _: CurrentUser = Depends(requ
             conn.execute("UPDATE datasets SET name = ? WHERE id = ?", (name.strip()[:120], dataset_id))
         if domain is not None:
             conn.execute("UPDATE datasets SET domain = ? WHERE id = ?", (domain, dataset_id))
+        if "currency" in payload:
+            conn.execute("UPDATE datasets SET currency = ? WHERE id = ?", (payload["currency"], dataset_id))
         conn.commit()
+        currency = dataset_currency(conn, dataset_id)
     finally:
         conn.close()
-    return {"id": dataset_id, "name": name, "domain": domain}
+    shared_cache().bump_namespace()
+    return {"id": dataset_id, "name": name, "domain": domain, "currency": currency}
 
 
 @app.delete("/datasets/{dataset_id}", status_code=204)
@@ -940,6 +953,7 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
             (ds,),
         ).fetchall()
 
+    currency = dataset_currency(conn, ds)
     out = []
     prior = prior_key(period, granularity)
     yago = year_ago_key(period, granularity)
@@ -977,7 +991,7 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
             ]
         out.append({
             "metric": k["display_name"] or k["metric"], "category": k["category"],
-            "period": period, "value": cur["value"] if cur else None, "unit": k["unit"],
+            "period": period, "value": cur["value"] if cur else None, "unit": k["unit"], "currency": currency,
             "direction_good": k["direction_good"], "prior_value": None,
             "has_data": has_data, "deltas": deltas, "trend": None,
             "is_anomaly": False, "aggregated": True, "granularity": granularity,
@@ -1021,6 +1035,7 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
         if ds is None:
             return []
 
+        currency = dataset_currency(conn, ds)
         has_kpis = conn.execute(
             "SELECT 1 FROM kpi_configs WHERE dataset_id = ? LIMIT 1", (ds,)
         ).fetchone() is not None
@@ -1103,7 +1118,7 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
                 "category": r["category"],
                 "period": period,
                 "value": r["value"],
-                "unit": r["unit"],
+                "unit": r["unit"], "currency": currency,
                 "direction_good": r["direction_good"],
                 "prior_value": r["prior_value"],
                 "has_data": has_data,
@@ -1137,7 +1152,7 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
 
 
 @app.post("/ingest", response_model=IngestSummary)
-def ingest(file: UploadFile, user: CurrentUser = Depends(require_write)) -> IngestSummary:
+def ingest(file: UploadFile, user: CurrentUser = Depends(require_write), currency: Currency = Form("USD")) -> IngestSummary:
     """Shortcut ingest for files already in the canonical format
     (period, metric, value, budget). Arbitrary layouts go through the
     flexible flow: /ingest/upload -> schema -> mapping.
@@ -1158,7 +1173,7 @@ def ingest(file: UploadFile, user: CurrentUser = Depends(require_write)) -> Inge
     conn = get_connection()
     try:
         dataset_id = create_dataset(conn, name=file.filename or "CSV import",
-                                    uploaded_by=user.id, uploaded_by_email=user.email)
+                                    uploaded_by=user.id, uploaded_by_email=user.email, currency=currency)
         summary = ingest_dataframe(conn, df, dataset_id)
         compute_and_store(conn, dataset_id)
         _notify_anomalies(conn, dataset_id)
@@ -1172,12 +1187,12 @@ def ingest(file: UploadFile, user: CurrentUser = Depends(require_write)) -> Inge
 
 
 @app.post("/ingest/upload")
-def ingest_upload(file: UploadFile, _: CurrentUser = Depends(require_write)) -> dict:
+def ingest_upload(file: UploadFile, _: CurrentUser = Depends(require_write), currency: Currency = Form("USD")) -> dict:
     # Sync def: create_upload does blocking pandas work (size cap enforced there).
     raw = file.file.read(MAX_UPLOAD_BYTES + 1)
     conn = get_connection()
     try:
-        return create_upload(conn, raw, file.filename or "upload.csv")
+        return create_upload(conn, raw, file.filename or "upload.csv", currency=currency)
     except UploadError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     finally:
@@ -1222,13 +1237,13 @@ def ingest_mapping(upload_id: str, mapping: MappingSpec, save_template: bool = F
             raise HTTPException(status_code=422, detail=str(exc)) from exc
 
         up = conn.execute(
-            "SELECT filename, column_signature FROM uploads WHERE id = ?", (upload_id,)
+            "SELECT filename, column_signature, currency FROM uploads WHERE id = ?", (upload_id,)
         ).fetchone()
         # A mapping confirmation is a new dataset: its metrics/facts are scoped
         # to it so it never mixes with earlier uploads on the dashboard.
         dataset_id = create_dataset(
             conn, name=up["filename"] if up else upload_id, source_upload_id=upload_id,
-            uploaded_by=user.id, uploaded_by_email=user.email,
+            uploaded_by=user.id, uploaded_by_email=user.email, currency=up["currency"] if up else "USD",
         )
         summary = store_normalized(conn, canonical, dataset_id)
         conn.execute(
@@ -1244,7 +1259,7 @@ def ingest_mapping(upload_id: str, mapping: MappingSpec, save_template: bool = F
         facts = compute_and_store(conn, dataset_id)
         _notify_anomalies(conn, dataset_id)
         shared_cache().bump_namespace()
-        return {**summary, "dataset_id": dataset_id,
+        return {**summary, "dataset_id": dataset_id, "currency": dataset_currency(conn, dataset_id),
                 "facts_computed": int(len(facts)), "template_id": template_id}
     except UploadError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -1444,13 +1459,15 @@ def list_kpis(_: CurrentUser = Depends(require_read)) -> dict:
     try:
         ds = active_dataset_id(conn)
         if ds is None:
-            return {"selected": [], "available": []}
+            return {"selected": [], "available": [], "currency": "USD"}
         selected = [dict(r) for r in conn.execute(
             """SELECT id, source_metric, display_name, category, unit, direction_good, aggregation_type
                FROM kpi_configs WHERE dataset_id = ? ORDER BY source_metric""",
             (ds,),
         ).fetchall()]
+        currency = dataset_currency(conn, ds)
         for s in selected:
+            s["currency"] = currency
             s["aggregation_type"] = s.get("aggregation_type") or infer_aggregation_type(
                 s["display_name"], s["unit"]
             )
@@ -1458,7 +1475,7 @@ def list_kpis(_: CurrentUser = Depends(require_read)) -> dict:
         available = [r["name"] for r in conn.execute(
             "SELECT name FROM metrics WHERE dataset_id = ? ORDER BY name", (ds,)
         ).fetchall() if r["name"] not in chosen]
-        return {"selected": selected, "available": available}
+        return {"selected": selected, "available": available, "currency": currency}
     finally:
         conn.close()
 
@@ -1551,9 +1568,10 @@ def _bridge_from_rows(pvm_row, mv_row) -> dict | None:
 def _fact_by_metric_id(conn, metric_id: int, period: str) -> ComputedFact | None:
     row = conn.execute(
         """
-        SELECT m.name AS metric, m.category, m.unit, cf.period, cf.value, cf.prior_value,
+        SELECT m.name AS metric, m.category, m.unit, d.currency, cf.period, cf.value, cf.prior_value,
                cf.mom_pct, cf.yoy_pct, cf.budget_var_abs, cf.budget_var_pct, cf.trend, cf.is_anomaly
         FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
+        LEFT JOIN datasets d ON d.id = m.dataset_id
         WHERE cf.metric_id = ? AND cf.period = ?
         """,
         (metric_id, period),
@@ -1562,7 +1580,7 @@ def _fact_by_metric_id(conn, metric_id: int, period: str) -> ComputedFact | None
         return None
     return ComputedFact(
         metric=row["metric"], category=row["category"], period=row["period"],
-        value=row["value"], unit=row["unit"], prior_value=row["prior_value"],
+        value=row["value"], unit=row["unit"], currency=row["currency"] or "USD", prior_value=row["prior_value"],
         deltas=Deltas(
             mom_pct=row["mom_pct"], yoy_pct=row["yoy_pct"],
             budget_var_abs=row["budget_var_abs"], budget_var_pct=row["budget_var_pct"],

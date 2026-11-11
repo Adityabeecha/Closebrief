@@ -16,6 +16,7 @@ from zipfile import BadZipFile
 
 import pandas as pd
 
+from app.currency import validate_currency
 from app.datasets import current_workspace
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
@@ -199,7 +200,8 @@ def column_signature(columns: list[str]) -> str:
     return hashlib.sha256("|".join(normalized).encode()).hexdigest()[:16]
 
 
-def create_upload(conn: sqlite3.Connection, raw: bytes, filename: str) -> dict:
+def create_upload(conn: sqlite3.Connection, raw: bytes, filename: str, currency: str = "USD") -> dict:
+    currency = validate_currency(currency)
     if len(raw) > MAX_UPLOAD_BYTES:
         raise UploadError("File exceeds the 10 MB upload limit")
     if not raw.strip():
@@ -222,11 +224,11 @@ def create_upload(conn: sqlite3.Connection, raw: bytes, filename: str) -> dict:
     try:
         conn.execute(
             """
-            INSERT INTO uploads (id, filename, content, sheets, chosen_sheet, column_signature, workspace_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO uploads (id, filename, content, sheets, chosen_sheet, column_signature, workspace_id, currency)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (upload_id, filename, raw, json.dumps(sheets),
-             sheets[0] if sheets else None, signature, current_workspace()),
+             sheets[0] if sheets else None, signature, current_workspace(), currency),
         )
         conn.commit()
     except Exception:
@@ -238,7 +240,7 @@ def create_upload(conn: sqlite3.Connection, raw: bytes, filename: str) -> dict:
 
     preview = df.head(20).fillna("").astype(str)
     return {
-        "upload_id": upload_id,
+        "upload_id": upload_id, "currency": currency,
         "filename": filename,
         "sheets": sheets,
         "columns": [str(c) for c in df.columns],
