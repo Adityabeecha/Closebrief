@@ -28,7 +28,16 @@ def log_llm_call(endpoint: str, model, prompt_tokens, completion_tokens, cost_us
                 (endpoint, model, prompt_tokens, completion_tokens, cost_usd, latency_ms,
                  user_id, current_workspace()),
             )
+            conn.execute(
+                """INSERT INTO ai_spend_daily (day, cost_usd) VALUES (?, ?)
+                   ON CONFLICT (day) DO UPDATE
+                   SET cost_usd = ai_spend_daily.cost_usd + EXCLUDED.cost_usd""",
+                (_today_utc()[:10], cost_usd or 0),
+            )
             conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
         finally:
             conn.close()
     except Exception:
@@ -41,6 +50,9 @@ def _today_utc() -> str:
 
 
 def _spent_today(conn, user_id: str | None = None) -> float:
+    if user_id is None:
+        row = conn.execute("SELECT cost_usd FROM ai_spend_daily WHERE day = ?", (_today_utc()[:10],)).fetchone()
+        return float(row["cost_usd"]) if row else 0.0
     sql = "SELECT COALESCE(SUM(cost_usd), 0) AS s FROM llm_calls WHERE created_at >= ?"
     params: tuple = (_today_utc(),)
     if user_id is not None:

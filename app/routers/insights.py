@@ -10,7 +10,7 @@ from app.compute.forecast import backtest_mape, forecast, next_periods
 from app.compute.root_cause import decompose as root_cause_decompose
 from app.compute.scenario import run_scenario
 from app.config import settings
-from app.datasets import active_dataset_id, list_datasets
+from app.datasets import active_dataset_id, dataset_currency, list_datasets
 from app.db import get_connection
 from app.generation.llm_client import LLMGenerationError, get_llm_client
 from app.generation.prompts import (
@@ -41,6 +41,7 @@ def _forecast_inputs(metric: str, horizon: int) -> dict:
         ds = active_dataset_id(conn)
         if ds is None:
             raise HTTPException(status_code=400, detail="No active dataset")
+        currency = dataset_currency(conn, ds)
         hist = _metric_history(conn, ds, metric)
         if len(hist) < 2:
             raise HTTPException(status_code=400, detail="Not enough history to forecast")
@@ -52,7 +53,7 @@ def _forecast_inputs(metric: str, horizon: int) -> dict:
     proj = forecast(values, horizon)
     periods = next_periods(hist[-1]["period"], horizon)
     return {
-        "metric": metric, "unit": unit, "history": hist,
+        "metric": metric, "unit": unit, "currency": currency, "history": hist,
         "projections": [{"period": p, "value": v} for p, v in zip(periods, proj)],
         "mape": backtest_mape(values),
         # Sample size behind the backtest — a 0% MAPE on a handful of points is
@@ -69,7 +70,7 @@ def get_forecast(metric: str, horizon: int = 3, _: CurrentUser = Depends(require
     if not metric:
         raise HTTPException(status_code=422, detail="metric is required")
     fc = _forecast_inputs(metric, max(1, min(12, horizon)))
-    return {"metric": fc["metric"], "unit": fc["unit"], "history": fc["history"][-6:],
+    return {"metric": fc["metric"], "unit": fc["unit"], "currency": fc["currency"], "history": fc["history"][-6:],
             "projections": fc["projections"], "mape": fc["mape"], "n_history": fc["n_history"]}
 
 
@@ -110,6 +111,7 @@ def run_scenario_endpoint(payload: dict, _: CurrentUser = Depends(require_read))
         ).fetchone()
         if row is None or row["value"] is None:
             raise HTTPException(status_code=404, detail=f"No data for metric '{metric}'")
+        currency = dataset_currency(conn, ds)
         base = float(row["value"])
         budget = (base - float(row["budget_var_abs"])) if row["budget_var_abs"] is not None else None
     finally:
@@ -121,8 +123,8 @@ def run_scenario_endpoint(payload: dict, _: CurrentUser = Depends(require_read))
         except (TypeError, ValueError):
             return 0.0
 
-    return run_scenario(base, budget, price_pct=_num("price_pct"),
-                        volume_pct=_num("volume_pct"), mix_pct=_num("mix_pct"))
+    return {**run_scenario(base, budget, price_pct=_num("price_pct"),
+                           volume_pct=_num("volume_pct"), mix_pct=_num("mix_pct")), "currency": currency}
 
 
 @router.post("/forecast/narrative")
@@ -144,7 +146,7 @@ def forecast_narrative(payload: dict, user: CurrentUser = Depends(require_member
     log_llm_call("/forecast/narrative",
                  settings.openai_model if settings.llm_provider == "openai" else settings.anthropic_model,
                  usage.prompt_tokens, usage.completion_tokens, usage.cost_usd, None, user.id)
-    return {"metric": metric, "projections": fc["projections"], "mape": fc["mape"],
+    return {"metric": metric, "currency": fc["currency"], "projections": fc["projections"], "mape": fc["mape"],
             "narrative": result.narrative}
 
 
@@ -163,6 +165,8 @@ def root_cause(metric: str, period: str, _: CurrentUser = Depends(require_read))
         if ds is None:
             raise HTTPException(status_code=400, detail="No active dataset")
         rc = root_cause_decompose(conn, ds, metric, period)
+        if rc is not None:
+            rc["currency"] = dataset_currency(conn, ds)
     finally:
         conn.close()
     if rc is None:
@@ -185,6 +189,8 @@ def root_cause_narrative(payload: dict, user: CurrentUser = Depends(require_memb
         if ds is None:
             raise HTTPException(status_code=400, detail="No active dataset")
         rc = root_cause_decompose(conn, ds, metric, period)
+        if rc is not None:
+            rc["currency"] = dataset_currency(conn, ds)
     finally:
         conn.close()
     if rc is None:
