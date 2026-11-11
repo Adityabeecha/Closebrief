@@ -1287,8 +1287,8 @@ async function runForecast(){
     const next=fc.projections&&fc.projections[0]?fc.projections[0].value:null;
     $("fc-meta").innerHTML=
       `<div class="stat"><div class="stat-lbl">Next period</div><div class="card-value">${fmt(next,fc.unit)}</div></div>`+
-      `<div class="stat" style="--sc:var(--mut)"><div class="stat-lbl">Backtest MAPE</div><div class="card-value">${mape}</div>`+
-      `${thin?'<div class="psub" style="margin-top:2px">Only '+(fc.n_history||0)+' periods — treat as indicative</div>':""}</div>`;
+      `<div class="stat" style="--sc:var(--mut)"><div class="stat-lbl" title="Average error of this method on past months">Typical error</div><div class="card-value">${mape}</div>`+
+      `${thin?'<div class="psub" style="margin-top:2px">Only '+(fc.n_history||0)+' periods of history, so treat this as a rough guide</div>':""}</div>`;
     $("fc-narr-btn").style.display="";
   }catch(e){if(chartReg["c-forecast"]){chartReg["c-forecast"].destroy();delete chartReg["c-forecast"];}box.innerHTML=`<div class="an-empty">${esc(errMsg(e))}</div>`;}
 }
@@ -1369,10 +1369,10 @@ async function createDerivedKpi(){
 }
 /* ---- Cross-dataset signals ---- */
 async function loadCrossDomain(){
-  const box=$("xd-list");if(!box)return;const done=screenLoading("xd-list","Loading cross-dataset signals…");
+  const box=$("xd-list");if(!box)return;const done=screenLoading("xd-list","Looking for links between datasets…");
   try{
     const rows=await api("/insights/cross-domain");if(!done())return;
-    if(!rows.length){box.innerHTML=screenState("No cross-dataset signals yet","Compare at least two datasets with overlapping periods to find related movements.","nav('import')","Import another dataset","empty",{writeOnly:true});return;}
+    if(!rows.length){box.innerHTML=screenState("No links between datasets yet","Import a second dataset that covers the same months to see which metrics move together.","nav('import')","Import another dataset","empty",{writeOnly:true});return;}
     box.innerHTML=rows.slice(0,12).map(p=>{
       const cls=p.direction==="positive"?"pos":"neg";
       const lag=p.lag?`${Math.abs(p.lag)}-period ${p.lag>0?"lead":"lag"}`:"same period";
@@ -2862,9 +2862,11 @@ function selectKpiEdits(select){kpiRows().forEach(r=>r.querySelector(".k-select"
 function updateKpiSelection(){
   const rows=kpiRows(),included=rows.filter(r=>r.querySelector(".k-include").checked).length,selected=rows.filter(r=>r.querySelector(".k-select").checked).length;
   $("imp-finish").disabled=kpiLoading||kpiSaving||importLeaving||!included;
-  $("kpi-selection").textContent=kpiSaving?"Finishing import…":kpiLoading?"Loading KPI choices…":included?plural(included,"KPI")+" included":"Include at least one KPI to finish.";
+  $("kpi-selection").textContent=kpiSaving?"Finishing import…":kpiLoading?"Loading KPI choices…":included?plural(included,"KPI")+" to track":"Pick at least one KPI to finish.";
   $("kpi-bulk-apply").disabled=kpiLoading||kpiSaving||importLeaving||!selected;
-  $("kpi-bulk-selection").textContent=plural(selected,"row")+" selected for bulk edit";
+  $("kpi-bulk-selection").textContent=selected?`Set category, unit or direction for ${plural(selected,"KPI")} at once`:"";
+  // The shared editor only shows once rows are picked to edit together.
+  const bulk=$("kpi-bulk");if(bulk)bulk.hidden=!selected;
 }
 function applyKpiBulk(){
   const selected=kpiRows().filter(r=>r.querySelector(".k-select").checked);
@@ -2880,13 +2882,13 @@ async function loadKpiPicker(){
   const slow=setTimeout(()=>{if(kpiLoading&&lastImport===current)$("kpi-selection").textContent="Still loading KPI choices…";},4000);
   try{
     const metrics=await api(`/ingest/${upload.upload_id}/metrics`);if(lastImport!==current)return;
-    $("kpi-rows").innerHTML=metrics.length?`<div class="kpi-grid hdr"><span>Include / edit</span><span>Display name / source</span><span>Category</span><span>Unit</span><span>Direction</span></div>`+
+    $("kpi-rows").innerHTML=metrics.length?`<div class="kpi-grid hdr"><span>Track · edit</span><span>Name</span><span>Category</span><span>Unit</span><span>Good direction</span></div>`+
       metrics.map(m=>{const s=m.suggestion||{},row=esc(m.source_metric);return`<div class="kpi-grid" data-src="${row}">
-        <div class="kpi-checks"><label><input type="checkbox" class="k-include" checked aria-label="Include ${row}" onchange="updateKpiSelection()"> Include</label><label><input type="checkbox" class="k-select" aria-label="Select ${row} for bulk edit" onchange="updateKpiSelection()"> Bulk edit</label></div>
-        <label class="kpi-field"><span class="kpi-field-label">Display name</span><input class="k-name" aria-label="Display name for ${row}" value="${esc(humanizeKpiName(m.source_metric))}"><small class="kpi-source">Source: ${row}</small></label>
+        <div class="kpi-checks"><label><input type="checkbox" class="k-include" checked aria-label="Include ${row}" onchange="updateKpiSelection()"> Track</label><label><input type="checkbox" class="k-select" aria-label="Select ${row} for bulk edit" onchange="updateKpiSelection()"> Edit together</label></div>
+        <label class="kpi-field"><span class="kpi-field-label">Name</span><input class="k-name" aria-label="Display name for ${row}" value="${esc(humanizeKpiName(m.source_metric))}"><small class="kpi-source">Source: ${row}</small></label>
         <label class="kpi-field"><span class="kpi-field-label">Category</span><input class="k-cat" aria-label="Category for ${row}" value="${esc(s.category||"Uncategorized")}"></label>
         <label class="kpi-field"><span class="kpi-field-label">Unit</span><select class="k-unit" aria-label="Unit for ${row}">${["USD","%","count"].map(u=>`<option ${u===(s.unit||"USD")?"selected":""}>${esc(u)}</option>`).join("")}</select></label>
-        <label class="kpi-field"><span class="kpi-field-label">Direction</span><select class="k-dir" aria-label="Direction for ${row}"><option value="up" ${(s.direction_good||"up")==="up"?"selected":""}>Up is good</option><option value="down" ${s.direction_good==="down"?"selected":""}>Down is good</option></select></label></div>`;}).join(""):
+        <label class="kpi-field"><span class="kpi-field-label">Good direction</span><select class="k-dir" aria-label="Direction for ${row}"><option value="up" ${(s.direction_good||"up")==="up"?"selected":""}>Up is good</option><option value="down" ${s.direction_good==="down"?"selected":""}>Down is good</option></select></label></div>`;}).join(""):
       '<div class="banner info">No KPIs were found. Leave this import to delete the unfinished dataset, then upload a file with metric values.</div>';
   }catch(e){if(lastImport===current)$("kpi-rows").innerHTML=`<div class="banner err">${esc(e.message)} <button class="btn sm" onclick="loadKpiPicker()">Retry</button></div>`;}
   finally{clearTimeout(slow);if(lastImport===current){kpiLoading=false;updateKpiSelection();}}

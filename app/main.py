@@ -193,7 +193,7 @@ from app.services import log_llm_call as _log_llm_call  # noqa: E402
 # /app.js is the shell's own script (split out of index.html): a browser cannot
 # attach a bearer token to <script src>, so gating it 401s the entire frontend.
 _OPEN_PATHS = {"/", "/app", "/theme.css", "/app.js", "/health", "/auth/config", "/auth/google", "/openapi.json", "/docs", "/redoc",
-               "/samples/fpa.csv"}
+               "/samples/fpa.csv", "/og.png"}
 
 
 
@@ -480,6 +480,13 @@ def sample_fpa_csv() -> FileResponse:
     # workspace. Public on purpose: it is the same file the repo ships.
     return FileResponse(_UI_INDEX.parent.parent.parent / "data" / "sample_fpa.csv", media_type="text/csv",
                         filename="sample_fpa.csv")
+
+
+@app.get("/og.png", include_in_schema=False)
+def share_image() -> FileResponse:
+    # The link-preview card for the home page (og:image / twitter:image).
+    return FileResponse(_UI_INDEX.parent / "brand" / "og.png", media_type="image/png",
+                        headers={"Cache-Control": "public, max-age=86400"})
 
 
 @app.get("/theme.css", include_in_schema=False)
