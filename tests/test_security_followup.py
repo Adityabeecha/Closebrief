@@ -1,35 +1,11 @@
 """Behavioral regressions from the second local TypeSafe investigation."""
 
-import sqlite3
 from types import SimpleNamespace
 
 import pytest
 from test_review_regressions import conn as _isolated_conn
 
 conn = _isolated_conn
-
-
-def test_email_restricted_invite_rejects_another_identity(conn):
-    from app import workspaces
-    ws = workspaces.create_workspace(conn, "Team", "owner")
-    token = workspaces.create_invite(conn, ws, email="target@example.test")
-    assert workspaces.accept_invite(conn, token, "other", "other@example.test") is None
-    assert not workspaces.is_member(conn, ws, "other")
-    assert workspaces.accept_invite(conn, token, "target", "TARGET@example.test") == ws
-
-
-def test_failed_invite_membership_does_not_consume_invite(conn):
-    from app import workspaces
-    ws = workspaces.create_workspace(conn, "Team", "owner")
-    token = workspaces.create_invite(conn, ws)
-    conn.execute("CREATE TRIGGER reject_accept BEFORE UPDATE ON workspace_invites "
-                 "BEGIN SELECT RAISE(ABORT, 'simulated storage failure'); END")
-    conn.commit()
-    with pytest.raises(sqlite3.DatabaseError):
-        workspaces.accept_invite(conn, token, "new-user", None)
-    conn.rollback()
-    assert not workspaces.is_member(conn, ws, "new-user")
-    assert not conn.execute("SELECT accepted FROM workspace_invites WHERE token=?", (token,)).fetchone()[0]
 
 
 def test_failed_rls_setup_does_not_return_usable_connection(monkeypatch):

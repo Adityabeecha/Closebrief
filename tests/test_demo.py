@@ -271,9 +271,3 @@ def test_template_uses_only_relevant_cited_reasons_and_real_comparisons(client, 
         text, main._fact_by_metric_id(conn, mid, period), [ContextSnippet(id="ctx_999", body=doc.body)]
     )[0]
     conn.close()
-
-
-def test_read_only_sessions_cannot_create_or_join_workspaces(client):
-    # S2: guests and demo visitors could create unlimited workspace rows.
-    assert client.post("/workspaces", json={"name": "spam"}, headers=DEMO).status_code == 403
-    assert client.post("/workspaces/join", json={"token": "x"}, headers=DEMO).status_code == 403

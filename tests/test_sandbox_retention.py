@@ -55,7 +55,8 @@ def _sandbox(conn, *, admin=False, age=OLD):
                        (ds,)).fetchone()["id"]
     conn.execute("INSERT INTO scheduler_runs (job_id, kind, status) VALUES (?, 'digest', 'ok')", (job,))
     conn.execute("INSERT INTO digest_runs (dataset_id, period, top_n, items) VALUES (?, '2020-01', 1, '[]')", (ds,))
-    workspaces.create_invite(conn, ws)
+    # Legacy invite rows still exist and must be cleaned up by retention.
+    conn.execute("INSERT INTO workspace_invites (token, workspace_id) VALUES (?, ?)", (uuid4().hex, ws))
     conn.commit()
     return ws, ds, user_id
 

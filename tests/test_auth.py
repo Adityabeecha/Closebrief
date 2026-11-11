@@ -96,9 +96,8 @@ def test_app_shell_and_its_script_are_public(make_client):
     assert c.get("/facts?period=2025-01").status_code == 401
 
 
-def test_per_workspace_admin_enforced(make_client):
-    """v4.0 follow-up: workspace-scoped admin actions are gated by the caller's
-    MEMBERSHIP role in the active workspace, not their global role."""
+def test_me_surfaces_per_workspace_role(make_client):
+    """Identity reports the active workspace membership role."""
     c = make_client(auth_on=True)
     from app.db import get_connection
     from app.workspaces import add_member, create_workspace
@@ -112,12 +111,6 @@ def test_per_workspace_admin_enforced(make_client):
     # /me surfaces the per-workspace role.
     assert c.get("/me", headers={**_bearer(sub="a1", email="a1@co.com"), **hdr}).json()["workspace_role"] == "admin"
     assert c.get("/me", headers={**_bearer(sub="a2", email="a2@co.com"), **hdr}).json()["workspace_role"] == "analyst"
-    # Creating an invite is a workspace-admin action: admin ok, analyst 403.
-    a1 = c.post(f"/workspaces/{w}/invites", json={"role": "analyst"},
-                headers={**_bearer(sub="a1", email="a1@co.com"), **hdr})
-    a2 = c.post(f"/workspaces/{w}/invites", json={"role": "analyst"},
-                headers={**_bearer(sub="a2", email="a2@co.com"), **hdr})
-    assert a1.status_code == 201 and a2.status_code == 403
 
 
 def test_invalid_jwt_rejected(make_client):

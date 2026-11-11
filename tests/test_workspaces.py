@@ -1,4 +1,4 @@
-"""v4.0 multi-tenancy: workspace membership, invites, and — most importantly —
+"""v4.0 multi-tenancy: workspace membership and — most importantly —
 cross-tenant data isolation (a member of workspace A cannot see B's data)."""
 
 import pytest
@@ -81,21 +81,15 @@ def test_active_dataset_is_workspace_scoped(client):
         conn.close()
 
 
-# ---------------------------------------------------------- membership / invites
-def test_membership_and_invite_flow(client):
+# ---------------------------------------------------------- membership
+def test_workspace_owner_membership(client):
     from app import workspaces
     conn = _conn()
     try:
-        ws = workspaces.create_workspace(conn, "Team", "owner", "owner@x.com")
+        ws = workspaces.create_workspace(conn, "Private", "owner", "owner@x.com")
         assert workspaces.member_role(conn, ws, "owner") == "admin"
         assert workspaces.is_member(conn, ws, "stranger") is False
-
-        token = workspaces.create_invite(conn, ws, "analyst", "new@x.com")
-        joined = workspaces.accept_invite(conn, token, "new-user", "new@x.com")
-        assert joined == ws
-        assert workspaces.member_role(conn, ws, "new-user") == "analyst"
-        # An invite is single-use.
-        assert workspaces.accept_invite(conn, token, "another", "another@x.com") is None
+        assert [m["user_id"] for m in workspaces.list_members(conn, ws)] == ["owner"]
     finally:
         conn.close()
 
@@ -114,14 +108,27 @@ def test_ensure_user_workspace_provisions_on_first_login(client):
 
 
 # ---------------------------------------------------------- endpoints
-def test_workspace_endpoints(client):
-    r = client.post("/workspaces", json={"name": "Acme"})
-    assert r.status_code == 201, r.text
-    ws_id = r.json()["id"]
-    assert any(w["id"] == ws_id for w in client.get("/workspaces").json()["workspaces"])
-    assert client.post("/workspaces", json={"name": ""}).status_code == 422
+def test_workspace_list_and_members_endpoints(client):
+    from app import workspaces
+    from app.auth import ANONYMOUS_ADMIN
+    conn = _conn()
+    try:
+        ws = workspaces.create_workspace(conn, "Private", ANONYMOUS_ADMIN.id, ANONYMOUS_ADMIN.email)
+    finally:
+        conn.close()
+    listed = client.get("/workspaces")
+    assert listed.status_code == 200
+    assert any(w["id"] == ws for w in listed.json()["workspaces"])
+    members = client.get(f"/workspaces/{ws}/members")
+    assert members.status_code == 200
+    assert [str(m["user_id"]) for m in members.json()] == [ANONYMOUS_ADMIN.id]
 
-    inv = client.post(f"/workspaces/{ws_id}/invites", json={"role": "analyst"})
-    assert inv.status_code == 201 and inv.json()["token"]
-    assert client.post("/workspaces/join", json={"token": inv.json()["token"]}).status_code == 200
-    assert client.post("/workspaces/join", json={"token": "nope"}).status_code == 400
+
+def test_only_frontend_used_workspace_endpoints_remain(client):
+    paths = client.get("/openapi.json").json()["paths"]
+    workspace_routes = {(path, method.upper()) for path, methods in paths.items()
+                        if path.startswith("/workspaces") for method in methods}
+    assert workspace_routes == {
+        ("/workspaces", "GET"),
+        ("/workspaces/{ws_id}/members", "GET"),
+    }
