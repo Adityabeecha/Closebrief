@@ -1455,7 +1455,7 @@
             </div>
             <div class="frow">
               <div><label for="kb-unit" class="lbl">Unit</label>
-                <select id="kb-unit" class="modal-field"><option value="%">%</option><option value="USD">USD</option><option value="count">count</option></select></div>
+                <select id="kb-unit" class="modal-field"><option value="%">Percent</option><option value="USD">Amount</option><option value="count">Count</option></select></div>
               <div><label for="kb-cat" class="lbl">Category</label><input id="kb-cat" class="modal-field" value="Derived"></div>
               <div><label for="kb-dir" class="lbl">Good direction</label>
                 <select id="kb-dir" class="modal-field"><option value="up">Higher is better</option><option value="down">Lower is better</option></select></div>
@@ -1578,6 +1578,12 @@
         <div class="banner ok" id="norm-summary"></div>
         <div class="ctx-form import-summary-form">
           <div><label class="lbl" for="imp-name">Dataset name</label><input id="imp-name" placeholder="e.g. FY2025 Actuals"></div>
+          <div><label class="lbl" for="imp-currency">Currency</label>
+            <select id="imp-currency">
+              <option value="USD">US dollar ($)</option><option value="EUR">Euro (€)</option><option value="GBP">British pound (£)</option>
+              <option value="INR">Indian rupee (₹)</option><option value="JPY">Japanese yen (¥)</option><option value="CAD">Canadian dollar (CA$)</option>
+              <option value="AUD">Australian dollar (A$)</option><option value="SGD">Singapore dollar (S$)</option><option value="CHF">Swiss franc (CHF)</option>
+            </select></div>
           <div><label class="lbl" for="imp-domain">What kind of data is this?</label>
             <select id="imp-domain">
               <option value="fpa">FP&amp;A: financials</option>
@@ -1591,7 +1597,7 @@
             <span class="kpi-sep" aria-hidden="true"></span><span>Edit together</span><button class="linkbtn" onclick="selectKpiEdits(true)">All</button><button class="linkbtn" onclick="selectKpiEdits(false)">None</button></div>
           <div class="kpi-bulk" id="kpi-bulk" hidden>
             <label class="kpi-field">Category<input id="kpi-bulk-category" aria-label="Category for selected rows" placeholder="Keep current"></label>
-            <label class="kpi-field">Unit<select id="kpi-bulk-unit" aria-label="Unit for selected rows"><option value="">Keep current</option><option>USD</option><option>%</option><option>count</option></select></label>
+            <label class="kpi-field">Unit<select id="kpi-bulk-unit" aria-label="Unit for selected rows"><option value="">Keep current</option><option value="USD">Amount</option><option value="%">Percent</option><option value="count">Count</option></select></label>
             <label class="kpi-field">Direction<select id="kpi-bulk-direction" aria-label="Direction for selected rows"><option value="">Keep current</option><option value="up">Up is good</option><option value="down">Down is good</option></select></label>
             <button class="btn" id="kpi-bulk-apply" disabled onclick="applyKpiBulk()">Apply to these KPIs</button>
           </div>

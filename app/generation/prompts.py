@@ -5,6 +5,7 @@ prompt versions over time (PRD Section 11).
 import math
 from decimal import ROUND_HALF_UP, Decimal, localcontext
 
+from app.currency import symbol
 from app.schemas import (
     ComputedFact,
     ContextSnippet,
@@ -137,16 +138,16 @@ FORECAST_SYSTEM_PROMPT += "\n\nCopy all figures exactly as given; do not expand 
 
 
 def build_forecast_prompt(metric: str, unit: str, history_tail: list[dict],
-                          projections: list[dict], mape: float | None) -> str:
+                          projections: list[dict], mape: float | None, currency: str = "USD") -> str:
     lines = [f"Metric: {metric}", "", "Recent actuals:"]
     for h in history_tail[-4:]:
-        lines.append(f"  - {h['period']}: {_fmt(h['value'], unit)}")
+        lines.append(f"  - {h['period']}: {_fmt(h['value'], unit, currency)}")
     lines.append("")
     lines.append("Forecast (the ONLY numbers you may use — model projections):")
     for p in projections:
-        line = f"  - {p['period']}: projected {_fmt(p['value'], unit)}"
+        line = f"  - {p['period']}: projected {_fmt(p['value'], unit, currency)}"
         if p.get("budget") is not None:
-            line += f" vs budget {_fmt(p['budget'], unit)} ({'above' if p['value'] >= p['budget'] else 'below'} plan)"
+            line += f" vs budget {_fmt(p['budget'], unit, currency)} ({'above' if p['value'] >= p['budget'] else 'below'} plan)"
         lines.append(line)
     if mape is not None:
         lines.append(f"\nBacktest error (MAPE): {_fmt(mape, '%')}")
@@ -174,23 +175,24 @@ ROOT_CAUSE_SYSTEM_PROMPT += "\n\nCopy all figures exactly as given; do not expan
 
 def build_root_cause_prompt(rc: dict) -> str:
     unit = rc.get("unit", "USD")
-    lines = [f"Metric: {rc['metric']} ({rc['period']})", f"Value: {_fmt(rc.get('value'), unit)}"]
+    cur = rc.get("currency") or "USD"
+    lines = [f"Metric: {rc['metric']} ({rc['period']})", f"Value: {_fmt(rc.get('value'), unit, cur)}"]
     if rc.get("prior_value") is not None:
-        lines.append(f"Prior period: {_fmt(rc['prior_value'], unit)}")
+        lines.append(f"Prior period: {_fmt(rc['prior_value'], unit, cur)}")
     if rc.get("mom_pct") is not None:
         lines.append(f"Month-over-month: {_fmt(rc['mom_pct'], '%')}")
     if rc.get("budget_var_pct") is not None:
-        lines.append(f"Vs plan: {_fmt(rc['budget_var_pct'], '%')} ({_fmt(rc.get('budget_var_abs'), _delta_unit(unit))})")
+        lines.append(f"Vs plan: {_fmt(rc['budget_var_pct'], '%')} ({_fmt(rc.get('budget_var_abs'), _delta_unit(unit), cur)})")
     if rc.get("z_score") is not None:
         lines.append(
-            f"Baseline: mean {_fmt(rc.get('baseline_mean'), unit)}; this period is "
+            f"Baseline: mean {_fmt(rc.get('baseline_mean'), unit, cur)}; this period is "
             f"{rc['z_score']} std devs from it"
             + (" (flagged as an anomaly)" if rc.get("is_anomaly") else ""))
     lines += ["", "Decomposition (the ONLY numbers you may use):"]
     if rc.get("pvm"):
         lines.append("  Price/Volume/Mix split of the variance:")
         for c in rc["pvm"]:
-            lines.append(f"    - {c['component']}: {_fmt(c['impact'], _delta_unit(unit))} ({_fmt(c['share_pct'], '%')} of the swing)")
+            lines.append(f"    - {c['component']}: {_fmt(c['impact'], _delta_unit(unit), cur)} ({_fmt(c['share_pct'], '%')} of the swing)")
     if rc.get("trend"):
         t = rc["trend"]
         lines.append(f"  Trend: {t.get('months')} consecutive months {t.get('direction')}")
@@ -211,8 +213,9 @@ def _fixed(value: float, places: int) -> str:
     return f"{rounded:.{places}f}"
 
 
-def _fmt(value: float | None, unit: str = "USD") -> str:
-    """Card-style amounts, signed percentages and whole counts for model input."""
+def _fmt(value: float | None, unit: str = "USD", currency: str = "USD") -> str:
+    """Card-style amounts, signed percentages and whole counts for model input,
+    with amounts in the dataset's currency."""
     if value is None or not math.isfinite(value):
         return "n/a"
     if unit.lower() == "count":
@@ -223,11 +226,12 @@ def _fmt(value: float | None, unit: str = "USD") -> str:
     if unit.lower() in ("%", "percent", "pp"):
         suffix = "pp" if unit.lower() == "pp" else "%"
         return (sign or ("+" if value > 0 else "")) + _fixed(amount, 1) + suffix
+    mark = symbol(currency)
     if amount >= 1e6:
-        return sign + "$" + _fixed(amount / 1e6, 2) + "M"
+        return sign + mark + _fixed(amount / 1e6, 2) + "M"
     if amount >= 1e3:
-        return sign + "$" + _fixed(amount / 1e3, 0) + "K"
-    return sign + "$" + _fixed(amount, 2)
+        return sign + mark + _fixed(amount / 1e3, 0) + "K"
+    return sign + mark + _fixed(amount, 0 if currency == "JPY" else 2)
 
 
 def _delta_unit(unit: str) -> str:
@@ -262,12 +266,13 @@ def build_trend_streak_context(streak: TrendStreak | None) -> list[str]:
     ]
 
 
-def build_comparison_context(comparison: PeriodComparison | None, unit: str = "USD") -> list[str]:
+def build_comparison_context(comparison: PeriodComparison | None, unit: str = "USD",
+                             currency: str = "USD") -> list[str]:
     if comparison is None:
         return []
     c = comparison
     line = (
-        f"Compared to {c.period_a}, {c.period_b} changed by {_fmt(c.abs_change, _delta_unit(unit))} "
+        f"Compared to {c.period_a}, {c.period_b} changed by {_fmt(c.abs_change, _delta_unit(unit), currency)} "
         f"({_fmt(c.pct_change, '%')})"
     )
     if c.momentum:
@@ -288,11 +293,11 @@ def build_user_prompt(
         f"Metric: {fact.metric}",
         f"Period: {fact.period}",
         "Computed facts (the ONLY numbers you may use):",
-        f"  - value: {_fmt(fact.value, fact.unit)}",
-        f"  - prior_period_value: {_fmt(fact.prior_value, fact.unit)}",
+        f"  - value: {_fmt(fact.value, fact.unit, fact.currency)}",
+        f"  - prior_period_value: {_fmt(fact.prior_value, fact.unit, fact.currency)}",
         f"  - month_over_month_change: {_fmt(fact.deltas.mom_pct, '%')}",
         f"  - year_over_year_change: {_fmt(fact.deltas.yoy_pct, '%')}",
-        f"  - budget_variance_absolute: {_fmt(fact.deltas.budget_var_abs, _delta_unit(fact.unit))}",
+        f"  - budget_variance_absolute: {_fmt(fact.deltas.budget_var_abs, _delta_unit(fact.unit), fact.currency)}",
         f"  - budget_variance_percent: {_fmt(fact.deltas.budget_var_pct, '%')}",
         f"  - trend_12mo: {fact.trend or 'n/a'}",
         f"  - is_anomaly: {fact.is_anomaly}",
@@ -300,7 +305,7 @@ def build_user_prompt(
     if fact.variance_bridge:
         lines.append("  - variance decomposition (deterministic):")
         for component, impact in fact.variance_bridge.items():
-            lines.append(f"      - {component}_effect: {_fmt(impact, _delta_unit(fact.unit))}")
+            lines.append(f"      - {component}_effect: {_fmt(impact, _delta_unit(fact.unit), fact.currency)}")
     else:
         lines.append(
             "  - variance decomposition: not available — do NOT size or split the "
@@ -308,7 +313,7 @@ def build_user_prompt(
             "a context snippet may still be cited as the reason."
         )
     lines += build_trend_streak_context(trend_streak)
-    lines += build_comparison_context(comparison, fact.unit)
+    lines += build_comparison_context(comparison, fact.unit, fact.currency)
     lines += build_correlation_context(correlations or [], fact.metric)
     lines.append("")
     if context:

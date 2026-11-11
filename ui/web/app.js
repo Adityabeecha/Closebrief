@@ -405,16 +405,26 @@ async function api(path,opts,_retried){
   }
   if(r.status===204)return null; return r.json();
 }
-const fmt=(v,unit)=>{
+// unit "USD" means "an amount of money" (the KPI unit predates currencies);
+// pass cur to force one, e.g. AI spend, which is always billed in US dollars.
+const fmt=(v,unit,cur)=>{
   if(v===null||v===undefined)return"–";
   if(unit==="%")return(v<0?"−":"")+Math.abs(v).toFixed(1)+"%";
   if(unit==="count"){const n=Math.round(v);return(n<0?"−":"")+Math.abs(n).toLocaleString();}
   // Finance-style: sign BEFORE the currency symbol (−$1.20M / −$370K / −$12.50),
   // with a real minus sign (U+2212) so it lines up with "+" in mono figures.
+  const code=cur||displayCurrency,m=CURRENCY_MARK[code]||"$";
   const a=Math.abs(v),sign=v<0?"−":"";let mag;
-  if(a>=1e6)mag="$"+(a/1e6).toFixed(2)+"M"; else if(a>=1e3)mag="$"+(a/1e3).toFixed(0)+"K"; else mag="$"+(+a.toFixed(2)).toLocaleString();
+  if(a>=1e6)mag=m+(a/1e6).toFixed(2)+"M"; else if(a>=1e3)mag=m+(a/1e3).toFixed(0)+"K";
+  else mag=m+(+a.toFixed(code==="JPY"?0:2)).toLocaleString();
   return sign+mag;
 };
+// Currency marks, matching app/currency.py. Amounts are shown in the active
+// dataset's currency; nothing is converted.
+const CURRENCIES=[["USD","$","US dollar"],["EUR","€","Euro"],["GBP","£","British pound"],["INR","₹","Indian rupee"],
+  ["JPY","¥","Japanese yen"],["CAD","CA$","Canadian dollar"],["AUD","A$","Australian dollar"],["SGD","S$","Singapore dollar"],["CHF","CHF\u00a0","Swiss franc"]];
+const CURRENCY_MARK=Object.fromEntries(CURRENCIES.map(([c,m])=>[c,m]));
+let displayCurrency="USD";
 const pct=v=>v===null||v===undefined?null:(v>0?"+":v<0?"−":"")+Math.abs(v).toFixed(1)+"%";
 function datasetDisplayName(name){
   const stored=String(name||"");
@@ -1632,6 +1642,7 @@ async function loadDatasets(){
   datasetsCache=d.datasets;                       // for id -> name lookups (no strings in onclick)
   const active=d.datasets.find(x=>x.is_active);
   activeDatasetObj=active||null;
+  displayCurrency=(active&&active.currency)||d.currency||"USD";
   // The active domain drives funnel rendering (marketing defines an ordered funnel).
   try{activeDomain=await api("/domain");}catch{activeDomain=null;}
   $("ws-name").textContent=active?datasetDisplayName(active.name):"No dataset";
@@ -1644,6 +1655,7 @@ async function loadDatasets(){
         <button aria-label="Options for ${esc(datasetDisplayName(ds.name))}" aria-haspopup="true" aria-expanded="false" aria-controls="kmenu-${ds.id}" onclick="toggleKebab(event,${ds.id})">⋯</button>
         <div class="ws-kmenu" id="kmenu-${ds.id}">
           <button class="write-only" onclick="event.stopPropagation();renameDataset(${ds.id})">Rename</button>
+          <button class="write-only" onclick="event.stopPropagation();setDatasetCurrency(${ds.id})">Currency (${esc(ds.currency||"USD")})</button>
           <button class="write-only danger" onclick="event.stopPropagation();deleteDataset(${ds.id})">Delete</button>
         </div>
       </span>
@@ -1663,6 +1675,21 @@ async function renameDataset(id){
   if(name==null||name===cur)return;
   try{await api(`/datasets/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});toast("Renamed");await loadDatasets();}
   catch(e){toast(e.message);}
+}
+function currencyOptions(selected){
+  return CURRENCIES.map(([c,m,name])=>`<option value="${c}" ${c===selected?"selected":""}>${esc(name)} (${esc(m.trim())})</option>`).join("");
+}
+async function setDatasetCurrency(id){
+  const ds=(datasetsCache||[]).find(d=>d.id===id)||{},cur=ds.currency||"USD";
+  const code=await _openModalRaw({title:"Currency",okLabel:"Save",
+    body:`<label class="lbl" for="ds-currency">Show amounts in ${esc(dsName(id))} as</label>
+      <select class="modal-field" id="ds-currency">${currencyOptions(cur)}</select>
+      <p style="margin-top:10px;font-size:13px;color:var(--text-3)">This changes how amounts are labelled. Nothing is converted, and commentary already drafted keeps the symbol it was written with.</p>`,
+    getValue:()=>$("ds-currency").value});
+  if(code==null||code===cur)return;
+  try{await api(`/datasets/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({currency:code})});
+    toast(`Amounts now shown in ${code}`);await loadDatasets();if(id===activeDatasetId){overviewFor=null;await loadFacts();}}
+  catch(e){toast(errMsg(e));}
 }
 function toggleWs(e){e.stopPropagation();$("ws-menu").classList.toggle("open");}
 document.addEventListener("click",()=>{$("ws-menu").classList.remove("open");$("export-menu")?.classList.remove("open");document.querySelectorAll(".ws-kmenu").forEach(m=>m.classList.remove("open"));});
@@ -1948,7 +1975,7 @@ async function loadCosts(){
     const svg=p=>`<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
     const tile=(lbl,path,col,val,hint)=>`<div class="stat rise" style="--sc:${esc(col)}"><span class="stat-lbl">${svg(path)}${esc(lbl)}</span><span class="stat-val nbi-num">${esc(val)}</span><span class="stat-hint">${esc(hint)}</span></div>`;
     $("costs-stats").innerHTML=[
-      tile("Total spend",'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',"var(--green)",fmt(c.total_cost_usd,"USD"),"across all LLM calls"),
+      tile("Total spend",'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',"var(--green)",fmt(c.total_cost_usd,"USD","USD"),"across all LLM calls"),
       tile("LLM calls",'<path d="M13 2 3 14h7l-1 8 10-12h-7z"/>',"var(--accent)",c.total_llm_calls||0,"generations + digests"),
       tile("Cache hit rate",'<path d="M21 12a9 9 0 1 1-6.2-8.5"/><path d="M21 3v6h-6"/>',hr>=0.5?"var(--green)":"var(--amber)",hr==null?"—":Math.round(hr*100)+"%",`${cache.hits||0} hits · ${cache.misses||0} misses`),
       tile("Worst p95 latency",'<path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/>',worstP95>2000?"var(--red)":"var(--accent)",worstP95==null?"—":Math.round(worstP95)+" ms","slowest endpoint"),
@@ -1964,7 +1991,7 @@ async function loadCosts(){
         data:{labels:days.map(d=>fmtDate(d)),datasets:[{label:"Spend",data:days.map(d=>byDay[d]),backgroundColor:th.accent,borderRadius:5,borderSkipped:false,maxBarThickness:40}]},
         options:{responsive:true,maintainAspectRatio:false,
           plugins:{legend:{display:false},tooltip:tooltipCfg("USD",{label:c=>" "+fmt(c.parsed.y,"USD")})},
-          scales:{y:{grid:{color:th.grid},ticks:{color:th.mut,maxTicksLimit:5,callback:v=>fmt(v,"USD")},border:{display:false}},
+          scales:{y:{grid:{color:th.grid},ticks:{color:th.mut,maxTicksLimit:5,callback:v=>fmt(v,"USD","USD")},border:{display:false}},
             x:{grid:{display:false},ticks:{color:th.mut,maxRotation:0,autoSkip:true,maxTicksLimit:8},border:{color:th.grid}}}}});
     }
     // Latency table
@@ -1972,7 +1999,7 @@ async function loadCosts(){
     $("costs-latency").innerHTML=lrows.length?`<table class="ctx-table" style="margin-top:8px"><thead><tr><th>Endpoint</th><th style="text-align:right">p50</th><th style="text-align:right">p95</th><th style="text-align:right">n</th></tr></thead><tbody>${lrows.map(([k,v])=>`<tr><td style="font-family:ui-monospace,monospace;font-size:12px">${esc(k)}</td><td style="text-align:right" class="nbi-num">${esc(Math.round(v.p50_ms))} ms</td><td style="text-align:right" class="nbi-num">${esc(Math.round(v.p95_ms))} ms</td><td style="text-align:right" class="nbi-num">${esc(v.n)}</td></tr>`).join("")}</tbody></table>`:'<div class="loading">No latency samples yet this session.</div>';
     // Endpoint spend table
     const rows=c.by_day||[];
-    $("costs-table").innerHTML=rows.length?`<table class="ctx-table"><thead><tr><th>Day</th><th>Endpoint</th><th style="text-align:right">Calls</th><th style="text-align:right">Prompt tok</th><th style="text-align:right">Completion tok</th><th style="text-align:right">Cost</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(fmtDate(r.day))}</td><td style="font-family:ui-monospace,monospace;font-size:12px">${esc(r.endpoint)}</td><td style="text-align:right" class="nbi-num">${esc(r.calls)}</td><td style="text-align:right" class="nbi-num">${esc(r.prompt_tokens||0)}</td><td style="text-align:right" class="nbi-num">${esc(r.completion_tokens||0)}</td><td style="text-align:right" class="nbi-num">${esc(fmt(r.cost_usd,"USD"))}</td></tr>`).join("")}</tbody></table>`:'<div class="loading">No spend recorded yet.</div>';
+    $("costs-table").innerHTML=rows.length?`<table class="ctx-table"><thead><tr><th>Day</th><th>Endpoint</th><th style="text-align:right">Calls</th><th style="text-align:right">Prompt tok</th><th style="text-align:right">Completion tok</th><th style="text-align:right">Cost</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(fmtDate(r.day))}</td><td style="font-family:ui-monospace,monospace;font-size:12px">${esc(r.endpoint)}</td><td style="text-align:right" class="nbi-num">${esc(r.calls)}</td><td style="text-align:right" class="nbi-num">${esc(r.prompt_tokens||0)}</td><td style="text-align:right" class="nbi-num">${esc(r.completion_tokens||0)}</td><td style="text-align:right" class="nbi-num">${esc(fmt(r.cost_usd,"USD","USD"))}</td></tr>`).join("")}</tbody></table>`:'<div class="loading">No spend recorded yet.</div>';
   }catch(e){if(done())$("costs-state").innerHTML=screenError(e,"loadCosts()");}
 }
 
@@ -2887,7 +2914,7 @@ async function loadKpiPicker(){
         <div class="kpi-checks"><label><input type="checkbox" class="k-include" checked aria-label="Include ${row}" onchange="updateKpiSelection()"> Track</label><label><input type="checkbox" class="k-select" aria-label="Select ${row} for bulk edit" onchange="updateKpiSelection()"> Edit together</label></div>
         <label class="kpi-field"><span class="kpi-field-label">Name</span><input class="k-name" aria-label="Display name for ${row}" value="${esc(humanizeKpiName(m.source_metric))}"><small class="kpi-source">Source: ${row}</small></label>
         <label class="kpi-field"><span class="kpi-field-label">Category</span><input class="k-cat" aria-label="Category for ${row}" value="${esc(s.category||"Uncategorized")}"></label>
-        <label class="kpi-field"><span class="kpi-field-label">Unit</span><select class="k-unit" aria-label="Unit for ${row}">${["USD","%","count"].map(u=>`<option ${u===(s.unit||"USD")?"selected":""}>${esc(u)}</option>`).join("")}</select></label>
+        <label class="kpi-field"><span class="kpi-field-label">Unit</span><select class="k-unit" aria-label="Unit for ${row}">${[["USD","Amount"],["%","Percent"],["count","Count"]].map(([u,l])=>`<option value="${u}" ${u===(s.unit||"USD")?"selected":""}>${l}</option>`).join("")}</select></label>
         <label class="kpi-field"><span class="kpi-field-label">Good direction</span><select class="k-dir" aria-label="Direction for ${row}"><option value="up" ${(s.direction_good||"up")==="up"?"selected":""}>Up is good</option><option value="down" ${s.direction_good==="down"?"selected":""}>Down is good</option></select></label></div>`;}).join(""):
       '<div class="banner info">No KPIs were found. Leave this import to delete the unfinished dataset, then upload a file with metric values.</div>';
   }catch(e){if(lastImport===current)$("kpi-rows").innerHTML=`<div class="banner err">${esc(e.message)} <button class="btn sm" onclick="loadKpiPicker()">Retry</button></div>`;}
@@ -2906,7 +2933,7 @@ async function confirmKpis(){
   const name=($("imp-name").value||"").trim(),domain=$("imp-domain").value;
   const newId=lastImport&&lastImport.datasetId;
   if(newId!=null&&(name||domain)){
-    try{await api(`/datasets/${newId}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name||undefined,domain})});}
+    try{await api(`/datasets/${newId}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name||undefined,domain,currency:$("imp-currency")?.value||undefined})});}
     catch(e){toast("Imported, but couldn't save the dataset name: "+e.message);}
   }
   const li=lastImport||{};resetImport();await loadPeriods();nav("dashboard");
