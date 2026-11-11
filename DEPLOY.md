@@ -136,3 +136,11 @@ it contains demo data. Callers of `purge_inactive_sandboxes` may also protect
 member IDs with `keep_user_ids`. Unscoped demo data is untouched. Workspace data,
 notification channels, connectors, staged uploads, dataset job history and
 report versions are deleted; the immutable audit log and user roles remain.
+
+## Schema changes
+
+1. Never edit an existing Postgres migration; add the next numbered file in app/migrations/pg/.
+2. Every new column must be added by that Postgres migration and declared in app/db.py's _SQLITE_SCHEMA.
+3. Also add a _SQLITE_MIGRATIONS entry so existing SQLite dev databases receive the same column.
+4. Keep defaults, nullability, keys and type families equivalent; use a SQLite rebuild migration when ALTER cannot express the change.
+5. Run tests/test_schema_parity.py locally and with TEST_DATABASE_URL in CI; backend drift or missing SQLite declarations/upgrades fails the test.
