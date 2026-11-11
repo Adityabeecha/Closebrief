@@ -1,7 +1,7 @@
 """Shared support for HTTP routes and application startup."""
 
 import time
-from collections import deque
+from collections import defaultdict, deque
 
 from app.context.store import ContextStore
 from app.datasets import (
@@ -76,3 +76,6 @@ def _active_domain_slug(conn) -> str:
 
 def _context_store(conn) -> ContextStore:
     return ContextStore(conn, shared_embedder(), shared_vector_store())
+
+
+_LATENCIES: dict[str, deque] = defaultdict(lambda: deque(maxlen=500))

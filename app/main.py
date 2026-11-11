@@ -1,33 +1,24 @@
-import hmac
 import logging
 import time
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app import audit, connectors, review, scheduling
-from app.auth import CurrentUser, authenticate
-from app.config import auth_active, check_production_auth, resolved_vector_backend, settings
+from app.auth import authenticate
+from app.config import auth_active, check_production_auth, settings
 from app.datasets import (
-    _scope_pred,
-    current_workspace,
     set_dataset_choice,
     set_demo_scope,
     set_workspace_scope,
 )
 from app.db import get_connection, init_db
 from app.demo import seed_demo
-from app.deps import shared_cache, shared_vector_store
-from app.generation.llm_client import get_llm_client
 from app.routes_common import (
-    _ALERT_LATENCIES,
+    _LATENCIES,
     _context_store,
-)
-from app.schemas import (
-    FeedbackIn,
 )
 from app.workspaces import resolve_workspace
 
@@ -112,9 +103,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Role-guard dependencies live in app.api so routers share one definition.
-from app.api import require_admin, require_read, require_write  # noqa: E402
-
 # Paths reachable without a token: the app shell, health, the public auth config
 # the frontend needs to boot the login form, and the API docs.
 # /app.js is the shell's own script (split out of index.html): a browser cannot
@@ -128,7 +116,6 @@ _OPEN_PATHS = {"/", "/app", "/theme.css", "/app.js", "/health", "/auth/config", 
 # That's correct on the single-process free tier, but if this ever runs multiple
 # workers they won't share state — the rate limit would be per-worker and a role
 # change could take up to the cache TTL to propagate. Move to Redis before scaling out.
-_LATENCIES: dict[str, deque] = defaultdict(lambda: deque(maxlen=500))
 _RATE_BUCKETS: dict[str, deque] = defaultdict(deque)
 _RATE_LIMIT_PER_MINUTE = 240  # generous: the UI's generate-all bursts stay well under
 # Bounds so request-spray (random paths / many IPs) can't grow these unboundedly.
@@ -274,316 +261,6 @@ async def _telemetry_middleware(request, call_next):
     return response
 
 
-def _percentile(values: list[float], pct: float) -> float:
-    ordered = sorted(values)
-    idx = min(len(ordered) - 1, int(round(pct / 100 * (len(ordered) - 1))))
-    return round(ordered[idx], 1)
-
-
-# Alert latency samples (ms from anomaly detection to delivery completion), so
-# the "< 30s from compute" success criterion is measurable in the Cost page.
-
-
-# Vendored frontend libraries served from our own origin (no CDN dependency, so
-# the app works offline / behind ad-blockers / strict networks).
-
-
-@app.get("/health")
-def health() -> dict:
-    """v1.1 Phase 4: report DB, vector store, and cache status, not just 200."""
-    checks: dict[str, dict] = {}
-
-    db_backend = "postgres" if settings.database_url else "sqlite"
-    try:
-        conn = get_connection()
-        try:
-            conn.execute("SELECT 1").fetchone()
-        finally:
-            conn.close()
-        checks["db"] = {"backend": db_backend, "ok": True}
-    except Exception as exc:
-        checks["db"] = {"backend": db_backend, "ok": False, "error": str(exc)[:120]}
-
-    try:
-        vs = shared_vector_store()
-        checks["vector_store"] = {
-            "backend": getattr(vs, "backend", "faiss"),
-            "ok": True,
-            "vectors": vs.size,
-        }
-    except Exception as exc:
-        checks["vector_store"] = {"backend": resolved_vector_backend(), "ok": False, "error": str(exc)[:120]}
-
-    cache = shared_cache()
-    checks["cache"] = {"backend": cache.backend, "ok": cache.ping()}
-
-    all_ok = all(c.get("ok") for c in checks.values())
-    return {
-        "status": "ok" if all_ok else "degraded",
-        "environment": settings.environment,
-        **checks,
-    }
-
-
-@app.get("/costs")
-def costs(_: CurrentUser = Depends(require_admin)) -> dict:
-    """v1.2: spend by day and endpoint (from llm_calls), request latency
-    p50/p95 (in-process ring buffer), and cache hit rate."""
-    conn = get_connection()
-    try:
-        if getattr(conn, "backend", "sqlite") == "postgres":
-            day_expr = "to_char(created_at, 'YYYY-MM-DD')"
-        else:
-            day_expr = "date(created_at)"
-        by_day = [
-            {**dict(r), "cost_usd": round(float(r["cost_usd"] or 0), 6)}
-            for r in conn.execute(
-                f"""SELECT {day_expr} AS day, endpoint,
-                        COUNT(*) AS calls,
-                        SUM(COALESCE(prompt_tokens,0)) AS prompt_tokens,
-                        SUM(COALESCE(completion_tokens,0)) AS completion_tokens,
-                        SUM(COALESCE(cost_usd,0)) AS cost_usd
-                    FROM llm_calls GROUP BY {day_expr}, endpoint
-                    ORDER BY day DESC, endpoint"""
-            ).fetchall()
-        ]
-        total = conn.execute(
-            "SELECT COUNT(*) AS calls, SUM(COALESCE(cost_usd,0)) AS cost_usd FROM llm_calls"
-        ).fetchone()
-    finally:
-        conn.close()
-
-    latency = {
-        path: {"p50_ms": _percentile(list(v), 50), "p95_ms": _percentile(list(v), 95), "n": len(v)}
-        for path, v in _LATENCIES.items()
-        if v and path in ("/generate-insight", "/digest", "/facts")
-    }
-    alert_samples = list(_ALERT_LATENCIES)
-    alert_latency = {
-        "p50_ms": _percentile(alert_samples, 50) if alert_samples else None,
-        "p95_ms": _percentile(alert_samples, 95) if alert_samples else None,
-        "n": len(alert_samples),
-        # The success criterion: anomaly alert reaches channels < 30s from compute.
-        "within_30s": (max(alert_samples) <= 30000) if alert_samples else None,
-    }
-    return {
-        "total_llm_calls": total["calls"] or 0,
-        "total_cost_usd": round(total["cost_usd"] or 0.0, 6),
-        "by_day": by_day,
-        "latency": latency,
-        "alert_latency": alert_latency,
-        "cache": shared_cache().stats(),
-    }
-
-
-# ---------- Flexible ingestion (Addendum v1.1: detect -> map -> pick) ----------
-
-
-# ---------- Scheduling: jobs, digest history, and the cron tick (v3.1) ----------
-
-
-@app.get("/schedules")
-def list_schedules(_: CurrentUser = Depends(require_admin)) -> list[dict]:
-    conn = get_connection()
-    try:
-        return scheduling.list_jobs(conn)
-    finally:
-        conn.close()
-
-
-@app.post("/schedules", status_code=201)
-def create_schedule(payload: dict, _: CurrentUser = Depends(require_admin)) -> dict:
-    kind = (payload.get("kind") or "").strip()
-    cadence = (payload.get("cadence") or "").strip()
-    if kind not in scheduling.KINDS:
-        raise HTTPException(status_code=422, detail=f"kind must be one of {scheduling.KINDS}")
-    if cadence not in scheduling.CADENCES:
-        raise HTTPException(status_code=422, detail=f"cadence must be one of {scheduling.CADENCES}")
-    conn = get_connection()
-    try:
-        if kind == "digest":
-            config = {"top_n": int(payload.get("top_n", 5))}
-        elif kind == "board_pack":
-            recipients = [e.strip() for e in (payload.get("recipients") or []) if e and e.strip()]
-            config = {"recipients": recipients}
-        else:
-            config = {}
-        job_id = scheduling.create_job(
-            conn, kind, cadence,
-            dataset_id=payload.get("dataset_id"),
-            config=config,
-            enabled=bool(payload.get("enabled", True)),
-        )
-        return {"id": job_id}
-    finally:
-        conn.close()
-
-
-@app.patch("/schedules/{job_id}")
-def update_schedule(job_id: int, payload: dict, _: CurrentUser = Depends(require_admin)) -> dict:
-    conn = get_connection()
-    try:
-        scheduling.set_job_enabled(conn, job_id, bool(payload.get("enabled", True)))
-        return {"id": job_id}
-    finally:
-        conn.close()
-
-
-@app.delete("/schedules/{job_id}", status_code=204)
-def remove_schedule(job_id: int, _: CurrentUser = Depends(require_admin)) -> None:
-    conn = get_connection()
-    try:
-        if not scheduling.delete_job(conn, job_id):
-            raise HTTPException(status_code=404, detail=f"Schedule {job_id} not found")
-    finally:
-        conn.close()
-
-
-@app.post("/internal/scheduler/tick")
-def scheduler_tick(request: Request) -> dict:
-    """Cron entry point. Gated by the shared SCHEDULER_TOKEN (no user JWT), so an
-    external pinger can drive scheduled digests + anomaly scans. Disabled (503)
-    until SCHEDULER_TOKEN is configured."""
-    if not settings.scheduler_token:
-        raise HTTPException(status_code=503, detail="Scheduling is not configured")
-    token = request.headers.get("x-scheduler-token", "")
-    if not hmac.compare_digest(token, settings.scheduler_token):
-        raise HTTPException(status_code=401, detail="Invalid scheduler token")
-    try:
-        llm_client = get_llm_client()
-    except Exception:  # noqa: BLE001 - anomaly scans still run deterministically without an LLM
-        llm_client = None
-    conn = get_connection()
-    try:
-        return scheduling.run_due_jobs(conn, llm_client=llm_client)
-    finally:
-        conn.close()
-
-
-@app.post("/feedback", status_code=201)
-def feedback_endpoint(fb: FeedbackIn, user: CurrentUser = Depends(require_write)) -> dict:
-    conn = get_connection()
-    try:
-        # Scope the report to the caller's universe (demo vs real) so feedback can
-        # never reach across it — the report's dataset must match the request scope.
-        exists = conn.execute(
-            f"""SELECT gr.narrative FROM generated_reports gr
-                JOIN metrics m ON m.id = gr.metric_id
-                JOIN datasets d ON d.id = m.dataset_id
-                WHERE gr.id = ? AND {_scope_pred('d')}""",
-            (fb.report_id,),
-        ).fetchone()
-        if not exists:
-            raise HTTPException(status_code=404, detail=f"Report {fb.report_id} not found")
-        cur = conn.execute(
-            """INSERT INTO feedback (report_id, action, edited_text, reason, user_id, user_email)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (fb.report_id, fb.action, fb.edited_text, fb.reason, user.id, user.email),
-        )
-        conn.commit()
-        # Version history (v5.0): an edit snapshots a new version. The first edit
-        # also captures the original (v1) so the diff chain starts from generation.
-        if fb.action == "edited" and fb.edited_text:
-            have = conn.execute(
-                "SELECT COUNT(*) AS n FROM report_versions WHERE report_id = ?", (fb.report_id,)
-            ).fetchone()["n"]
-            if have == 0 and exists["narrative"]:
-                review.add_version(conn, fb.report_id, exists["narrative"], None, "original")
-            review.add_version(conn, fb.report_id, fb.edited_text, user.id, user.email)
-        audit.record(conn, fb.action, "report", fb.report_id, actor_id=user.id,
-                     actor_email=user.email, summary={"edited": bool(fb.edited_text)})
-        return {"feedback_id": int(cur.lastrowid)}
-    finally:
-        conn.close()
-
-
-# ---------- Collaborative review (v5.0) ----------
-
-
-# ---------- Workspaces (v4.0 multi-tenancy) ----------
-
-
-# ---------- Live data connectors (v4.0) ----------
-
-
-@app.get("/connectors")
-def list_connectors_endpoint(_: CurrentUser = Depends(require_read)) -> list[dict]:
-    conn = get_connection()
-    try:
-        return connectors.list_connectors(conn, current_workspace())
-    finally:
-        conn.close()
-
-
-@app.post("/connectors", status_code=201)
-def create_connector_endpoint(payload: dict, user: CurrentUser = Depends(require_write)) -> dict:
-    kind = (payload.get("kind") or "").strip()
-    name = (payload.get("name") or "").strip()
-    if kind not in connectors.KINDS:
-        raise HTTPException(status_code=422, detail=f"kind must be one of {connectors.KINDS}")
-    if not name:
-        raise HTTPException(status_code=422, detail="name is required")
-    conn = get_connection()
-    try:
-        try:
-            cid = connectors.create_connector(
-                conn, kind, name, payload.get("config") or {},
-                payload.get("dataset_name") or name, current_workspace())
-        except ValueError as e:
-            raise HTTPException(status_code=422, detail=str(e)) from e
-        audit.record(conn, "create", "connector", cid, actor_id=user.id,
-                     actor_email=user.email, summary={"kind": kind, "name": name})
-        return {"id": cid}
-    finally:
-        conn.close()
-
-
-@app.post("/connectors/{connector_id}/sync")
-def sync_connector_endpoint(connector_id: int, user: CurrentUser = Depends(require_write)) -> dict:
-    conn = get_connection()
-    try:
-        try:
-            result = connectors.sync_connector(conn, connector_id, current_workspace())
-        except ValueError as e:
-            raise HTTPException(status_code=404, detail=str(e)) from e
-        audit.record(conn, "sync", "connector", connector_id, actor_id=user.id,
-                     actor_email=user.email, summary=result)
-        return result
-    finally:
-        conn.close()
-
-
-@app.delete("/connectors/{connector_id}", status_code=204)
-def delete_connector_endpoint(connector_id: int, _: CurrentUser = Depends(require_write)) -> None:
-    conn = get_connection()
-    try:
-        if not connectors.delete_connector(conn, connector_id, current_workspace()):
-            raise HTTPException(status_code=404, detail=f"Connector {connector_id} not found")
-    finally:
-        conn.close()
-
-
-@app.get("/audit")
-def audit_list(_: CurrentUser = Depends(require_read)) -> list[dict]:
-    """The active workspace's audit trail (recent first). Admin-relevant but
-    readable by any member for transparency."""
-    conn = get_connection()
-    try:
-        return audit.list_entries(conn, current_workspace())
-    finally:
-        conn.close()
-
-
-@app.get("/audit/verify")
-def audit_verify(_: CurrentUser = Depends(require_admin)) -> dict:
-    """Recompute the hash chain to prove the trail hasn't been tampered with."""
-    conn = get_connection()
-    try:
-        return audit.verify(conn, current_workspace())
-    finally:
-        conn.close()
-
-
 # ---- Feature routers split out of this module (app/routers/*) ----
 from app.routers import admin as _admin_router  # noqa: E402
 from app.routers import close as _close_router  # noqa: E402
@@ -594,6 +271,7 @@ from app.routers import generate as _generate_router
 from app.routers import ingest as _ingest_router
 from app.routers import insights as _insights_router  # noqa: E402
 from app.routers import notifications as _notif_router  # noqa: E402
+from app.routers import ops as _ops_router
 from app.routers import review as _review_router  # noqa: E402
 from app.routers import ui as _ui_router
 from app.routers import workspaces as _workspaces_router
@@ -605,6 +283,7 @@ app.include_router(_facts_router.router)
 app.include_router(_generate_router.router)
 app.include_router(_context_router.router)
 app.include_router(_workspaces_router.router)
+app.include_router(_ops_router.router)
 app.include_router(_admin_router.router)
 app.include_router(_notif_router.router)
 app.include_router(_review_router.router)
