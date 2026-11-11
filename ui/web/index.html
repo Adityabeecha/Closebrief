@@ -369,7 +369,7 @@
   .map td{padding:10px 13px;border-bottom:1px solid var(--bg3);font-size:13px;vertical-align:middle}
   .map select{padding:6px 9px;border:1px solid var(--b12);border-radius:8px;font-weight:600;font-size:12px}
   .map .samp{color:var(--mut2);font-size:12px;font-family:var(--font-mono)}
-  .kpi-grid{display:grid;grid-template-columns:minmax(105px,.8fr) minmax(0,1.4fr) minmax(0,1fr) minmax(0,.7fr) minmax(0,.8fr);gap:8px;align-items:center;background:var(--card);border:1px solid var(--b08);border-radius:8px;padding:10px 13px;margin-bottom:8px;font-size:13px}
+  .kpi-grid{display:grid;grid-template-columns:minmax(105px,.8fr) minmax(0,1.4fr) minmax(0,1fr) minmax(0,.7fr) minmax(0,.8fr);gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-top:0;padding:12px 16px;font-size:13px}
   .ws-choice{display:flex;align-items:center;gap:8px;min-width:0;flex:1;border:0;background:none;text-align:left;color:inherit;cursor:pointer;padding:0;font:inherit}
   .ws-choice svg{flex:none}
   .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
@@ -380,16 +380,21 @@
   .kpi-checks{display:flex;flex-direction:column;gap:6px}
   .kpi-checks label{display:flex;align-items:center;gap:6px;min-height:24px}
   .kpi-grid .kpi-checks input{width:24px;height:24px;padding:0;accent-color:var(--accent)}
-  .kpi-toolbar{background:var(--bg2);border:1px solid var(--b08);border-radius:8px;padding:12px;margin-bottom:12px}
-  .kpi-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;font-size:12px}
+  .kpi-toolbar{margin:4px 0 12px}
+  .kpi-sep{width:1px;height:16px;background:var(--line);margin:0 6px}
+  .kpi-bulk[hidden]{display:none!important}
+  .kpi-bulk{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px}
+  .kpi-actions{display:flex;align-items:center;gap:2px;flex-wrap:wrap;margin-bottom:10px;font-size:13px;color:var(--text-3)}
+  .kpi-actions>span:not(.kpi-sep){margin-right:4px}
   .kpi-bulk{display:flex;align-items:end;gap:10px;flex-wrap:wrap;margin-bottom:8px}
   .kpi-bulk .kpi-field{flex:1;min-width:120px}
-  .kpi-bulk input,.kpi-bulk select{width:100%;min-width:0;min-height:36px;padding:8px 10px;border:1px solid var(--b12);border-radius:8px;font:inherit}
+  .kpi-bulk input,.kpi-bulk select{width:100%;min-width:0;min-height:36px;padding:8px 10px;border:1px solid var(--line-strong);border-radius:var(--r-sm);background:var(--surface);color:var(--text);font:inherit}
   #kpi-bulk-selection,#kpi-selection{font-size:12px;color:var(--mut)}
   .kpi-skeleton{height:90px;border-radius:8px;background:var(--bg3);margin-bottom:10px}
   .kpi-finish{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:14px}
-  .kpi-grid.hdr{background:var(--bg2);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut)}
-  .kpi-grid select,.kpi-grid input{padding:6px 8px;border:1px solid var(--b12);border-radius:8px;width:100%;font-size:12px}
+  .kpi-grid.hdr{background:var(--surface-2);border-top:1px solid var(--line);border-radius:var(--r-md) var(--r-md) 0 0;font-weight:600;font-size:12px;color:var(--text-3);padding-top:10px;padding-bottom:10px}
+  .kpi-grid:last-child{border-radius:0 0 var(--r-md) var(--r-md)}
+  .kpi-grid select,.kpi-grid input:not([type=checkbox]){padding:7px 9px;border:1px solid var(--line-strong);border-radius:var(--r-sm);background:var(--surface);color:var(--text);width:100%;font-size:13px}
   #imp-suffix{width:min(160px,100%)}
   .suggest{font-size:12px;color:var(--accent);font-weight:700}
 
@@ -840,6 +845,7 @@
   .screen-state{padding:26px 20px;border:1px solid var(--b12);border-radius:12px;background:var(--card);color:var(--ink2);margin:12px 0;overflow-wrap:anywhere;text-align:left}
   .screen-state h2{font-family:var(--serif);font-size:20px;font-weight:600;color:var(--ink);margin:0 0 8px}
   .screen-state p{font-size:13px;line-height:1.6;margin:8px 0 16px;color:var(--mut)}
+  .panel .screen-state h2,.panel .screen-state h3{font-family:var(--serif);font-size:20px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--text);margin:0 0 8px}
   .screen-state.error{border-color:var(--red);background:var(--red-bg)}
   .screen-state .sk-line{max-width:280px;margin-bottom:14px}
   .screen-state .screen-wait{margin-bottom:0}
@@ -1390,23 +1396,23 @@
     <section id="v-analytics" class="wrap" style="display:none">
       <div class="head">
         <div>
-          <h1>Advanced Analytics</h1>
-          <div class="sub">Deterministic forecasting, what-if scenarios, custom KPIs &amp; cross-dataset signals. Numbers are computed exactly, never by the model.</div>
+          <h1>Analyze</h1>
+          <div class="sub">Forecasts, what-if scenarios, custom KPIs and links between datasets. Every number here is calculated, never written by AI.</div>
         </div>
       </div>
       <div id="analytics-state"></div>
       <div class="an-split" id="analytics-tools" style="display:none">
         <nav class="an-tools" aria-label="Analysis tools">
-          <button data-tool="0" aria-pressed="true" onclick="anTool(0)"><b>Forecast</b><small>Projection with a backtested error band</small></button>
-          <button data-tool="1" aria-pressed="false" onclick="anTool(1)"><b>What-if scenario</b><small>Price, volume and mix levers on the latest actual</small></button>
-          <button data-tool="2" aria-pressed="false" class="write-only" onclick="anTool(2)"><b>Custom KPI</b><small>A metric defined by formula over existing ones</small></button>
-          <button data-tool="3" aria-pressed="false" onclick="anTool(3)"><b>Cross-dataset signals</b><small>Strongest correlations, with lead and lag</small></button>
+          <button data-tool="0" aria-pressed="true" onclick="anTool(0)"><b>Forecast</b><small>The next few periods, and how accurate that usually is</small></button>
+          <button data-tool="1" aria-pressed="false" onclick="anTool(1)"><b>What-if scenario</b><small>Change price, volume or mix on the latest month</small></button>
+          <button data-tool="2" aria-pressed="false" class="write-only" onclick="anTool(2)"><b>Custom KPI</b><small>A new KPI built from a formula</small></button>
+          <button data-tool="3" aria-pressed="false" onclick="anTool(3)"><b>Links between datasets</b><small>Metrics that move together, and which moves first</small></button>
         </nav>
       <div class="an-grid an-one">
 
         <!-- Forecast -->
         <div class="panel">
-          <h2>Forecast</h2><div class="psub">Holt-Winters projection with a backtested error band (MAPE)</div>
+          <h2>Forecast</h2><div class="psub">Projects the next periods from trend and seasonality. Typical error is how far off this method was, on average, on past months.</div>
           <div class="an-ctl">
             <select id="fc-metric" aria-label="Metric to forecast" class="pill-btn"></select>
             <select id="fc-horizon" class="pill-btn" aria-label="Horizon">
@@ -1423,7 +1429,7 @@
 
         <!-- Scenario -->
         <div class="panel">
-          <h2>What-if scenario</h2><div class="psub">Apply price / volume / mix levers to the latest actual. Instant and deterministic.</div>
+          <h2>What-if scenario</h2><div class="psub">Change price, volume or mix and see the effect on the latest month straight away.</div>
           <div class="an-ctl"><select id="scn-metric" aria-label="Metric for the scenario" class="pill-btn" onchange="runScenario()"></select></div>
           <div class="lever" data-lever="price">
             <div class="lever-top"><span>Price</span><span class="lever-val" id="scn-price-v">0%</span></div>
@@ -1442,7 +1448,7 @@
 
         <!-- Custom KPI builder (create needs analyst/admin — hidden for executives & viewers) -->
         <div class="panel write-only">
-          <h2>Custom KPI</h2><div class="psub">Define a metric by formula over existing metrics. It flows through compute, so it gets full trend, variance &amp; narrative support</div>
+          <h2>Custom KPI</h2><div class="psub">Build a KPI from a formula over your existing metrics. It gets trends, variance and commentary like any other KPI.</div>
           <div class="fbuild">
             <div><label for="kb-name" class="lbl">Name</label><input id="kb-name" class="modal-field" placeholder="Gross Margin %"></div>
             <div><label for="kb-formula" class="lbl">Formula</label><input id="kb-formula" class="modal-field" placeholder="([Net Revenue] - [COGS]) / [Net Revenue] * 100"></div>
@@ -1463,7 +1469,7 @@
 
         <!-- Cross-domain signals -->
         <div class="panel">
-          <h2>Cross-dataset signals</h2><div class="psub">Strongest correlations between metrics in different datasets, with the best lead/lag</div>
+          <h2>Links between datasets</h2><div class="psub">Metrics in different datasets that move together, and how many months one runs ahead of the other.</div>
           <div id="xd-list"><div class="an-empty">Loading…</div></div>
         </div>
 
@@ -1582,17 +1588,17 @@
               <option value="ops" disabled>Operations (coming soon)</option>
             </select></div>
         </div>
-        <p style="font-size:13px;color:var(--mut);margin-bottom:12px">Pick the KPIs to track. <b>Direction</b> controls whether a decrease is green (costs) or red (revenue).</p>
+        <p class="imp-say">Pick the KPIs to track and check how each one is named. <b>Good direction</b> decides whether a fall shows as good (costs) or bad (revenue).</p>
         <div class="kpi-toolbar">
-          <div class="kpi-actions"><span>Include:</span><button class="btn sm" onclick="selectKpis(true)">Select all</button><button class="btn sm" onclick="selectKpis(false)">Select none</button></div>
-          <div class="kpi-actions"><span>Bulk edit rows:</span><button class="btn sm" onclick="selectKpiEdits(true)">Select all for edit</button><button class="btn sm" onclick="selectKpiEdits(false)">Clear selection</button></div>
-          <div class="kpi-bulk">
+          <div class="kpi-actions"><span>Track</span><button class="linkbtn" onclick="selectKpis(true)">All</button><button class="linkbtn" onclick="selectKpis(false)">None</button>
+            <span class="kpi-sep" aria-hidden="true"></span><span>Edit together</span><button class="linkbtn" onclick="selectKpiEdits(true)">All</button><button class="linkbtn" onclick="selectKpiEdits(false)">None</button></div>
+          <div class="kpi-bulk" id="kpi-bulk" hidden>
             <label class="kpi-field">Category<input id="kpi-bulk-category" aria-label="Category for selected rows" placeholder="Keep current"></label>
             <label class="kpi-field">Unit<select id="kpi-bulk-unit" aria-label="Unit for selected rows"><option value="">Keep current</option><option>USD</option><option>%</option><option>count</option></select></label>
             <label class="kpi-field">Direction<select id="kpi-bulk-direction" aria-label="Direction for selected rows"><option value="">Keep current</option><option value="up">Up is good</option><option value="down">Down is good</option></select></label>
-            <button class="btn" id="kpi-bulk-apply" disabled onclick="applyKpiBulk()">Apply to selected</button>
+            <button class="btn" id="kpi-bulk-apply" disabled onclick="applyKpiBulk()">Apply to these KPIs</button>
           </div>
-          <small id="kpi-bulk-selection" role="status">0 rows selected for bulk edit</small>
+          <small id="kpi-bulk-selection" role="status"></small>
         </div>
         <div id="kpi-rows"></div>
         <p id="kpi-selection" role="status">Loading KPI choices…</p>
