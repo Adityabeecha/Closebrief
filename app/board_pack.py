@@ -183,6 +183,17 @@ def collect_facts(conn, dataset_id: int, period: str, trend_window: int = 12) ->
     return out
 
 
+def _period_title(period: str) -> str:
+    """'2025-12' -> 'December 2025', '2025-Q4' -> 'Q4 2025', '2025' -> '2025'."""
+    m = re.fullmatch(r"(\d{4})-(0[1-9]|1[0-2])", period or "")
+    if m:
+        return f"{calendar.month_name[int(m.group(2))]} {m.group(1)}"
+    m = re.fullmatch(r"(\d{4})-Q([1-4])", period or "")
+    if m:
+        return f"Q{m.group(2)} {m.group(1)}"
+    return period or ""
+
+
 def build_board_pack_html(facts: list[dict], period: str, meta: dict | None = None) -> str:
     """Render the board pack. `facts` is the /facts payload (dicts with metric,
     value, unit, deltas, narrative, is_anomaly, chart_data). `meta` may carry
@@ -246,11 +257,11 @@ def build_board_pack_html(facts: list[dict], period: str, meta: dict | None = No
     return (
         "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">"
         f"<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
-        f"<title>Board Pack — {e(ds_name)} — {e(period)}</title>"
+        f"<title>Board Pack — {ds_name} — {e(period)}</title>"
         f"<style>{_assets_css()}{_CSS}</style></head><body><div class=\"pack\">"
         f'<div class="masthead"><div>'
         f'<div class="brand">{logo}<div>close<span>brief</span></div></div>'
-        f'<h1>{calendar.month_name[int(period[5:7])]} {period[:4]}<br>Board Pack</h1><p>Every figure computed in code and checked</p>'
+        f'<h1>{e(_period_title(period))}<br>Board Pack</h1><p>Every figure computed in code and checked</p>'
         f'<div class="sub">{ds_name} · {e(period)}</div></div>'
         f'<div class="meta">{ws_line}<div>Generated {generated}</div>'
         f'<div>Deterministic figures · grounded narratives</div></div></div>'

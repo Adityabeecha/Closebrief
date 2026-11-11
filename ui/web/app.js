@@ -821,6 +821,7 @@ function dataHealth(facts){
     noBudget:withData.filter(f=>!f.aggregated&&(!f.deltas||f.deltas.budget_var_pct==null)).map(f=>f.metric)};
 }
 function renderDataHealth(){
+  if(typeof dropStaleImport==="function")dropStaleImport();
   const el=$("data-health");if(!el)return;
   if(currentPlace.place||!currentPeriod){el.style.display="none";return;}
   const h=dataHealth(currentFacts),P=fmtPeriod(currentPeriod,"long");
@@ -1743,7 +1744,7 @@ async function activateDataset(id){
   if(!await leaveImport())return;
   closeSidebar();$("statrow").innerHTML="";$("cards").innerHTML=skeletonCards();  // brief loading state
   const prev=activeDatasetId;activeDatasetId=id;   // later requests carry the new dataset
-  try{await api(`/datasets/${id}/activate`,{method:"POST"});toast("Switched dataset");await loadPeriods();}
+  try{await api(`/datasets/${id}/activate`,{method:"POST"});dropStaleImport();toast("Switched dataset");await loadPeriods();}
   catch(e){activeDatasetId=prev;toast("Couldn't switch dataset: "+e.message);}
 }
 async function deleteDataset(id){
@@ -2689,6 +2690,13 @@ async function delContext(id){
 /* ---------- import ---------- */
 let upload=null,profile=null,lastImport=null,importMode="new";
 let importStep=1,kpiLoading=false,kpiSaving=false,importLeaving=false;
+// The dataset that was open when the current import started. Steps 1-2 save
+// nothing, so an import started elsewhere is cleared rather than shown in
+// another dataset's Data tab.
+let importStartedFor;
+function dropStaleImport(){
+  if(importStep!==1&&!hasUnfinishedImport()&&importStartedFor!==activeDatasetId)resetImport();
+}
 function setStep(n){importStep=n;for(let i=1;i<=3;i++){const el=$("st-"+i),done=i<n;
     el.className="step"+(done?" done":i===n?" active":"");
     if(i===n)el.setAttribute("aria-current","step");else el.removeAttribute("aria-current");
@@ -2729,6 +2737,7 @@ function resetImport(){
   // profile state would otherwise carry into the next attempt.
   upload=null;profile=null;lastImport=null;kpiLoading=false;
   const input=$("file-in");if(input)input.value="";
+  const month=$("map-month");if(month)month.value="";
   $("imp-result").innerHTML="";$("map-warnings").style.display="none";$("map-hint").style.display="none";
   $("sheet-pick").style.display="none";$("tpl-banner").style.display="none";
   $("imp-join-result").style.display="none";
@@ -2761,7 +2770,7 @@ async function uploadFile(file){
   const fd=new FormData();fd.append("file",file);
   $("imp-result").innerHTML='<div class="loading"><span class="spin"></span> Uploading &amp; profiling…</div>';
   try{
-    upload=await api("/ingest/upload",{method:"POST",body:fd});$("imp-result").innerHTML="";
+    upload=await api("/ingest/upload",{method:"POST",body:fd});$("imp-result").innerHTML="";importStartedFor=activeDatasetId;
     if(upload)upload.filename=file.name;   // for the dataset-name default
     if(upload.sheets&&upload.sheets.length>1){$("sheet-pick").style.display="";$("sheet-sel").innerHTML=upload.sheets.map(s=>`<option>${esc(s)}</option>`).join("");}
     else $("sheet-pick").style.display="none";
@@ -2803,12 +2812,30 @@ function renderMap(){
     }).join("")+`</tbody></table>`;
   updateMapHint();
 }
+// The month a dateless file covers: from the sheet itself (an as-of date), or
+// picked here when no column holds each row's month.
+function sheetPeriod(){return (profile&&profile.suggested_mapping&&profile.suggested_mapping.period_literal)||null;}
+function needsMonthPick(){
+  return $("layout-sel").value==="long"&&!sheetPeriod()&&![...document.querySelectorAll(".role")].some(s=>s.value==="period");
+}
+// What's still missing before these columns can be imported, said plainly; null when ready.
+function mappingProblem(){
+  if($("layout-sel").value!=="long")return null;
+  const roles=[...document.querySelectorAll(".role")].map(s=>s.value);
+  if(needsMonthPick()&&!$("map-month").value)return "This file has no date column. Set one column to “Month or date”, or choose the month the whole file covers.";
+  if(!roles.includes("measure"))return "Set the column with the amounts to track to “Actual amount”.";
+  return null;
+}
 function updateMapHint(){
+  const wrap=$("map-month-wrap");if(wrap)wrap.hidden=!needsMonthPick();
   const el=$("map-hint");if(!el||$("layout-sel").value!=="long")return el&&(el.style.display="none");
   const measures=[...document.querySelectorAll(".role")].filter(s=>s.value==="measure").map(s=>s.dataset.col);
   const metricCol=[...document.querySelectorAll(".role")].find(s=>s.value==="metric_label");
-  const periodLiteral=(profile&&profile.suggested_mapping&&profile.suggested_mapping.period_literal)||null;
+  const periodLiteral=sheetPeriod();
   const parts=[];
+  if(needsMonthPick())parts.push($("map-month").value
+    ?`<b>Every row will be filed under ${esc(fmtPeriod($("map-month").value,"long"))}</b>, since no column holds a date.`
+    :`<b>No column holds a date.</b> If the whole file covers one month, choose it under “Month these figures are for”. Otherwise set the right column to “Month or date”.`);
   if(periodLiteral)parts.push(`<b>Period ${esc(periodLiteral)} comes from this sheet</b> — it reports one as-of date, so every row is filed under it and no period column is needed.`);
   if(measures.length>1){
     const names=metricCol?`"${metricCol.dataset.col} ${measures[0]}"`:`"${measures[0]}"`;
@@ -2823,13 +2850,15 @@ function buildMapping(){
   const by=r=>Object.keys(roleOf).filter(c=>roleOf[c]===r);
   if(layout==="wide")return{layout:"wide",wide_period_cols:profile.wide_period_cols,wide_metric_col:by("metric_label")[0]||null,wide_value_label:by("metric_label").length?null:"Value",id_col:by("id")[0]||null,dimension_cols:by("dimension")};
   const measures=by("measure");
-  const periodLiteral=(profile.suggested_mapping&&profile.suggested_mapping.period_literal)||null;
+  const periodLiteral=sheetPeriod()||(needsMonthPick()&&$("map-month").value)||null;
   const base={layout:"long",period_col:periodLiteral?null:(by("period")[0]||null),period_literal:periodLiteral,metric_col:by("metric_label")[0]||null,budget_col:by("budget")[0]||null,id_col:by("id")[0]||null,dimension_cols:by("dimension")};
   if(measures.length>1)return{...base,value_cols:measures};
   return{...base,value_col:measures[0]||null,quantity_col:by("quantity")[0]||null,price_col:by("price")[0]||null};
 }
 async function confirmMapping(m){
   if(importMode==="join")return confirmJoinBudget();
+  const problem=m?null:mappingProblem();
+  if(problem){$("imp-result").innerHTML=`<div class="banner err">${warnIcon()}${esc(problem)}</div>`;updateMapHint();return;}
   const mapping=m||buildMapping();
   $("imp-result").innerHTML='<div class="loading"><span class="spin"></span> Normalizing &amp; computing…</div>';
   try{
@@ -2841,7 +2870,7 @@ async function confirmMapping(m){
     lastImport={rows:res.rows_normalized,metrics:res.metrics.length,periods:res.periods.length,datasetId:res.dataset_id??null};
     // The import made the new dataset active on the server; point this tab at it too,
     // so picking KPIs (POST /kpis) configures the new dataset, not the previous one.
-    if(res.dataset_id!=null)activeDatasetId=res.dataset_id;
+    if(res.dataset_id!=null){activeDatasetId=res.dataset_id;importStartedFor=res.dataset_id;}
     // Default the dataset name to the uploaded filename without its extension.
     const fn=(upload&&upload.filename)||"";
     $("imp-name").value=fn.replace(/\.[^.]+$/,"")||"Imported dataset";
