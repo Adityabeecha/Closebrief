@@ -33,7 +33,8 @@ def _spend(conn, user, amount, when=None):
         conn.execute("INSERT INTO llm_calls (endpoint, cost_usd, user_id, created_at) VALUES ('/x', ?, ?, ?)",
                      (amount, user.id, when))
     else:
-        conn.execute("INSERT INTO llm_calls (endpoint, cost_usd, user_id) VALUES ('/x', ?, ?)", (amount, user.id))
+        from app.services import log_llm_call
+        log_llm_call("/x", None, 0, 0, amount, 0, user.id)
     conn.commit()
 
 
@@ -76,3 +77,83 @@ def test_new_google_users_get_a_working_sandbox_by_default(monkeypatch):
     from app.config import Settings
     monkeypatch.delenv("GOOGLE_DEFAULT_ROLE", raising=False)
     assert Settings(_env_file=None).google_default_role == "analyst"
+
+
+def test_two_workspaces_contribute_to_global_cap_without_changing_user_cap(conn, monkeypatch):
+    from app import datasets, services, workspaces
+    from app.config import settings
+    from app.db import get_connection
+
+    first = workspaces.create_workspace(conn, "First", VISITOR.id)
+    second = workspaces.create_workspace(conn, "Second", OTHER.id)
+    scope = datasets._workspace_scope.set(None)
+    try:
+        for ws, user, amount in ((first, VISITOR, 0.30), (second, OTHER, 4.70)):
+            datasets.set_workspace_scope(ws)
+            services.log_llm_call("/offline-test", None, 0, 0, amount, 0, user.id)
+        datasets.set_workspace_scope(first)
+        scoped = get_connection()
+        try:
+            assert services._spent_today(scoped) == pytest.approx(5.0)
+            with pytest.raises(HTTPException) as error:
+                services.enforce_daily_caps(scoped, VISITOR)
+            assert error.value.status_code == 429 and "for this demo" in error.value.detail
+            monkeypatch.setattr(settings, "global_daily_ai_budget_usd", 0)
+            services.enforce_daily_caps(scoped, VISITOR)  # own spend is still only 0.30
+        finally:
+            scoped.close()
+        datasets.set_workspace_scope(second)
+        scoped = get_connection()
+        try:
+            with pytest.raises(HTTPException) as error:
+                services.enforce_daily_caps(scoped, OTHER)
+            assert error.value.status_code == 429 and "You've used" in error.value.detail
+        finally:
+            scoped.close()
+    finally:
+        datasets._workspace_scope.reset(scope)
+
+
+@pytest.mark.sqlite_only
+def test_daily_spend_and_call_insert_are_atomic(conn):
+    from app import services
+
+    conn.execute("CREATE TRIGGER reject_daily BEFORE INSERT ON ai_spend_daily "
+                 "BEGIN SELECT RAISE(ABORT, 'simulated total failure'); END")
+    conn.commit()
+    services.log_llm_call("/offline-test", None, 0, 0, 0.25, 0, VISITOR.id)
+    assert conn.execute("SELECT count(*) AS n FROM llm_calls").fetchone()["n"] == 0
+    assert services._spent_today(conn) == 0.0
+
+
+@pytest.mark.sqlite_only
+def test_sqlite_daily_spend_backfill_preserves_total_after_retention(tmp_path, monkeypatch):
+    import sqlite3
+
+    from app import db, services
+    from app.config import settings
+
+    monkeypatch.setattr(settings, "database_url", "")
+    monkeypatch.setattr(settings, "db_path", str(tmp_path / "before-global-totals.db"))
+    legacy = sqlite3.connect(settings.db_path)
+    legacy.executescript("""
+        CREATE TABLE llm_calls (id INTEGER PRIMARY KEY, endpoint TEXT, cost_usd REAL,
+                                created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+        INSERT INTO llm_calls (cost_usd) VALUES (2.5), (NULL);
+        INSERT INTO llm_calls (cost_usd, created_at) VALUES (99, '2000-01-01 00:00:00');
+    """)
+    legacy.close()
+    db.init_db()
+    conn = db.get_connection()
+    try:
+        assert services._spent_today(conn) == pytest.approx(2.5)
+        conn.execute("DELETE FROM llm_calls")
+        conn.commit()
+    finally:
+        conn.close()
+    db.init_db()
+    conn = db.get_connection()
+    try:
+        assert services._spent_today(conn) == pytest.approx(2.5)
+    finally:
+        conn.close()
