@@ -8,9 +8,9 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app import audit, connectors, review, scheduling, workspaces
-from app.auth import CurrentUser, authenticate, get_current_user
-from app.config import auth_active, check_production_auth, google_enabled, resolved_vector_backend, settings
+from app import audit, connectors, review, scheduling
+from app.auth import CurrentUser, authenticate
+from app.config import auth_active, check_production_auth, resolved_vector_backend, settings
 from app.datasets import (
     _scope_pred,
     current_workspace,
@@ -22,7 +22,6 @@ from app.db import get_connection, init_db
 from app.demo import seed_demo
 from app.deps import shared_cache, shared_vector_store
 from app.generation.llm_client import get_llm_client
-from app.google_auth import GoogleAuthError, sign_in_with_google
 from app.routes_common import (
     _ALERT_LATENCIES,
     _context_store,
@@ -275,54 +274,6 @@ async def _telemetry_middleware(request, call_next):
     return response
 
 
-@app.get("/auth/config")
-def auth_config() -> dict:
-    """Public: the frontend uses this to decide whether to show the login gate
-    and to initialize the Supabase JS client. Never returns secrets."""
-    return {
-        "auth_enabled": auth_active(),
-        "supabase_url": settings.supabase_url,
-        "supabase_anon_key": settings.supabase_anon_key,
-        # Public by design (a DSN is not a secret); enables frontend error tracking.
-        "sentry_dsn": settings.sentry_dsn,
-        "environment": settings.environment,
-        "demo_enabled": settings.demo_mode,
-        # Google sign-in (optional). The client id is designed to be embedded in
-        # a web page, so exposing it is safe. Empty + google_enabled false means
-        # the frontend never loads Google's script at all.
-        "google_client_id": settings.google_client_id if google_enabled() else "",
-        "google_enabled": google_enabled(),
-        "allow_guest": settings.allow_guest,
-        "auth_required": auth_active() and not settings.allow_guest,
-    }
-
-
-@app.post("/auth/google")
-def auth_google(payload: dict) -> dict:
-    """Exchange a Google ID token for a Closebrief session token.
-
-    Open (the caller has no token yet) and rate-limited by the telemetry
-    middleware. The credential is attacker-supplied: every failure path returns
-    401 with a readable reason, never a stack trace."""
-    if not google_enabled():
-        raise HTTPException(status_code=401,
-                            detail="Google sign-in is not configured on this server")
-    credential = (payload or {}).get("credential")
-    try:
-        result = sign_in_with_google(credential)
-    except GoogleAuthError as exc:
-        raise HTTPException(status_code=401, detail=str(exc)) from exc
-    conn = get_connection()
-    try:
-        audit.record(conn, "login", "user", result["email"], actor_email=result["email"],
-                     summary={"provider": "google", "role": result["role"]})
-    except Exception:  # noqa: BLE001 - audit must never block a successful login
-        pass
-    finally:
-        conn.close()
-    return result
-
-
 def _percentile(values: list[float], pct: float) -> float:
     ordered = sorted(values)
     idx = min(len(ordered) - 1, int(round(pct / 100 * (len(ordered) - 1))))
@@ -549,38 +500,7 @@ def feedback_endpoint(fb: FeedbackIn, user: CurrentUser = Depends(require_write)
 # ---------- Collaborative review (v5.0) ----------
 
 
-@app.get("/me")
-def whoami(request: Request, user: CurrentUser = Depends(get_current_user)) -> dict:
-    """The current user's identity, global role, and (if in a workspace) their
-    per-workspace role."""
-    return {"id": user.id, "email": user.email, "role": user.role,
-            "workspace_role": getattr(request.state, "ws_role", None)}
-
-
 # ---------- Workspaces (v4.0 multi-tenancy) ----------
-
-
-@app.get("/workspaces")
-def list_workspaces(request: Request, user: CurrentUser = Depends(get_current_user)) -> dict:
-    """The caller's workspaces + which one is active for this request."""
-    conn = get_connection()
-    try:
-        mine = workspaces.list_user_workspaces(conn, user.id)
-        active = getattr(request.state, "workspace_id", None)
-        return {"active_id": active, "workspaces": mine}
-    finally:
-        conn.close()
-
-
-@app.get("/workspaces/{ws_id}/members")
-def list_ws_members(ws_id: int, user: CurrentUser = Depends(get_current_user)) -> list[dict]:
-    conn = get_connection()
-    try:
-        if auth_active() and not workspaces.is_member(conn, ws_id, user.id):
-            raise HTTPException(status_code=404, detail="Workspace not found")
-        return workspaces.list_members(conn, ws_id)
-    finally:
-        conn.close()
 
 
 # ---------- Live data connectors (v4.0) ----------
@@ -676,6 +596,7 @@ from app.routers import insights as _insights_router  # noqa: E402
 from app.routers import notifications as _notif_router  # noqa: E402
 from app.routers import review as _review_router  # noqa: E402
 from app.routers import ui as _ui_router
+from app.routers import workspaces as _workspaces_router
 
 app.include_router(_ui_router.router)
 app.include_router(_datasets_router.router)
@@ -683,6 +604,7 @@ app.include_router(_ingest_router.router)
 app.include_router(_facts_router.router)
 app.include_router(_generate_router.router)
 app.include_router(_context_router.router)
+app.include_router(_workspaces_router.router)
 app.include_router(_admin_router.router)
 app.include_router(_notif_router.router)
 app.include_router(_review_router.router)
