@@ -1565,6 +1565,8 @@
           <div id="sheet-pick" style="display:none"><label for="sheet-sel" class="lbl">Sheet</label><select class="pill-btn" id="sheet-sel" onchange="loadSchema()"></select></div>
           <div><label for="layout-sel" class="lbl">Layout</label><select class="pill-btn" id="layout-sel" onchange="renderMap()">
             <option value="long">One row per month</option><option value="wide">Months across the top</option></select></div>
+          <div id="map-month-wrap" hidden><label for="map-month" class="lbl">Month these figures are for</label>
+            <input class="pill-btn" type="month" id="map-month" oninput="updateMapHint()"></div>
           <div id="imp-suffix-wrap" style="display:none"><label for="imp-suffix" class="lbl" title="If the target dataset's metrics are named '<name> spend_usd' rather than just '<name>', enter the suffix here so budgets attach to the right one.">Metric name suffix (optional)</label>
             <input class="pill-btn" id="imp-suffix" placeholder="e.g. spend_usd" style="width:160px"></div>
           <div style="flex:1"></div>

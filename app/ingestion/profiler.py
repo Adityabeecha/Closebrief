@@ -373,8 +373,8 @@ def suggest_mapping(profile: dict, sheet_period: str | None = None) -> dict:
             mapping["value_col"] = measure_candidates[0] if measure_candidates else None
         if not period_candidates:
             warnings.append(
-                "No column looks like a period/date — pick the one that "
-                "identifies which month or quarter each row belongs to."
+                "No column looks like a month or date. Pick the one that says which "
+                "month each row belongs to, or, if the whole file covers one month, choose that month."
             )
         if not measure_candidates:
             warnings.append(

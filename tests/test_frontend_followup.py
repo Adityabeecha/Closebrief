@@ -193,3 +193,23 @@ def test_powerpoint_export_keeps_failed_faithfulness_warning():
       class PptxGenJS{constructor(){this.ShapeType={line:'line',rect:'rect'}}
         addSlide(){return {addText(value){text.push(value)},addShape(){},addTable(){}}} async writeFile(){}}
     """, "await exportPPTX(); assert.match(text.join(' '),/numbers need review/i);")
+
+
+def test_unsaved_import_does_not_follow_you_to_another_dataset():
+    # An import left at "Map columns" on one dataset used to appear in the Data
+    # tab of whichever dataset was opened next. Steps 1-2 save nothing, so an
+    # import started under another dataset is cleared; one under this dataset stays.
+    run_js("let importStep=1,kpiLoading", "async function leaveImport(", """
+      let activeDatasetId=1,lastImport=null,resets=0;
+      const el=()=>({style:{},setAttribute(){},removeAttribute(){},innerHTML:''}),$=el;
+      const esc=String;
+      function resetImport(){resets++;lastImport=null;setStep(1);}
+    """, """
+      importStartedFor=1;setStep(2);
+      dropStaleImport();assert.equal(importStep,2,'same dataset keeps the import');
+      activeDatasetId=2;dropStaleImport();
+      assert.equal(importStep,1);assert.equal(resets,1);
+      // Step 3 has created a dataset: that's leaveImport's job (it asks first), not a silent reset.
+      importStartedFor=1;setStep(3);lastImport={datasetId:9};dropStaleImport();
+      assert.equal(importStep,3);assert.equal(resets,1);
+    """)
