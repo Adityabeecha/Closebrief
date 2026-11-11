@@ -232,7 +232,7 @@ def test_user_attribution_on_report(make_client):
 
     # Seed metric in active dataset so _persist_report resolves it.
     from app.db import get_connection
-    from app.main import _persist_report
+    from app.routers.generate import _persist_report
     from app.schemas import Deltas, InsightOutput
     conn = get_connection()
     try:

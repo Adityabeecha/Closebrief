@@ -5,6 +5,8 @@ analysts and admins approve. P5: approval resets when a re-import changes a figu
 import pytest
 from test_auth import _bearer, make_client  # noqa: F401  (make_client is a pytest fixture)
 
+import app.routers.generate as route_generate
+
 
 def _seed(approve_all: bool):
     from app.datasets import create_dataset
@@ -43,9 +45,8 @@ def test_digest_contains_only_approved_commentary(make_client):  # noqa: F811
 
 
 def test_send_is_refused_until_everything_is_approved(make_client, monkeypatch):  # noqa: F811
-    import app.main as main
     sent = []
-    monkeypatch.setattr(main, "_notify_async", lambda *a, **k: sent.append((a, k)))
+    monkeypatch.setattr(route_generate, "_notify_async", lambda *a, **k: sent.append((a, k)))
     client = make_client(auth_on=False)
     _seed(approve_all=False)
     r = client.post("/digest/send?period=2026-06")
@@ -55,9 +56,8 @@ def test_send_is_refused_until_everything_is_approved(make_client, monkeypatch):
 
 
 def test_send_records_the_run_and_notifies_once_ready(make_client, monkeypatch):  # noqa: F811
-    import app.main as main
     sent = []
-    monkeypatch.setattr(main, "_notify_async", lambda *a, **k: sent.append((a, k)))
+    monkeypatch.setattr(route_generate, "_notify_async", lambda *a, **k: sent.append((a, k)))
     client = make_client(auth_on=False)
     _seed(approve_all=True)
     r = client.post("/digest/send?period=2026-06")
