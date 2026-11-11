@@ -654,8 +654,13 @@ def init_db() -> None:
                 continue
             try:
                 conn.execute(stmt)
-            except sqlite3.OperationalError:
-                pass  # column already exists (fresh DBs get it from _SCHEMA)
+            except sqlite3.OperationalError as exc:
+                message = str(exc).lower()
+                is_alter = bool(re.match(r"\s*ALTER\b", stmt, re.I))
+                duplicate_column = is_alter and message.startswith("duplicate column name:")
+                existing_object = not is_alter and bool(re.fullmatch(r"(?:table|index|view|trigger) .+ already exists", message))
+                if not (duplicate_column or existing_object):
+                    raise
         _migrate_sqlite_uploads(conn)
         conn.commit()
     finally:
