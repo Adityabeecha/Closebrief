@@ -44,6 +44,7 @@ def test_figure_check_and_confidence_are_separate_statements():
 
 
 _NAV_SETUP = """
+  let granularity='month';
   const pushed=[];let hash='';
   const location={get hash(){return hash;}};
   const history={pushState:(_s,_t,h)=>{pushed.push(h);hash=h;},replaceState:(_s,_t,h)=>{hash=h;}};

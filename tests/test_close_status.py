@@ -170,3 +170,44 @@ def test_fallback_checklist_matches_server_actions(seeded):
         + "const routeHash=({tab,period})=>`#month=${period}&tab=${tab}`;",
         f"assert.deepEqual(overviewSteps({json.dumps(state)},null),{json.dumps(expected)});",
     )
+
+
+def test_quarter_and_year_roll_up_their_months(seeded):
+    """U3: a quarter or year close is scored from its months with the same rules."""
+    months = {m["period"]: m for m in seeded.get("/close/months").json()}
+    (q2,) = seeded.get("/close/months?granularity=quarter").json()
+    assert (q2["period"], q2["label"]) == ("2026-Q2", "Q2 2026")
+    for key in ("kpis", "drafted", "approved", "needs_reason", "exceptions"):
+        assert q2[key] == months["2026-05"][key] + months["2026-06"][key], key
+    # Only May has gone out, so the quarter isn't shared yet; half its share credit counts.
+    assert q2["status"] == "in_progress" and q2["shared_at"] is None
+    (y,) = seeded.get("/close/months?granularity=year").json()
+    assert (y["period"], y["label"], y["kpis"], y["progress"]) == ("2026", "2026", q2["kpis"], q2["progress"])
+    assert seeded.get("/close/months?granularity=week").status_code == 422
+
+
+def test_quarter_checklist_points_at_the_month_that_needs_each_step(seeded):
+    data = seeded.get("/close/status?period=2026-Q2").json()
+    assert data["label"] == "Q2 2026"
+    targets = {s["id"]: s["target"] for s in data["steps"]}
+    assert targets["review"] == "#month=2026-05&tab=kpis"     # May has nothing drafted yet
+    assert targets["share"] == "#month=2026-06&tab=digest"    # May is sent; June isn't
+    assert targets["import"] == "#month=2026-06&tab=data"     # done everywhere: the latest month
+    assert seeded.get("/close/status?period=2026-Q5").status_code == 422
+    assert seeded.get("/close/status?period=2024").status_code == 404
+
+
+def test_quarter_activity_includes_its_months(seeded):
+    from app import audit
+    from app.db import get_connection
+
+    conn = get_connection()
+    report = conn.execute(
+        "SELECT gr.id FROM generated_reports gr JOIN metrics m ON m.id=gr.metric_id "
+        "WHERE m.name='Revenue' AND gr.period='2026-06' ORDER BY gr.id DESC LIMIT 1"
+    ).fetchone()["id"]
+    audit.record(conn, "approved", "report", report, actor_email="reviewer@example.com")
+    conn.close()
+    texts = [a["text"] for a in seeded.get("/close/status?period=2026-Q2").json()["activity"]]
+    assert texts == ["Approved Revenue for 2026-06"]
+    assert seeded.get("/close/status?period=2026-Q1").status_code == 404
