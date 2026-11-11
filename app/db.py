@@ -526,13 +526,16 @@ class _PgCursor:
         return self._cur.fetchall()
 
 
+# table -> has a serial/identity id; see PostgresConnection._has_generated_id.
+_GENERATED_ID_CACHE: dict[str, bool] = {}
+
+
 class PostgresConnection:
     backend = "postgres"
 
     def __init__(self, raw, pool=None):
         self._raw = raw
         self._pool = pool
-        self._generated_id_tables: set[str] = set()
 
     def _set_rls_scope(self) -> None:
         """Set the app.workspace_id GUC from the current tenant scope so RLS
@@ -554,24 +557,30 @@ class PostgresConnection:
     def _has_generated_id(self, table: str) -> bool:
         """Derive lastrowid support from serial/identity columns in this DB.
 
-        Cache positive answers only: a table created or upgraded later on this
-        connection must never be hidden behind an earlier negative lookup.
+        Answers are cached for the process, yes and no alike: tables only change
+        when migrations run, and migrate() clears the cache. Caching only "yes"
+        cost every insert into an id-less table (each metric_values row of an
+        import) an extra catalogue round trip.
         """
-        if table in self._generated_id_tables:
-            return True
+        cached = _GENERATED_ID_CACHE.get(table)
+        if cached is not None:
+            return cached
         row = self._raw.execute(
-            """SELECT (a.attidentity <> '' OR
-                       strpos(COALESCE(pg_get_expr(d.adbin, d.adrelid), ''), 'nextval(') = 1) AS generated
-               FROM pg_attribute a
-               LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum
-               WHERE a.attrelid=to_regclass(%s) AND a.attname='id'
-                 AND a.attnum>0 AND NOT a.attisdropped
-                 AND a.atttypid IN ('int2'::regtype, 'int4'::regtype, 'int8'::regtype)""",
-            (table,),
+            """SELECT to_regclass(%s) IS NOT NULL AS present,
+                      EXISTS (SELECT 1 FROM pg_attribute a
+                              LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum
+                              WHERE a.attrelid=to_regclass(%s) AND a.attname='id'
+                                AND a.attnum>0 AND NOT a.attisdropped
+                                AND a.atttypid IN ('int2'::regtype, 'int4'::regtype, 'int8'::regtype)
+                                AND (a.attidentity <> '' OR
+                                     strpos(COALESCE(pg_get_expr(d.adbin, d.adrelid), ''), 'nextval(') = 1)
+                      ) AS generated""",
+            (table, table),
         ).fetchone()
         generated = bool(row and row["generated"])
-        if generated:
-            self._generated_id_tables.add(table)
+        # A table that doesn't exist yet isn't cached, so it's looked up again once created.
+        if row and row["present"]:
+            _GENERATED_ID_CACHE[table] = generated
         return generated
 
     def execute(self, sql: str, params=()):
@@ -733,6 +742,7 @@ _IDENTITY_TABLES = [
 
 
 def migrate(copy_data: bool = True, reindex: bool = True) -> None:
+    _GENERATED_ID_CACHE.clear()   # tables may gain or lose generated ids below
     import psycopg
     from psycopg.rows import dict_row
 

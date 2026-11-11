@@ -103,3 +103,34 @@ def test_every_integer_id_from_migrated_schema_supports_lastrowid(postgres_db):
     finally:
         postgres_db.execute("DROP TABLE identity_probe")
         postgres_db.commit()
+
+
+def test_generated_id_lookup_is_cached_for_tables_without_one(monkeypatch):
+    # Inserts into an id-less table (every metric_values row of an import) must
+    # not pay a catalogue round trip each time; migrate() is what resets it.
+    import app.db as db
+
+    class Raw:
+        def __init__(self):
+            self.catalogue = 0
+
+        def execute(self, sql, params=None):
+            raw = self
+
+            class Cur:
+                def fetchone(self):
+                    if "to_regclass" in sql:
+                        raw.catalogue += 1
+                        return {"present": True, "generated": False}
+                    return None
+            return Cur()
+
+    monkeypatch.setattr(db, "_GENERATED_ID_CACHE", {})
+    raw = Raw()
+    conn = db.PostgresConnection.__new__(db.PostgresConnection)
+    conn._raw = raw
+    for _ in range(3):
+        assert conn._has_generated_id("metric_values") is False
+    assert raw.catalogue == 1
+    db._GENERATED_ID_CACHE.clear()
+    assert conn._has_generated_id("metric_values") is False and raw.catalogue == 2
