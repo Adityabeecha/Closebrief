@@ -20,7 +20,7 @@ class _Stop(Exception):
 
 @pytest.fixture
 def seen(monkeypatch):
-    import app.main as main
+    from app.routers import generate as generate_router
 
     class _Conn:
         def close(self):
@@ -32,34 +32,34 @@ def seen(monkeypatch):
         got["context"] = context
         raise _Stop
 
-    monkeypatch.setattr(main, "get_connection", lambda: _Conn())
-    monkeypatch.setattr(main, "_load_computed_fact", lambda conn, m, p: FACT)
-    monkeypatch.setattr(main, "active_dataset_id", lambda conn: None)
-    monkeypatch.setattr(main, "retrieve", lambda *a, **k: [])
-    monkeypatch.setattr(main, "_context_store", lambda conn: None)
-    monkeypatch.setattr(main, "shared_embedder", lambda: None)
-    monkeypatch.setattr(main, "shared_vector_store", lambda: None)
-    monkeypatch.setattr(main, "_enforce_budget", lambda user=None: None)
-    monkeypatch.setattr(main, "get_llm_client", lambda: object())
-    monkeypatch.setattr(main, "generate_insight", _generate)
+    monkeypatch.setattr(generate_router, "get_connection", lambda: _Conn())
+    monkeypatch.setattr(generate_router, "_load_computed_fact", lambda conn, m, p: FACT)
+    monkeypatch.setattr(generate_router, "active_dataset_id", lambda conn: None)
+    monkeypatch.setattr(generate_router, "retrieve", lambda *a, **k: [])
+    monkeypatch.setattr(generate_router, "_context_store", lambda conn: None)
+    monkeypatch.setattr(generate_router, "shared_embedder", lambda: None)
+    monkeypatch.setattr(generate_router, "shared_vector_store", lambda: None)
+    monkeypatch.setattr(generate_router, "_enforce_budget", lambda user=None: None)
+    monkeypatch.setattr(generate_router, "get_llm_client", lambda: object())
+    monkeypatch.setattr(generate_router, "generate_insight", _generate)
     return got
 
 
-def _call(main):
+def _call(generate_router):
     req = GenerateInsightRequest(metric="Net Revenue", period="2025-03", context=[FAKE], force=True)
     with pytest.raises(_Stop):
-        main.generate_insight_endpoint(req, USER)
+        generate_router.generate_insight_endpoint(req, USER)
 
 
 def test_supplied_context_is_ignored_with_sign_in_on(monkeypatch, seen):
-    import app.main as main
-    monkeypatch.setattr(main, "auth_active", lambda: True)
-    _call(main)
+    from app.routers import generate as generate_router
+    monkeypatch.setattr(generate_router, "auth_active", lambda: True)
+    _call(generate_router)
     assert all(c.id != "ctx_999" for c in seen["context"])
 
 
 def test_supplied_context_still_works_for_local_development(monkeypatch, seen):
-    import app.main as main
-    monkeypatch.setattr(main, "auth_active", lambda: False)
-    _call(main)
+    from app.routers import generate as generate_router
+    monkeypatch.setattr(generate_router, "auth_active", lambda: False)
+    _call(generate_router)
     assert [c.id for c in seen["context"]] == ["ctx_999"]

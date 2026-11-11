@@ -6,6 +6,7 @@ import pytest
 from test_review_regressions import conn as _isolated_conn
 
 import app.routers.datasets as route_datasets
+import app.routers.generate as route_generate
 
 conn = _isolated_conn
 
@@ -63,9 +64,9 @@ def test_dataset_rename_cannot_cross_workspaces(conn):
 
 
 def test_empty_workspace_digest_history_does_not_expose_other_tenants(conn):
-    from app import datasets, main, scheduling
+    from app import datasets, scheduling
     datasets.set_workspace_scope(1)
     ds = datasets.create_dataset(conn, "Private")
     scheduling.record_digest_run(conn, ds, "2025-01", 1, [{"headline": "private"}], 0, "manual")
     datasets.set_workspace_scope(2)
-    assert main.digest_history() == []
+    assert route_generate.digest_history() == []
