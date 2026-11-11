@@ -1,16 +1,16 @@
+"""Shared support for HTTP routes and application startup."""
+
 import time
 from collections import deque
 
+from app.context.store import ContextStore
 from app.datasets import (
     active_dataset_id,
 )
 from app.db import get_connection
+from app.deps import shared_embedder, shared_vector_store
 from app.notifications.scheduler import deliver as notif_deliver
 from app.services import bg_executor as _bg_executor  # noqa: E402
-
-"""Shared support for HTTP routes and application startup."""
-
-
 
 
 def _notify_async(event: str, period: str | None = None, items: list[dict] | None = None,
@@ -72,3 +72,7 @@ def _active_domain_slug(conn) -> str:
         if row and row["domain"]:
             return row["domain"]
     return "fpa"
+
+
+def _context_store(conn) -> ContextStore:
+    return ContextStore(conn, shared_embedder(), shared_vector_store())
