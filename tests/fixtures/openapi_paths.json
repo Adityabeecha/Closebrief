@@ -1,0 +1,2974 @@
+{
+  "/admin/users": {
+    "get": {
+      "operationId": "admin_list_users_admin_users_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "title": "Response Admin List Users Admin Users Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "Admin List Users",
+      "tags": [
+        "admin"
+      ]
+    }
+  },
+  "/admin/users/{user_id}/role": {
+    "put": {
+      "operationId": "admin_set_role_admin_users__user_id__role_put",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "user_id",
+          "required": true,
+          "schema": {
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "role",
+          "required": true,
+          "schema": {
+            "title": "Role",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Admin Set Role Admin Users  User Id  Role Put",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Admin Set Role",
+      "tags": [
+        "admin"
+      ]
+    }
+  },
+  "/ask": {
+    "post": {
+      "description": "Grounded Q&A about one metric (v2.9). Same guarantees as narratives:\nnumbers only from computed facts, causes only from retrieved context, and\nan honest \"the data doesn't answer that\" when neither covers the question.",
+      "operationId": "ask_endpoint_ask_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Payload",
+              "type": "object"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Ask Endpoint Ask Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Ask Endpoint"
+    }
+  },
+  "/audit": {
+    "get": {
+      "description": "The active workspace's audit trail (recent first). Admin-relevant but\nreadable by any member for transparency.",
+      "operationId": "audit_list_audit_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "title": "Response Audit List Audit Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "Audit List"
+    }
+  },
+  "/audit/verify": {
+    "get": {
+      "description": "Recompute the hash chain to prove the trail hasn't been tampered with.",
+      "operationId": "audit_verify_audit_verify_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Audit Verify Audit Verify Get",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "Audit Verify"
+    }
+  },
+  "/auth/config": {
+    "get": {
+      "description": "Public: the frontend uses this to decide whether to show the login gate\nand to initialize the Supabase JS client. Never returns secrets.",
+      "operationId": "auth_config_auth_config_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Auth Config Auth Config Get",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "Auth Config"
+    }
+  },
+  "/auth/google": {
+    "post": {
+      "description": "Exchange a Google ID token for a Closebrief session token.\n\nOpen (the caller has no token yet) and rate-limited by the telemetry\nmiddleware. The credential is attacker-supplied: every failure path returns\n401 with a readable reason, never a stack trace.",
+      "operationId": "auth_google_auth_google_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Payload",
+              "type": "object"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Auth Google Auth Google Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Auth Google"
+    }
+  },
+  "/board-pack": {
+    "get": {
+      "description": "A self-contained, print-ready HTML board pack for the active dataset and\nperiod \u2014 the same KPIs/deltas/narratives as the dashboard, assembled into one\nshareable document (save-as-PDF or email). Deterministic; no LLM call here.",
+      "operationId": "board_pack_board_pack_get",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "period",
+          "required": true,
+          "schema": {
+            "title": "Period",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Board Pack"
+    }
+  },
+  "/close/months": {
+    "get": {
+      "operationId": "months_close_months_get",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "granularity",
+          "required": false,
+          "schema": {
+            "default": "month",
+            "title": "Granularity",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Months",
+      "tags": [
+        "close"
+      ]
+    }
+  },
+  "/close/status": {
+    "get": {
+      "operationId": "status_close_status_get",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "period",
+          "required": true,
+          "schema": {
+            "title": "Period",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Status",
+      "tags": [
+        "close"
+      ]
+    }
+  },
+  "/compare": {
+    "get": {
+      "description": "Side-by-side comparison of one metric across two periods, including the\ndelta-of-deltas (whether the MoM movement accelerated or decelerated).",
+      "operationId": "compare_endpoint_compare_get",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "metric",
+          "required": true,
+          "schema": {
+            "title": "Metric",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "period_a",
+          "required": true,
+          "schema": {
+            "title": "Period A",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "period_b",
+          "required": true,
+          "schema": {
+            "title": "Period B",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Compare Endpoint Compare Get",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Compare Endpoint"
+    }
+  },
+  "/compute": {
+    "post": {
+      "operationId": "compute_compute_post",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Compute Compute Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "Compute"
+    }
+  },
+  "/connectors": {
+    "get": {
+      "operationId": "list_connectors_endpoint_connectors_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "title": "Response List Connectors Endpoint Connectors Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "List Connectors Endpoint"
+    },
+    "post": {
+      "operationId": "create_connector_endpoint_connectors_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Payload",
+              "type": "object"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "201": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Create Connector Endpoint Connectors Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Create Connector Endpoint"
+    }
+  },
+  "/connectors/{connector_id}": {
+    "delete": {
+      "operationId": "delete_connector_endpoint_connectors__connector_id__delete",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "connector_id",
+          "required": true,
+          "schema": {
+            "title": "Connector Id",
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "204": {
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Delete Connector Endpoint"
+    }
+  },
+  "/connectors/{connector_id}/sync": {
+    "post": {
+      "operationId": "sync_connector_endpoint_connectors__connector_id__sync_post",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "connector_id",
+          "required": true,
+          "schema": {
+            "title": "Connector Id",
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Sync Connector Endpoint Connectors  Connector Id  Sync Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Sync Connector Endpoint"
+    }
+  },
+  "/context": {
+    "get": {
+      "operationId": "list_context_context_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/ContextDoc"
+                },
+                "title": "Response List Context Context Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "List Context"
+    },
+    "post": {
+      "operationId": "add_context_context_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ContextDocIn"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "201": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContextDoc"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Add Context"
+    }
+  },
+  "/context/conflicts": {
+    "get": {
+      "description": "Pairs of context documents citing different figures about the same\nthing (mockup's conflict banner). Deterministic heuristic, no LLM.",
+      "operationId": "context_conflicts_context_conflicts_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "title": "Response Context Conflicts Context Conflicts Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "Context Conflicts"
+    }
+  },
+  "/context/{doc_id}": {
+    "delete": {
+      "operationId": "delete_context_context__doc_id__delete",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "doc_id",
+          "required": true,
+          "schema": {
+            "title": "Doc Id",
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "204": {
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Delete Context"
+    },
+    "put": {
+      "operationId": "update_context_context__doc_id__put",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "doc_id",
+          "required": true,
+          "schema": {
+            "title": "Doc Id",
+            "type": "integer"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ContextDocIn"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContextDoc"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Update Context"
+    }
+  },
+  "/correlations": {
+    "get": {
+      "description": "Metric pairs that move together over time (|Pearson r| >= 0.7) in the\nactive dataset. If `metric` is given, only pairs involving it (phrased with\nthat metric first).",
+      "operationId": "correlations_endpoint_correlations_get",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "period",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period"
+          }
+        },
+        {
+          "in": "query",
+          "name": "metric",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metric"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "title": "Response Correlations Endpoint Correlations Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Correlations Endpoint"
+    }
+  },
+  "/costs": {
+    "get": {
+      "description": "v1.2: spend by day and endpoint (from llm_calls), request latency\np50/p95 (in-process ring buffer), and cache hit rate.",
+      "operationId": "costs_costs_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Costs Costs Get",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "Costs"
+    }
+  },
+  "/datasets": {
+    "get": {
+      "description": "All datasets + which is active, for the dashboard's dataset switcher.",
+      "operationId": "get_datasets_datasets_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Get Datasets Datasets Get",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "Get Datasets"
+    }
+  },
+  "/datasets/{dataset_id}": {
+    "delete": {
+      "operationId": "remove_dataset_datasets__dataset_id__delete",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "dataset_id",
+          "required": true,
+          "schema": {
+            "title": "Dataset Id",
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "204": {
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Remove Dataset"
+    },
+    "patch": {
+      "description": "Rename a dataset and/or set its analytics domain or currency.",
+      "operationId": "rename_dataset_datasets__dataset_id__patch",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "dataset_id",
+          "required": true,
+          "schema": {
+            "title": "Dataset Id",
+            "type": "integer"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Payload",
+              "type": "object"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Rename Dataset Datasets  Dataset Id  Patch",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Rename Dataset"
+    }
+  },
+  "/datasets/{dataset_id}/activate": {
+    "post": {
+      "operationId": "activate_dataset_datasets__dataset_id__activate_post",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "dataset_id",
+          "required": true,
+          "schema": {
+            "title": "Dataset Id",
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Activate Dataset Datasets  Dataset Id  Activate Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Activate Dataset"
+    }
+  },
+  "/digest": {
+    "get": {
+      "description": "The close's digest as leadership would receive it: approved commentary\nonly, plus how many KPIs are still waiting and whether it was already sent.\nDeterministic and free (no AI call).",
+      "operationId": "digest_preview_digest_get",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "period",
+          "required": true,
+          "schema": {
+            "title": "Period",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "top_n",
+          "required": false,
+          "schema": {
+            "default": 5,
+            "title": "Top N",
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DigestOutput"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Digest Preview"
+    }
+  },
+  "/digest/send": {
+    "post": {
+      "description": "Send the close's digest to the configured channels. Refused until every\nKPI in the close is approved, so leadership never receives unreviewed text.",
+      "operationId": "digest_send_digest_send_post",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "period",
+          "required": true,
+          "schema": {
+            "title": "Period",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "top_n",
+          "required": false,
+          "schema": {
+            "default": 5,
+            "title": "Top N",
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DigestOutput"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Digest Send"
+    }
+  },
+  "/digests/history": {
+    "get": {
+      "operationId": "digest_history_digests_history_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "title": "Response Digest History Digests History Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "Digest History"
+    }
+  },
+  "/domain": {
+    "get": {
+      "description": "The active dataset's domain (defaults to fpa).",
+      "operationId": "get_active_domain_domain_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Get Active Domain Domain Get",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "Get Active Domain"
+    },
+    "put": {
+      "operationId": "set_active_domain_domain_put",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Payload",
+              "type": "object"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Set Active Domain Domain Put",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Set Active Domain"
+    }
+  },
+  "/domains": {
+    "get": {
+      "description": "Available analytics domains (v2.1 foundation).",
+      "operationId": "list_domains_endpoint_domains_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "title": "Response List Domains Endpoint Domains Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "List Domains Endpoint"
+    }
+  },
+  "/facts": {
+    "get": {
+      "description": "Dashboard cards for the ACTIVE dataset. Driven by the user's KPI\nselection (kpi_configs): shows exactly the selected KPIs, each LEFT JOINed\nto its computed fact for the period \u2014 so a selected KPI with no data for\nthis period still renders an empty card (never silently hidden). If no KPIs\nwere selected yet, falls back to every metric in the active dataset.\n\ngranularity=quarter|year aggregates monthly values per each KPI's rule.",
+      "operationId": "list_facts_facts_get",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "period",
+          "required": true,
+          "schema": {
+            "title": "Period",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "granularity",
+          "required": false,
+          "schema": {
+            "default": "month",
+            "title": "Granularity",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "include_charts",
+          "required": false,
+          "schema": {
+            "default": true,
+            "title": "Include Charts",
+            "type": "boolean"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "title": "Response List Facts Facts Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "List Facts"
+    }
+  },
+  "/feedback": {
+    "post": {
+      "operationId": "feedback_endpoint_feedback_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/FeedbackIn"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "201": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Feedback Endpoint Feedback Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Feedback Endpoint"
+    }
+  },
+  "/forecast": {
+    "get": {
+      "description": "Deterministic forward projection for a metric (v5.0). Holt-Winters/linear,\nwith a backtest MAPE. The LLM is not involved.",
+      "operationId": "get_forecast_forecast_get",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "metric",
+          "required": true,
+          "schema": {
+            "title": "Metric",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "horizon",
+          "required": false,
+          "schema": {
+            "default": 3,
+            "title": "Horizon",
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Get Forecast Forecast Get",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Get Forecast",
+      "tags": [
+        "insights"
+      ]
+    }
+  },
+  "/forecast/narrative": {
+    "post": {
+      "description": "Forward-looking commentary phrased by the LLM around the deterministic\nforecast numbers.",
+      "operationId": "forecast_narrative_forecast_narrative_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Payload",
+              "type": "object"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Forecast Narrative Forecast Narrative Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Forecast Narrative",
+      "tags": [
+        "insights"
+      ]
+    }
+  },
+  "/funnel": {
+    "get": {
+      "description": "Stage-over-stage funnel for the active dataset, if its domain defines one\n(Phase 1). Deterministic \u2014 the LLM is not involved.",
+      "operationId": "get_funnel_funnel_get",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "period",
+          "required": true,
+          "schema": {
+            "title": "Period",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Get Funnel Funnel Get",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Get Funnel"
+    }
+  },
+  "/funnel/narrative": {
+    "post": {
+      "description": "A grounded prose summary of the funnel \u2014 numbers computed here, phrased by\nthe LLM under the funnel prompt.",
+      "operationId": "funnel_narrative_funnel_narrative_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Payload",
+              "type": "object"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Funnel Narrative Funnel Narrative Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Funnel Narrative"
+    }
+  },
+  "/generate-insight": {
+    "post": {
+      "operationId": "generate_insight_endpoint_generate_insight_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/GenerateInsightRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InsightOutput"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Generate Insight Endpoint"
+    }
+  },
+  "/health": {
+    "get": {
+      "description": "v1.1 Phase 4: report DB, vector store, and cache status, not just 200.",
+      "operationId": "health_health_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Health Health Get",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "Health"
+    }
+  },
+  "/ingest": {
+    "post": {
+      "description": "Shortcut ingest for files already in the canonical format\n(period, metric, value, budget). Arbitrary layouts go through the\nflexible flow: /ingest/upload -> schema -> mapping.\n\nSync def (not async): the parse/compute below is blocking CPU/IO work, so\nFastAPI runs it in a threadpool instead of stalling the event loop.",
+      "operationId": "ingest_ingest_post",
+      "requestBody": {
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "$ref": "#/components/schemas/Body_ingest_ingest_post"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngestSummary"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Ingest"
+    }
+  },
+  "/ingest/upload": {
+    "post": {
+      "operationId": "ingest_upload_ingest_upload_post",
+      "requestBody": {
+        "content": {
+          "multipart/form-data": {
+            "schema": {
+              "$ref": "#/components/schemas/Body_ingest_upload_ingest_upload_post"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Ingest Upload Ingest Upload Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Ingest Upload"
+    }
+  },
+  "/ingest/{upload_id}/join-budget": {
+    "post": {
+      "description": "Attach a budget-only upload to an EXISTING dataset's metrics, instead of\ncreating a new dataset. A budget file is a correction/addition to data\nthat already exists \u2014 its numbers fill in metric_values.budget on rows\nthat already have an actual, they never create a new metric.\n\nBody: {\"target_dataset_id\": int, \"mapping\": <MappingSpec>,\n       \"metric_suffix\": str | null}. metric_suffix handles the funnel\nshape where actuals are \"<label> <measure>\" (e.g. \"Paid Search spend_usd\")\nbut the budget file's metric column is just the label (\"Paid Search\") \u2014\nit's appended before matching. Returns a report (matched / near-miss /\nunmatched) rather than a bare success, since a silent partial join would\nbe worse than the hard error this replaces.",
+      "operationId": "ingest_join_budget_ingest__upload_id__join_budget_post",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "upload_id",
+          "required": true,
+          "schema": {
+            "title": "Upload Id",
+            "type": "string"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Payload",
+              "type": "object"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Ingest Join Budget Ingest  Upload Id  Join Budget Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Ingest Join Budget"
+    }
+  },
+  "/ingest/{upload_id}/mapping": {
+    "post": {
+      "operationId": "ingest_mapping_ingest__upload_id__mapping_post",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "upload_id",
+          "required": true,
+          "schema": {
+            "title": "Upload Id",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "save_template",
+          "required": false,
+          "schema": {
+            "default": false,
+            "title": "Save Template",
+            "type": "boolean"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/MappingSpec"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Ingest Mapping Ingest  Upload Id  Mapping Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Ingest Mapping"
+    }
+  },
+  "/ingest/{upload_id}/metrics": {
+    "get": {
+      "description": "Distinct metric names in this upload's normalized data, each with a\nKPI-library suggestion for auto-filling category/unit/direction.",
+      "operationId": "ingest_metrics_ingest__upload_id__metrics_get",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "upload_id",
+          "required": true,
+          "schema": {
+            "title": "Upload Id",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "title": "Response Ingest Metrics Ingest  Upload Id  Metrics Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Ingest Metrics"
+    }
+  },
+  "/ingest/{upload_id}/schema": {
+    "get": {
+      "operationId": "ingest_schema_ingest__upload_id__schema_get",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "upload_id",
+          "required": true,
+          "schema": {
+            "title": "Upload Id",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "sheet",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sheet"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Ingest Schema Ingest  Upload Id  Schema Get",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Ingest Schema"
+    }
+  },
+  "/insights/cross-domain": {
+    "get": {
+      "description": "Strong correlations between metrics in different datasets of the workspace\n(e.g. Marketing spend \u2192 FP&A revenue), with the best lead/lag. Deterministic.",
+      "operationId": "cross_domain_endpoint_insights_cross_domain_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "title": "Response Cross Domain Endpoint Insights Cross Domain Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "Cross Domain Endpoint",
+      "tags": [
+        "insights"
+      ]
+    }
+  },
+  "/insights/root-cause": {
+    "get": {
+      "description": "Deterministic root-cause decomposition of a metric's move in a period:\nz-score vs its own baseline, price/volume/mix attribution, correlated movers,\nand trend streak. No LLM \u2014 every number is computed.",
+      "operationId": "root_cause_insights_root_cause_get",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "metric",
+          "required": true,
+          "schema": {
+            "title": "Metric",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "period",
+          "required": true,
+          "schema": {
+            "title": "Period",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Root Cause Insights Root Cause Get",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Root Cause",
+      "tags": [
+        "insights"
+      ]
+    }
+  },
+  "/insights/root-cause/narrative": {
+    "post": {
+      "description": "Grounded 'why did it move' commentary phrased by the LLM around the\ndeterministic root-cause decomposition.",
+      "operationId": "root_cause_narrative_insights_root_cause_narrative_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Payload",
+              "type": "object"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Root Cause Narrative Insights Root Cause Narrative Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Root Cause Narrative",
+      "tags": [
+        "insights"
+      ]
+    }
+  },
+  "/internal/scheduler/tick": {
+    "post": {
+      "description": "Cron entry point. Gated by the shared SCHEDULER_TOKEN (no user JWT), so an\nexternal pinger can drive scheduled digests + anomaly scans. Disabled (503)\nuntil SCHEDULER_TOKEN is configured.",
+      "operationId": "scheduler_tick_internal_scheduler_tick_post",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Scheduler Tick Internal Scheduler Tick Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "Scheduler Tick"
+    }
+  },
+  "/kpis": {
+    "get": {
+      "description": "Current KPI selections for the active dataset (drives the board), plus\nthe dataset's metrics that are NOT selected (so the UI can add them back).",
+      "operationId": "list_kpis_kpis_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response List Kpis Kpis Get",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "List Kpis"
+    },
+    "post": {
+      "description": "Persist KPI selections and apply them to the metrics table so compute,\ngeneration, and the UI all see display name, category, unit, and\ndirection_good (down = lower is better, e.g. OpEx).",
+      "operationId": "configure_kpis_kpis_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/KPIConfigPayload"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Configure Kpis Kpis Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Configure Kpis"
+    }
+  },
+  "/kpis/derived": {
+    "post": {
+      "description": "v5.0 Custom KPI Builder: define a derived metric by formula, e.g.\n{\"name\": \"Gross Margin %\", \"formula\": \"([Net Revenue]-[COGS])/[Net Revenue]*100\"}.\nThe value is computed deterministically per period, so it gets full delta/\ntrend/anomaly + narrative support and passes the faithfulness guard.",
+      "operationId": "create_derived_kpi_kpis_derived_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Payload",
+              "type": "object"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "201": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Create Derived Kpi Kpis Derived Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Create Derived Kpi"
+    }
+  },
+  "/kpis/library": {
+    "get": {
+      "description": "KPI suggestions. Defaults to FP&A; pass ?domain= for a domain's library.",
+      "operationId": "kpi_library_kpis_library_get",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "domain",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Domain"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "title": "Response Kpi Library Kpis Library Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Kpi Library"
+    }
+  },
+  "/kpis/{kpi_id}": {
+    "delete": {
+      "description": "Remove one KPI from the board (its data stays; it's just deselected).",
+      "operationId": "delete_kpi_kpis__kpi_id__delete",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "kpi_id",
+          "required": true,
+          "schema": {
+            "title": "Kpi Id",
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "204": {
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Delete Kpi"
+    }
+  },
+  "/me": {
+    "get": {
+      "description": "The current user's identity, global role, and (if in a workspace) their\nper-workspace role.",
+      "operationId": "whoami_me_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Whoami Me Get",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "Whoami"
+    }
+  },
+  "/notifications/configs": {
+    "get": {
+      "operationId": "list_notification_configs_notifications_configs_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "title": "Response List Notification Configs Notifications Configs Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "List Notification Configs",
+      "tags": [
+        "notifications"
+      ]
+    },
+    "post": {
+      "operationId": "create_notification_config_notifications_configs_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Payload",
+              "type": "object"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "201": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Create Notification Config Notifications Configs Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Create Notification Config",
+      "tags": [
+        "notifications"
+      ]
+    }
+  },
+  "/notifications/test/{config_id}": {
+    "post": {
+      "description": "Send a sample anomaly alert through one config to verify delivery.",
+      "operationId": "test_notification_config_notifications_test__config_id__post",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "config_id",
+          "required": true,
+          "schema": {
+            "title": "Config Id",
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Test Notification Config Notifications Test  Config Id  Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Test Notification Config",
+      "tags": [
+        "notifications"
+      ]
+    }
+  },
+  "/notifications/{config_id}": {
+    "delete": {
+      "operationId": "delete_notification_config_notifications__config_id__delete",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "config_id",
+          "required": true,
+          "schema": {
+            "title": "Config Id",
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "204": {
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Delete Notification Config",
+      "tags": [
+        "notifications"
+      ]
+    },
+    "put": {
+      "operationId": "update_notification_config_notifications__config_id__put",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "config_id",
+          "required": true,
+          "schema": {
+            "title": "Config Id",
+            "type": "integer"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Payload",
+              "type": "object"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Update Notification Config Notifications  Config Id  Put",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Update Notification Config",
+      "tags": [
+        "notifications"
+      ]
+    }
+  },
+  "/periods": {
+    "get": {
+      "description": "Period keys the active dataset covers at the given granularity\n(month=YYYY-MM, quarter=YYYY-Qn, year=YYYY), oldest to newest.",
+      "operationId": "list_periods_periods_get",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "granularity",
+          "required": false,
+          "schema": {
+            "default": "month",
+            "title": "Granularity",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "type": "string"
+                },
+                "title": "Response List Periods Periods Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "List Periods"
+    }
+  },
+  "/reports/review-queue": {
+    "get": {
+      "description": "Narratives assigned to the current user and still pending review. Defaults\nto the active dataset (so opening one lands on its card); all_datasets=true\nspans the workspace, and each item carries its dataset so the UI can switch to\nit on open. Drives the review inbox and its unread badge.",
+      "operationId": "review_queue_reports_review_queue_get",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "all_datasets",
+          "required": false,
+          "schema": {
+            "default": false,
+            "title": "All Datasets",
+            "type": "boolean"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "title": "Response Review Queue Reports Review Queue Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Review Queue",
+      "tags": [
+        "review"
+      ]
+    }
+  },
+  "/reports/{report_id}/assign": {
+    "post": {
+      "description": "Assign a narrative to a reviewer (status \u2192 pending) and email them a nudge.",
+      "operationId": "assign_report_reports__report_id__assign_post",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "report_id",
+          "required": true,
+          "schema": {
+            "title": "Report Id",
+            "type": "integer"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Payload",
+              "type": "object"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Assign Report Reports  Report Id  Assign Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Assign Report",
+      "tags": [
+        "review"
+      ]
+    }
+  },
+  "/reports/{report_id}/grounding": {
+    "get": {
+      "description": "Narrative Drill-Down (v3.0): per-sentence attribution to the exact computed\nfacts and context docs that ground it. Deterministic, scoped to the caller's\nuniverse, computed on read (no LLM).",
+      "operationId": "report_grounding_reports__report_id__grounding_get",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "report_id",
+          "required": true,
+          "schema": {
+            "title": "Report Id",
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Report Grounding Reports  Report Id  Grounding Get",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Report Grounding"
+    }
+  },
+  "/reports/{report_id}/review": {
+    "post": {
+      "description": "Record a review decision (approved | changes_requested), or \"draft\" to\nreopen it as unreviewed. Analysts and admins only: executives read the\nresult, they don't sign it off.",
+      "operationId": "review_report_reports__report_id__review_post",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "report_id",
+          "required": true,
+          "schema": {
+            "title": "Report Id",
+            "type": "integer"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Payload",
+              "type": "object"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Review Report Reports  Report Id  Review Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Review Report",
+      "tags": [
+        "review"
+      ]
+    }
+  },
+  "/reports/{report_id}/versions": {
+    "get": {
+      "description": "Version history of a narrative with a unified diff between each version.",
+      "operationId": "report_versions_reports__report_id__versions_get",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "report_id",
+          "required": true,
+          "schema": {
+            "title": "Report Id",
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "title": "Response Report Versions Reports  Report Id  Versions Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Report Versions",
+      "tags": [
+        "review"
+      ]
+    }
+  },
+  "/scenario": {
+    "post": {
+      "description": "What-if on a metric: apply price/volume/mix levers, get the projected value\nand impact instantly (deterministic, no LLM).",
+      "operationId": "run_scenario_endpoint_scenario_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Payload",
+              "type": "object"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Run Scenario Endpoint Scenario Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Run Scenario Endpoint",
+      "tags": [
+        "insights"
+      ]
+    }
+  },
+  "/schedules": {
+    "get": {
+      "operationId": "list_schedules_schedules_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "title": "Response List Schedules Schedules Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "List Schedules"
+    },
+    "post": {
+      "operationId": "create_schedule_schedules_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Payload",
+              "type": "object"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "201": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Create Schedule Schedules Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Create Schedule"
+    }
+  },
+  "/schedules/{job_id}": {
+    "delete": {
+      "operationId": "remove_schedule_schedules__job_id__delete",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "job_id",
+          "required": true,
+          "schema": {
+            "title": "Job Id",
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "204": {
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Remove Schedule"
+    },
+    "patch": {
+      "operationId": "update_schedule_schedules__job_id__patch",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "job_id",
+          "required": true,
+          "schema": {
+            "title": "Job Id",
+            "type": "integer"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "title": "Payload",
+              "type": "object"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Update Schedule Schedules  Job Id  Patch",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Update Schedule"
+    }
+  },
+  "/templates/{template_id}": {
+    "get": {
+      "operationId": "get_mapping_template_templates__template_id__get",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "template_id",
+          "required": true,
+          "schema": {
+            "title": "Template Id",
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Get Mapping Template Templates  Template Id  Get",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Get Mapping Template"
+    }
+  },
+  "/workspaces": {
+    "get": {
+      "description": "The caller's workspaces + which one is active for this request.",
+      "operationId": "list_workspaces_workspaces_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response List Workspaces Workspaces Get",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "List Workspaces"
+    }
+  },
+  "/workspaces/{ws_id}/members": {
+    "get": {
+      "operationId": "list_ws_members_workspaces__ws_id__members_get",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "ws_id",
+          "required": true,
+          "schema": {
+            "title": "Ws Id",
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "title": "Response List Ws Members Workspaces  Ws Id  Members Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "List Ws Members"
+    }
+  }
+}
