@@ -85,19 +85,21 @@ def assign_report(report_id: int, payload: dict, user: CurrentUser = Depends(req
 
 @router.post("/reports/{report_id}/review")
 def review_report(report_id: int, payload: dict, user: CurrentUser = Depends(require_write)) -> dict:
-    """Record a review decision (approved | changes_requested). Analysts and
-    admins only: executives read the result, they don't sign it off."""
+    """Record a review decision (approved | changes_requested), or "draft" to
+    reopen it as unreviewed. Analysts and admins only: executives read the
+    result, they don't sign it off."""
     status = (payload.get("status") or "").strip()
-    if status not in review_svc.REVIEW_STATUSES:
-        raise HTTPException(status_code=422, detail=f"status must be one of {review_svc.REVIEW_STATUSES}")
+    if status not in review_svc.REVIEW_STATUSES and status != "draft":
+        raise HTTPException(status_code=422,
+                            detail=f"status must be one of {review_svc.REVIEW_STATUSES} or draft")
     conn = get_connection()
     try:
         if _scoped_report(conn, report_id) is None:
             raise HTTPException(status_code=404, detail="Report not found")
         review_svc.set_status(conn, report_id, status)
-        audit.record(conn, status, "report", report_id, actor_id=user.id, actor_email=user.email,
-                     summary={"note": payload.get("note")})
-        return {"report_id": report_id, "review_status": status}
+        audit.record(conn, "reopened" if status == "draft" else status, "report", report_id,
+                     actor_id=user.id, actor_email=user.email, summary={"note": payload.get("note")})
+        return {"report_id": report_id, "review_status": None if status == "draft" else status}
     finally:
         conn.close()
 
