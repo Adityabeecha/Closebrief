@@ -103,13 +103,3 @@ def test_enforce_budget_blocks_llm_when_over(client, monkeypatch):
         assert ei.value.status_code == 402
     finally:
         datasets.set_workspace_scope(None)
-
-
-def test_usage_endpoint(client):
-    ws_id = client.post("/workspaces", json={"name": "Acme"}).json()["id"]
-    r = client.get(f"/workspaces/{ws_id}/usage")
-    assert r.status_code == 200
-    assert r.json()["plan"] == "free" and r.json()["monthly_budget_usd"] == 5.0
-    # Raise the limit via the admin endpoint.
-    r2 = client.put(f"/workspaces/{ws_id}/limit", json={"monthly_budget_usd": 100})
-    assert r2.status_code == 200 and r2.json()["monthly_budget_usd"] == 100.0

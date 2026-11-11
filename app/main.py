@@ -11,7 +11,7 @@ from fastapi import Depends, FastAPI, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
-from app import audit, billing, connectors, review, scheduling, workspaces
+from app import audit, connectors, review, scheduling, workspaces
 from app.auth import CurrentUser, authenticate, get_current_user
 from app.board_pack import build_board_pack_html
 from app.cache import make_insight_key
@@ -196,8 +196,6 @@ from app.services import log_llm_call as _log_llm_call  # noqa: E402
 # attach a bearer token to <script src>, so gating it 401s the entire frontend.
 _OPEN_PATHS = {"/", "/app", "/theme.css", "/app.js", "/health", "/auth/config", "/auth/google", "/openapi.json", "/docs", "/redoc",
                "/samples/fpa.csv"}
-
-
 
 
 # ---- request telemetry: latency ring buffer + naive per-IP rate limit ----
@@ -2124,14 +2122,6 @@ def whoami(request: Request, user: CurrentUser = Depends(get_current_user)) -> d
 # ---------- Workspaces (v4.0 multi-tenancy) ----------
 
 
-def _require_ws_admin(conn, ws_id: int, user: CurrentUser) -> None:
-    """The caller must be an admin of this workspace (or the local-dev bypass)."""
-    if not auth_active():
-        return
-    if workspaces.member_role(conn, ws_id, user.id) != "admin":
-        raise HTTPException(status_code=403, detail="Requires workspace admin")
-
-
 @app.get("/workspaces")
 def list_workspaces(request: Request, user: CurrentUser = Depends(get_current_user)) -> dict:
     """The caller's workspaces + which one is active for this request."""
@@ -2144,19 +2134,6 @@ def list_workspaces(request: Request, user: CurrentUser = Depends(get_current_us
         conn.close()
 
 
-@app.post("/workspaces", status_code=201)
-def create_workspace_endpoint(payload: dict, user: CurrentUser = Depends(require_write)) -> dict:
-    name = (payload.get("name") or "").strip()
-    if not name:
-        raise HTTPException(status_code=422, detail="name is required")
-    conn = get_connection()
-    try:
-        ws_id = workspaces.create_workspace(conn, name, user.id, user.email)
-        return {"id": ws_id, "name": name, "role": "admin"}
-    finally:
-        conn.close()
-
-
 @app.get("/workspaces/{ws_id}/members")
 def list_ws_members(ws_id: int, user: CurrentUser = Depends(get_current_user)) -> list[dict]:
     conn = get_connection()
@@ -2164,50 +2141,6 @@ def list_ws_members(ws_id: int, user: CurrentUser = Depends(get_current_user)) -
         if auth_active() and not workspaces.is_member(conn, ws_id, user.id):
             raise HTTPException(status_code=404, detail="Workspace not found")
         return workspaces.list_members(conn, ws_id)
-    finally:
-        conn.close()
-
-
-@app.post("/workspaces/{ws_id}/invites", status_code=201)
-def create_ws_invite(ws_id: int, payload: dict, request: Request,
-                     user: CurrentUser = Depends(get_current_user)) -> dict:
-    role = (payload.get("role") or "analyst").strip()
-    if role not in workspaces.WS_ROLES:
-        raise HTTPException(status_code=422, detail=f"role must be one of {workspaces.WS_ROLES}")
-    conn = get_connection()
-    try:
-        _require_ws_admin(conn, ws_id, user)
-        token = workspaces.create_invite(conn, ws_id, role, payload.get("email"))
-    finally:
-        conn.close()
-    # An accept link the invitee opens; the frontend calls POST /workspaces/join.
-    base = str(request.base_url).rstrip("/")
-    return {"token": token, "invite_url": f"{base}/?invite={token}", "role": role}
-
-
-@app.post("/workspaces/join")
-def join_workspace(payload: dict, user: CurrentUser = Depends(require_member)) -> dict:
-    token = (payload.get("token") or "").strip()
-    if not token:
-        raise HTTPException(status_code=422, detail="token is required")
-    conn = get_connection()
-    try:
-        ws_id = workspaces.accept_invite(conn, token, user.id, user.email)
-        if ws_id is None:
-            raise HTTPException(status_code=400, detail="Invalid or already-used invite")
-        return {"workspace_id": ws_id}
-    finally:
-        conn.close()
-
-
-@app.get("/workspaces/{ws_id}/usage")
-def workspace_usage(ws_id: int, user: CurrentUser = Depends(get_current_user)) -> dict:
-    """Month-to-date LLM spend + budget for a workspace the caller belongs to."""
-    conn = get_connection()
-    try:
-        if auth_active() and not workspaces.is_member(conn, ws_id, user.id):
-            raise HTTPException(status_code=404, detail="Workspace not found")
-        return billing.usage(conn, ws_id)
     finally:
         conn.close()
 
@@ -2289,45 +2222,6 @@ def audit_verify(_: CurrentUser = Depends(require_admin)) -> dict:
     conn = get_connection()
     try:
         return audit.verify(conn, current_workspace())
-    finally:
-        conn.close()
-
-
-@app.put("/workspaces/{ws_id}/retention")
-def set_workspace_retention(ws_id: int, payload: dict,
-                            user: CurrentUser = Depends(get_current_user)) -> dict:
-    """Set the workspace's data-retention window in days (null = keep forever).
-    A scheduled retention_purge job enforces it. Admin only."""
-    conn = get_connection()
-    try:
-        _require_ws_admin(conn, ws_id, user)
-        days = payload.get("retention_days")
-        conn.execute("UPDATE workspaces SET retention_days = ? WHERE id = ?",
-                     (int(days) if days is not None else None, ws_id))
-        conn.commit()
-        return {"workspace_id": ws_id, "retention_days": (int(days) if days is not None else None)}
-    finally:
-        conn.close()
-
-
-@app.put("/workspaces/{ws_id}/limit")
-def set_workspace_limit(ws_id: int, payload: dict, user: CurrentUser = Depends(require_admin)) -> dict:
-    """Set a workspace's plan and/or explicit monthly budget. App admin only: a
-    visitor who owns their sandbox must not be able to lift their own limits."""
-    conn = get_connection()
-    try:
-        _require_ws_admin(conn, ws_id, user)
-        plan = payload.get("plan")
-        if plan is not None and plan not in billing.TIER_BUDGETS:
-            raise HTTPException(status_code=422, detail=f"plan must be one of {list(billing.TIER_BUDGETS)}")
-        if plan is not None:
-            conn.execute("UPDATE workspaces SET plan = ? WHERE id = ?", (plan, ws_id))
-        if "monthly_budget_usd" in payload:
-            b = payload["monthly_budget_usd"]
-            conn.execute("UPDATE workspaces SET monthly_budget_usd = ? WHERE id = ?",
-                         (float(b) if b is not None else None, ws_id))
-        conn.commit()
-        return billing.usage(conn, ws_id)
     finally:
         conn.close()
 

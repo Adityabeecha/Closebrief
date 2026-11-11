@@ -82,26 +82,6 @@ def test_cache_keys_include_user_and_requested_workspace(membership):
     assert len(calls) == 3
 
 
-def test_joining_a_workspace_invalidates_the_cached_fallback_immediately(membership):
-    from app import workspaces
-    from app.db import get_connection
-
-    client, calls, _, _, _, _, beta = membership
-    conn = get_connection()
-    try:
-        invite = workspaces.create_invite(conn, beta, "analyst")
-    finally:
-        conn.close()
-    headers = {"X-Workspace-Id": str(beta)}
-    assert client.get("/me", headers=headers).json()["workspace_role"] == "admin"
-    assert client.post("/workspaces/join", headers=headers, json={"token": invite}).status_code == 200
-    calls.clear()
-    assert client.get("/me", headers=headers).json()["workspace_role"] == "analyst"
-    assert len(calls) == 1
-    client.get("/me", headers=headers)
-    assert len(calls) == 1
-
-
 def test_add_member_role_change_invalidates_cached_resolution(membership):
     from app import workspaces
     from app.db import get_connection

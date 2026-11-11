@@ -74,9 +74,3 @@ def test_run_retention_only_purges_configured_workspaces(client, monkeypatch):
         assert conn.execute("SELECT COUNT(*) AS n FROM llm_calls WHERE workspace_id = ?", (keep,)).fetchone()["n"] == 1
     finally:
         conn.close()
-
-
-def test_retention_endpoint(client):
-    ws = client.post("/workspaces", json={"name": "Acme"}).json()["id"]
-    r = client.put(f"/workspaces/{ws}/retention", json={"retention_days": 90})
-    assert r.status_code == 200 and r.json()["retention_days"] == 90
