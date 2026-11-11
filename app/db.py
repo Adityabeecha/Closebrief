@@ -472,37 +472,46 @@ _SQLITE_MIGRATIONS.append(_migrate_sqlite_constraints)
 # Postgres wrapper: lets sqlite3-style call sites run unchanged on psycopg.
 # --------------------------------------------------------------------------
 
-# INSERTs whose callers read cur.lastrowid — auto-append RETURNING id on PG.
-_LASTROWID_TABLES = re.compile(
-    r"^\s*INSERT(\s+OR\s+IGNORE)?\s+INTO\s+"
-    r"(context_documents|generated_reports|feedback|datasets|metrics"
-    r"|scheduled_jobs|digest_runs|workspaces|connectors|derived_metrics)\b",
+# SQL literals use doubled single quotes for an embedded quote.
+_SQL_PARTS = re.compile(r"('(?:''|[^'])*')")
+_IDENTIFIER = r'(?:"(?:[^"]|"")+"|[A-Za-z_][\w$]*)'
+_INSERT_TABLE = re.compile(
+    rf"^\s*INSERT(?:\s+OR\s+IGNORE)?\s+INTO\s+({_IDENTIFIER}(?:\s*\.\s*{_IDENTIFIER})?)",
     re.I,
 )
 _OR_IGNORE = re.compile(r"^(\s*INSERT)\s+OR\s+IGNORE\s+", re.I)
 
 
 def _translate(sql: str, has_params: bool = True) -> str:
-    """sqlite dialect -> postgres dialect for the statements this app uses.
+    """Translate SQLite dialect tokens outside single-quoted SQL literals.
 
-    `has_params` must reflect whether params are passed to execute(): psycopg
-    only collapses `%%`->`%` (and reads `%s`) when binding params. With no
-    params it sends the string verbatim, so escaping `%` there would corrupt a
-    literal like `LIKE '%revenue%'` into `%%revenue%%`. Only escape when binding."""
-    out = sql
-    if has_params:
-        # Escape literal % (e.g. LIKE '%-digest') to %% so psycopg doesn't read
-        # it as a client-side placeholder; it collapses back when binding params.
-        out = out.replace("%", "%%")
-    # SQLite's null-safe `col IS ?` / `col IS NOT ?` is invalid on Postgres (IS
-    # only takes NULL/TRUE/FALSE); use the standard IS [NOT] DISTINCT FROM.
-    out = out.replace(" IS NOT ?", " IS DISTINCT FROM ?").replace(" IS ?", " IS NOT DISTINCT FROM ?")
-    # THEN turn ? into %s placeholders.
-    out = out.replace("?", "%s")
+    Literal contents remain SQL, including ? and %. Psycopg's percent escaping
+    inside literals is a separate execution-time binding concern.
+    """
+    parts = _SQL_PARTS.split(sql)
+    for index in range(0, len(parts), 2):
+        part = parts[index]
+        if has_params:
+            part = part.replace("%", "%%")
+        part = part.replace(" IS NOT ?", " IS DISTINCT FROM ?").replace(" IS ?", " IS NOT DISTINCT FROM ?")
+        parts[index] = part.replace("?", "%s")
+    out = "".join(parts)
     if _OR_IGNORE.match(out):
         out = _OR_IGNORE.sub(r"\1 ", out)
         out = out.rstrip().rstrip(";") + " ON CONFLICT DO NOTHING"
     return out
+
+
+def _driver_sql(sql: str, has_params: bool) -> str:
+    """Psycopg scans percent placeholders even inside SQL literal quotes.
+
+    Escaping these percents only for parameter binding preserves their actual
+    database values; unparameterised SQL must be sent verbatim.
+    """
+    if not has_params:
+        return sql
+    return "".join(part.replace("%", "%%") if index % 2 else part
+                   for index, part in enumerate(_SQL_PARTS.split(sql)))
 
 
 class _PgCursor:
@@ -523,6 +532,7 @@ class PostgresConnection:
     def __init__(self, raw, pool=None):
         self._raw = raw
         self._pool = pool
+        self._generated_id_tables: set[str] = set()
 
     def _set_rls_scope(self) -> None:
         """Set the app.workspace_id GUC from the current tenant scope so RLS
@@ -541,12 +551,38 @@ class PostgresConnection:
                 pass
             raise
 
+    def _has_generated_id(self, table: str) -> bool:
+        """Derive lastrowid support from serial/identity columns in this DB.
+
+        Cache positive answers only: a table created or upgraded later on this
+        connection must never be hidden behind an earlier negative lookup.
+        """
+        if table in self._generated_id_tables:
+            return True
+        row = self._raw.execute(
+            """SELECT (a.attidentity <> '' OR
+                       strpos(COALESCE(pg_get_expr(d.adbin, d.adrelid), ''), 'nextval(') = 1) AS generated
+               FROM pg_attribute a
+               LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum
+               WHERE a.attrelid=to_regclass(%s) AND a.attname='id'
+                 AND a.attnum>0 AND NOT a.attisdropped
+                 AND a.atttypid IN ('int2'::regtype, 'int4'::regtype, 'int8'::regtype)""",
+            (table,),
+        ).fetchone()
+        generated = bool(row and row["generated"])
+        if generated:
+            self._generated_id_tables.add(table)
+        return generated
+
     def execute(self, sql: str, params=()):
         pg_sql = _translate(sql, has_params=bool(params))
-        wants_id = bool(_LASTROWID_TABLES.match(sql)) and "RETURNING" not in pg_sql.upper()
+        insert = _INSERT_TABLE.match(sql)
+        outside = "".join(_SQL_PARTS.split(pg_sql)[::2])
+        wants_id = bool(insert and not re.search(r"\bRETURNING\b", outside, re.I)
+                        and self._has_generated_id(insert.group(1)))
         if wants_id:
             pg_sql = pg_sql.rstrip().rstrip(";") + " RETURNING id"
-        cur = self._raw.execute(pg_sql, params or None)
+        cur = self._raw.execute(_driver_sql(pg_sql, has_params=bool(params)), params or None)
         lastrowid = None
         if wants_id:
             row = cur.fetchone()
