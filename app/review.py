@@ -39,10 +39,13 @@ def assign(conn, report_id: int, user_id: str | None, email: str | None) -> None
 
 
 def set_status(conn, report_id: int, status: str) -> None:
-    if status not in REVIEW_STATUSES:
-        raise ValueError(f"status must be one of {REVIEW_STATUSES}")
+    """Set a review decision. "draft" clears it back to unreviewed (undo of an
+    approval made by mistake)."""
+    if status not in REVIEW_STATUSES and status != "draft":
+        raise ValueError(f"status must be one of {REVIEW_STATUSES} or draft")
     conn.execute(
-        "UPDATE generated_reports SET review_status = ? WHERE id = ?", (status, report_id))
+        "UPDATE generated_reports SET review_status = ? WHERE id = ?",
+        (None if status == "draft" else status, report_id))
     conn.commit()
 
 

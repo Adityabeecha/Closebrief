@@ -351,7 +351,16 @@ function assignCatSlots(cats){catSlots={};cats.forEach((c,i)=>{if(i<CAT_PALETTE.
 function catColor(c){const i=catSlots[c??"Uncategorized"];return i==null?"":CAT_PALETTE[i];}
 function catStyle(c){const col=catColor(c);return col?`--cat:${col}`:"";}
 
-function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
+let _toastTimer=null;
+function toast(m){const t=$("toast");clearTimeout(_toastTimer);t.classList.remove("has-act");t.textContent=m;t.classList.add("show");_toastTimer=setTimeout(()=>t.classList.remove("show"),2600);}
+// A toast with one action button (e.g. Undo). It stays up long enough to reach.
+function toastAction(m,label,fn,ms=8000){
+  const t=$("toast");clearTimeout(_toastTimer);t.textContent=m;
+  const b=document.createElement("button");b.type="button";b.className="toast-act";b.textContent=label;
+  b.addEventListener("click",()=>{clearTimeout(_toastTimer);t.classList.remove("show","has-act");fn();});
+  t.appendChild(b);t.classList.add("show","has-act");
+  _toastTimer=setTimeout(()=>t.classList.remove("show","has-act"),ms);
+}
 // Map common backend errors to human-friendly copy; falls back to the raw message.
 function errMsg(e){
   const m=(e&&e.message)||String(e||"Something went wrong");
@@ -435,10 +444,19 @@ function fmtPeriod(p,style="short"){
   if(m)return style==="axis"?`Q${m[2]} ${m[1].slice(2)}`:`Q${m[2]} ${m[1]}`;
   return String(p);
 }
-// One date format everywhere: "01 Nov 2026".
+// One date format everywhere: "01 Nov 2026". A bare date ("2026-11-01") is a
+// calendar day and is shown as written. A timestamp is a moment: the server
+// stores UTC, often without a zone ("2026-11-10 20:00:00"), so read it as UTC
+// and show the viewer's local date — late-evening UTC is already tomorrow in Asia.
 function fmtDate(iso){
-  const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso||"");
-  return m?`${m[3]} ${MONTHS[+m[2]-1].slice(0,3)} ${m[1]}`:"—";
+  const s=String(iso||""),m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if(!m)return "—";
+  const t=/^\d{4}-\d{2}-\d{2}[T ](\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?)(Z|[+-]\d{2}:?\d{2})?$/.exec(s);
+  if(t){
+    const d=new Date(`${m[1]}-${m[2]}-${m[3]}T${t[1]}${t[2]||"Z"}`);
+    if(!isNaN(d))return `${String(d.getDate()).padStart(2,"0")} ${MONTHS[d.getMonth()].slice(0,3)} ${d.getFullYear()}`;
+  }
+  return `${m[3]} ${MONTHS[+m[2]-1].slice(0,3)} ${m[1]}`;
 }
 function setDocTitle(t){document.title=t?`${t} — Closebrief`:"Closebrief — FP&A intelligence";}
 
@@ -553,6 +571,8 @@ async function route(){
   if(r.place)return nav(r.place,{fromRoute:true});
   // A link to another close switches the close first, then opens the tab.
   const sel=$("period-select");
+  const g=/^\d{4}-\d{2}$/.test(r.period||"")?"month":/^\d{4}-Q[1-4]$/.test(r.period||"")?"quarter":/^\d{4}$/.test(r.period||"")?"year":null;
+  if(g&&g!==granularity)await setGranularity(g);
   if(r.period&&sel&&sel.value!==r.period&&[...sel.options].some(o=>o.value===r.period)){sel.value=r.period;await loadFacts();}
   if(r.metric){
     if(currentPeriod)history.replaceState(null,"",metricHash(r.metric,currentPeriod));
@@ -648,7 +668,7 @@ function renderCloses(){
   if(currentPeriod&&!shown.includes(currentPeriod))shown.push(currentPeriod);
   el.innerHTML=shown.map(p=>{
     const s=closeStateFor(p),[word,cls]=CLOSE_STATUS[s?s.status:"not_started"]||CLOSE_STATUS.not_started;
-    const sub=s&&s.n?`${s.approved} of ${s.n} approved`:"";
+    const sub=s&&s.n?`${s.approved} of ${s.n}${granularity==="month"?"":" commentaries"} approved`:"";
     return `<button class="ci" data-p="${esc(p)}" data-act="close" data-arg="${esc(p)}">
       <b>${esc(fmtPeriod(p,"long"))}</b>${s?`<span class="cs ${cls}">${word}</span>`:""}
       ${sub?`<small>${sub}</small>`:""}${s&&s.n&&!["not_started","empty"].includes(s.status)?`<span class="cbar" aria-hidden="true"><i style="width:${Math.round(s.progress*100)}%"></i></span>`:""}</button>`;
@@ -675,6 +695,24 @@ async function loadCloseMeta(){
   try{const runs=await api("/digests/history");closeShared=new Set(runs.map(r=>r.period));}catch{closeShared=new Set();}
   renderCloses();renderMonthHead();
 }
+// This close's state. Months are scored from their facts (fresh after every
+// approval); a quarter or year has no commentary of its own, so it uses the
+// server's roll-up of its months, scored with the same rules.
+function currentCloseState(){
+  const local=closeProgress(currentFacts,closeShared.has(currentPeriod));
+  const m=granularity==="month"?null:closeMonths[currentPeriod];
+  if(!m)return local;
+  const checked=m.checked??0,shared=m.status==="shared";
+  return {n:m.kpis,drafted:m.drafted,approved:m.approved,checked,failed:Math.max(0,m.drafted-checked),
+    exceptions:m.exceptions,needs_reason:m.needs_reason,shared,progress:m.progress,
+    status:shared?"shared":m.kpis&&m.approved===m.kpis?"ready":m.status};
+}
+// In a quarter or year, the next step is "open the first month that still needs work".
+function rollupNextStep(){
+  const st=overviewStatus&&overviewStatus.period===currentPeriod&&(overviewStatus.steps||[]).find(x=>x.state!=="done");
+  const m=st&&/^#month=(\d{4}-\d{2})&tab=[a-z]+$/.exec(st.target);
+  return m?{label:`Open ${fmtPeriod(m[1],"long")}`,run:`location.hash='${st.target}'`}:null;
+}
 // The one next step for this close, said as an action; null when nothing is left.
 function closeNextStep(s){
   if(!s||!s.n)return {label:"Import data",run:"nav('data')"};
@@ -687,13 +725,16 @@ function closeNextStep(s){
 function renderMonthHead(){
   const head=$("month-head");if(!head)return;
   if(!currentPeriod){head.style.display="none";return;}
-  const s=closeProgress(currentFacts,closeShared.has(currentPeriod));
+  const s=currentCloseState();
   $("mh-title").textContent=fmtPeriodTitle(currentPeriod);
   const [word,cls]=CLOSE_STATUS[(closeStateFor(currentPeriod)||s).status]||CLOSE_STATUS[s.status];
   const pill=$("mh-pill");pill.textContent=word;pill.className="mh-pill "+cls;
   const ds=activeDatasetObj&&datasetDisplayName(activeDatasetObj.name);
-  $("mh-sub").textContent=[ds,s.n?`${plural(s.n,"KPI","KPIs")} computed in code`:null,s.n?`${s.approved} of ${s.n} approved`:null].filter(Boolean).join(" · ");
-  const next=canReview()?closeNextStep(s):null,btn=$("mh-next");
+  const roll=granularity!=="month"&&closeMonths[currentPeriod];
+  $("mh-sub").textContent=(roll
+    ?[ds,`${plural(roll.distinct_kpis??s.n,"KPI","KPIs")} across ${plural(roll.month_count||1,"month")}`,s.n?`${s.approved} of ${plural(s.n,"monthly commentary","monthly commentaries")} approved`:null]
+    :[ds,s.n?`${plural(s.n,"KPI","KPIs")} computed in code`:null,s.n?`${s.approved} of ${s.n} approved`:null]).filter(Boolean).join(" · ");
+  const next=!canReview()?null:granularity==="month"?closeNextStep(s):rollupNextStep(),btn=$("mh-next");
   btn.style.display=next?"":"none";
   if(next){btn.textContent=next.label;btn.setAttribute("onclick",next.run);}
   $("mt-kpis").textContent=s.n||"";
@@ -729,10 +770,10 @@ async function renderOverview(){
   paintOverview();
   if(overviewFor!==p){overviewFor=p;overviewStatus=null;
     try{overviewStatus=await api(`/close/status?period=${encodeURIComponent(p)}`);}catch{overviewStatus=null;}
-    if(currentPeriod===p)paintOverview();}
+    if(currentPeriod===p){paintOverview();renderMonthHead();}}
 }
 function paintOverview(){
-  const s=closeProgress(currentFacts,closeShared.has(currentPeriod));
+  const s=currentCloseState();
   $("ov-check-title").textContent=s.status==="shared"?`${fmtPeriodTitle(currentPeriod)} is shared`:"What's left before this close can be shared";
   $("ov-checklist").innerHTML=overviewSteps(s,overviewStatus).map(st=>{
     const done=st.state==="done";
@@ -1693,10 +1734,10 @@ async function deleteDataset(id){
 /* ---------- periods & facts ---------- */
 let granularity="month";
 function setGranularity(g){
-  if(g===granularity)return;granularity=g;
+  if(g===granularity)return Promise.resolve();granularity=g;
   document.querySelectorAll("#gran-seg button").forEach(b=>{b.classList.toggle("active",b.dataset.g===g);b.setAttribute("aria-pressed",String(b.dataset.g===g));});
   $("closes-label").textContent={month:"Closes",quarter:"Quarters",year:"Years"}[g];showAllCloses=false;
-  loadPeriods();
+  return loadPeriods();
 }
 function stepPeriod(dir){
   const sel=$("period-select"),i=sel.selectedIndex+dir;
@@ -2380,14 +2421,28 @@ async function bulkApprove(){
   const ok=bulkApprovable(currentFacts);if(!ok.length)return;
   const names=ok.slice(0,5).map(f=>f.metric).join(", ")+(ok.length>5?` and ${ok.length-5} more`:"");
   if(!await modalConfirm(`Approve ${plural(ok.length,"draft")}?`,`${names}. Every figure in these drafts passed the check against the computed facts. You can still edit or request changes on any of them later.`,{okLabel:"Approve",danger:false}))return;
-  let done=0,failed=0;
+  let failed=0;const approved=[];
   await runPool(ok,4,async f=>{
+    const before=f.review_status||null;
     try{await api(`/reports/${f.report_id}/review`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:"approved"})});
-      f.review_status="approved";done++;}
+      f.review_status="approved";approved.push({f,before});}
     catch{failed++;}
   });
-  toast(failed?`Approved ${done}; ${plural(failed,"draft")} failed, try again`:`Approved ${plural(done,"draft")}`);
-  overviewFor=null;renderCards();renderMonthHead();loadCloseMeta();refreshReviewBadge();
+  afterBulkReview();
+  const msg=failed?`Approved ${approved.length}; ${plural(failed,"draft")} failed, try again`:`Approved ${plural(approved.length,"draft")}`;
+  if(approved.length)toastAction(msg,"Undo",()=>undoBulkApprove(approved));else toast(msg);
+}
+function afterBulkReview(){overviewFor=null;renderCards();renderMonthHead();loadCloseMeta();refreshReviewBadge();}
+// Put each draft back to the review state it had before the bulk approval.
+async function undoBulkApprove(approved){
+  let failed=0;
+  await runPool(approved,4,async({f,before})=>{
+    try{await api(`/reports/${f.report_id}/review`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({status:before||"draft"})});
+      f.review_status=before;}
+    catch{failed++;}
+  });
+  afterBulkReview();
+  toast(failed?`Undid ${approved.length-failed}; ${plural(failed,"approval")} couldn't be undone`:`Undid ${plural(approved.length,"approval")}`);
 }
 
 async function runPool(items,n,worker){
@@ -2707,14 +2762,17 @@ function roleFor(c){
   return c.redundant_with&&c.guessed_role==="measure"?"ignore":c.guessed_role;
 }
 const ROLES=["period","metric_label","measure","budget","id","quantity","price","dimension","ignore"];
+// What each role means to someone closing the books; the internal names stay in the API.
+const ROLE_LABELS={period:"Month or date",metric_label:"KPI name",measure:"Actual amount",budget:"Budget or plan",
+  id:"Row ID (not imported)",quantity:"Units sold",price:"Unit price",dimension:"Breakdown (region, product…)",ignore:"Don't import"};
 function renderMap(){
   if(!profile)return;const layout=$("layout-sel").value;
-  $("map-holder").innerHTML=`<table class="map"><thead><tr><th>Column</th><th>Type</th><th>Sample</th><th>Role</th></tr></thead><tbody>`+
+  $("map-holder").innerHTML=`<table class="map"><thead><tr><th>Column</th><th>Type</th><th>Sample</th><th>What it holds</th></tr></thead><tbody>`+
     profile.columns.map(c=>{const wp=profile.wide_period_cols.includes(c.column_name);
       const role=roleFor(c);
-      return`<tr><td><b>${esc(c.column_name)}</b>${layout==="wide"&&wp?' <span class="suggest">period col</span>':""}${c.redundant_with&&role==="ignore"?` <span class="suggest">duplicate of ${esc(c.redundant_with)}</span>`:""}</td>
+      return`<tr><td><b>${esc(c.column_name)}</b>${layout==="wide"&&wp?' <span class="suggest">a month</span>':""}${c.redundant_with&&role==="ignore"?` <span class="suggest">duplicate of ${esc(c.redundant_with)}</span>`:""}</td>
         <td>${esc(c.dtype)}</td><td class="samp">${c.sample_values.slice(0,3).map(esc).join(" · ")}</td>
-        <td>${layout==="wide"&&wp?'<span class="samp">melted</span>':`<select data-col="${esc(c.column_name)}" class="role" aria-label="Role of column ${esc(c.column_name)}" onchange="updateMapHint()">${ROLES.map(r=>`<option value="${r}" ${role===r?"selected":""}>${r.replace("_"," ")}</option>`).join("")}</select>`}</td></tr>`;
+        <td>${layout==="wide"&&wp?'<span class="samp">One month of values</span>':`<select data-col="${esc(c.column_name)}" class="role" aria-label="What column ${esc(c.column_name)} holds" onchange="updateMapHint()">${ROLES.map(r=>`<option value="${r}" ${role===r?"selected":""}>${ROLE_LABELS[r]||r}</option>`).join("")}</select>`}</td></tr>`;
     }).join("")+`</tbody></table>`;
   updateMapHint();
 }
@@ -2727,7 +2785,7 @@ function updateMapHint(){
   if(periodLiteral)parts.push(`<b>Period ${esc(periodLiteral)} comes from this sheet</b> — it reports one as-of date, so every row is filed under it and no period column is needed.`);
   if(measures.length>1){
     const names=metricCol?`"${metricCol.dataset.col} ${measures[0]}"`:`"${measures[0]}"`;
-    parts.push(`<b>${measures.length} value columns selected</b> — each becomes its own metric${metricCol?`, crossed with <b>${esc(metricCol.dataset.col)}</b>`:""} (e.g. ${esc(names)}, …) instead of only the first being kept.`);
+    parts.push(`<b>${measures.length} amount columns selected</b> — each becomes its own metric${metricCol?`, crossed with <b>${esc(metricCol.dataset.col)}</b>`:""} (e.g. ${esc(names)}, …) instead of only the first being kept.`);
   }
   if(parts.length){el.style.display="";el.innerHTML=parts.join("<br>");}
   else{el.style.display="none";}
