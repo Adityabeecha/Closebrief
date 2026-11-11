@@ -6,7 +6,6 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.api import require_read, require_write  # noqa: E402
 from app.auth import CurrentUser
-from app.compute import derived as derived_metrics
 from app.compute.aggregate import (
     GRANULARITIES,
     aggregate_series,
@@ -17,13 +16,11 @@ from app.compute.aggregate import (
 )
 from app.compute.availability import has_usable_value
 from app.compute.correlations import (
-    compare_periods,
     compute_correlations,
     correlations_for_metric,
     streak_from_history,
 )
 from app.compute.funnel import compute_funnel
-from app.compute.kpis import compute_and_store
 from app.compute.pvm import bridge_for_metric_row
 from app.datasets import (
     _scope_pred,
@@ -31,10 +28,9 @@ from app.datasets import (
     dataset_currency,
 )
 from app.db import get_connection
-from app.deps import shared_cache
-from app.domains import get_domain, list_domains, registry
+from app.domains import get_domain, registry
 from app.grounding import attribute
-from app.routes_common import _active_domain_slug, _notify_anomalies
+from app.routes_common import _active_domain_slug
 from app.schemas import (
     ComputedFact,
     ContextSnippet,
@@ -62,35 +58,6 @@ def correlations_endpoint(
         return compute_correlations(conn, ds, period)
     finally:
         conn.close()
-
-
-@router.get("/compare")
-def compare_endpoint(
-    metric: str, period_a: str, period_b: str,
-    _: CurrentUser = Depends(require_read),
-) -> dict:
-    """Side-by-side comparison of one metric across two periods, including the
-    delta-of-deltas (whether the MoM movement accelerated or decelerated)."""
-    conn = get_connection()
-    try:
-        ds = active_dataset_id(conn)
-        mrow = conn.execute(
-            "SELECT id FROM metrics WHERE dataset_id = ? AND name = ?", (ds, metric)
-        ).fetchone() if ds is not None else None
-        if mrow is None:
-            raise HTTPException(status_code=404, detail=f"Unknown metric: {metric}")
-        result = compare_periods(conn, mrow["id"], period_a, period_b)
-        if result is None:
-            raise HTTPException(status_code=404, detail="No computed facts for both periods")
-        return {**result, "currency": dataset_currency(conn, ds)}
-    finally:
-        conn.close()
-
-
-@router.get("/domains")
-def list_domains_endpoint(_: CurrentUser = Depends(require_read)) -> list[dict]:
-    """Available analytics domains (v2.1 foundation)."""
-    return [d.public() for d in list_domains()]
 
 
 @router.get("/domain")
@@ -436,23 +403,6 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
         return out
     finally:
         conn.close()
-
-
-@router.post("/compute")
-def compute(_: CurrentUser = Depends(require_write)) -> dict:
-    conn = get_connection()
-    try:
-        ds = active_dataset_id(conn)
-        facts = compute_and_store(conn, ds)
-        if ds is not None:
-            # Refresh derived KPIs off the new base facts so they don't go stale.
-            if derived_metrics.materialize(conn, ds) > 0:
-                facts = compute_and_store(conn, ds)
-            _notify_anomalies(conn, ds)
-    finally:
-        conn.close()
-    shared_cache().bump_namespace()
-    return {"facts_computed": int(len(facts))}
 
 
 def _active_metric_id(conn, metric: str) -> int | None:
