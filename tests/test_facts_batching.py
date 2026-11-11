@@ -7,6 +7,8 @@ from pathlib import Path
 import pytest
 from dbharness import use_test_db
 
+import app.routers.facts as route_facts
+
 SAMPLE = Path(__file__).parents[1] / "data" / "sample_fpa.csv"
 
 
@@ -52,9 +54,9 @@ def test_batched_cards_match_the_per_metric_helpers(client):
                     continue
                 mid = conn.execute(
                     "SELECT id FROM metrics WHERE name = ? AND dataset_id = ?",
-                    (f["metric"], main.active_dataset_id(conn)),
+                    (f["metric"], route_facts.active_dataset_id(conn)),
                 ).fetchone()["id"]
-                assert f["chart_data"] == main._chart_data(conn, mid, f["metric"], period)
+                assert f["chart_data"] == route_facts._chart_data(conn, mid, f["metric"], period)
                 assert f["trend_streak"] == detect_consecutive_trends(conn, mid, period)
                 streaks_seen += f["trend_streak"] is not None
         finally:
@@ -80,7 +82,7 @@ def test_facts_query_count_no_longer_grows_per_card(client, monkeypatch):
         def __getattr__(self, name):
             return getattr(self._conn, name)
 
-    monkeypatch.setattr(main, "get_connection", lambda *a, **k: Counting(real(*a, **k)))
+    monkeypatch.setattr(route_facts, "get_connection", lambda *a, **k: Counting(real(*a, **k)))
     period = client.get("/periods").json()[-1]
     facts = client.get(f"/facts?period={period}").json()
     cards = sum(f["has_data"] for f in facts)

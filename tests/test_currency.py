@@ -5,6 +5,7 @@ from test_auth import _bearer
 from test_auth import make_client as make_client
 from test_datasets import client as client
 
+import app.routers.facts as route_facts
 from app.generation.guard import check_faithfulness, extract_numbers, faithfulness_messages
 from app.schemas import ComputedFact
 
@@ -164,14 +165,13 @@ def test_legacy_sqlite_upgrade_defaults_existing_rows_to_usd(tmp_path, monkeypat
 
 
 def test_loaded_fact_and_facts_only_response_preserve_currency(client):
-    from app import main
     from app.db import get_connection
     from app.generation.generate import _facts_only_output
 
     _import(client, "EUR")
     conn = get_connection()
     try:
-        fact = main._load_computed_fact(conn, "Revenue", "2025-02")
+        fact = route_facts._load_computed_fact(conn, "Revenue", "2025-02")
         assert fact.currency == "EUR"
         assert _facts_only_output(fact).model_dump()["currency"] == "EUR"
     finally:

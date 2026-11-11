@@ -1,11 +1,16 @@
-"""Shared support for HTTP routes and application startup."""
-
 import time
 from collections import deque
 
+from app.datasets import (
+    active_dataset_id,
+)
 from app.db import get_connection
 from app.notifications.scheduler import deliver as notif_deliver
 from app.services import bg_executor as _bg_executor  # noqa: E402
+
+"""Shared support for HTTP routes and application startup."""
+
+
 
 
 def _notify_async(event: str, period: str | None = None, items: list[dict] | None = None,
@@ -58,3 +63,12 @@ def _notify_anomalies(conn, dataset_id: int) -> None:
 
 
 _ALERT_LATENCIES: deque = deque(maxlen=200)
+
+
+def _active_domain_slug(conn) -> str:
+    ds = active_dataset_id(conn)
+    if ds is not None:
+        row = conn.execute("SELECT domain FROM datasets WHERE id = ?", (ds,)).fetchone()
+        if row and row["domain"]:
+            return row["domain"]
+    return "fpa"
