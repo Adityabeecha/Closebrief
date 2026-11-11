@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS workspace_members (
 );
 
 CREATE TABLE IF NOT EXISTS workspace_invites (
-    token TEXT PRIMARY KEY,
+    token TEXT NOT NULL PRIMARY KEY,
     workspace_id INTEGER NOT NULL REFERENCES workspaces(id),
     role TEXT NOT NULL DEFAULT 'analyst',
     email TEXT,
@@ -55,6 +55,8 @@ CREATE TABLE IF NOT EXISTS datasets (
     domain TEXT NOT NULL DEFAULT 'fpa',
     is_demo INTEGER NOT NULL DEFAULT 0,
     workspace_id INTEGER,
+    uploaded_by TEXT,
+    uploaded_by_email TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -111,6 +113,8 @@ CREATE TABLE IF NOT EXISTS context_documents (
     effective_date TEXT,
     is_demo INTEGER NOT NULL DEFAULT 0,
     workspace_id INTEGER,
+    created_by TEXT,
+    updated_by TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -127,11 +131,16 @@ CREATE TABLE IF NOT EXISTS generated_reports (
     cost_usd REAL,
     latency_ms REAL,
     prompt_version TEXT,
+    user_id TEXT,
+    user_email TEXT,
+    review_status TEXT,
+    assigned_to TEXT,
+    assigned_email TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS uploads (
-    id TEXT PRIMARY KEY,
+    id TEXT NOT NULL PRIMARY KEY,
     workspace_id INTEGER,
     filename TEXT NOT NULL,
     currency TEXT NOT NULL DEFAULT 'USD' CHECK (currency IN ('USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'SGD', 'CHF')),
@@ -173,6 +182,8 @@ CREATE TABLE IF NOT EXISTS feedback (
     action TEXT NOT NULL,
     edited_text TEXT,
     reason TEXT,
+    user_id TEXT,
+    user_email TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -191,7 +202,7 @@ CREATE TABLE IF NOT EXISTS pvm_bridges (
 -- Global totals contain no tenant identifiers and intentionally have no RLS.
 -- Keep the global AI cap meaningful while llm_calls is workspace-isolated.
 CREATE TABLE IF NOT EXISTS ai_spend_daily (
-    day DATE PRIMARY KEY,
+    day DATE NOT NULL PRIMARY KEY,
     cost_usd NUMERIC NOT NULL DEFAULT 0
 );
 
@@ -209,7 +220,7 @@ CREATE TABLE IF NOT EXISTS llm_calls (
 );
 
 CREATE TABLE IF NOT EXISTS app_roles (
-    user_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL PRIMARY KEY,
     email TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'analyst',
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -302,7 +313,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
     summary TEXT,
     row_hash TEXT NOT NULL,
     prev_hash TEXT,
-    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%S','now'))
 );
 
 CREATE TABLE IF NOT EXISTS digest_runs (
@@ -404,6 +415,57 @@ def _migrate_sqlite_uploads(conn: sqlite3.Connection) -> None:
         conn.execute("ROLLBACK TO SAVEPOINT migrate_uploads")
         conn.execute("RELEASE SAVEPOINT migrate_uploads")
         raise
+
+
+def _migrate_sqlite_constraints(conn: sqlite3.Connection) -> None:
+    """SQLite needs a rebuild to tighten existing PKs or change a default.
+
+    These five tables have no incoming foreign keys. Preserve every stored
+    value, custom index/trigger, and AUTOINCREMENT high-water mark.
+    """
+    desired = sqlite3.connect(":memory:")
+    desired.row_factory = sqlite3.Row
+    try:
+        desired.executescript(_SQLITE_SCHEMA)
+        for table in ("workspace_invites", "uploads", "app_roles", "ai_spend_daily", "audit_log"):
+            actual = {c["name"]: c for c in conn.execute(f'PRAGMA table_info("{table}")')}
+            wanted = {c["name"]: c for c in desired.execute(f'PRAGMA table_info("{table}")')}
+            needs_pk = any(c["pk"] and c["notnull"] and not actual[name]["notnull"] for name, c in wanted.items() if name in actual)
+            needs_default = table == "audit_log" and actual["created_at"]["dflt_value"] != wanted["created_at"]["dflt_value"]
+            if not needs_pk and not needs_default:
+                continue
+            ddl = _SQLITE_SCHEMA.split(f"CREATE TABLE IF NOT EXISTS {table} (", 1)[1].split("\n);", 1)[0]
+            columns = ", ".join(f'"{name}"' for name in actual)
+            objects = conn.execute(
+                "SELECT sql FROM sqlite_master WHERE tbl_name=? AND type IN ('index', 'trigger') AND sql IS NOT NULL",
+                (table,),
+            ).fetchall()
+            sequence = conn.execute("SELECT seq FROM sqlite_sequence WHERE name=?", (table,)).fetchone()
+            conn.execute("SAVEPOINT sqlite_constraints")
+            try:
+                conn.execute(f'CREATE TABLE "{table}_parity" ({ddl})')
+                conn.execute(f'INSERT INTO "{table}_parity" ({columns}) SELECT {columns} FROM "{table}"')
+                conn.execute(f'DROP TABLE "{table}"')
+                conn.execute(f'ALTER TABLE "{table}_parity" RENAME TO "{table}"')
+                for obj in objects:
+                    conn.execute(obj["sql"])
+                if sequence is not None:
+                    current = conn.execute("SELECT seq FROM sqlite_sequence WHERE name=?", (table,)).fetchone()
+                    high_water = max(sequence["seq"], current["seq"] if current else 0)
+                    conn.execute("DELETE FROM sqlite_sequence WHERE name=?", (table,))
+                    conn.execute("INSERT INTO sqlite_sequence(name, seq) VALUES (?, ?)", (table, high_water))
+                conn.execute("RELEASE SAVEPOINT sqlite_constraints")
+            except Exception:
+                conn.execute("ROLLBACK TO SAVEPOINT sqlite_constraints")
+                conn.execute("RELEASE SAVEPOINT sqlite_constraints")
+                raise
+    finally:
+        desired.close()
+
+
+# Existing dev databases need the same constraints/default as fresh databases.
+# Constraint changes cannot be represented by SQLite ALTER COLUMN statements.
+_SQLITE_MIGRATIONS.append(_migrate_sqlite_constraints)
 
 
 # --------------------------------------------------------------------------
@@ -587,6 +649,9 @@ def init_db() -> None:
     try:
         conn.executescript(_SQLITE_SCHEMA)
         for stmt in _SQLITE_MIGRATIONS:
+            if callable(stmt):
+                stmt(conn)
+                continue
             try:
                 conn.execute(stmt)
             except sqlite3.OperationalError:
