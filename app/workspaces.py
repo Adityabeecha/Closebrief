@@ -1,4 +1,4 @@
-"""Workspace membership & invites (v4.0 multi-tenancy).
+"""Private workspace provisioning & membership (v4.0 multi-tenancy).
 
 A workspace is a tenant; membership gates which workspace's data a user may
 scope to. The active workspace is resolved server-side from verified membership
@@ -7,7 +7,6 @@ scope to. The active workspace is resolved server-side from verified membership
 
 from __future__ import annotations
 
-import secrets
 from threading import RLock
 from time import monotonic
 
@@ -28,7 +27,6 @@ def invalidate_membership_cache(user_id: str | None = None) -> None:
                 del _membership_cache[key]
 
 
-
 def create_workspace(conn, name: str, owner_id: str, owner_email: str | None = None) -> int:
     cur = conn.execute("INSERT INTO workspaces (name) VALUES (?)", (name,))
     ws_id = int(cur.lastrowid)
@@ -37,10 +35,10 @@ def create_workspace(conn, name: str, owner_id: str, owner_email: str | None = N
     return ws_id
 
 
-def add_member(conn, ws_id: int, user_id: str, email: str | None, role: str = "analyst", *, commit: bool = True) -> None:
+def add_member(conn, ws_id: int, user_id: str, email: str | None, role: str = "analyst") -> None:
     if role not in WS_ROLES:
         role = "analyst"
-    # Portable upsert: delete-then-insert keeps role current on re-invite.
+    # Portable upsert for membership/role maintenance.
     conn.execute(
         "DELETE FROM workspace_members WHERE workspace_id = ? AND user_id = ?", (ws_id, user_id)
     )
@@ -48,9 +46,8 @@ def add_member(conn, ws_id: int, user_id: str, email: str | None, role: str = "a
         "INSERT INTO workspace_members (workspace_id, user_id, email, role) VALUES (?, ?, ?, ?)",
         (ws_id, user_id, email, role),
     )
-    if commit:
-        conn.commit()
-        invalidate_membership_cache(user_id)
+    conn.commit()
+    invalidate_membership_cache(user_id)
 
 
 def list_user_workspaces(conn, user_id: str) -> list[dict]:
@@ -154,41 +151,3 @@ def list_members(conn, ws_id: int) -> list[dict]:
     ).fetchall()
     return [{"user_id": r["user_id"], "email": r["email"], "role": r["role"],
              "created_at": str(r["created_at"]) if r["created_at"] else None} for r in rows]
-
-
-def create_invite(conn, ws_id: int, role: str = "analyst", email: str | None = None) -> str:
-    if role not in WS_ROLES:
-        role = "analyst"
-    token = secrets.token_urlsafe(24)
-    conn.execute(
-        "INSERT INTO workspace_invites (token, workspace_id, role, email) VALUES (?, ?, ?, ?)",
-        (token, ws_id, role, email),
-    )
-    conn.commit()
-    return token
-
-
-def accept_invite(conn, token: str, user_id: str, email: str | None) -> int | None:
-    row = conn.execute(
-        "SELECT workspace_id, role, email, accepted FROM workspace_invites WHERE token = ?", (token,)
-    ).fetchone()
-    if row is None or row["accepted"]:
-        return None
-    if row["email"] and row["email"].strip().casefold() != (email or "").strip().casefold():
-        return None
-    try:
-        # Claim exactly once, in the same transaction as membership creation.
-        claimed = conn.execute(
-            "UPDATE workspace_invites SET accepted = true WHERE token = ? AND accepted = false RETURNING workspace_id",
-            (token,),
-        ).fetchone()
-        if claimed is None:
-            conn.rollback()
-            return None
-        add_member(conn, int(row["workspace_id"]), user_id, email, row["role"], commit=False)
-        conn.commit()
-        invalidate_membership_cache(user_id)
-    except Exception:
-        conn.rollback()
-        raise
-    return int(row["workspace_id"])

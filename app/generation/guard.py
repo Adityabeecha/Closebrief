@@ -18,8 +18,15 @@ import re
 
 from app.schemas import ComputedFact, ContextSnippet
 
+_CURRENCY_SYMBOLS = "$\u20ac\u00a3\u20b9\u00a5"
+
+
+def _has_currency(raw: str) -> bool:
+    return any(symbol in raw for symbol in _CURRENCY_SYMBOLS)
+
+
 _NUMBER_RE = re.compile(
-    r"(?<![A-Za-z0-9_])([+\-\u2212]?\$?\d(?:[\d,]*\d)?(?:\.\d+)?)\s*(million|billion|thousand|[mbk](?![A-Za-z]))?\s*(%|percent\b|per\s+cent\b)?",
+    r"(?<![A-Za-z0-9_])([+\-\u2212]?[$\u20ac\u00a3\u20b9\u00a5]?\d(?:[\d,]*\d)?(?:\.\d+)?)\s*(million|billion|thousand|[mbk](?![A-Za-z]))?\s*(%|percent\b|per\s+cent\b)?",
     re.IGNORECASE,
 )
 
@@ -47,7 +54,7 @@ _MONTH_BEFORE = re.compile(
     r"november|december|jan|feb|mar|apr|jun|jul|aug|sep|sept|oct|nov|dec)\s*$",
     re.IGNORECASE,
 )
-_ISO_DATE = re.compile(r"(?<![\w$])\d{4}-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12]\d|3[01]))?(?![\d%])")
+_ISO_DATE = re.compile(r"(?<![\w$\u20ac\u00a3\u20b9\u00a5])\d{4}-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12]\d|3[01]))?(?![\d%])")
 
 
 class _Token(float):
@@ -72,7 +79,7 @@ def _token(value: float, half_unit: float, cls: type = _Token, is_pct: bool = Fa
 def _normalize(raw: str, suffix: str, percent: str) -> tuple[float, bool] | None:
     suffix = suffix or ""
     percent = percent or ""
-    cleaned = raw.replace("$", "").replace(",", "").replace("\u2212", "-")
+    cleaned = raw.translate(str.maketrans("", "", _CURRENCY_SYMBOLS)).replace(",", "").replace("\u2212", "-")
     try:
         base = float(cleaned)
     except ValueError:
@@ -81,7 +88,7 @@ def _normalize(raw: str, suffix: str, percent: str) -> tuple[float, bool] | None
     multiplier = 1.0 if is_percent else _MULTIPLIERS.get(suffix.lower(), 1.0)
     decimals = len(cleaned.split(".", 1)[1]) if "." in cleaned else 0
     half = 0.5 * (10 ** -decimals) * multiplier
-    whole_k = not is_percent and "$" in raw and suffix.lower() in ("k", "thousand") and "." not in cleaned
+    whole_k = not is_percent and _has_currency(raw) and suffix.lower() in ("k", "thousand") and "." not in cleaned
     return _token(base * multiplier, half, _CompactAmount if whole_k else _Token, is_percent), is_percent
 
 
@@ -100,7 +107,7 @@ def extract_numbers(text: str) -> list[tuple[float, bool]]:
 def _is_date_or_duration(match: re.Match, text: str, raw: str, suffix: str, percent: str) -> bool:
     """True when the matched token is a bare integer used as a duration or a
     calendar day, rather than a KPI figure."""
-    if percent or suffix or "$" in raw or "." in raw:
+    if percent or suffix or _has_currency(raw) or "." in raw:
         return False
     digits = raw.replace(",", "").lstrip("+-\u2212")
     if not digits.isdigit():
@@ -318,7 +325,7 @@ def check_faithfulness(
             continue
         value, is_percent = norm
 
-        if not percent and not suffix and "$" not in raw and "." not in raw and value in excluded:
+        if not percent and not suffix and not _has_currency(raw) and "." not in raw and value in excluded:
             continue
         if _is_date_or_duration(match, narrative, raw, suffix, percent):
             continue
@@ -366,7 +373,7 @@ def faithfulness_messages(narrative: str, fact: ComputedFact,
             continue
         value, percent = norm
         raw, suffix, percent_token = match.groups()
-        if not percent_token and not suffix and '$' not in raw and '.' not in raw and value in excluded:
+        if not percent_token and not suffix and not _has_currency(raw) and '.' not in raw and value in excluded:
             continue
         if _is_date_or_duration(match, narrative, raw, suffix, percent_token):
             continue
