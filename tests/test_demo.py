@@ -7,6 +7,8 @@ import io
 import pytest
 from dbharness import use_test_db
 
+import app.routers.facts as route_facts
+
 DEMO = {"X-Closebrief-Demo": "1"}
 
 
@@ -212,7 +214,7 @@ def test_every_seeded_demo_narrative_passes_faithfulness(client):
     ).fetchall()
     assert len(reports) > 20
     for r in reports:
-        fact = main._fact_by_metric_id(conn, r["metric_id"], r["period"])
+        fact = route_facts._fact_by_metric_id(conn, r["metric_id"], r["period"])
         passed, bad = check_faithfulness(r["narrative"], fact)
         assert passed, (fact.metric, r["period"], r["narrative"], bad)
         assert len(r["narrative"].split()) < 90
@@ -268,6 +270,6 @@ def test_template_uses_only_relevant_cited_reasons_and_real_comparisons(client, 
     assert (doc.title in text) is cited
     assert ("No reason recorded yet." in text) is not cited
     assert check_faithfulness(
-        text, main._fact_by_metric_id(conn, mid, period), [ContextSnippet(id="ctx_999", body=doc.body)]
+        text, route_facts._fact_by_metric_id(conn, mid, period), [ContextSnippet(id="ctx_999", body=doc.body)]
     )[0]
     conn.close()

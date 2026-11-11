@@ -4,6 +4,8 @@ spend-limit guard (402 when over budget)."""
 import pytest
 from dbharness import use_test_db
 
+import app.services as services
+
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
@@ -85,7 +87,6 @@ def test_explicit_budget_overrides_tier(client):
 
 
 def test_enforce_budget_blocks_llm_when_over(client, monkeypatch):
-    import app.main as main
     from app import datasets, workspaces
     conn = _conn()
     try:
@@ -99,7 +100,7 @@ def test_enforce_budget_blocks_llm_when_over(client, monkeypatch):
     try:
         from fastapi import HTTPException
         with pytest.raises(HTTPException) as ei:
-            main._enforce_budget()
+            services.enforce_budget()
         assert ei.value.status_code == 402
     finally:
         datasets.set_workspace_scope(None)

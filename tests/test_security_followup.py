@@ -5,6 +5,9 @@ from types import SimpleNamespace
 import pytest
 from test_review_regressions import conn as _isolated_conn
 
+import app.routers.datasets as route_datasets
+import app.routers.generate as route_generate
+
 conn = _isolated_conn
 
 
@@ -50,20 +53,20 @@ def test_audit_malformed_summary_is_reported_as_tampering(conn):
 def test_dataset_rename_cannot_cross_workspaces(conn):
     from fastapi import HTTPException
 
-    from app import datasets, main
+    from app import datasets
     datasets.set_workspace_scope(1)
     ds = datasets.create_dataset(conn, "Original")
     datasets.set_workspace_scope(2)
     with pytest.raises(HTTPException) as error:
-        main.rename_dataset(ds, {"name": "Attacker"})
+        route_datasets.rename_dataset(ds, {"name": "Attacker"})
     assert error.value.status_code == 404
     assert conn.execute("SELECT name FROM datasets WHERE id=?", (ds,)).fetchone()[0] == "Original"
 
 
 def test_empty_workspace_digest_history_does_not_expose_other_tenants(conn):
-    from app import datasets, main, scheduling
+    from app import datasets, scheduling
     datasets.set_workspace_scope(1)
     ds = datasets.create_dataset(conn, "Private")
     scheduling.record_digest_run(conn, ds, "2025-01", 1, [{"headline": "private"}], 0, "manual")
     datasets.set_workspace_scope(2)
-    assert main.digest_history() == []
+    assert route_generate.digest_history() == []

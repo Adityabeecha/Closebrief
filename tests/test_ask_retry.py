@@ -4,6 +4,8 @@ Q&A answer never ships an unverifiable figure (success criterion: faithfulness).
 import pytest
 from dbharness import use_test_db
 
+import app.routers.generate as route_generate
+
 
 class _Usage:
     prompt_tokens = 10
@@ -61,14 +63,13 @@ def _ingest(client):
 
 
 def test_ask_retries_once_when_unfaithful(client, monkeypatch):
-    import app.main as main
     _ingest(client)
     # First answer invents a figure; the stricter retry answers without numbers.
     fake = _FakeLLM([
         "Revenue was $999,999,999 this month, up 4321%.",
         "Revenue increased this period, consistent with the pricing change.",
     ])
-    monkeypatch.setattr(main, "get_llm_client", lambda: fake)
+    monkeypatch.setattr(route_generate, "get_llm_client", lambda: fake)
 
     r = client.post("/ask", json={"metric": "Net Revenue", "period": "2025-03",
                                    "question": "Why did revenue rise?"})
@@ -80,10 +81,9 @@ def test_ask_retries_once_when_unfaithful(client, monkeypatch):
 
 
 def test_ask_no_retry_when_first_answer_clean(client, monkeypatch):
-    import app.main as main
     _ingest(client)
     fake = _FakeLLM(["Revenue increased this period, per the pricing note."])
-    monkeypatch.setattr(main, "get_llm_client", lambda: fake)
+    monkeypatch.setattr(route_generate, "get_llm_client", lambda: fake)
 
     r = client.post("/ask", json={"metric": "Net Revenue", "period": "2025-03",
                                    "question": "Why?"})

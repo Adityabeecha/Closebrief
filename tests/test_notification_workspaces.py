@@ -7,6 +7,8 @@ import pytest
 from dbharness import use_test_db
 from fastapi.testclient import TestClient
 
+import app.routes_common as routes_common
+
 
 @pytest.fixture
 def scoped_notifications(monkeypatch, tmp_path):
@@ -69,15 +71,15 @@ def test_anomaly_delivery_only_reaches_its_workspace(scoped_notifications, monke
 
 
 def test_async_delivery_captures_workspace_before_pool_submission(scoped_notifications, monkeypatch):
-    from app import datasets, main
+    from app import datasets
 
     queued = []
     delivered = Mock()
-    monkeypatch.setattr(main._bg_executor, "submit", queued.append)
-    monkeypatch.setattr(main, "notif_deliver", delivered)
+    monkeypatch.setattr(routes_common._bg_executor, "submit", queued.append)
+    monkeypatch.setattr(routes_common, "notif_deliver", delivered)
     token = datasets._workspace_scope.set(101)
     try:
-        main._notify_async("anomaly_detected")
+        routes_common._notify_async("anomaly_detected")
         datasets.set_workspace_scope(202)
         queued[0]()
         assert delivered.call_args.kwargs["workspace_id"] == 101
