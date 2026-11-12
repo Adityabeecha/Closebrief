@@ -165,6 +165,7 @@ def delete_dataset(conn, dataset_id: int) -> bool:
         conn.execute("DELETE FROM computed_facts WHERE metric_id = ?", (mid,))
         conn.execute("DELETE FROM metric_values WHERE metric_id = ?", (mid,))
         conn.execute("DELETE FROM pvm_bridges WHERE metric_id = ?", (mid,))
+        conn.execute("DELETE FROM metric_breakdowns WHERE metric_id = ?", (mid,))
     conn.execute(
         "DELETE FROM scheduler_runs WHERE job_id IN (SELECT id FROM scheduled_jobs WHERE dataset_id = ?)",
         (dataset_id,),

@@ -38,7 +38,7 @@ def record_changes(conn, dataset_id, before, source, *, actor_id=None, actor_ema
     at = datetime.now(timezone.utc).isoformat()
     for mid, period in sorted(before.keys() | after.keys()):
         old, new = before.get((mid, period), {}), after.get((mid, period), {})
-        for field in ("value", "budget"):
+        for field in ("value", "budget", "forecast"):
             a, b = old.get(field), new.get(field)
             changed = (a is None) != (b is None) or (a is not None and b is not None and abs(a - b) > 1e-9)
             if changed:

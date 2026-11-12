@@ -598,6 +598,16 @@
     ]
   ],
   [
+    "/kpis/contributors",
+    [
+      "GET"
+    ],
+    true,
+    [
+      "require_read"
+    ]
+  ],
+  [
     "/kpis/derived",
     [
       "POST"

@@ -18,7 +18,7 @@ CREATE TABLE metrics (id INTEGER PRIMARY KEY AUTOINCREMENT, dataset_id INTEGER, 
     category TEXT DEFAULT 'Uncategorized', unit TEXT DEFAULT 'USD', direction_good TEXT DEFAULT 'up',
     external_id TEXT, UNIQUE(dataset_id, name));
 CREATE TABLE metric_values (id INTEGER PRIMARY KEY AUTOINCREMENT, metric_id INTEGER, period TEXT,
-    value REAL, budget REAL, quantity REAL, price REAL, budget_quantity REAL, budget_price REAL,
+    value REAL, budget REAL, forecast REAL, quantity REAL, price REAL, budget_quantity REAL, budget_price REAL,
     dimensions TEXT, source_rows INTEGER NOT NULL DEFAULT 1, UNIQUE(metric_id, period));
 CREATE TABLE pvm_bridges (id INTEGER PRIMARY KEY AUTOINCREMENT, metric_id INTEGER, period TEXT,
     volume REAL, price REAL, mix REAL, total REAL, n_items INTEGER, UNIQUE(metric_id, period));
@@ -29,8 +29,8 @@ CREATE TABLE pvm_bridges (id INTEGER PRIMARY KEY AUTOINCREMENT, metric_id INTEGE
 def conn():
     c = sqlite3.connect(":memory:")
     c.row_factory = sqlite3.Row
-    from app.db import _CLOSE_CONTROL_SCHEMA
-    c.executescript(SCHEMA + _CLOSE_CONTROL_SCHEMA)
+    from app.db import _BREAKDOWNS_SCHEMA, _CLOSE_CONTROL_SCHEMA
+    c.executescript(SCHEMA + _CLOSE_CONTROL_SCHEMA + _BREAKDOWNS_SCHEMA)
     from app.datasets import create_dataset
     dataset_id = create_dataset(c, "test")
     yield c, dataset_id

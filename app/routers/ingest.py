@@ -194,6 +194,9 @@ def ingest_join_budget(upload_id: str, payload: dict,
     it's appended before matching. Returns a report (matched / near-miss /
     unmatched) rather than a bare success, since a silent partial join would
     be worse than the hard error this replaces."""
+    field = payload.get("field", "budget")
+    if field not in ("budget", "forecast"):
+        raise HTTPException(status_code=422, detail="field must be budget or forecast")
     target_dataset_id = payload.get("target_dataset_id")
     if not target_dataset_id:
         raise HTTPException(status_code=422, detail="target_dataset_id is required")
@@ -222,10 +225,10 @@ def ingest_join_budget(upload_id: str, payload: dict,
             canonical["metric"] = canonical["metric"].astype(str).str.strip() + " " + suffix
 
         report = match_budget_to_dataset(conn, canonical, target_dataset_id,
-                                         actor_id=user.id, actor_email=user.email)
+                                         field=field, actor_id=user.id, actor_email=user.email)
         derived_metrics.refresh(conn, target_dataset_id, actor_id=user.id, actor_email=user.email, report=report)
         up = get_upload(conn, upload_id)
-        record_receipt(conn, target_dataset_id, kind="budget_join", filename=up["filename"],
+        record_receipt(conn, target_dataset_id, kind=f"{field}_join", filename=up["filename"],
                        mapping={**mapping.model_dump(), "metric_suffix": suffix}, report=report,
                        written_pairs=canonical.attrs["written_pairs"])
         shared_cache().bump_namespace()

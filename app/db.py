@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS import_receipts (
     dataset_id INTEGER NOT NULL REFERENCES datasets(id) ON DELETE CASCADE,
     workspace_id INTEGER,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    kind TEXT NOT NULL CHECK (kind IN ('import', 'budget_join', 'connector_sync')),
+    kind TEXT NOT NULL CHECK (kind IN ('import', 'budget_join', 'forecast_join', 'connector_sync')),
     filename TEXT NOT NULL,
     mapping TEXT NOT NULL,
     report TEXT NOT NULL,
@@ -36,10 +36,10 @@ CREATE TABLE IF NOT EXISTS value_changes (
     dataset_id INTEGER NOT NULL REFERENCES datasets(id) ON DELETE CASCADE,
     metric_id INTEGER NOT NULL REFERENCES metrics(id) ON DELETE CASCADE,
     period TEXT NOT NULL,
-    field TEXT NOT NULL CHECK (field IN ('value', 'budget')),
+    field TEXT NOT NULL CHECK (field IN ('value', 'budget', 'forecast')),
     old_value REAL,
     new_value REAL,
-    source TEXT NOT NULL CHECK (source IN ('import', 'budget_join', 'sync', 'custom_kpi')),
+    source TEXT NOT NULL CHECK (source IN ('import', 'budget_join', 'forecast_join', 'sync', 'custom_kpi')),
     actor_id TEXT,
     actor_email TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -54,6 +54,23 @@ CREATE TABLE IF NOT EXISTS close_locks (
     locked_by_id TEXT,
     locked_by_email TEXT,
     UNIQUE(dataset_id, period)
+);
+"""
+
+
+_BREAKDOWNS_SCHEMA = """
+CREATE TABLE IF NOT EXISTS metric_breakdowns (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    workspace_id INTEGER,
+    metric_id INTEGER NOT NULL REFERENCES metrics(id) ON DELETE CASCADE,
+    period TEXT NOT NULL,
+    dimension TEXT NOT NULL,
+    member TEXT NOT NULL,
+    value REAL,
+    budget REAL,
+    forecast REAL,
+    source_rows INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(metric_id, period, member)
 );
 """
 
@@ -126,6 +143,7 @@ CREATE TABLE IF NOT EXISTS metric_values (
     period TEXT NOT NULL,
     value REAL NOT NULL,
     budget REAL,
+    forecast REAL,
     quantity REAL,
     price REAL,
     budget_quantity REAL,
@@ -145,6 +163,8 @@ CREATE TABLE IF NOT EXISTS computed_facts (
     yoy_pct REAL,
     budget_var_abs REAL,
     budget_var_pct REAL,
+    forecast_var_abs REAL,
+    forecast_var_pct REAL,
     trend TEXT,
     is_anomaly INTEGER NOT NULL DEFAULT 0,
     UNIQUE(metric_id, period)
@@ -375,7 +395,7 @@ CREATE TABLE IF NOT EXISTS digest_runs (
 """
 
 # Columns added after first release; applied to pre-existing SQLite DBs on startup.
-_SQLITE_SCHEMA += _IMPORT_RECEIPTS_SCHEMA + _CLOSE_CONTROL_SCHEMA
+_SQLITE_SCHEMA += _IMPORT_RECEIPTS_SCHEMA + _CLOSE_CONTROL_SCHEMA + _BREAKDOWNS_SCHEMA
 
 
 def _migrate_dataset_freshness(conn: sqlite3.Connection) -> None:
@@ -389,10 +409,13 @@ def _migrate_dataset_freshness(conn: sqlite3.Connection) -> None:
 
 
 def _migrate_close_control(conn: sqlite3.Connection) -> None:
-    conn.executescript(_CLOSE_CONTROL_SCHEMA)
+    conn.executescript(_CLOSE_CONTROL_SCHEMA + _BREAKDOWNS_SCHEMA)
 
 
 _SQLITE_MIGRATIONS = [
+    "ALTER TABLE metric_values ADD COLUMN forecast REAL",
+    "ALTER TABLE computed_facts ADD COLUMN forecast_var_abs REAL",
+    "ALTER TABLE computed_facts ADD COLUMN forecast_var_pct REAL",
     _migrate_dataset_freshness,
     "ALTER TABLE datasets ADD COLUMN data_changed_at TIMESTAMP",
     "ALTER TABLE datasets ADD COLUMN fiscal_year_start INTEGER NOT NULL DEFAULT 1 CHECK (fiscal_year_start BETWEEN 1 AND 12)",
@@ -496,12 +519,14 @@ def _migrate_sqlite_constraints(conn: sqlite3.Connection) -> None:
     desired.row_factory = sqlite3.Row
     try:
         desired.executescript(_SQLITE_SCHEMA)
-        for table in ("workspace_invites", "uploads", "app_roles", "ai_spend_daily", "audit_log"):
+        for table in ("workspace_invites", "uploads", "app_roles", "ai_spend_daily", "audit_log", "import_receipts", "value_changes"):
             actual = {c["name"]: c for c in conn.execute(f'PRAGMA table_info("{table}")')}
             wanted = {c["name"]: c for c in desired.execute(f'PRAGMA table_info("{table}")')}
             needs_pk = any(c["pk"] and c["notnull"] and not actual[name]["notnull"] for name, c in wanted.items() if name in actual)
             needs_default = table == "audit_log" and actual["created_at"]["dflt_value"] != wanted["created_at"]["dflt_value"]
-            if not needs_pk and not needs_default:
+            stored_ddl = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone()["sql"]
+            needs_check = table in ("import_receipts", "value_changes") and "'forecast_join'" not in stored_ddl
+            if not needs_pk and not needs_default and not needs_check:
                 continue
             ddl = _SQLITE_SCHEMA.split(f"CREATE TABLE IF NOT EXISTS {table} (", 1)[1].split("\n);", 1)[0]
             columns = ", ".join(f'"{name}"' for name in actual)
