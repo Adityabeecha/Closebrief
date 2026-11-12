@@ -496,6 +496,7 @@ def match_budget_to_dataset(
     unmatched_metric: set[str] = set()
     unmatched_period: list[dict] = []
     seen_near_miss: set[str] = set()
+    written_pairs = set()
 
     group_cols = ["metric", "period", "id"] if has_id_col else ["metric", "period"]
     for key, group in canonical.groupby(group_cols, dropna=False):
@@ -545,8 +546,10 @@ def match_budget_to_dataset(
             "UPDATE metric_values SET budget = ? WHERE id = ?", (budget, existing["id"])
         )
         matched += 1
+        written_pairs.add((matched_name, period))
 
     conn.commit()
+    canonical.attrs["written_pairs"] = written_pairs
     return {
         "matched": matched,
         "near_misses": near_misses,

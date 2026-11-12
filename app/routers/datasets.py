@@ -21,8 +21,20 @@ from app.datasets import (
 from app.db import get_connection
 from app.deps import shared_cache
 from app.domains import registry
+from app.import_receipts import list_receipts
 
 router = APIRouter()
+
+
+@router.get("/datasets/{dataset_id}/receipts")
+def dataset_receipts(dataset_id: int, _: CurrentUser = Depends(require_read)) -> list[dict]:
+    conn = get_connection()
+    try:
+        if conn.execute(f"SELECT id FROM datasets WHERE id = ? AND {_scope_pred()}", (dataset_id,)).fetchone() is None:
+            raise HTTPException(status_code=404, detail=f"Dataset {dataset_id} not found")
+        return list_receipts(conn, dataset_id)
+    finally:
+        conn.close()
 
 
 @router.get("/datasets")
