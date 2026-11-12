@@ -7,6 +7,28 @@ import pytest
 from app import db
 
 
+@pytest.mark.parametrize("source_rows", [None, 3])
+def test_data_copy_preserves_legacy_and_new_source_row_counts(source_rows):
+    conn = sqlite3.connect(":memory:")
+    conn.row_factory = sqlite3.Row
+    try:
+        schema = db._SQLITE_SCHEMA
+        if source_rows is None:
+            schema = schema.replace("    source_rows INTEGER NOT NULL DEFAULT 1,\n", "")
+        conn.executescript(schema)
+        conn.execute("INSERT INTO metrics (name) VALUES ('Revenue')")
+        conn.execute("INSERT INTO metric_values (metric_id, period, value) VALUES (1, '2025-01', 123)")
+        if source_rows:
+            conn.execute("UPDATE metric_values SET source_rows = ?", (source_rows,))
+        cols = dict(db._COPY_TABLES)["metric_values"]
+        rows = db._sqlite_copy_rows(conn, "metric_values", cols)
+        assert len(rows) == 1
+        assert rows[0]["value"] == 123
+        assert rows[0]["source_rows"] == (source_rows or 1)
+    finally:
+        conn.close()
+
+
 @pytest.fixture
 def local_db(tmp_path, monkeypatch):
     from app.config import settings

@@ -13,6 +13,8 @@ import sqlite3
 
 from pydantic import BaseModel, Field
 
+from app.compute.availability import has_usable_value
+
 
 class DigestItem(BaseModel):
     metric: str
@@ -62,9 +64,11 @@ def build_approved_digest(conn: sqlite3.Connection, period: str,
         """
         SELECT m.name AS metric, cf.budget_var_abs, cf.budget_var_pct, cf.mom_pct,
                gr.id AS report_id, gr.narrative, gr.review_status, gr.faithfulness,
+               m.id AS metric_id, cf.value, mv.source_rows,
                COALESCE(kc.unit, m.unit) AS unit, COALESCE(kc.direction_good, m.direction_good) AS direction_good
         FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
         LEFT JOIN kpi_configs kc ON kc.dataset_id = m.dataset_id AND kc.source_metric = m.name
+        LEFT JOIN metric_values mv ON mv.metric_id = m.id AND mv.period = cf.period
         LEFT JOIN generated_reports gr ON gr.id = (
             SELECT MAX(g.id) FROM generated_reports g
             WHERE g.metric_id = cf.metric_id AND g.period = cf.period
@@ -77,6 +81,7 @@ def build_approved_digest(conn: sqlite3.Connection, period: str,
         """,
         (ds, period),
     ).fetchall()
+    rows = [r for r in rows if has_usable_value(r["metric_id"], r["value"], r["unit"], r["source_rows"])]
     approved = [r for r in rows if r["review_status"] == "approved" and (r["narrative"] or "").strip()]
     pending = [r["metric"] for r in rows if r not in approved]
     ranked = sorted(

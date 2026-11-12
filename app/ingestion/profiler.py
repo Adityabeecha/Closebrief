@@ -19,6 +19,25 @@ import re
 
 import pandas as pd
 
+from app.ingestion.mapping import MappingError, MappingSpec, normalize
+
+
+def mapping_warnings(df: pd.DataFrame, mapping: MappingSpec) -> list[str]:
+    """Preview the same row combination that the confirmed mapping will store."""
+    try:
+        canonical = normalize(df, mapping)
+    except MappingError:
+        return []  # An incomplete suggestion must still be editable.
+    counts = canonical.groupby(["metric", "period"]).size()
+    combined = counts[counts > 1]
+    if combined.empty:
+        return []
+    return [
+        f"This mapping combines {int(combined.sum())} rows into {len(combined)} metric/month figures "
+        f"(up to {int(combined.max())} rows per figure). They will be ADDED together. "
+        "Check the metric and dimension columns; percentages need one row per month."
+    ]
+
 # Column-name patterns (case-insensitive)
 _BUDGET_NAME = re.compile(r"budget|plan|forecast|target|\bbud\b|\bfcst\b", re.I)
 _ID_NAME = re.compile(r"[\s_]code\b|^code\b|[\s_]id\b|^id\b|\bsku\b", re.I)
