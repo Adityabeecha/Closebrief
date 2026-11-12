@@ -23,6 +23,7 @@ from app.datasets import (
 )
 from app.db import get_connection
 from app.deps import shared_cache
+from app.import_receipts import record_receipt
 from app.ingestion.ingest import IngestValidationError, ingest_dataframe, parse_csv
 from app.ingestion.mapping import MappingError, MappingSpec, match_budget_to_dataset, normalize, store_normalized
 from app.ingestion.profiler import mapping_preview, profile_columns, suggest_mapping
@@ -153,6 +154,9 @@ def ingest_mapping(upload_id: str, mapping: MappingSpec, save_template: bool = F
             template_id = save_mapping_template(conn, up["column_signature"], mapping.model_dump())
 
         facts = compute_and_store(conn, dataset_id)
+        record_receipt(conn, dataset_id, kind="import", filename=up["filename"] if up else upload_id,
+                       mapping=mapping.model_dump(), report=summary["import_report"],
+                       written_pairs=zip(canonical["metric"], canonical["period"]))
         _notify_anomalies(conn, dataset_id)
         shared_cache().bump_namespace()
         return {**summary, "dataset_id": dataset_id, "currency": dataset_currency(conn, dataset_id),
@@ -207,6 +211,10 @@ def ingest_join_budget(upload_id: str, payload: dict,
 
         report = match_budget_to_dataset(conn, canonical, target_dataset_id)
         compute_and_store(conn, target_dataset_id)
+        up = get_upload(conn, upload_id)
+        record_receipt(conn, target_dataset_id, kind="budget_join", filename=up["filename"],
+                       mapping={**mapping.model_dump(), "metric_suffix": suffix}, report=report,
+                       written_pairs=canonical.attrs["written_pairs"])
         shared_cache().bump_namespace()
         return {**report, "dataset_id": target_dataset_id}
     except UploadError as exc:

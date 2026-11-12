@@ -14,6 +14,20 @@ from pathlib import Path
 
 from app.config import session_pool_url, settings
 
+_IMPORT_RECEIPTS_SCHEMA = """
+CREATE TABLE IF NOT EXISTS import_receipts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    dataset_id INTEGER NOT NULL REFERENCES datasets(id) ON DELETE CASCADE,
+    workspace_id INTEGER,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    kind TEXT NOT NULL CHECK (kind IN ('import', 'budget_join', 'connector_sync')),
+    filename TEXT NOT NULL,
+    mapping TEXT NOT NULL,
+    report TEXT NOT NULL,
+    kpi_totals TEXT NOT NULL
+);
+"""
+
 # SQLite has no row-level security DDL. Migration 026 extends PostgreSQL RLS;
 # SQLite continues to enforce tenancy through the request-scoped SQL predicates.
 _SQLITE_SCHEMA = """
@@ -330,7 +344,9 @@ CREATE TABLE IF NOT EXISTS digest_runs (
 """
 
 # Columns added after first release; applied to pre-existing SQLite DBs on startup.
+_SQLITE_SCHEMA += _IMPORT_RECEIPTS_SCHEMA
 _SQLITE_MIGRATIONS = [
+    _IMPORT_RECEIPTS_SCHEMA,
     "ALTER TABLE metric_values ADD COLUMN source_rows INTEGER NOT NULL DEFAULT 1",
     "ALTER TABLE datasets ADD COLUMN currency TEXT NOT NULL DEFAULT 'USD' "
     "CHECK (currency IN ('USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'SGD', 'CHF'))",

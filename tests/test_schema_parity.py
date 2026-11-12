@@ -29,6 +29,7 @@ PG_ONLY_OBJECTS = {
     "policy:notification_configs.ws_isolation": "Postgres RLS backs up application workspace predicates.",
     "policy:connectors.ws_isolation": "Postgres RLS backs up application workspace predicates.",
     "policy:audit_log.ws_isolation": "Postgres RLS backs up application workspace predicates.",
+    "policy:import_receipts.ws_isolation": "Import receipts use the same workspace isolation as datasets.",
 }
 
 
