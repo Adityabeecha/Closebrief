@@ -107,7 +107,8 @@ app.add_middleware(
 # the frontend needs to boot the login form, and the API docs.
 # /app.js is the shell's own script (split out of index.html): a browser cannot
 # attach a bearer token to <script src>, so gating it 401s the entire frontend.
-_OPEN_PATHS = {"/", "/app", "/theme.css", "/app.js", "/health", "/auth/config", "/auth/google", "/openapi.json", "/docs", "/redoc",
+_OPEN_PATHS = {"/", "/app", "/theme.css", "/app.js", "/health", "/auth/config", "/auth/google",
+               "/auth/session", "/auth/logout", "/privacy", "/terms", "/openapi.json", "/docs", "/redoc",
                "/samples/fpa.csv", "/og.png"}
 
 
@@ -231,8 +232,11 @@ async def _telemetry_middleware(request, call_next):
 
     authorization = request.headers.get("authorization", "")
     scheme, _, token = authorization.partition(" ")
+    session = request.cookies.get("cb_session", "")
     if scheme.lower() == "bearer" and token.strip():
         visitor_key = "token:" + hashlib.sha256(authorization.encode()).hexdigest()
+    elif session:
+        visitor_key = "session:" + hashlib.sha256(session.encode()).hexdigest()
     else:
         client_ip = request.client.host if request.client else "?"
         if settings.trust_proxy_headers:

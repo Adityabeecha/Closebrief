@@ -144,14 +144,14 @@ def run_js(start, end, setup, assertions):
 
 def test_generic_503_is_rejected_not_returned_as_success():
     run_js("async function api(", "const fmt=", """
-      let authToken=null,demoSession=false,activeWorkspaceId=null,activeDatasetId=null;
+      let signedIn=false,demoSession=false,activeWorkspaceId=null,activeDatasetId=null;
       const fetch=async()=>({ok:false,status:503,statusText:'Unavailable',json:async()=>({detail:'Service unavailable'})});
     """, "await assert.rejects(api('/facts'), /Service unavailable/);")
 
 
 def test_facts_only_generation_fallback_remains_supported():
     run_js("async function api(", "const fmt=", """
-      let authToken=null,demoSession=false,activeWorkspaceId=null,activeDatasetId=null;
+      let signedIn=false,demoSession=false,activeWorkspaceId=null,activeDatasetId=null;
       const fallback={metric:'Revenue',period:'2025-01',value:100,faithfulness:'unchecked',narrative:null};
       const fetch=async()=>({ok:false,status:503,json:async()=>fallback});
     """, "assert.equal((await api('/generate-insight')).faithfulness,'unchecked');")
