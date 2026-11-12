@@ -408,7 +408,6 @@
   .receipt-pane summary{cursor:pointer;color:var(--text-2)}
   .head-drafts #gen-all{display:none!important}
   .nav-empty{padding:2px 8px 10px;font-size:13px;color:var(--text-3);line-height:1.45}
-  #v-review.rq-empty{display:none!important}
   .kpim-link{font-size:13px;padding:6px 2px}
   .cl .btn,.cl a.btn{text-decoration:none}
   .ctx-list .screen-state{border:0;box-shadow:none;background:none;padding:6px 4px}
@@ -417,6 +416,7 @@
   .q-col{min-width:0}
   .q-col .search,.q-col .search input{max-width:100%;box-sizing:border-box}
   .q-col .catbar{max-width:100%}
+  .est-tag{display:inline-block;vertical-align:middle;margin-left:8px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.02em;color:var(--mut);background:var(--b04,rgba(127,127,127,.12));border:1px solid var(--b08)}
   .fc-empty{color:var(--text-3);font-size:14px;display:flex;align-items:center;justify-content:center;height:100%}
   .kpi-grid select.ask{border-color:var(--review);box-shadow:0 0 0 1px var(--review)}
   .dir-note{font-size:12px;color:var(--text-3);white-space:nowrap}
@@ -625,8 +625,8 @@
     .toolbar,.tool-right{align-items:stretch}
     .tool-right>*{max-width:100%}
     .card,.panel,.ctx-form,.digest-item{padding:16px}
-    .card-value-row,.qa,.assign-row,.rq-item{align-items:stretch;flex-wrap:wrap}
-    .qa input,.assign-row .modal-field{flex:1 1 100%;max-width:none}
+    .card-value-row,.qa{align-items:stretch;flex-wrap:wrap}
+    .qa input{flex:1 1 100%;max-width:none}
     .steps{overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
     .step{white-space:nowrap}
     .sc-grid{grid-template-columns:1fr;padding:14px}
@@ -680,18 +680,6 @@
   .ver-head .when{font-weight:500;color:var(--mut2)}
   .ver-diff{font-family:var(--font-mono);font-size:12px;line-height:1.5;white-space:pre-wrap;margin-top:6px;background:var(--bg2);border-radius:8px;padding:9px 11px;overflow-x:auto}
   .ver-diff .add{color:var(--green2)} .ver-diff .del{color:var(--red)}
-  .rev-assigned{font-size:12px;color:var(--mut);font-weight:600}
-  .assign-row{display:flex;gap:8px;align-items:center;margin:2px 0 8px}
-  .assign-row .modal-field{max-width:280px}
-  /* Review queue */
-  .rq-item{display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid var(--b08);border-radius:12px;background:var(--card);margin-bottom:10px;cursor:pointer;transition:border-color .12s}
-  .rq-item:hover{border-color:var(--accent)}
-  .rq-main{min-width:0;flex:1}
-  .rq-metric{font-size:15px;font-weight:800;color:var(--ink)}
-  .rq-preview{font-size:13px;color:var(--mut);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .rq-meta{font-size:12px;font-weight:700;color:var(--mut2);margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
-  .rq-period{font-size:12px;font-weight:700;color:var(--mut2);flex:none}
-  .rq-open{flex:none;color:var(--accent)}
   .nav-badge{margin-left:auto;background:var(--accent);color:var(--on-accent);font-size:12px;font-weight:800;min-width:18px;height:18px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;padding:0 5px}
   /* Root-cause drill-down */
   .rc-panel{border:1px solid var(--b12);border-radius:12px;padding:15px 17px;background:var(--bg2)}
@@ -1240,7 +1228,7 @@
       </div>
       <div class="mh-sub" id="mh-sub"></div>
       <nav class="mtabs" id="month-tabs" aria-label="This close">
-        <a href="#" data-tab="overview">Overview<span class="nav-badge" id="review-badge" style="display:none">0</span></a>
+        <a href="#" data-tab="overview">Overview</a>
         <a href="#" data-tab="kpis">KPIs<span class="mt-n" id="mt-kpis"></span></a>
         <a href="#" data-tab="context">Context</a>
         <a href="#" data-tab="digest">Digest</a>
@@ -1378,18 +1366,11 @@
           <div class="chips" id="d-chips" style="margin-top:12px"></div>
           <div class="rev-strip" id="d-rev-strip" style="display:none">
             <span class="rev-badge none" id="d-rev-badge">Not approved yet</span>
-            <span id="d-assigned" class="rev-assigned"></span>
             <button class="btn sm write-only" onclick="reviewReport('approved')">Approve</button>
             <button class="btn sm write-only" onclick="reviewReport('changes_requested')">Request changes</button>
-            <button class="btn sm write-only" id="d-assign-btn" onclick="toggleAssign()">Assign reviewer</button>
             <button class="btn sm" id="d-ver-btn" onclick="toggleVersions()">History</button>
           </div>
           <div id="d-readonly-approval" class="readonly-approval" style="display:none"></div>
-          <div class="assign-row write-only" id="d-assign-row" style="display:none">
-            <input id="d-assign-email" class="modal-field" list="ws-members" placeholder="reviewer@company.com" aria-label="Reviewer email">
-            <datalist id="ws-members"></datalist>
-            <button class="write-only btn sm primary" onclick="assignReviewer()">Send</button>
-          </div>
           <div id="d-versions" style="display:none;margin:4px 0 10px"></div>
           <div class="qa">
             <input id="d-qa" placeholder="Ask about this metric, follow-ups welcome…" aria-label="Ask about this metric" onkeydown="if(event.key==='Enter')askQA()">
@@ -1433,14 +1414,14 @@
       <div class="head">
         <div>
           <h1>Analyze</h1>
-          <div class="sub">Forecasts, what-if scenarios, custom KPIs and links between datasets. Every number here is calculated, never written by AI.</div>
+          <div class="sub">Quick estimates, custom KPIs and links between datasets. Every number here is calculated, never written by AI. The forecast and what-if are rough guides, not a plan or a budget.</div>
         </div>
       </div>
       <div id="analytics-state"></div>
       <div class="an-split" id="analytics-tools" style="display:none">
         <nav class="an-tools" aria-label="Analysis tools">
-          <button data-tool="0" aria-pressed="true" onclick="anTool(0)"><b>Forecast</b><small>The next few periods, and how accurate that usually is</small></button>
-          <button data-tool="1" aria-pressed="false" onclick="anTool(1)"><b>What-if scenario</b><small>Change price, volume or mix on the latest month</small></button>
+          <button data-tool="0" aria-pressed="true" onclick="anTool(0)"><b>Forecast</b><small>A quick estimate of the next few periods, with a likely range</small></button>
+          <button data-tool="1" aria-pressed="false" onclick="anTool(1)"><b>What-if scenario</b><small>A quick sensitivity check on the latest month</small></button>
           <button data-tool="2" aria-pressed="false" class="write-only" onclick="anTool(2)"><b>Custom KPI</b><small>A new KPI built from a formula</small></button>
           <button data-tool="3" aria-pressed="false" onclick="anTool(3)"><b>Links between datasets</b><small>Metrics that move together, and which moves first</small></button>
         </nav>
@@ -1448,7 +1429,7 @@
 
         <!-- Forecast -->
         <div class="panel">
-          <h2>Forecast</h2><div class="psub">Projects the next periods from trend and seasonality. Typical error is how far off this method was, on average, on past months.</div>
+          <h2>Forecast <span class="est-tag">Quick estimate</span></h2><div class="psub">A statistical projection from trend and seasonality, not a plan. The likely range is how far off this method was, on average, on past months.</div>
           <div class="an-ctl">
             <select id="fc-metric" aria-label="Metric to forecast" class="pill-btn"></select>
             <select id="fc-horizon" class="pill-btn" aria-label="Horizon">
@@ -1465,7 +1446,7 @@
 
         <!-- Scenario -->
         <div class="panel">
-          <h2>What-if scenario</h2><div class="psub">Change price, volume or mix and see the effect on the latest month straight away.</div>
+          <h2>What-if scenario <span class="est-tag">Quick estimate</span></h2><div class="psub">Scales the latest month by price, volume and mix. A rough sensitivity check, not a driver-based model.</div>
           <div class="an-ctl"><select id="scn-metric" aria-label="Metric for the scenario" class="pill-btn" onchange="runScenario()"></select></div>
           <div class="lever" data-lever="price">
             <div class="lever-top"><span>Price</span><span class="lever-val" id="scn-price-v">0%</span></div>
@@ -1511,18 +1492,6 @@
 
       </div>
       </div>
-    </section>
-
-    <!-- ---------- REVIEW QUEUE ---------- -->
-    <section id="v-review" class="wrap ov-review" style="display:none">
-      <div class="head">
-        <div>
-          <h2 class="ov-h">Assigned to you</h2>
-          <div class="sub">Commentary waiting for your approval, across every dataset</div>
-        </div>
-        <button class="btn" onclick="loadReview()">Refresh</button>
-      </div>
-      <div id="rq-list"><div class="an-empty">Loading…</div></div>
     </section>
 
     <!-- ---------- DIGEST ---------- -->
