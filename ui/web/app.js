@@ -244,16 +244,16 @@ async function openKpiManager(){
 }
 function renderKpim(){
   const dirOpt=v=>`<option value="up"${v==="up"?" selected":""}>↑ up is good</option><option value="down"${v==="down"?" selected":""}>↓ down is good</option>`;
-  const aggOpt=v=>["flow","balance","ratio"].map(a=>`<option value="${a}"${v===a?" selected":""}>${a}</option>`).join("");
+  const aggOpt=v=>rollupOptions(v||"flow");
   $("kpim-rows").innerHTML=kpimState.selected.length?`
-    <div class="kpi-grid hdr" style="grid-template-columns:1.2fr 1.2fr .9fr .7fr .9fr .8fr .3fr"><span>Source metric</span><span>Display name</span><span>Category</span><span>Unit</span><span>Direction</span><span title="How this rolls up to quarters/years">Rollup</span><span></span></div>`
+    <div class="kpi-grid hdr" style="grid-template-columns:1.2fr 1.2fr .9fr .7fr .9fr .8fr .3fr"><span>Source metric</span><span>Display name</span><span>Category</span><span>Unit</span><span>Direction</span><span title="How the months combine into a quarter or year">Over a quarter</span><span></span></div>`
     +kpimState.selected.map((k,i)=>`<div class="kpi-grid" data-i="${i}" style="grid-template-columns:1.2fr 1.2fr .9fr .7fr .9fr .8fr .3fr">
       <span style="font-size:12px;color:var(--mut);overflow:hidden;text-overflow:ellipsis" title="${esc(k.source_metric)}">${esc(k.source_metric)}</span>
       <input value="${esc(k.display_name)}" data-f="display_name">
       <input value="${esc(k.category)}" data-f="category">
-      <input value="${esc(k.unit)}" data-f="unit">
+      <select data-f="unit" aria-label="Unit for ${esc(k.display_name)}" onchange="onUnitChange(this)">${unitOptions(k.unit)}</select>
       <select data-f="direction_good">${dirOpt(k.direction_good)}</select>
-      <select data-f="aggregation_type" title="flow=sum · balance=last month · ratio=not aggregated">${aggOpt(k.aggregation_type)}</select>
+      <select data-f="aggregation_type" class="k-agg" data-suggested="${esc(k.aggregation_type||"flow")}" data-touched="1" aria-label="How ${esc(k.display_name)} adds up over a quarter">${aggOpt(k.aggregation_type)}</select>
       <button class="write-only row-del" title="Remove from board" onclick="kpimRemove(${i})">${XICON}</button>
     </div>`).join("")
     :'<div class="empty-state" style="padding:26px">No KPIs selected — add one below.</div>';
@@ -402,6 +402,8 @@ const fmt=(v,unit,cur)=>{
   if(v===null||v===undefined)return"–";
   if(unit==="%")return(v<0?"−":"")+Math.abs(v).toFixed(1)+"%";
   if(unit==="count"){const n=Math.round(v);return(n<0?"−":"")+Math.abs(n).toLocaleString();}
+  if(unit==="number")return(v<0?"−":"")+Math.abs(v).toLocaleString(undefined,{maximumFractionDigits:2});
+  if(unit==="days")return(v<0?"−":"")+Math.abs(v).toLocaleString(undefined,{maximumFractionDigits:1})+(Math.abs(v)===1?" day":" days");
   // Finance-style: sign BEFORE the currency symbol (−$1.20M / −$370K / −$12,346 /
   // −$12.50), with a real minus sign (U+2212) so it lines up with "+" in mono figures.
   // Whole thousands only from 100K up: "$1K" for $1,450 hid a third of the figure.
@@ -423,6 +425,21 @@ const pct=v=>v===null||v===undefined?null:(v>0?"+":v<0?"−":"")+Math.abs(v).toF
 // −2.0 pts, not −5.0%. Rankings and the "needs a reason" rule still use the
 // relative change; this is only how a variance is written.
 const DELTA_KEY={budget:"budget_var_pct",mom:"mom_pct",yoy:"yoy_pct"};
+// Units a KPI can have, and how each rolls up into a quarter or year.
+const UNIT_CHOICES=[["USD","Amount"],["%","Percent"],["count","Count"],["number","Number"],["days","Days"]];
+const ROLLUP_CHOICES=[["flow","Adds up","Quarter = the months added together (sales, costs)"],
+  ["balance","Month-end value","Quarter = its last month (cash, headcount, customers)"],
+  ["ratio","Not added up","No quarter figure: rates and days can't be added (use a custom KPI)"]];
+function unitOptions(sel){return UNIT_CHOICES.map(([u,l])=>`<option value="${u}"${u===sel?" selected":""}>${l}</option>`).join("");}
+function rollupOptions(sel){return ROLLUP_CHOICES.map(([v,l,t])=>`<option value="${v}" title="${esc(t)}"${v===sel?" selected":""}>${l}</option>`).join("");}
+// Rates and days never add up; otherwise keep what was suggested for the name.
+function rollupForUnit(unit,suggested){return unit==="%"||unit==="days"?"ratio":(suggested&&suggested!=="ratio"?suggested:"flow");}
+function onUnitChange(sel){
+  const agg=sel.closest(".kpi-grid")&&sel.closest(".kpi-grid").querySelector(".k-agg");
+  if(agg&&!agg.dataset.touched)agg.value=rollupForUnit(sel.value,agg.dataset.suggested);
+}
+// A KPI measured in days (DSO) moves in days: "+3.0 days", like a rate moves in points.
+function isDaysKpi(f){return !!f&&f.unit==="days";}
 function isPctKpi(f){return !!f&&(f.unit==="%"||f.unit==="percent");}
 function deltaPts(f,key){
   const d=f.deltas||{};
@@ -434,9 +451,9 @@ function deltaPts(f,key){
 function deltaText(f,key){
   const rel=(f.deltas||{})[DELTA_KEY[key]];
   if(rel==null)return null;
-  if(!isPctKpi(f))return pct(rel);
+  if(!isPctKpi(f)&&!isDaysKpi(f))return pct(rel);
   const p=deltaPts(f,key);
-  return p==null?null:(p>0?"+":p<0?"−":"")+Math.abs(p).toFixed(1)+" pts";
+  return p==null?null:(p>0?"+":p<0?"−":"")+Math.abs(p).toFixed(1)+(isDaysKpi(f)?" days":" pts");
 }
 function datasetDisplayName(name){
   const stored=String(name||"");
@@ -732,6 +749,12 @@ function currentCloseState(){
     status:shared?"shared":m.kpis&&m.approved===m.kpis?"ready":m.status};
 }
 // In a quarter or year, the next step is "open the first month that still needs work".
+// When this dataset's numbers last changed (an import, a budget join, a sync),
+// so nobody reviews a close on stale figures without knowing.
+function dataAsOf(){
+  const d=activeDatasetObj,at=d&&(d.data_changed_at||d.created_at);
+  return at?`Data as of ${fmtDate(at)}`:null;
+}
 function rollupNextStep(){
   const st=overviewStatus&&overviewStatus.period===currentPeriod&&(overviewStatus.steps||[]).find(x=>x.state!=="done");
   const m=st&&/^#month=(\d{4}-\d{2})&tab=[a-z]+$/.exec(st.target);
@@ -757,7 +780,7 @@ function renderMonthHead(){
   const roll=granularity!=="month"&&closeMonths[currentPeriod];
   $("mh-sub").textContent=(roll
     ?[ds,`${plural(roll.distinct_kpis??s.n,"KPI","KPIs")} across ${plural(roll.month_count||1,"month")}`,s.n?`${s.approved} of ${plural(s.n,"monthly commentary","monthly commentaries")} approved`:null]
-    :[ds,s.n?`${plural(s.n,"KPI","KPIs")} computed in code`:null,s.n?`${s.approved} of ${s.n} approved`:null]).filter(Boolean).join(" · ");
+    :[ds,s.n?`${plural(s.n,"KPI","KPIs")} computed in code`:null,s.n?`${s.approved} of ${s.n} approved`:null]).concat(dataAsOf()).filter(Boolean).join(" · ");
   const next=!canReview()?null:granularity==="month"?closeNextStep(s):rollupNextStep(),btn=$("mh-next");
   btn.style.display=next?"":"none";
   if(next){btn.textContent=next.label;btn.setAttribute("onclick",next.run);}
@@ -3104,20 +3127,21 @@ async function loadKpiPicker(){
   const slow=setTimeout(()=>{if(kpiLoading&&lastImport===current)$("kpi-selection").textContent="Still loading KPI choices…";},4000);
   try{
     const metrics=await api(`/ingest/${upload.upload_id}/metrics`);if(lastImport!==current)return;
-    $("kpi-rows").innerHTML=metrics.length?`<div class="kpi-grid hdr"><span>Track · edit</span><span>Name</span><span>Category</span><span>Unit</span><span>Good direction</span></div>`+
+    $("kpi-rows").innerHTML=metrics.length?`<div class="kpi-grid hdr"><span>Track · edit</span><span>Name</span><span>Category</span><span>Unit</span><span>Good direction</span><span title="How the months combine into a quarter or year">Over a quarter</span></div>`+
       metrics.map(m=>{const s=m.suggestion||{},row=esc(m.source_metric);return`<div class="kpi-grid" data-src="${row}">
         <div class="kpi-checks"><label><input type="checkbox" class="k-include" checked aria-label="Include ${row}" onchange="updateKpiSelection()"> Track</label><label><input type="checkbox" class="k-select" aria-label="Select ${row} for bulk edit" onchange="updateKpiSelection()"> Edit together</label></div>
         <label class="kpi-field"><span class="kpi-field-label">Name</span><input class="k-name" aria-label="Display name for ${row}" value="${esc(humanizeKpiName(m.source_metric))}"><small class="kpi-source">Source: ${row}</small></label>
         <label class="kpi-field"><span class="kpi-field-label">Category</span><input class="k-cat" aria-label="Category for ${row}" value="${esc(s.category||"Uncategorized")}"></label>
-        <label class="kpi-field"><span class="kpi-field-label">Unit</span><select class="k-unit" aria-label="Unit for ${row}">${[["USD","Amount"],["%","Percent"],["count","Count"]].map(([u,l])=>`<option value="${u}" ${u===(s.unit||"USD")?"selected":""}>${l}</option>`).join("")}</select></label>
-        <label class="kpi-field"><span class="kpi-field-label">Good direction</span><select class="k-dir${s.direction_known===false?" ask":""}" aria-label="Direction for ${row}" onchange="this.classList.remove('ask');updateKpiSelection()">${s.direction_known===false?'<option value="" selected disabled>Which way is good?</option>':""}<option value="up" ${s.direction_known!==false&&(s.direction_good||"up")==="up"?"selected":""}>Up is good</option><option value="down" ${s.direction_known!==false&&s.direction_good==="down"?"selected":""}>Down is good</option></select></label></div>`;}).join(""):
+        <label class="kpi-field"><span class="kpi-field-label">Unit</span><select class="k-unit" aria-label="Unit for ${row}" onchange="onUnitChange(this)">${unitOptions(s.unit||"USD")}</select></label>
+        <label class="kpi-field"><span class="kpi-field-label">Good direction</span><select class="k-dir${s.direction_known===false?" ask":""}" aria-label="Direction for ${row}" onchange="this.classList.remove('ask');updateKpiSelection()">${s.direction_known===false?'<option value="" selected disabled>Which way is good?</option>':""}<option value="up" ${s.direction_known!==false&&(s.direction_good||"up")==="up"?"selected":""}>Up is good</option><option value="down" ${s.direction_known!==false&&s.direction_good==="down"?"selected":""}>Down is good</option></select></label>
+        <label class="kpi-field"><span class="kpi-field-label">Over a quarter</span><select class="k-agg" aria-label="How ${row} adds up over a quarter" data-suggested="${esc(s.aggregation_type||"flow")}" onchange="this.dataset.touched='1'">${rollupOptions(rollupForUnit(s.unit||"USD",s.aggregation_type))}</select></label></div>`;}).join(""):
       '<div class="banner info">No KPIs were found. Leave this import to delete the unfinished dataset, then upload a file with metric values.</div>';
   }catch(e){if(lastImport===current)$("kpi-rows").innerHTML=`<div class="banner err">${esc(e.message)} <button class="btn sm" onclick="loadKpiPicker()">Retry</button></div>`;}
   finally{clearTimeout(slow);if(lastImport===current){kpiLoading=false;updateKpiSelection();}}
 }
 async function confirmKpis(){
   if(kpiSaving||importLeaving)return;
-  const kpis=[...document.querySelectorAll(".kpi-grid[data-src]")].filter(r=>r.querySelector(".k-include").checked).map(r=>({source_metric:r.dataset.src,display_name:r.querySelector(".k-name").value,category:r.querySelector(".k-cat").value,unit:r.querySelector(".k-unit").value,direction_good:r.querySelector(".k-dir").value}));
+  const kpis=[...document.querySelectorAll(".kpi-grid[data-src]")].filter(r=>r.querySelector(".k-include").checked).map(r=>({source_metric:r.dataset.src,display_name:r.querySelector(".k-name").value,category:r.querySelector(".k-cat").value,unit:r.querySelector(".k-unit").value,direction_good:r.querySelector(".k-dir").value,aggregation_type:(r.querySelector(".k-agg")||{}).value||undefined}));
   if(!kpis.length){updateKpiSelection();return;}
   kpiSaving=true;updateKpiSelection();
   try{

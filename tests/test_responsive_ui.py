@@ -478,7 +478,7 @@ def test_sample_import_kpi_selection_and_abandonment_fit_viewport(width, theme, 
     result = json.loads(payload)
     assert "error" not in result, result
     assert result["scroll"] <= result["viewport"]
-    assert result["columns"] == (1 if width == 375 else 5)
+    assert result["columns"] == (1 if width == 375 else 6)   # + "Over a quarter" (F10)
     assert result["fieldLabels"] == (width == 375)
     assert result["bulkTargetHeight"] >= 36
     assert result["kpis"] == 2 and result["cleaned"]
