@@ -434,6 +434,7 @@
   .lg-btn{width:100%;padding:13px;border-radius:var(--r-sm);background:var(--accent);color:var(--on-accent);border:1px solid var(--accent);font-weight:700;font-size:15px}
   .lg-btn:hover{background:var(--green-deep);border-color:var(--green-deep)}
   .lg-sandbox{margin:16px 0 0;font-size:13px;line-height:1.5;color:var(--text-3)}
+  .lg-sandbox a{color:inherit;text-decoration:underline;text-underline-offset:2px}
   .lg-toggle{margin-top:18px;text-align:center;font-size:13px;color:var(--mut)}
   .lg-toggle button{border:none;background:none;color:var(--accent);font-weight:700;font-size:inherit;padding:4px 2px;min-height:24px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
   .lg-ferr{font-size:13px;font-weight:600;color:var(--red);margin-top:6px;min-height:0}
@@ -1111,7 +1112,7 @@
         Google sign-in couldn’t load (an ad blocker may be blocking it). Use your email and password above.
       </div>
     </div>
-    <p class="lg-sandbox" id="lg-sandbox">Each account gets its own private workspace. Use sample or anonymised figures, not confidential data. Workspaces with no activity for 30 days are deleted.</p>
+    <p class="lg-sandbox" id="lg-sandbox">Each account gets its own private workspace. Use sample or anonymised figures, not confidential data. Workspaces with no activity for 30 days are deleted. By signing in you agree to the <a href="/terms" target="_blank" rel="noopener">terms</a> and <a href="/privacy" target="_blank" rel="noopener">privacy</a> notes.</p>
     <div class="lg-toggle" id="lg-toggle">Need an account? <button type="button" onclick="toggleAuthMode()">Sign up</button></div>
     <button id="lg-demo" style="display:none;margin-top:14px;width:100%;padding:11px;border-radius:8px;border:1.5px dashed var(--accent);background:var(--accent-bg);color:var(--accent);font-weight:700;font-size:14px" onclick="enterDemo()">Demo</button>
     <button type="button" class="lg-guest" id="lg-guest" style="display:none" onclick="enterGuest()">Continue as guest</button>

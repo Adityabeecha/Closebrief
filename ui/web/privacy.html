@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy — Closebrief</title>
+<meta name="description" content="What Closebrief collects, where it goes, how long it's kept, and how to have it removed.">
+<link rel="canonical" href="https://closebrief.onrender.com/privacy">
+<link rel="stylesheet" href="/theme.css">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--text);font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent)}
+  .wrap{max-width:720px;margin:0 auto;padding:40px 24px 80px}
+  .back{display:inline-block;margin-bottom:28px;font-size:14px;font-weight:600;color:var(--text-3);text-decoration:none}
+  .back:hover{color:var(--text)}
+  h1{font-size:clamp(32px,4vw,44px);line-height:1.05;letter-spacing:-.035em;font-weight:750}
+  .updated{color:var(--text-3);font-size:14px;margin-top:10px}
+  .lede{font-size:18px;color:var(--text-2);margin-top:20px}
+  h2{font-size:20px;letter-spacing:-.015em;margin:36px 0 10px}
+  p,li{color:var(--text-2)}
+  p+p{margin-top:12px}
+  ul{margin:10px 0 0 20px;display:flex;flex-direction:column;gap:6px}
+  b{color:var(--text)}
+  footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);font-size:14px;color:var(--text-3);display:flex;gap:20px;flex-wrap:wrap}
+  footer a{color:var(--text-3)}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <a class="back" href="/">← Closebrief</a>
+  <h1>Privacy</h1>
+  <p class="updated">Last updated 12 November 2026</p>
+  <p class="lede">Closebrief is a portfolio project that anyone can sign in to and try. This page says plainly what it collects, where that goes, how long it's kept, and how to have it removed.</p>
+
+  <h2>What's collected</h2>
+  <ul>
+    <li><b>Your account:</b> your email address. If you sign in with Google, also Google's ID for your account (to recognise you next time). Passwords for email sign-in are handled by Supabase, not stored by Closebrief.</li>
+    <li><b>What you put in:</b> files you import, the figures and KPIs computed from them, notes you add, commentary drafted and edited, and review decisions.</li>
+    <li><b>An activity log:</b> who approved, edited, imported, synced or sent what, and when. It's kept so changes can be traced.</li>
+    <li><b>Usage:</b> each AI request's size and cost, used to enforce the daily allowance.</li>
+  </ul>
+  <p>Please use sample or anonymised figures. Closebrief isn't built or audited to hold confidential financial data.</p>
+
+  <h2>Where it goes</h2>
+  <ul>
+    <li><b>Hosting and storage:</b> the app runs on Render and keeps its data in a Supabase Postgres database.</li>
+    <li><b>AI drafting:</b> when you draft commentary or ask a question, the KPI's computed figures, the relevant notes and your question (if you asked one) are sent to the AI provider (OpenAI) to write the text. Your files themselves aren't sent.</li>
+    <li><b>Error reports:</b> if error monitoring (Sentry) is switched on, crash reports may include the page or request where the error happened.</li>
+    <li><b>Linked sources:</b> if you connect a Google Sheet or CSV link, Closebrief fetches that link to sync it.</li>
+  </ul>
+  <p>Nothing is sold or shared for advertising. There are no ads or tracking scripts.</p>
+
+  <h2>Cookies and browser storage</h2>
+  <ul>
+    <li><b>cb_session:</b> keeps you signed in for up to 12 hours. Scripts on the page can't read it.</li>
+    <li><b>cb_signed_in:</b> just tells the home page you're signed in. It holds no account details.</li>
+    <li><b>Preferences in browser storage:</b> theme, sidebar, the dataset and workspace you last opened, and dismissed tips.</li>
+  </ul>
+
+  <h2>How long it's kept</h2>
+  <ul>
+    <li><b>Uploaded files</b> are deleted 7 days after upload. The figures imported from them stay with your dataset.</li>
+    <li><b>Workspaces with no activity for 30 days</b> are deleted along with their datasets, notes, commentary and linked sources.</li>
+    <li><b>The activity log and your sign-in record</b> are kept after a workspace is deleted, so the history can't quietly disappear.</li>
+  </ul>
+
+  <h2>Removing your data</h2>
+  <p>You can delete datasets yourself at any time from the dataset menu. To have your account and everything linked to it removed, open a request on the <a href="https://github.com/Adityabeecha/Closebrief/issues" rel="noopener">project's GitHub issues</a> from an account that lets you be identified. It will be handled by hand.</p>
+
+  <h2>Changes</h2>
+  <p>If this page changes, the date at the top changes with it.</p>
+
+  <footer><a href="/">Home</a><a href="/terms">Terms</a><a href="https://github.com/Adityabeecha/Closebrief" rel="noopener">Source code</a></footer>
+</main>
+</body>
+</html>

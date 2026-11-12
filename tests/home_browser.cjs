@@ -37,17 +37,16 @@ const output=process.env.HOME_SCREENSHOTS||path.join(process.env.TEMP||'/tmp','c
    {name:'newest unfinished close',data:[{period:'2026-08',status:'shared'},{period:'2026-05',status:'in_progress'},{period:'2026-06',status:'in_progress'}],want:'Continue June close'},
    {name:'HTTP error',status:401,want:'Open your workspace'},
    {name:'malformed response',data:{months:[]},want:'Open your workspace'},
-   {name:'no unfinished close',data:[{period:'2026-06',status:'shared'}],want:'Open your workspace'},
-   {name:'Supabase session',supabase:true,data:[{period:'2026-07',status:'in_progress'}],want:'Continue July close'}
+   {name:'no unfinished close',data:[{period:'2026-06',status:'shared'}],want:'Open your workspace'}
   ];
   for(const test of cases)for(const width of [1440,1024,375]){
-   const context=await browser.newContext({viewport:{width,height:900}});await context.addInitScript(({supabase})=>{localStorage.setItem(supabase?'sb-test-auth-token':'cb-session-token',supabase?JSON.stringify({access_token:'test-token'}):'test-token');localStorage.setItem('cb-ws','7');},{supabase:!!test.supabase});
+   const context=await browser.newContext({viewport:{width,height:900}});await context.addCookies([{name:'cb_signed_in',value:'1',url}]);await context.addInitScript(()=>{localStorage.setItem('cb-ws','7');});
    const page=await context.newPage();
-   await page.route('**/close/months',route=>{assert.equal(route.request().headers().authorization,'Bearer test-token');assert.equal(route.request().headers()['x-workspace-id'],'7');return route.fulfill({status:test.status||200,contentType:'application/json',body:JSON.stringify(test.data||{})});});
+   await page.route('**/close/months',route=>{assert.equal(route.request().headers().authorization,undefined);assert.equal(route.request().headers()['x-closebrief-client'],'1');assert.equal(route.request().headers()['x-workspace-id'],'7');return route.fulfill({status:test.status||200,contentType:'application/json',body:JSON.stringify(test.data||{})});});
    const response=page.waitForResponse('**/close/months');
    await page.goto(url);await response;await page.waitForFunction(want=>document.querySelector('[data-cta-label]').textContent===want,test.want);
    assert.equal(await page.locator('#nav-signin').textContent(),test.want);
-   assert.equal(await page.locator('[data-cta]').first().getAttribute('href'),test.want.startsWith('Continue')?`/app#month=${test.supabase?'2026-07':'2026-06'}&tab=overview`:'/app');
+   assert.equal(await page.locator('[data-cta]').first().getAttribute('href'),test.want.startsWith('Continue')?'/app#month=2026-06&tab=overview':'/app');
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Returning user horizontal overflow');
    console.log('PASS CTA',test.name,width);await context.close();
   }

@@ -230,6 +230,57 @@
       "summary": "Auth Google"
     }
   },
+  "/auth/logout": {
+    "post": {
+      "operationId": "sign_out_auth_logout_post",
+      "responses": {
+        "204": {
+          "description": "Successful Response"
+        }
+      },
+      "summary": "Sign Out"
+    }
+  },
+  "/auth/session": {
+    "get": {
+      "description": "Whether this browser has a valid session cookie (never returns the token).",
+      "operationId": "session_status_auth_session_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Session Status Auth Session Get",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "Session Status"
+    },
+    "post": {
+      "description": "Trade a token the browser already holds (a Supabase sign-in, or a session\nstored by an older version of the app) for the HttpOnly session cookie, once.\nAfter this the page keeps no token at all.",
+      "operationId": "start_session_auth_session_post",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "title": "Response Start Session Auth Session Post",
+                "type": "object"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "Start Session"
+    }
+  },
   "/board-pack": {
     "get": {
       "description": "A self-contained, print-ready HTML board pack for the active dataset and\nperiod \u2014 the same KPIs/deltas/narratives as the dashboard, assembled into one\nshareable document (save-as-PDF or email). Deterministic; no LLM call here.",

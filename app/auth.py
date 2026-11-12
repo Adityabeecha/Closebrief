@@ -160,14 +160,74 @@ def invalidate_role_cache(user_id: str | None = None) -> None:
         _role_cache.pop(user_id, None)
 
 
+# ---------------------------------------------------------------- session cookie
+# The browser keeps the session in an HttpOnly cookie, so page scripts (and any
+# injected script) can't read it. API clients may still send a bearer token.
+SESSION_COOKIE = "cb_session"
+# Not secret: lets the public home page say "Open your workspace" without a token.
+SIGNED_IN_HINT = "cb_signed_in"
+CLIENT_HEADER = "x-closebrief-client"   # required on cookie-authenticated writes
+_SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+
+
+def _is_https(request: Request) -> bool:
+    return (request.url.scheme == "https"
+            or request.headers.get("x-forwarded-proto", "").split(",")[0].strip() == "https"
+            or settings.environment == "prod")
+
+
+def set_session_cookie(response, request: Request, token: str, max_age: int) -> None:
+    secure = _is_https(request)
+    response.set_cookie(SESSION_COOKIE, token, max_age=max_age, httponly=True, secure=secure,
+                        samesite="lax", path="/")
+    response.set_cookie(SIGNED_IN_HINT, "1", max_age=max_age, httponly=False, secure=secure,
+                        samesite="lax", path="/")
+
+
+def clear_session_cookie(response, request: Request) -> None:
+    secure = _is_https(request)
+    for name, http_only in ((SESSION_COOKIE, True), (SIGNED_IN_HINT, False)):
+        response.delete_cookie(name, path="/", secure=secure, httponly=http_only, samesite="lax")
+
+
+def session_user_from_cookie(request: Request) -> CurrentUser | None:
+    """The signed-in user from the session cookie, None if there isn't one.
+    Raises 401 when the cookie is present but expired or not ours."""
+    token = request.cookies.get(SESSION_COOKIE)
+    if not token:
+        return None
+    try:
+        claims = _try_decode_session(token)
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Session expired")
+    if claims is None:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    user_id, email = claims.get("sub"), claims.get("email") or ""
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid session")
+    return CurrentUser(id=user_id, email=email, role=_resolve_role(user_id, email))
+
+
 def authenticate(request: Request) -> CurrentUser:
-    """Validate the request's bearer token and build the CurrentUser. Bypassed
-    (anonymous admin) when auth is not active. Called by the middleware."""
+    """Build the CurrentUser from a bearer token (API clients) or the session
+    cookie (the browser). Bypassed (anonymous admin) when auth is not active.
+    Called by the middleware."""
     if not auth_active():
         return ANONYMOUS_ADMIN
 
     header = request.headers.get("authorization", "")
     if not header.lower().startswith("bearer "):
+        # Someone who opened the demo sees the demo, even with a session cookie.
+        if settings.demo_mode and request.headers.get("x-closebrief-demo") == "1":
+            return DEMO_USER
+        user = session_user_from_cookie(request)
+        if user is not None:
+            # A cookie rides along on any request to this site, including one a
+            # different site triggers. Writes must also carry our own header,
+            # which another site can't add without a CORS preflight we refuse.
+            if request.method not in _SAFE_METHODS and request.headers.get(CLIENT_HEADER) != "1":
+                raise HTTPException(status_code=403, detail="Missing client header")
+            return user
         # Demo mode: an anonymous visitor who opted into the demo gets the
         # read-only viewer identity (scoped to the demo dataset by the caller).
         if settings.demo_mode and request.headers.get("x-closebrief-demo") == "1":
