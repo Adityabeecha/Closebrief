@@ -43,7 +43,7 @@ def test_receipt_shows_what_happened_and_totals():
     pre = ("const _tl=Number.prototype.toLocaleString;Number.prototype.toLocaleString=function(l,o){return _tl.call(this,'en-US',o);};"
            "const esc=s=>String(s).replace(/</g,'&lt;'),plural=(n,w)=>n+' '+w+(n===1?'':'s'),"
            "fmtPeriod=p=>p,fmtWhen=s=>String(s).slice(0,10),fmtDate=fmtWhen;"
-           + SRC[SRC.index("function importReportHtml("):SRC.index("function resetImport(")])
+           + SRC[SRC.index("function lockedSkippedText("):SRC.index("function resetImport(")])
     html = _js('receiptHtml({kind:"budget_join",filename:"plan.csv",created_at:"2026-11-12T10:00:00Z",'
                'report:{rows_read:5,rows_kept:4,totals_dropped:[{row:5,label:"Total Opex"}]},'
                'kpi_totals:[{metric:"Opex",periods:3,value_total:600000.5,budget_total:null,rows:3}]})',
