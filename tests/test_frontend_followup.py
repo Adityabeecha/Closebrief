@@ -173,7 +173,7 @@ def test_pdf_export_keeps_failed_faithfulness_warning():
     run_js("function buildReportHTML(", "function exportPDF", """
       const currentPeriod='2025-01',BRAND={green:'#123',red:'#456'};
       const priorPeriodLabel=()=>'vs last month',capFirst=s=>s.charAt(0).toUpperCase()+s.slice(1);
-      const catColor=()=>'',esc=s=>String(s),fmt=()=>'$100',reportDelta=()=>'',pct=()=>'';
+      const catColor=()=>'',esc=s=>String(s),fmt=()=>'$100',reportDelta=()=>'',pct=()=>'',deltaText=()=>'';
     """, """
       const result=buildReportHTML([{has_data:true,metric:'Revenue',value:100,unit:'USD',
         deltas:{},narrative:'Unverified claim',faithfulness:'failed'}]);
@@ -188,7 +188,7 @@ def test_powerpoint_export_keeps_failed_faithfulness_warning():
       const priorPeriodLabel=()=>'vs last month',capFirst=s=>s.charAt(0).toUpperCase()+s.slice(1);
       const fmtPeriodTitle=p=>p,fmtDate=d=>d,plural=(n,w)=>n+' '+w;
       const shownFacts=[{has_data:true,metric:'Revenue',value:100,deltas:{},narrative:'Some claim',faithfulness:'failed'}];
-      const $=()=>({classList:{remove(){}}}),toast=()=>{},loadPptx=async()=>{},fmt=()=>'$100',pct=()=>'';
+      const $=()=>({classList:{remove(){}}}),toast=()=>{},loadPptx=async()=>{},fmt=()=>'$100',pct=()=>'',deltaText=()=>'';
       const document={documentElement:{getAttribute:()=>null}};
       class PptxGenJS{constructor(){this.ShapeType={line:'line',rect:'rect'}}
         addSlide(){return {addText(value){text.push(value)},addShape(){},addTable(){}}} async writeFile(){}}
@@ -212,4 +212,22 @@ def test_unsaved_import_does_not_follow_you_to_another_dataset():
       // Step 3 has created a dataset: that's leaveImport's job (it asks first), not a silent reset.
       importStartedFor=1;setStep(3);lastImport={datasetId:9};dropStaleImport();
       assert.equal(importStep,3);assert.equal(resets,1);
+    """)
+
+
+def test_finish_waits_for_a_direction_on_unrecognised_kpis():
+    # F20: a tracked KPI whose good direction is unknown blocks Finish until chosen.
+    run_js("function updateKpiSelection(", "function applyKpiBulk(", """
+      let kpiLoading=false,kpiSaving=false,importLeaving=false;
+      const plural=(n,w)=>n+' '+w+(n===1?'':'s');
+      const els={'imp-finish':{disabled:false},'kpi-selection':{textContent:''},'kpi-bulk-apply':{disabled:true},
+        'kpi-bulk-selection':{textContent:''},'kpi-bulk':{hidden:true}};
+      const $=id=>els[id];
+      const row=(dir)=>({querySelector:sel=>sel==='.k-include'?{checked:true}:sel==='.k-select'?{checked:false}:sel==='.k-dir'?{value:dir}:null});
+      let rows=[row('up'),row('')];const kpiRows=()=>rows;
+    """, """
+      updateKpiSelection();
+      assert.equal($('imp-finish').disabled,true);assert.match($('kpi-selection').textContent,/which way is good for 1 KPI/);
+      rows=[row('up'),row('down')];updateKpiSelection();
+      assert.equal($('imp-finish').disabled,false);assert.match($('kpi-selection').textContent,/2 KPIs to track/);
     """)

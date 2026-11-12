@@ -229,8 +229,11 @@ def _fmt(value: float | None, unit: str = "USD", currency: str = "USD") -> str:
     mark = symbol(currency)
     if amount >= 1e6:
         return sign + mark + _fixed(amount / 1e6, 2) + "M"
-    if amount >= 1e3:
+    if amount >= 1e5:
         return sign + mark + _fixed(amount / 1e3, 0) + "K"
+    if amount >= 1e3:
+        # In full under 100K, as on screen, so the commentary quotes what people see.
+        return sign + mark + f"{int(_fixed(amount, 0)):,}"
     return sign + mark + _fixed(amount, 0 if currency == "JPY" else 2)
 
 
@@ -282,6 +285,29 @@ def build_comparison_context(comparison: PeriodComparison | None, unit: str = "U
     return ["", "Period comparison (deterministic):", "  - " + line + "."]
 
 
+def _is_pct_kpi(fact: ComputedFact) -> bool:
+    return (fact.unit or "").lower() in ("%", "percent")
+
+
+def percent_kpi_points(fact: ComputedFact) -> dict[str, float | None]:
+    """A percent KPI's changes in percentage points (38% vs a 40% plan is
+    -2.0pp). The relative change of a rate (-5%) misleads finance readers."""
+    v, prior, d = fact.value, fact.prior_value, fact.deltas
+    yoy = None if v is None or d.yoy_pct is None or d.yoy_pct == -100 else v - v / (1 + d.yoy_pct / 100)
+    return {"mom": None if v is None or prior is None else v - prior, "yoy": yoy, "budget": d.budget_var_abs}
+
+
+def _point_changes(fact: ComputedFact) -> list[str]:
+    pts = percent_kpi_points(fact)
+    return [
+        "  - (this KPI is itself a percentage: its changes are in percentage points, pp; "
+        "write them as points, never as a percent change)",
+        f"  - month_over_month_change: {_fmt(pts['mom'], 'pp')}",
+        f"  - year_over_year_change: {_fmt(pts['yoy'], 'pp')}",
+        f"  - budget_variance: {_fmt(pts['budget'], 'pp')}",
+    ]
+
+
 def build_user_prompt(
     fact: ComputedFact,
     context: list[ContextSnippet],
@@ -295,10 +321,12 @@ def build_user_prompt(
         "Computed facts (the ONLY numbers you may use):",
         f"  - value: {_fmt(fact.value, fact.unit, fact.currency)}",
         f"  - prior_period_value: {_fmt(fact.prior_value, fact.unit, fact.currency)}",
-        f"  - month_over_month_change: {_fmt(fact.deltas.mom_pct, '%')}",
-        f"  - year_over_year_change: {_fmt(fact.deltas.yoy_pct, '%')}",
-        f"  - budget_variance_absolute: {_fmt(fact.deltas.budget_var_abs, _delta_unit(fact.unit), fact.currency)}",
-        f"  - budget_variance_percent: {_fmt(fact.deltas.budget_var_pct, '%')}",
+        *(_point_changes(fact) if _is_pct_kpi(fact) else [
+            f"  - month_over_month_change: {_fmt(fact.deltas.mom_pct, '%')}",
+            f"  - year_over_year_change: {_fmt(fact.deltas.yoy_pct, '%')}",
+            f"  - budget_variance_absolute: {_fmt(fact.deltas.budget_var_abs, _delta_unit(fact.unit), fact.currency)}",
+            f"  - budget_variance_percent: {_fmt(fact.deltas.budget_var_pct, '%')}",
+        ]),
         f"  - trend_12mo: {fact.trend or 'n/a'}",
         f"  - is_anomaly: {fact.is_anomaly}",
     ]
