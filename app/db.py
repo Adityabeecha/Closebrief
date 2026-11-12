@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS metric_values (
     budget_quantity REAL,
     budget_price REAL,
     dimensions TEXT,
+    source_rows INTEGER NOT NULL DEFAULT 1,
     UNIQUE(metric_id, period)
 );
 
@@ -330,6 +331,7 @@ CREATE TABLE IF NOT EXISTS digest_runs (
 
 # Columns added after first release; applied to pre-existing SQLite DBs on startup.
 _SQLITE_MIGRATIONS = [
+    "ALTER TABLE metric_values ADD COLUMN source_rows INTEGER NOT NULL DEFAULT 1",
     "ALTER TABLE datasets ADD COLUMN currency TEXT NOT NULL DEFAULT 'USD' "
     "CHECK (currency IN ('USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'SGD', 'CHF'))",
     "ALTER TABLE uploads ADD COLUMN currency TEXT NOT NULL DEFAULT 'USD' "
@@ -720,7 +722,7 @@ _COPY_TABLES = [
     # (table, columns) in FK-safe insert order
     ("metrics", ["id", "name", "category", "unit", "direction_good"]),
     ("metric_values", ["id", "metric_id", "period", "value", "budget", "quantity",
-                       "price", "budget_quantity", "budget_price", "dimensions"]),
+                       "price", "budget_quantity", "budget_price", "dimensions", "source_rows"]),
     ("computed_facts", ["id", "metric_id", "period", "value", "prior_value", "mom_pct",
                         "yoy_pct", "budget_var_abs", "budget_var_pct", "trend", "is_anomaly"]),
     ("context_documents", ["id", "type", "title", "body", "metric_tags", "effective_date", "created_at"]),
@@ -739,6 +741,16 @@ _IDENTITY_TABLES = [
     "metrics", "metric_values", "computed_facts", "context_documents",
     "generated_reports", "feedback", "mapping_templates", "kpi_configs",
 ]
+
+
+def _sqlite_copy_rows(src: sqlite3.Connection, table: str, cols: list[str]) -> list:
+    """Copy both upgraded and legacy SQLite sources without losing actuals."""
+    selected = list(cols)
+    if table == "metric_values":
+        existing = {r["name"] for r in src.execute("PRAGMA table_info(metric_values)")}
+        if "source_rows" not in existing:
+            selected = ["1 AS source_rows" if c == "source_rows" else c for c in cols]
+    return src.execute(f"SELECT {', '.join(selected)} FROM {table}").fetchall()
 
 
 def migrate(copy_data: bool = True, reindex: bool = True) -> None:
@@ -787,7 +799,7 @@ def migrate(copy_data: bool = True, reindex: bool = True) -> None:
         with psycopg.connect(ddl_url, connect_timeout=20, row_factory=dict_row) as dst:
             for table, cols in _COPY_TABLES:
                 try:
-                    rows = src.execute(f"SELECT {', '.join(cols)} FROM {table}").fetchall()
+                    rows = _sqlite_copy_rows(src, table, cols)
                 except sqlite3.OperationalError:
                     print(f"      {table}: skipped (not in SQLite)")
                     continue

@@ -2,6 +2,7 @@
 
 import json
 
+import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.api import require_read, require_write  # noqa: E402
@@ -10,17 +11,19 @@ from app.compute.aggregate import (
     GRANULARITIES,
     aggregate_series,
     infer_aggregation_type,
+    period_key,
     prior_key,
     sort_key,
     year_ago_key,
 )
-from app.compute.availability import has_usable_value
+from app.compute.availability import combined_percentage_reason, has_usable_value
 from app.compute.correlations import (
     compute_correlations,
     correlations_for_metric,
     streak_from_history,
 )
 from app.compute.funnel import compute_funnel
+from app.compute.kpis import compute_kpis
 from app.compute.pvm import bridge_for_metric_row
 from app.datasets import (
     _scope_pred,
@@ -146,7 +149,8 @@ def _chart_from_rows(history_desc, current, vb: dict | None) -> dict:
     return {"trend": trend, "budget_vs_actual": budget_vs_actual, "variance_bridge": bridge}
 
 
-def _prefetch_cards(conn, names_by_id: dict[int, str], period: str) -> dict[int, tuple[dict, dict | None]]:
+def _prefetch_cards(conn, names_by_id: dict[int, str], period: str,
+                    units_by_id: dict[int, str] | None = None) -> dict[int, tuple[dict, dict | None, dict]]:
     """chart_data and trend streak for every dashboard card in three queries.
     Per card this was ~7 round trips (trend, current, bridge x3, streak x2),
     which on a remote Postgres made /facts take ~9 s for 7 KPIs."""
@@ -156,7 +160,7 @@ def _prefetch_cards(conn, names_by_id: dict[int, str], period: str) -> dict[int,
     ph = ",".join("?" * len(ids))
     history: dict[int, list] = {}
     for r in conn.execute(
-        f"""SELECT metric_id, period, value, budget, quantity, budget_quantity, price, budget_price
+        f"""SELECT metric_id, period, value, budget, quantity, budget_quantity, price, budget_price, source_rows
             FROM metric_values WHERE metric_id IN ({ph}) AND period <= ?
             ORDER BY metric_id, period DESC""",
         (*ids, period),
@@ -179,10 +183,25 @@ def _prefetch_cards(conn, names_by_id: dict[int, str], period: str) -> dict[int,
     out = {}
     for mid, name in names_by_id.items():
         h = history.get(mid, [])
+        usable = [r for r in h if has_usable_value(mid, r["value"], (units_by_id or {}).get(mid), r["source_rows"])]
+        corrected = {}
+        if len(usable) != len(h) and any(r["period"] == period for r in usable):
+            # Unit selection happens after computation. Recalculate the monthly
+            # comparisons using usable history so an invalid prior percentage
+            # cannot leak into a valid month's delta, trend, or anomaly.
+            clean = compute_kpis(pd.DataFrame([
+                {"metric": name, "period": r["period"], "value": r["value"], "budget": r["budget"]}
+                for r in usable
+            ]))
+            corrected = clean[clean["period"] == period].iloc[0].to_dict()
+            corrected = {key: None if pd.isna(value) else value for key, value in corrected.items()}
+            moms[mid] = [(r["period"], r["mom_pct"]) for r in clean.to_dict("records") if pd.notna(r["mom_pct"])]
+        h = usable
         current = h[0] if h and h[0]["period"] == period else None
         out[mid] = (
             _chart_from_rows(h, current, _bridge_from_rows(pvm.get(mid), current)),
             streak_from_history(moms.get(mid, []), period, name),
+            corrected,
         )
     return out
 
@@ -216,14 +235,22 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
         rows = []
         if k["metric_id"] is not None:
             rows = [
-                {"period": r["period"], "value": r["value"], "budget": r["budget"]}
+                {"period": r["period"], "value": r["value"], "budget": r["budget"], "source_rows": r["source_rows"]}
                 for r in conn.execute(
-                    "SELECT period, value, budget FROM metric_values WHERE metric_id = ?",
+                    "SELECT period, value, budget, source_rows FROM metric_values WHERE metric_id = ?",
                     (k["metric_id"],),
                 ).fetchall()
             ]
         series = aggregate_series(rows, granularity, agg)
+        blocked = {}
+        for row in rows:
+            reason = combined_percentage_reason(k["unit"], row["source_rows"])
+            if reason:
+                key = period_key(row["period"], granularity)
+                blocked[key] = max(blocked.get(key, 1), row["source_rows"])
+                series[key].update(value=None, budget=None, unavailable=True)
         cur = series.get(period)
+        reason = combined_percentage_reason(k["unit"], blocked.get(period, 1))
         has_data = cur is not None and not cur.get("unavailable") and cur.get("value") is not None
         deltas = {"mom_pct": None, "yoy_pct": None, "budget_var_abs": None, "budget_var_pct": None}
         trend = None
@@ -251,6 +278,7 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
             "is_anomaly": False, "aggregated": True, "granularity": granularity,
             "aggregation_type": agg,
             "unavailable": bool(cur and cur.get("unavailable")),
+            "unavailable_reason": reason,
             "report_id": None, "review_status": None, "assigned_email": None,
             "narrative": None, "sources": [],
             "confidence": None, "faithfulness": None,
@@ -302,10 +330,11 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
                 SELECT m.id AS metric_id, k.source_metric AS metric,
                        k.category, k.unit, k.direction_good,
                        cf.value, cf.prior_value, cf.mom_pct, cf.yoy_pct,
-                       cf.budget_var_abs, cf.budget_var_pct, cf.trend, cf.is_anomaly
+                       cf.budget_var_abs, cf.budget_var_pct, cf.trend, cf.is_anomaly, mv.source_rows
                 FROM kpi_configs k
                 LEFT JOIN metrics m ON m.dataset_id = k.dataset_id AND m.name = k.source_metric
                 LEFT JOIN computed_facts cf ON cf.metric_id = m.id AND cf.period = ?
+                LEFT JOIN metric_values mv ON mv.metric_id = m.id AND mv.period = cf.period
                 WHERE k.dataset_id = ?
                 ORDER BY ABS(COALESCE(cf.budget_var_abs, 0)) DESC, k.source_metric
                 """,
@@ -316,9 +345,10 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
                 """
                 SELECT m.id AS metric_id, m.name AS metric, m.category, m.unit,
                        m.direction_good, cf.value, cf.prior_value, cf.mom_pct,
-                       cf.yoy_pct, cf.budget_var_abs, cf.budget_var_pct, cf.trend, cf.is_anomaly
+                       cf.yoy_pct, cf.budget_var_abs, cf.budget_var_pct, cf.trend, cf.is_anomaly, mv.source_rows
                 FROM metrics m
                 LEFT JOIN computed_facts cf ON cf.metric_id = m.id AND cf.period = ?
+                LEFT JOIN metric_values mv ON mv.metric_id = m.id AND mv.period = cf.period
                 WHERE m.dataset_id = ?
                 ORDER BY ABS(COALESCE(cf.budget_var_abs, 0)) DESC, m.name
                 """,
@@ -358,12 +388,18 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
 
         card_data = _prefetch_cards(
             conn,
-            {r["metric_id"]: r["metric"] for r in rows if has_usable_value(r["metric_id"], r["value"])},
+            {r["metric_id"]: r["metric"] for r in rows
+             if has_usable_value(r["metric_id"], r["value"], r["unit"], r["source_rows"])},
             period,
+            {r["metric_id"]: r["unit"] for r in rows},
         )
         out = []
         for r in rows:
-            has_data = has_usable_value(r["metric_id"], r["value"])
+            card = card_data.get(r["metric_id"])
+            if card and card[2]:
+                r = {**dict(r), **card[2]}
+            has_data = has_usable_value(r["metric_id"], r["value"], r["unit"], r["source_rows"])
+            reason = combined_percentage_reason(r["unit"], r["source_rows"])
             report = reports_by_metric.get(r["metric_id"]) if has_data else None
             edited = edited_by_report.get(report["id"]) if report else None
             reviewer = reviewer_by_report.get(report["id"]) if report else None
@@ -371,17 +407,19 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
                 "metric": r["metric"],
                 "category": r["category"],
                 "period": period,
-                "value": r["value"],
+                "value": r["value"] if has_data else None,
                 "unit": r["unit"], "currency": currency,
                 "direction_good": r["direction_good"],
-                "prior_value": r["prior_value"],
+                "prior_value": r["prior_value"] if has_data else None,
                 "has_data": has_data,
+                "unavailable_reason": reason,
                 "deltas": {
-                    "mom_pct": r["mom_pct"], "yoy_pct": r["yoy_pct"],
-                    "budget_var_abs": r["budget_var_abs"], "budget_var_pct": r["budget_var_pct"],
+                    "mom_pct": r["mom_pct"] if has_data else None, "yoy_pct": r["yoy_pct"] if has_data else None,
+                    "budget_var_abs": r["budget_var_abs"] if has_data else None,
+                    "budget_var_pct": r["budget_var_pct"] if has_data else None,
                 },
-                "trend": r["trend"],
-                "is_anomaly": bool(r["is_anomaly"]) if r["is_anomaly"] is not None else False,
+                "trend": r["trend"] if has_data else None,
+                "is_anomaly": bool(r["is_anomaly"]) if has_data else False,
                 "report_id": report["id"] if report else None,
                 "review_status": report["review_status"] if report else None,
                 "assigned_email": report["assigned_email"] if report else None,
