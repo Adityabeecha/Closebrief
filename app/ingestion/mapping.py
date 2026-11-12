@@ -207,8 +207,25 @@ def _drop_total_rows(df: pd.DataFrame, metric_col: str | None, id_col: str | Non
     return df[~is_total]
 
 
+def _duplicate_source_rows(df: pd.DataFrame, mapping: MappingSpec) -> set[int]:
+    """Compare mapped source cells before coercion or melting loses identity."""
+    columns = [mapping.id_col, *mapping.dimension_cols]
+    if mapping.layout == "long":
+        columns += [mapping.metric_col, mapping.value_col, *mapping.value_cols,
+                    mapping.budget_col, mapping.quantity_col, mapping.price_col,
+                    mapping.budget_quantity_col, mapping.budget_price_col]
+        if not mapping.period_literal:
+            columns.append(mapping.period_col)
+    else:
+        columns += [mapping.wide_metric_col, *mapping.wide_period_cols, *mapping.wide_budget_cols]
+    columns = list(dict.fromkeys(c for c in columns if c and c in df.columns))
+    return set(df.index[df.duplicated(subset=columns)]) if columns else set()
+
+
 def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
     """Return the canonical long-format DataFrame."""
+    df = df.copy()  # Upload cleanup may have removed blank rows; retain source positions.
+    rows_read = len(df)
     if mapping.layout == "long":
         for field in ("metric_col", "quantity_col", "price_col", "budget_quantity_col", "budget_price_col"):
             column = getattr(mapping, field)
@@ -226,6 +243,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
         if mapping.id_col:
             _check_col(df, mapping.id_col, "Id")
         df = _drop_total_rows(df, mapping.metric_col, mapping.id_col)
+        duplicate_rows = _duplicate_source_rows(df, mapping)
         if period_col:
             df = df[df[period_col].notna()]
 
@@ -247,6 +265,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
             for vcol in mapping.value_cols:
                 part = pd.DataFrame()
                 part["period"] = _periods_for(df)
+                part["_source_row"] = df.index + 1
                 base_label = df[mapping.metric_col].map(sanitize_label) if mapping.metric_col else ""
                 suffix = sanitize_label(vcol)
                 part["metric"] = (base_label + " " + suffix).str.strip() if mapping.metric_col else suffix
@@ -272,6 +291,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
             _check_numeric(df, value_col, "Value")
             out = pd.DataFrame()
             out["period"] = _periods_for(df)
+            out["_source_row"] = df.index + 1
             if mapping.metric_col:
                 _check_col(df, mapping.metric_col, "Metric")
                 out["metric"] = df[mapping.metric_col].map(sanitize_label)
@@ -309,6 +329,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
         if mapping.id_col:
             _check_col(df, mapping.id_col, "Id")
         df = _drop_total_rows(df, mapping.wide_metric_col, mapping.id_col)
+        duplicate_rows = _duplicate_source_rows(df, mapping)
 
         id_vars = []
         if mapping.wide_metric_col:
@@ -324,6 +345,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
         )
         out = pd.DataFrame()
         out["period"] = melted["_period_raw"].map(parse_period)
+        out["_source_row"] = list(df.index + 1) * len(mapping.wide_period_cols)
         if mapping.wide_metric_col:
             out["metric"] = melted[mapping.wide_metric_col].map(sanitize_label)
         else:
@@ -363,10 +385,22 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
     # metric with null facts — not silently vanish because every one of its
     # rows happened to be empty. store_normalized reads this via out.attrs.
     all_metrics = sorted(str(m) for m in out["metric"].dropna().unique())
+    duplicates = out[out["_source_row"].isin({i + 1 for i in duplicate_rows})]
+    examples = [
+        {"row": int(r["_source_row"]), "metric": r["metric"], "period": r["period"]}
+        for _, r in duplicates.drop_duplicates("_source_row").head(20).iterrows()
+    ]
+    out = out[~out["_source_row"].isin({i + 1 for i in duplicate_rows})]
     out = out[out["value"].notna()].reset_index(drop=True)
     if out.empty:
         raise MappingError("Mapping produced no valid rows — check the value column and layout")
     out.attrs["all_metrics"] = all_metrics
+    out.attrs["import_report"] = {
+        "rows_read": rows_read, "rows_kept": int(out["_source_row"].nunique()),
+        "duplicates_dropped": {"count": len(duplicate_rows), "examples": examples},
+        "totals_dropped": [],
+    }
+    out = out.drop(columns="_source_row")
     return out
 
 
@@ -539,16 +573,16 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
         cur.execute(
             """
             INSERT INTO metric_values (metric_id, period, value, budget, quantity, price,
-                                       budget_quantity, budget_price, dimensions)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                       budget_quantity, budget_price, dimensions, source_rows)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(metric_id, period) DO UPDATE SET
                 value=excluded.value, budget=excluded.budget,
                 quantity=excluded.quantity, price=excluded.price,
                 budget_quantity=excluded.budget_quantity, budget_price=excluded.budget_price,
-                dimensions=excluded.dimensions
+                dimensions=excluded.dimensions, source_rows=excluded.source_rows
             """,
             (metric_id, period, float(value), budget, quantity, price,
-             budget_quantity, budget_price, dims if isinstance(dims, str) else None),
+             budget_quantity, budget_price, dims if isinstance(dims, str) else None, len(group)),
         )
 
         if bridge is not None:
@@ -567,6 +601,16 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
     conn.commit()
     return {
         "rows_normalized": n_written,
+        "import_report": {
+            **canonical.attrs.get("import_report", {
+                "rows_read": len(canonical), "rows_kept": len(canonical),
+                "duplicates_dropped": {"count": 0, "examples": []}, "totals_dropped": [],
+            }),
+            "combined": [
+                {"metric": metric, "period": period, "rows": int(count)}
+                for (metric, period), count in canonical.groupby(["metric", "period"]).size().items() if count > 1
+            ][:50],
+        },
         "metrics": sorted(metric_names),
         "periods": sorted(canonical["period"].unique().tolist()),
     }
