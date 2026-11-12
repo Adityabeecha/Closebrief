@@ -32,7 +32,7 @@ def test_model_input_uses_the_dataset_currency(currency, want):
 def test_usd_model_input_is_unchanged():
     assert prompt_fmt(-370000, "USD") == "−$370K"
     assert prompt_fmt(12.5, "USD") == "$12.50"
-    assert prompt_fmt(1234, "USD", "JPY") == "¥1K" and prompt_fmt(950, "USD", "JPY") == "¥950"
+    assert prompt_fmt(1234, "USD", "JPY") == "¥1,234" and prompt_fmt(950, "USD", "JPY") == "¥950"
 
 
 def test_board_pack_amounts_use_the_currency():
@@ -77,3 +77,16 @@ def test_screen_and_server_agree_on_currency_marks():
     assert set(SYMBOLS) == set(CURRENCIES)
     for code, mark in SYMBOLS.items():
         assert _js_fmt(f'(displayCurrency="{code}",fmt(4200000,"USD"))') == mark + "4.20M", code
+
+
+def test_amounts_under_100k_are_shown_in_full_everywhere():
+    # F3: "$1K" for $1,450 hid a third of the figure. Screen, board pack and the
+    # model's input agree, and the figure check accepts what's shown.
+    assert _js_fmt('fmt(1450,"USD")') == "$1,450"
+    assert _js_fmt('fmt(-12345.6,"USD")') == "−$12,346"
+    assert _js_fmt('fmt(100000,"USD")') == "$100K"
+    assert pack_fmt(1450, "USD") == "$1,450" and pack_fmt(-12345.6, "USD", "EUR") == "-€12,346"
+    assert prompt_fmt(1450, "USD") == "$1,450"
+    fact = _fact("USD").model_copy(update={"value": 1450.0, "prior_value": 1200.0})
+    assert check_faithfulness("Net Revenue was $1,450.", fact)[0]
+    assert not check_faithfulness("Net Revenue was $1,950.", fact)[0]

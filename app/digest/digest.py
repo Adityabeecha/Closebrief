@@ -20,6 +20,8 @@ class DigestItem(BaseModel):
     detail: str
     budget_var_abs: float | None = None
     budget_var_pct: float | None = None
+    unit: str | None = None            # how the variance is written (points for "%")
+    direction_good: str | None = None  # which way is good, for the colour
     faithfulness: str = "unchecked"
     report_id: int | None = None
 
@@ -59,8 +61,10 @@ def build_approved_digest(conn: sqlite3.Connection, period: str,
     rows = conn.execute(
         """
         SELECT m.name AS metric, cf.budget_var_abs, cf.budget_var_pct, cf.mom_pct,
-               gr.id AS report_id, gr.narrative, gr.review_status, gr.faithfulness
+               gr.id AS report_id, gr.narrative, gr.review_status, gr.faithfulness,
+               COALESCE(kc.unit, m.unit) AS unit, COALESCE(kc.direction_good, m.direction_good) AS direction_good
         FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
+        LEFT JOIN kpi_configs kc ON kc.dataset_id = m.dataset_id AND kc.source_metric = m.name
         LEFT JOIN generated_reports gr ON gr.id = (
             SELECT MAX(g.id) FROM generated_reports g
             WHERE g.metric_id = cf.metric_id AND g.period = cf.period
@@ -87,6 +91,7 @@ def build_approved_digest(conn: sqlite3.Connection, period: str,
         items.append(DigestItem(
             metric=r["metric"], headline=headline, detail=detail,
             budget_var_abs=r["budget_var_abs"], budget_var_pct=r["budget_var_pct"],
+            unit=r["unit"], direction_good=r["direction_good"],
             faithfulness=r["faithfulness"] or "unchecked", report_id=r["report_id"],
         ))
     return DigestOutput(
