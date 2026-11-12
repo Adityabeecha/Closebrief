@@ -366,3 +366,9 @@ def test_locked_generation_returns_lock_conflict_before_ai_budget_check(client, 
     monkeypatch.setattr(generate, "_enforce_budget", exhausted)
     response = client.post("/generate-insight", json={"metric": "Revenue", "period": "2025-01", "force": True})
     assert response.status_code == 409, response.text
+
+
+def test_missing_numbers_are_stored_as_null_not_nan():
+    from app.compute.kpis import _db_num
+
+    assert _db_num(float("nan")) is None and _db_num(None) is None and _db_num(2) == 2.0

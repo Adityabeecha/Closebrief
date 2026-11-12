@@ -420,7 +420,7 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
                     "budget_var_abs": r["budget_var_abs"] if has_data else None,
                     "budget_var_pct": r["budget_var_pct"] if has_data else None,
                 },
-                "trend": r["trend"] if has_data else None,
+                "trend": r["trend"] if has_data and r["trend"] in ("up", "down", "flat") else None,
                 "is_anomaly": bool(r["is_anomaly"]) if has_data else False,
                 "report_id": report["id"] if report else None,
                 "review_status": report["review_status"] if report else None,
@@ -514,7 +514,8 @@ def _fact_by_metric_id(conn, metric_id: int, period: str) -> ComputedFact | None
             mom_pct=row["mom_pct"], yoy_pct=row["yoy_pct"],
             budget_var_abs=row["budget_var_abs"], budget_var_pct=row["budget_var_pct"],
         ),
-        trend=row["trend"], is_anomaly=bool(row["is_anomaly"]),
+        # Older Postgres rows can hold the text "NaN" for a missing trend.
+        trend=row["trend"] if row["trend"] in ("up", "down", "flat") else None, is_anomaly=bool(row["is_anomaly"]),
         variance_bridge=_load_bridge(conn, row["metric"], period),
     )
 
