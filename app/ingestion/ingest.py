@@ -42,19 +42,28 @@ def parse_csv(raw_bytes: bytes) -> pd.DataFrame:
     return df
 
 
-def ingest_dataframe(conn: sqlite3.Connection, df: pd.DataFrame, dataset_id: int) -> IngestSummary:
+def ingest_dataframe(conn: sqlite3.Connection, df: pd.DataFrame, dataset_id: int, *, source="import",
+                     actor_id=None, actor_email=None) -> IngestSummary:
+    from app.close_control import locked_months, record_changes, skipped_report, snapshot
     from app.datasets import get_or_create_metric, mark_data_changed
 
+    before = snapshot(conn, dataset_id)
+    locked = locked_months(conn, dataset_id)
+    skipped = {}
+    written_pairs = set()
     cur = conn.cursor()
     metric_ids = {
         name: get_or_create_metric(conn, dataset_id, name)
         for name in sorted(df["metric"].unique())
     }
-    conn.commit()
 
     rows_ingested = 0
     for _, row in df.iterrows():
+        if row["period"] in locked:
+            skipped[row["period"]] = skipped.get(row["period"], 0) + 1
+            continue
         metric_id = metric_ids[row["metric"]]
+        written_pairs.add((row["metric"], row["period"]))
         budget = None if pd.isna(row["budget"]) else float(row["budget"])
         cur.execute(
             """
@@ -65,12 +74,15 @@ def ingest_dataframe(conn: sqlite3.Connection, df: pd.DataFrame, dataset_id: int
             (metric_id, row["period"], float(row["value"]), budget),
         )
         rows_ingested += 1
+    record_changes(conn, dataset_id, before, source, actor_id=actor_id, actor_email=actor_email)
     if rows_ingested:
         mark_data_changed(conn, dataset_id)
     conn.commit()
 
+    df.attrs["written_pairs"] = written_pairs
     return IngestSummary(
         rows_ingested=rows_ingested,
+        import_report={"locked_skipped": skipped_report(skipped)},
         metrics=sorted(df["metric"].unique().tolist()),
         periods=sorted(df["period"].unique().tolist()),
     )

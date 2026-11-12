@@ -5,15 +5,19 @@ its checklist points at the first month that still needs each step."""
 import calendar
 import re
 from datetime import datetime, timezone
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
 from app import audit, scheduling
-from app.api import CurrentUser, require_read
+from app.api import CurrentUser, require_read, require_write
+from app.board_pack import _period_title
+from app.close_control import lock_status, serialize_writes
 from app.compute.aggregate import GRANULARITIES, months_in, period_key, sort_key
 from app.compute.availability import has_usable_value
 from app.context.store import _row_to_doc
-from app.datasets import _scope_pred, active_dataset_id, current_workspace, dataset_metadata
+from app.datasets import _scope_pred, active_dataset_id, current_workspace, dataset_metadata, timestamp_text
 from app.db import get_connection
 from app.retrieval.retrieve import _effective_ok, _metric_ok
 
@@ -131,6 +135,9 @@ def _summaries(conn, ds, granularity="month"):
             b["at"] = max(b["at"] or "", shared[month])
     out = [{**_finish(period, b["g"], b["months"], b["shared"], b["at"]), "distinct_kpis": len(b["ids"])}
            for period, b in buckets.items()]
+    for summary in out:
+        covered = months_in(summary["period"], granularity, fiscal_start)
+        summary.update(lock_status(conn, ds, covered))
     out.sort(key=lambda x: sort_key(x["period"], fiscal_start), reverse=True)
     return out
 
@@ -165,13 +172,17 @@ def _activity(conn, ds, period, granularity="month"):
     for entry in audit.list_entries(conn, current_workspace(), limit=2147483647):
         report = reports.get(str(entry["entity_id"])) if entry["entity_type"] == "report" else None
         in_close = bool(report) and report[0] in covered_months
-        relevant = in_close or (
+        close_entry = (entry["entity_type"] == "close" and str(entry["entity_id"]) == str(ds)
+                       and entry["summary"].get("period") == period)
+        relevant = close_entry or in_close or (
             entry["entity_type"] == "dataset" and str(entry["entity_id"]) == str(ds)
         )
         if not relevant:
             continue
-        action = entry["action"].replace("_", " ")
+        action = {"lock": "Locked", "unlock": "Unlocked"}.get(entry["action"], entry["action"].replace("_", " "))
         text = f"{action.capitalize()} {report[1]} for {report[0]}" if report else f"{action.capitalize()} dataset"
+        if close_entry:
+            text = f"{action} the {_period_title(period)} close"
         result.append(
             {"at": entry["created_at"], "text": text, "actor": entry["actor_email"] or entry["actor_id"] or "System"}
         )
@@ -181,8 +192,11 @@ def _activity(conn, ds, period, granularity="month"):
 
 
 @router.get("/status")
-def status(period: str, _: CurrentUser = Depends(require_read)):
-    granularity = _granularity_of(period)
+def status(period: str, granularity: str | None = None, _: CurrentUser = Depends(require_read)):
+    inferred = _granularity_of(period)
+    if granularity is not None and granularity != inferred:
+        raise HTTPException(status_code=422, detail="Period does not match granularity")
+    granularity = inferred
     if granularity is None:
         raise HTTPException(status_code=422, detail="Period must be YYYY-MM, YYYY-Qn or YYYY")
     conn = get_connection()
@@ -201,7 +215,11 @@ def status(period: str, _: CurrentUser = Depends(require_read)):
                 todo = [m for m in sorted(by_month) if by_month[m][i]["state"] != "done"]
                 target = (todo or sorted(by_month))[0 if todo else -1]
                 st["target"] = f"#month={target}&tab={st['target'].rsplit('&tab=', 1)[1]}"
+        covered = months_in(period, granularity, dataset_metadata(conn, ds)["fiscal_year_start"])
         return {"period": period, "label": s["label"], "steps": steps,
+                "status": s["status"], "shared_at": s["shared_at"],
+                **lock_status(conn, ds, covered),
+                "changes_since_shared": _changes_since_shared(conn, ds, covered, s["shared_at"]),
                 "activity": _activity(conn, ds, period, granularity)}
     finally:
         conn.close()
@@ -288,3 +306,87 @@ def _steps(period, s, rollup=False):
             "digest",
         ),
     ]
+
+
+
+def _close_months(conn, ds, period, granularity):
+    if granularity not in GRANULARITIES or _granularity_of(period) != granularity:
+        raise HTTPException(status_code=422, detail="Period does not match granularity")
+    return months_in(period, granularity, dataset_metadata(conn, ds)["fiscal_year_start"])
+
+
+def _changes_since_shared(conn, ds, covered, shared_at):
+    if not shared_at:
+        return 0
+    placeholders = ",".join("?" for _ in covered)
+    rows = conn.execute(f"SELECT created_at FROM value_changes WHERE dataset_id=? AND period IN ({placeholders})",
+                        (ds, *covered)).fetchall()
+    shared = datetime.fromisoformat(timestamp_text(shared_at).replace("Z", "+00:00"))
+    return sum(datetime.fromisoformat(timestamp_text(r["created_at"]).replace("Z", "+00:00")) > shared for r in rows)
+
+
+@router.get("/changes")
+def changes(period: str, granularity: str = "month", _: CurrentUser = Depends(require_read)):
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        if ds is None:
+            return {"changes": [], "total": 0}
+        covered = _close_months(conn, ds, period, granularity)
+        placeholders = ",".join("?" for _ in covered)
+        where = f"vc.dataset_id=? AND vc.period IN ({placeholders})"
+        args = (ds, *covered)
+        total = conn.execute(f"SELECT COUNT(*) AS n FROM value_changes vc WHERE {where}", args).fetchone()["n"]
+        rows = conn.execute(f"""SELECT vc.*, m.name FROM value_changes vc JOIN metrics m ON m.id=vc.metric_id
+                                WHERE {where} ORDER BY vc.created_at DESC, vc.id DESC LIMIT 500""", args).fetchall()
+        return {"changes": [{"metric": r["name"], "period": r["period"], "field": r["field"],
+                             "old_value": r["old_value"], "new_value": r["new_value"], "source": r["source"],
+                             "actor": r["actor_email"] or r["actor_id"] or "System",
+                             "at": timestamp_text(r["created_at"])} for r in rows], "total": total}
+    finally:
+        conn.close()
+
+
+class CloseSelection(BaseModel):
+    period: str
+    granularity: Literal["month", "quarter", "year"] = "month"
+
+
+def _set_lock(payload, user, locked):
+    period, granularity = payload.period, payload.granularity
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        if ds is None:
+            raise HTTPException(status_code=404, detail="No active dataset")
+        covered = _close_months(conn, ds, period, granularity)
+        serialize_writes(conn, ds)
+        summary = next((s for s in _summaries(conn, ds, granularity) if s["period"] == period), None)
+        if locked and (summary is None or summary["status"] != "shared"):
+            raise HTTPException(status_code=409, detail="Send the digest before locking this close.")
+        ws = conn.execute("SELECT workspace_id FROM datasets WHERE id=?", (ds,)).fetchone()["workspace_id"]
+        at = datetime.now(timezone.utc).isoformat()
+        for month in covered:
+            if locked:
+                conn.execute("""INSERT INTO close_locks
+                    (workspace_id, dataset_id, period, locked_at, locked_by_id, locked_by_email)
+                    VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(dataset_id, period) DO NOTHING""",
+                             (ws, ds, month, at, user.id, user.email))
+            else:
+                conn.execute("DELETE FROM close_locks WHERE dataset_id=? AND period=?", (ds, month))
+        conn.commit()
+        audit.record(conn, "lock" if locked else "unlock", "close", ds, actor_id=user.id,
+                     actor_email=user.email, summary={"period": period})
+        return {"period": period, "granularity": granularity, **lock_status(conn, ds, covered)}
+    finally:
+        conn.close()
+
+
+@router.post("/lock")
+def lock(payload: CloseSelection, user: CurrentUser = Depends(require_write)):
+    return _set_lock(payload, user, True)
+
+
+@router.post("/unlock")
+def unlock(payload: CloseSelection, user: CurrentUser = Depends(require_write)):
+    return _set_lock(payload, user, False)

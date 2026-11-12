@@ -124,6 +124,26 @@
     ]
   ],
   [
+    "/close/changes",
+    [
+      "GET"
+    ],
+    true,
+    [
+      "require_read"
+    ]
+  ],
+  [
+    "/close/lock",
+    [
+      "POST"
+    ],
+    true,
+    [
+      "require_write"
+    ]
+  ],
+  [
     "/close/months",
     [
       "GET"
@@ -141,6 +161,16 @@
     true,
     [
       "require_read"
+    ]
+  ],
+  [
+    "/close/unlock",
+    [
+      "POST"
+    ],
+    true,
+    [
+      "require_write"
     ]
   ],
   [

@@ -909,6 +909,12 @@
   .mh-title h1{font-size:clamp(24px,2.2vw,30px);font-weight:750;letter-spacing:-.03em;line-height:1.1;margin:0}
   .mh-pill{font-size:13px;font-weight:700;border-radius:var(--r-pill);padding:3px 10px;background:var(--surface-3);color:var(--text-3);white-space:nowrap}
   .mh-pill.prog{background:var(--review-wash);color:var(--review)}
+  .mh-pill.locked{background:var(--surface-3);color:var(--text-1,var(--ink))}
+  .ov-lock{margin-top:16px;padding:14px 16px;border:1px solid var(--line);border-radius:var(--r-md,10px);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .ov-lock p{margin:0;flex:1 1 260px;font-size:14px;color:var(--text-2)}
+  .ov-lock p b{color:var(--text-1,var(--ink))}
+  .ov-lock .warn{flex-basis:100%;color:var(--amber,#b26b00);font-weight:600}
+  .close-locked #gen-all,.close-locked #d-regen,.close-locked #d-rev-strip .write-only{display:none!important}
   .mh-pill.done{background:var(--verified-wash);color:var(--verified)}
   .mh-pill:empty{display:none}
   .mh-actions{display:flex;align-items:center;gap:8px}
@@ -1269,9 +1275,11 @@
         <div class="pane ov-left">
           <h2 id="ov-check-title">What's left before this close can be shared</h2>
           <ol class="checklist" id="ov-checklist"></ol>
+          <div id="ov-lock" class="ov-lock" style="display:none"></div>
         </div>
         <div class="ov-right">
           <div class="pane"><h2 id="ov-glance-title">At a glance</h2><div id="ov-glance"></div></div>
+          <div class="pane" id="ov-changes-pane" style="display:none"><h2>What changed</h2><p class="mh-sub" id="ov-changes-sub"></p><div id="ov-changes" class="ov-activity"></div></div>
           <div class="pane"><h2>Activity</h2><div id="ov-activity" class="ov-activity"></div></div>
         </div>
       </div>

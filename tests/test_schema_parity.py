@@ -17,6 +17,8 @@ from app import db
 
 # The single allow-list for app-owned PostgreSQL-only objects.
 PG_ONLY_OBJECTS = {
+    "policy:value_changes.ws_isolation": "Value changes use dataset workspace isolation.",
+    "policy:close_locks.ws_isolation": "Close locks use dataset workspace isolation.",
     "table:schema_migrations": "Postgres tracks numbered migrations; SQLite runs idempotent upgrades.",
     "table:context_vectors": "pgvector persists embeddings; SQLite uses the external FAISS index.",
     "extension:vector": "Provides the vector type/index operators used by context_vectors.",

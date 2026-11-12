@@ -139,6 +139,13 @@ def compute_and_store(
     """Compute facts for a dataset's metric_values and upsert into computed_facts.
     Scoped to dataset_id so it never mixes metrics from other uploads (and so a
     shared metric name across datasets doesn't collide in the name->id map)."""
+    from app.close_control import serialize_writes
+
+    if dataset_id is None and getattr(conn, "backend", "sqlite") == "postgres":
+        for row in conn.execute("SELECT id FROM datasets ORDER BY id").fetchall():
+            serialize_writes(conn, row["id"])
+    else:
+        serialize_writes(conn, dataset_id)
     if dataset_id is not None:
         rows = conn.execute(
             """
@@ -196,13 +203,13 @@ def compute_and_store(
             (
                 int(f["metric_id"]),
                 f["period"],
-                f["value"],
-                f["prior_value"],
-                f["mom_pct"],
-                f["yoy_pct"],
-                f["budget_var_abs"],
-                f["budget_var_pct"],
-                f["trend"],
+                _db_num(f["value"]),
+                _db_num(f["prior_value"]),
+                _db_num(f["mom_pct"]),
+                _db_num(f["yoy_pct"]),
+                _db_num(f["budget_var_abs"]),
+                _db_num(f["budget_var_pct"]),
+                f["trend"] if isinstance(f["trend"], str) else None,
                 int(bool(f["is_anomaly"])),
             ),
         )
@@ -213,6 +220,12 @@ def compute_and_store(
     reset_changed_commentary(conn, changed)
     conn.commit()
     return facts.drop(columns=["metric_id"])
+
+
+def _db_num(v):
+    """A missing pandas number is NaN. SQLite stores NaN as NULL but Postgres keeps it
+    as the float NaN, so write None for anything missing."""
+    return None if v is None or pd.isna(v) else float(v)
 
 
 _COMPARED = ("value", "prior_value", "mom_pct", "yoy_pct", "budget_var_abs", "budget_var_pct")
@@ -241,6 +254,8 @@ def reset_changed_commentary(conn, changed: list[tuple[int, str]]) -> None:
             """UPDATE generated_reports
                SET review_status = CASE WHEN review_status = 'approved' THEN NULL ELSE review_status END,
                    faithfulness = 'unchecked'
-               WHERE metric_id = ? AND period = ?""",
+               WHERE metric_id = ? AND period = ?
+                 AND NOT EXISTS (SELECT 1 FROM close_locks cl JOIN metrics m ON m.dataset_id=cl.dataset_id
+                                 WHERE m.id=generated_reports.metric_id AND cl.period=generated_reports.period)""",
             (metric_id, period),
         )

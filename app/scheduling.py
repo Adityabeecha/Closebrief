@@ -118,9 +118,9 @@ def delete_job(conn, job_id: int) -> bool:
 def record_digest_run(conn, dataset_id: int | None, period: str, top_n: int,
                       items: list[dict], cost_usd: float | None, trigger: str) -> int:
     cur = conn.execute(
-        """INSERT INTO digest_runs (dataset_id, period, top_n, items, cost_usd, trigger)
-           VALUES (?, ?, ?, ?, ?, ?)""",
-        (dataset_id, period, top_n, json.dumps(items), cost_usd, trigger),
+        """INSERT INTO digest_runs (dataset_id, period, top_n, items, cost_usd, trigger, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        (dataset_id, period, top_n, json.dumps(items), cost_usd, trigger, datetime.now(timezone.utc).isoformat()),
     )
     conn.commit()
     return int(cur.lastrowid)

@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app import audit
 from app import review as review_svc
 from app.api import CurrentUser, require_read, require_write
+from app.close_control import ensure_report_unlocked
 from app.config import settings
 from app.datasets import _scope_pred, active_dataset_id, timestamp_text
 from app.db import get_connection
@@ -68,6 +69,7 @@ def assign_report(report_id: int, payload: dict, user: CurrentUser = Depends(req
     try:
         if _scoped_report(conn, report_id) is None:
             raise HTTPException(status_code=404, detail="Report not found")
+        ensure_report_unlocked(conn, report_id)
         review_svc.assign(conn, report_id, payload.get("user_id"), email)
         row = conn.execute(
             """SELECT m.name AS metric, gr.period FROM generated_reports gr
@@ -96,6 +98,7 @@ def review_report(report_id: int, payload: dict, user: CurrentUser = Depends(req
     try:
         if _scoped_report(conn, report_id) is None:
             raise HTTPException(status_code=404, detail="Report not found")
+        ensure_report_unlocked(conn, report_id)
         review_svc.set_status(conn, report_id, status)
         audit.record(conn, "reopened" if status == "draft" else status, "report", report_id,
                      actor_id=user.id, actor_email=user.email, summary={"note": payload.get("note")})
