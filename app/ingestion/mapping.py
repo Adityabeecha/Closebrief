@@ -56,6 +56,35 @@ class MappingError(Exception):
     """Validation failure. Message names the specific problem column."""
 
 
+_QUARTER_LABEL = re.compile(r"^(?:q[1-4][\s\-_/.']*\d{2,4}|\d{2,4}[\s\-_/.']*q[1-4])$", re.I)
+_YEAR_LABEL = re.compile(
+    r"^(?:(?:fy|fiscal\s+year|year)[\s\-_/.']*\d{2,4}(?:[/\-]\d{2,4})?|\d{4}(?:\s*fy)?)$", re.I
+)
+
+
+def coarse_period_warning(raw) -> str | None:
+    """Explain why a quarter/year label cannot be imported as a month."""
+    label = str(raw).strip()
+    if _QUARTER_LABEL.fullmatch(label):
+        kind, example = "quarterly", "Q1 2025"
+    elif _YEAR_LABEL.fullmatch(label):
+        kind, example = "yearly", "FY24"
+    else:
+        return None
+    return (f"This file has {kind} figures (e.g. {example}). CloseBrief works month by month: "
+            "export monthly figures instead. Quarters and years are added up for you in the Q and Y views.")
+
+
+def import_period_warnings(df: pd.DataFrame, mapping: MappingSpec) -> list[str]:
+    """Inspect every mapped source period, including wide headers and literals."""
+    periods = [mapping.period_literal] if mapping.period_literal else []
+    if mapping.layout == "wide":
+        periods += mapping.wide_period_cols
+    elif not mapping.period_literal and mapping.period_col in df.columns:
+        periods += df[mapping.period_col].dropna().unique().tolist()
+    return list(dict.fromkeys(w for p in periods if (w := coarse_period_warning(p))))
+
+
 _MONTHS = {m.lower(): i for i, m in enumerate(
     ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"], 1
 )}
@@ -226,6 +255,9 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
     """Return the canonical long-format DataFrame."""
     df = df.copy()  # Upload cleanup may have removed blank rows; retain source positions.
     rows_read = len(df)
+    period_warnings = import_period_warnings(df, mapping)
+    if period_warnings:
+        raise MappingError(period_warnings[0])
     if mapping.layout == "long":
         for field in ("metric_col", "quantity_col", "price_col", "budget_quantity_col", "budget_price_col"):
             column = getattr(mapping, field)
