@@ -397,6 +397,15 @@
   .map-totals ul,.imp-report ul{margin:6px 0 0 18px;display:flex;flex-direction:column;gap:4px}
   .map-totals label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
   .map-totals small,.imp-report small{color:var(--text-3)}
+  .receipt-pane{margin-top:16px}
+  .receipt-pane h2{font-size:16px;margin-bottom:4px}
+  .receipt-pane .rc-meta{font-size:13px;color:var(--text-3);margin-bottom:10px}
+  .receipt-pane table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+  .receipt-pane th{text-align:left;font-weight:600;color:var(--text-3);padding:6px 8px;border-bottom:1px solid var(--line)}
+  .receipt-pane td{padding:6px 8px;border-bottom:1px solid var(--line)}
+  .receipt-pane td.n,.receipt-pane th.n{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+  .receipt-pane details{margin-top:12px;font-size:13px}
+  .receipt-pane summary{cursor:pointer;color:var(--text-2)}
   .kpi-grid select.ask{border-color:var(--review);box-shadow:0 0 0 1px var(--review)}
   .dir-note{font-size:12px;color:var(--text-3);white-space:nowrap}
   .kpi-grid select,.kpi-grid input:not([type=checkbox]){padding:7px 9px;border:1px solid var(--line-strong);border-radius:var(--r-sm);background:var(--surface);color:var(--text);width:100%;font-size:13px}
@@ -1550,6 +1559,7 @@
     <section id="v-import" class="wrap" style="display:none">
       <div class="head"><div><h1>Import your financials</h1><div class="sub">Any layout works. We detect your columns; you confirm the mapping.</div></div></div>
       <div class="pane data-health" id="data-health" style="display:none"></div>
+      <div class="pane receipt-pane" id="receipt-pane" style="display:none"></div>
       <h2 class="imp-h" id="imp-h">Import a file</h2>
       <div class="steps">
         <span class="step active" id="st-1" aria-current="step">1 · Upload</span>

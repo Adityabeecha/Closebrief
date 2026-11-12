@@ -13,7 +13,7 @@ SCHEMA = """
 CREATE TABLE datasets (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, source_upload_id TEXT,
     is_active INTEGER DEFAULT 0, uploaded_by TEXT, uploaded_by_email TEXT,
     is_demo INTEGER DEFAULT 0, workspace_id INTEGER, currency TEXT NOT NULL DEFAULT 'USD',
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP, data_changed_at TEXT);
 CREATE TABLE metrics (id INTEGER PRIMARY KEY AUTOINCREMENT, dataset_id INTEGER, name TEXT,
     category TEXT DEFAULT 'Uncategorized', unit TEXT DEFAULT 'USD', direction_good TEXT DEFAULT 'up',
     external_id TEXT, UNIQUE(dataset_id, name));
