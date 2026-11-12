@@ -211,8 +211,11 @@ def test_rate_metric_absolute_differences_keep_percentage_point_units(unit):
                         deltas=Deltas(budget_var_abs=7.25, budget_var_pct=13.18),
                         variance_bridge={"price":1.25})
     prompt = build_user_prompt(fact, [])
-    assert "value: +62.3%" in prompt and "budget_variance_percent: +13.2%" in prompt
-    assert "budget_variance_absolute: +7.3pp" in prompt and "price_effect: +1.3pp" in prompt
+    # F11: a rate's variance is given in points only; its relative change (+13.2%)
+    # would read as "margin up 13%" and is no longer offered to the model.
+    assert "value: +62.3%" in prompt and "budget_variance_percent" not in prompt and "+13.2%" not in prompt
+    assert "budget_variance: +7.3pp" in prompt and "month_over_month_change: +2.3pp" in prompt
+    assert "price_effect: +1.3pp" in prompt
     text = "Margin reached +62.3%, an absolute budget variance of +7.3pp with a +1.3pp price effect."
     llm = FakeLLM(GenerationResult(narrative=text))
     result = generate_insight(fact, [], llm)
