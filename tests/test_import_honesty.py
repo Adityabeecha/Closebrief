@@ -172,3 +172,61 @@ def test_schema_warns_about_coarse_periods(client, text, kind):  # noqa: F811
     response = client.get(f"/ingest/{upload_id}/schema")
     assert response.status_code == 200, response.text
     assert any(f"{kind} figures" in w and "export monthly figures" in w for w in response.json()["mapping_warnings"])
+
+
+@pytest.mark.parametrize("layout", ["long", "wide"])
+def test_total_opex_reported_and_keep_labels_restores_it(client, layout):  # noqa: F811
+    if layout == "long":
+        text = "period,metric,value\n2025-01,Revenue,100\n2025-01,Total Opex,60\n"
+        mapping = dict(LONG)
+    else:
+        text = "metric,Jan-25\nRevenue,100\nTotal Opex,60\n"
+        mapping = {"layout": "wide", "wide_metric_col": "metric", "wide_period_cols": ["Jan-25"]}
+    upload_id = _upload(client, text)
+    dropped = client.post(f"/ingest/{upload_id}/mapping", json=mapping).json()
+    assert dropped["metrics"] == ["Revenue"]
+    assert dropped["import_report"]["totals_dropped"] == [{"row": 2, "label": "Total Opex", "reason": "starts with Total"}]
+    assert dropped["import_report"]["rows_kept"] == 1
+    response = client.post(f"/ingest/{upload_id}/mapping", json={**mapping, "keep_labels": ["Total Opex"]})
+    assert response.status_code == 200, response.text
+    kept = response.json()
+    assert kept["metrics"] == ["Revenue", "Total Opex"]
+    assert kept["import_report"]["totals_dropped"] == []
+    assert kept["import_report"]["rows_kept"] == 2
+    assert {f["metric"]: f["value"] for f in client.get("/facts?period=2025-01").json()}["Total Opex"] == 60
+
+
+def test_schema_total_preview_and_combination_warning_match_import(client):  # noqa: F811
+    upload_id = _upload(client, "period,metric,value\n2025-01,Revenue,100\n2025-01,Total Opex,60\n2025-01,Revenue,200\n")
+    schema = client.get(f"/ingest/{upload_id}/schema").json()
+    assert schema["likely_total_rows"] == [{"row": 2, "label": "Total Opex", "reason": "starts with Total"}]
+    assert any("2 rows" in w and "ADDED together" in w for w in schema["mapping_warnings"])
+    result = client.post(f"/ingest/{upload_id}/mapping", json=schema["suggested_mapping"]).json()
+    assert result["import_report"]["totals_dropped"] == schema["likely_total_rows"]
+
+
+@pytest.mark.parametrize("keep_labels,expected_labels", [([], ["Subtotal Opex", "Grand total", "Hosting", "Rollup"]),
+                                                       (["Hosting", "Rollup"], ["Subtotal Opex", "Grand total"])])
+def test_all_total_rules_use_original_rows_and_allow_overrides(client, keep_labels, expected_labels):  # noqa: F811
+    result = _import(client,
+                     "period,metric,value,id,note\n2025-01,Revenue,100,A,detail\n,,,,\n"
+                     "2025-01,Subtotal Opex,50,B,detail\n2025-01,Grand total,150,C,detail\n"
+                     "2025-01,Hosting,20,,detail\n2025-01,Rollup,30,D,Total detail\n",
+                     {**LONG, "id_col": "id", "keep_labels": keep_labels})
+    report = result["import_report"]
+    dropped = report["totals_dropped"]
+    assert [r["label"] for r in dropped] == expected_labels
+    assert dropped[:2] == [{"row": 3, "label": "Subtotal Opex", "reason": "starts with Total"},
+                           {"row": 4, "label": "Grand total", "reason": "starts with Total"}]
+    if not keep_labels:
+        assert dropped[2:] == [{"row": 5, "label": "Hosting", "reason": "blank ID on a summary row"},
+                               {"row": 6, "label": "Rollup", "reason": "starts with Total"}]
+
+
+def test_total_only_file_can_be_previewed_then_kept(client):  # noqa: F811
+    upload_id = _upload(client, "period,metric,value\n2025-01,Total Revenue,100\n")
+    schema = client.get(f"/ingest/{upload_id}/schema").json()
+    assert schema["likely_total_rows"] == [{"row": 1, "label": "Total Revenue", "reason": "starts with Total"}]
+    response = client.post(f"/ingest/{upload_id}/mapping", json={**LONG, "keep_labels": ["Total Revenue"]})
+    assert response.status_code == 200, response.text
+    assert response.json()["metrics"] == ["Total Revenue"]
