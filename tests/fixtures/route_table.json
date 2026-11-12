@@ -90,6 +90,30 @@
     []
   ],
   [
+    "/auth/logout",
+    [
+      "POST"
+    ],
+    true,
+    []
+  ],
+  [
+    "/auth/session",
+    [
+      "GET"
+    ],
+    true,
+    []
+  ],
+  [
+    "/auth/session",
+    [
+      "POST"
+    ],
+    true,
+    []
+  ],
+  [
     "/board-pack",
     [
       "GET"
@@ -641,6 +665,14 @@
     ]
   ],
   [
+    "/privacy",
+    [
+      "GET"
+    ],
+    false,
+    []
+  ],
+  [
     "/redoc",
     [
       "GET",
@@ -766,6 +798,14 @@
     [
       "require_write"
     ]
+  ],
+  [
+    "/terms",
+    [
+      "GET"
+    ],
+    false,
+    []
   ],
   [
     "/theme.css",

@@ -33,6 +33,16 @@ def sample_fpa_csv() -> FileResponse:
                         filename="sample_fpa.csv")
 
 
+@router.get("/privacy", include_in_schema=False)
+def privacy_page() -> FileResponse:
+    return FileResponse(_UI_INDEX.parent / "privacy.html", headers={"Cache-Control": "no-cache"})
+
+
+@router.get("/terms", include_in_schema=False)
+def terms_page() -> FileResponse:
+    return FileResponse(_UI_INDEX.parent / "terms.html", headers={"Cache-Control": "no-cache"})
+
+
 @router.get("/og.png", include_in_schema=False)
 def share_image() -> FileResponse:
     # The link-preview card for the home page (og:image / twitter:image).

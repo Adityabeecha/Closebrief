@@ -3,7 +3,8 @@ let currentPeriod=null, currentFacts=[], detailFact=null, activeDatasetId=null, 
 // Reopen the dataset this browser was last looking at (the server ignores it if it no longer exists).
 try{const v=+localStorage.getItem("cb-ds");if(v)activeDatasetId=v;}catch{}
 /* auth state */
-let sb=null, authToken=null, authMode="signin", currentUser={email:"local@dev",role:"admin"};
+// signedIn: this browser has a session cookie (HttpOnly; the page never holds the token).
+let sb=null, signedIn=false, authMode="signin", currentUser={email:"local@dev",role:"admin"};
 
 /* ---------- theme (dark mode) ---------- */
 const SUN='<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
@@ -373,28 +374,18 @@ function errMsg(e){
 let activeWorkspaceId=null;   // v4.0: the tenant scope for every request
 async function api(path,opts,_retried){
   opts=opts||{};
-  if(authToken){opts.headers={...(opts.headers||{}),Authorization:"Bearer "+authToken};}
-  else if(demoSession){opts.headers={...(opts.headers||{}),"X-Closebrief-Demo":"1"};}
+  // The session cookie rides along by itself. This header marks the request as
+  // ours: the server refuses cookie-signed writes without it (CSRF guard).
+  opts.headers={...(opts.headers||{}),"X-Closebrief-Client":"1"};
+  if(demoSession)opts.headers["X-Closebrief-Demo"]="1";
   // Tenant scope: the server validates membership, so a spoofed id can't leak data.
   if(activeWorkspaceId!=null)opts.headers={...(opts.headers||{}),"X-Workspace-Id":String(activeWorkspaceId)};
   // The dataset this tab is looking at; the server checks it belongs to the caller.
   if(activeDatasetId!=null)opts.headers={...(opts.headers||{}),"X-Dataset-Id":String(activeDatasetId)};
   const r=await fetch(path,opts);
   if(r.status===401){
-    // A stored session's access-token expires after ~1h. Before bouncing to
-    // login, silently refresh it once and retry — avoids a login-page flash.
-    if(sb&&!_retried){
-      try{
-        const {data}=await sb.auth.refreshSession();
-        if(data&&data.session&&data.session.access_token){
-          authToken=data.session.access_token;
-          return api(path,opts,true);
-        }
-      }catch{}
-    }
-    // A Closebrief (Google) session has no refresh flow — drop the stale token so
-    // the next boot shows the login screen instead of retrying it forever.
-    storeSessionToken(null);
+    // The session cookie expired (12 hours) or was cleared: sign in again.
+    signedIn=false;appStarted=false;
     showLogin();throw new Error("Session expired — please sign in");
   }
   if(!r.ok){
@@ -846,8 +837,8 @@ function renderDataHealth(){
 let boardPackFor=null;
 async function fetchBoardPack(){
   const headers={};
-  if(authToken)headers.Authorization="Bearer "+authToken;
-  else if(demoSession)headers["X-Closebrief-Demo"]="1";
+  headers["X-Closebrief-Client"]="1";
+  if(demoSession)headers["X-Closebrief-Demo"]="1";
   if(activeWorkspaceId!=null)headers["X-Workspace-Id"]=String(activeWorkspaceId);
   const r=await fetch(`/board-pack?period=${encodeURIComponent(currentPeriod)}`,{headers});
   if(!r.ok){let d=r.statusText;try{d=(await r.json()).detail||d;}catch{}throw new Error(d);}
@@ -885,14 +876,14 @@ function showReadOnlyBar(text,exitLabel,signupLabel){
   $("demo-bar-exit").textContent=exitLabel;$("demo-bar-signup").textContent=signupLabel;
 }
 function enterDemo(){
-  demoSession=true;guestSession=false;authToken=null;appStarted=false;
+  demoSession=true;guestSession=false;signedIn=false;appStarted=false;
   document.body.classList.add("demo");
   showReadOnlyBar("You're exploring the <b>demo</b> — sample data, read-only.","Exit demo","Sign up to use your data");
   hideLogin();startApp();
 }
 // Guests get the server's read-only viewer role (no token, ALLOW_GUEST=true).
 function enterGuest(){
-  guestSession=true;demoSession=false;authToken=null;appStarted=false;
+  guestSession=true;demoSession=false;signedIn=false;appStarted=false;
   document.body.classList.add("demo");
   showReadOnlyBar("You're browsing as a <b>guest</b>. Read-only.","Sign in","Create an account");
   hideLogin();startApp();
@@ -918,9 +909,13 @@ async function boot(){
   }
   // Local-dev bypass. #app-root ships display:none, so reveal it here too.
   if(!cfg.auth_enabled){hideLogin();startApp();return;}
-  // A Closebrief session (Google sign-in) survives reloads and needs no Supabase.
-  const saved=savedSessionToken();
-  if(saved){authToken=saved;hideLogin();appStarted=true;await startApp();return;}
+  // Sessions live in an HttpOnly cookie. Older versions kept the token in
+  // browser storage: trade it for the cookie once, then delete it.
+  const legacy=takeLegacyToken();
+  if(legacy)await startSession(legacy).catch(()=>{});
+  let status={signed_in:false};
+  try{status=await fetch("/auth/session").then(r=>r.json());}catch{}
+  if(status.signed_in){signedIn=true;hideLogin();appStarted=true;await startApp();return;}
   if(cfg.google_enabled)initGoogleSignIn(cfg.google_client_id);
   if(!window.supabase||!window.supabase.createClient){
     showLogin();
@@ -932,34 +927,46 @@ async function boot(){
     }
     return;
   }
-  sb=window.supabase.createClient(cfg.supabase_url,cfg.supabase_anon_key);
-  // React to sign-in / token-refresh events (the source of truth for the token).
+  // Supabase is only used to sign in. It keeps nothing in browser storage; its
+  // token is traded for our session cookie straight away (onSession).
+  sb=window.supabase.createClient(cfg.supabase_url,cfg.supabase_anon_key,
+    {auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:true}});
   sb.auth.onAuthStateChange((event,s)=>{
-    if(s&&s.access_token){authToken=s.access_token; if(event==="SIGNED_IN"||event==="INITIAL_SESSION")onSession(s);}
-    else if(event==="SIGNED_OUT"){authToken=null;appStarted=false;showLogin();}
+    if(s&&s.access_token&&(event==="SIGNED_IN"||event==="INITIAL_SESSION"))onSession(s);
   });
-  let {data:{session}}=await sb.auth.getSession();
-  // If the stored token is expiring soon, refresh it up front so the first API
-  // call already carries a valid token (prevents the login-page flash).
-  if(session&&session.expires_at&&session.expires_at*1000-Date.now()<60000){
-    try{const {data}=await sb.auth.refreshSession(); if(data&&data.session)session=data.session;}catch{}
-  }
+  // An email-confirmation link lands here with a session in the URL.
+  const {data:{session}}=await sb.auth.getSession();
   if(session&&session.access_token)onSession(session); else showLogin();
 }
 /* ================= Google Sign-In (v5.6, optional) =================
    Loaded ON DEMAND: a deployment without a client id never contacts Google. */
 const GIS_SRC="https://accounts.google.com/gsi/client";
-const SESSION_KEY="cb-session-token";
+const SESSION_KEY="cb-session-token";   // where versions before cookie sessions kept it
 let _gisPromise=null;           // dedupes the script load across callers
 // The credential callback lives in a holder (a "ref"), not captured directly by
 // Google's init: a stale closure means the credential arrives and nothing happens.
 const _gCallback={fn:null};
 
-function savedSessionToken(){
-  try{return localStorage.getItem(SESSION_KEY)||null;}catch{return null;}
+// A token left in browser storage by an older version (ours or Supabase's).
+// Removed as it's read: from now on only the HttpOnly cookie holds a session.
+function takeLegacyToken(){
+  let token=null;
+  try{
+    token=localStorage.getItem(SESSION_KEY);localStorage.removeItem(SESSION_KEY);
+    for(const k of Object.keys(localStorage)){
+      if(!/^sb-.*-auth-token$/.test(k))continue;
+      if(!token){try{const v=JSON.parse(localStorage.getItem(k));token=v.access_token||(v.currentSession&&v.currentSession.access_token)||null;}catch{}}
+      localStorage.removeItem(k);
+    }
+  }catch{}
+  return token;
 }
-function storeSessionToken(t){
-  try{t?localStorage.setItem(SESSION_KEY,t):localStorage.removeItem(SESSION_KEY);}catch{}
+// Trade a token for the HttpOnly session cookie; the token isn't kept.
+async function startSession(token){
+  const r=await fetch("/auth/session",{method:"POST",headers:{Authorization:"Bearer "+token,"X-Closebrief-Client":"1"}});
+  if(!r.ok){let d="Sign-in failed";try{d=(await r.json()).detail||d;}catch{}throw new Error(d);}
+  signedIn=true;
+  return r.json();
 }
 
 function loadGisScript(){
@@ -1029,8 +1036,8 @@ async function onGoogleCredential(resp){
       body:JSON.stringify({credential:resp.credential})});
     const body=await r.json().catch(()=>({}));
     if(!r.ok)throw new Error(body.detail||"Google sign-in failed");
-    // We store OUR token, never Google's credential.
-    authToken=body.token;storeSessionToken(body.token);
+    // The server set our HttpOnly session cookie; nothing is stored here.
+    signedIn=true;
     hideLogin();
     if(!appStarted){appStarted=true;await startApp();}
   }catch(e){
@@ -1099,8 +1106,14 @@ async function submitAuth(){
   }catch(e){err.textContent=authErrorMessage(e);err.style.display="block";}
   setAuthBusy(false);
 }
+let _sessionFor=null;   // the Supabase token already being traded (sign-in fires twice)
 async function onSession(session){
-  authToken=session.access_token;
+  if(_sessionFor===session.access_token)return;
+  _sessionFor=session.access_token;
+  try{await startSession(session.access_token);}
+  catch(e){const err=$("lg-err");if(err){err.textContent=e.message;err.style.display="block";}showLogin();return;}
+  // The Supabase token has done its job; drop it from memory too.
+  try{await sb.auth.signOut({scope:"local"});}catch{}
   hideLogin();
   if(appStarted)return;            // don't re-run the full load on token refresh
   appStarted=true;
@@ -1108,14 +1121,14 @@ async function onSession(session){
 }
 async function signOut(){
   appStarted=false;
-  storeSessionToken(null);          // clear a Closebrief (Google) session too
+  try{await fetch("/auth/logout",{method:"POST",headers:{"X-Closebrief-Client":"1"}});}catch{}
+  takeLegacyToken();                // and anything an older version left behind
   if(window.google&&google.accounts&&google.accounts.id){try{google.accounts.id.disableAutoSelect();}catch{}}
-  if(sb)await sb.auth.signOut();
-  authToken=null;
+  signedIn=false;
   location.reload();
 }
 async function startApp(){
-  if(authToken){
+  if(signedIn){
     try{currentUser=await api("/me");}catch{currentUser={email:"user",role:"analyst"};}
     applyRole(currentUser);
     try{activeWorkspaceId=+localStorage.getItem("cb-ws")||null;}catch{}
@@ -1130,7 +1143,7 @@ function applyRole(u){
   $("user-email").textContent=u.email;
   $("user-avatar").textContent=(u.email||"?").slice(0,2).toUpperCase();
   $("user-role").innerHTML=`<span class="role-badge ${u.role}">${u.role}</span>`;
-  $("logout-btn").style.display=authToken?"":"none";
+  $("logout-btn").style.display=signedIn?"":"none";
 
   const su=$("st-users");if(su)su.style.display=u.role==="admin"?"":"none";
 }
@@ -1213,8 +1226,8 @@ async function exportBoardPack(){
     // Fetch with auth headers (a plain new-tab URL wouldn't carry the bearer),
     // then open the returned HTML from a blob so it prints/saves cleanly.
     const headers={};
-    if(authToken)headers.Authorization="Bearer "+authToken;
-    else if(demoSession)headers["X-Closebrief-Demo"]="1";
+    headers["X-Closebrief-Client"]="1";
+    if(demoSession)headers["X-Closebrief-Demo"]="1";
     if(activeWorkspaceId!=null)headers["X-Workspace-Id"]=String(activeWorkspaceId);
     const r=await fetch(`/board-pack?period=${encodeURIComponent(currentPeriod)}`,{headers});
     if(!r.ok){let d=r.statusText;try{d=(await r.json()).detail||d;}catch{}throw new Error(d);}
@@ -1787,7 +1800,7 @@ document.addEventListener("click",()=>{$("ws-menu").classList.remove("open");$("
    Each person has one private workspace, resolved by the server from their
    membership. The client only remembers its id so requests stay scoped. */
 async function loadWorkspaces(){
-  if(!authToken)return;
+  if(!signedIn)return;
   let d;try{d=await api("/workspaces");}catch{return;}
   const list=d.workspaces||[];
   activeWorkspaceId=d.active_id!=null?d.active_id:((list[0]&&list[0].id)||null);
