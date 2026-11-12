@@ -19,7 +19,7 @@ from app.datasets import (
     _scope_pred,
     active_dataset_id,
     create_dataset,
-    dataset_currency,
+    dataset_metadata,
 )
 from app.db import get_connection
 from app.deps import shared_cache
@@ -159,7 +159,7 @@ def ingest_mapping(upload_id: str, mapping: MappingSpec, save_template: bool = F
                        written_pairs=zip(canonical["metric"], canonical["period"]))
         _notify_anomalies(conn, dataset_id)
         shared_cache().bump_namespace()
-        return {**summary, "dataset_id": dataset_id, "currency": dataset_currency(conn, dataset_id),
+        return {**summary, "dataset_id": dataset_id, **dataset_metadata(conn, dataset_id),
                 "facts_computed": int(len(facts)), "template_id": template_id}
     except UploadError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -363,15 +363,15 @@ def list_kpis(_: CurrentUser = Depends(require_read)) -> dict:
     try:
         ds = active_dataset_id(conn)
         if ds is None:
-            return {"selected": [], "available": [], "currency": "USD"}
+            return {"selected": [], "available": [], **dataset_metadata(conn, ds)}
         selected = [dict(r) for r in conn.execute(
             """SELECT id, source_metric, display_name, category, unit, direction_good, aggregation_type
                FROM kpi_configs WHERE dataset_id = ? ORDER BY source_metric""",
             (ds,),
         ).fetchall()]
-        currency = dataset_currency(conn, ds)
+        metadata = dataset_metadata(conn, ds)
         for s in selected:
-            s["currency"] = currency
+            s.update(metadata)
             s["aggregation_type"] = s.get("aggregation_type") or infer_aggregation_type(
                 s["display_name"], s["unit"]
             )
@@ -379,7 +379,7 @@ def list_kpis(_: CurrentUser = Depends(require_read)) -> dict:
         available = [r["name"] for r in conn.execute(
             "SELECT name FROM metrics WHERE dataset_id = ? ORDER BY name", (ds,)
         ).fetchall() if r["name"] not in chosen]
-        return {"selected": selected, "available": available, "currency": currency}
+        return {"selected": selected, "available": available, **metadata}
     finally:
         conn.close()
 

@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS datasets (
     name TEXT NOT NULL,
     source_upload_id TEXT,
     currency TEXT NOT NULL DEFAULT 'USD' CHECK (currency IN ('USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'SGD', 'CHF')),
+    fiscal_year_start INTEGER NOT NULL DEFAULT 1 CHECK (fiscal_year_start BETWEEN 1 AND 12),
     is_active INTEGER NOT NULL DEFAULT 0,
     domain TEXT NOT NULL DEFAULT 'fpa',
     is_demo INTEGER NOT NULL DEFAULT 0,
@@ -346,6 +347,7 @@ CREATE TABLE IF NOT EXISTS digest_runs (
 # Columns added after first release; applied to pre-existing SQLite DBs on startup.
 _SQLITE_SCHEMA += _IMPORT_RECEIPTS_SCHEMA
 _SQLITE_MIGRATIONS = [
+    "ALTER TABLE datasets ADD COLUMN fiscal_year_start INTEGER NOT NULL DEFAULT 1 CHECK (fiscal_year_start BETWEEN 1 AND 12)",
     _IMPORT_RECEIPTS_SCHEMA,
     "ALTER TABLE metric_values ADD COLUMN source_rows INTEGER NOT NULL DEFAULT 1",
     "ALTER TABLE datasets ADD COLUMN currency TEXT NOT NULL DEFAULT 'USD' "

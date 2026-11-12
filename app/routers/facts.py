@@ -28,7 +28,7 @@ from app.compute.pvm import bridge_for_metric_row
 from app.datasets import (
     _scope_pred,
     active_dataset_id,
-    dataset_currency,
+    dataset_metadata,
 )
 from app.db import get_connection
 from app.domains import get_domain, registry
@@ -74,7 +74,7 @@ def get_active_domain(_: CurrentUser = Depends(require_read)) -> dict:
             row = conn.execute("SELECT domain FROM datasets WHERE id = ?", (ds,)).fetchone()
             if row and row["domain"]:
                 slug = row["domain"]
-        return {**get_domain(slug).public(), "currency": dataset_currency(conn, ds)}
+        return {**get_domain(slug).public(), **dataset_metadata(conn, ds)}
     finally:
         conn.close()
 
@@ -91,7 +91,7 @@ def set_active_domain(payload: dict, _: CurrentUser = Depends(require_write)) ->
             raise HTTPException(status_code=400, detail="No active dataset")
         conn.execute("UPDATE datasets SET domain = ? WHERE id = ?", (slug, ds))
         conn.commit()
-        return {**get_domain(slug).public(), "currency": dataset_currency(conn, ds)}
+        return {**get_domain(slug).public(), **dataset_metadata(conn, ds)}
     finally:
         conn.close()
 
@@ -226,10 +226,11 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
             (ds,),
         ).fetchall()
 
-    currency = dataset_currency(conn, ds)
+    metadata = dataset_metadata(conn, ds)
+    fiscal_start = metadata["fiscal_year_start"]
     out = []
-    prior = prior_key(period, granularity)
-    yago = year_ago_key(period, granularity)
+    prior = prior_key(period, granularity, fiscal_start)
+    yago = year_ago_key(period, granularity, fiscal_start)
     for k in kpis:
         agg = k["aggregation_type"] or infer_aggregation_type(k["display_name"] or k["metric"], k["unit"])
         rows = []
@@ -241,12 +242,12 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
                     (k["metric_id"],),
                 ).fetchall()
             ]
-        series = aggregate_series(rows, granularity, agg)
+        series = aggregate_series(rows, granularity, agg, fiscal_start)
         blocked = {}
         for row in rows:
             reason = combined_percentage_reason(k["unit"], row["source_rows"])
             if reason:
-                key = period_key(row["period"], granularity)
+                key = period_key(row["period"], granularity, fiscal_start)
                 blocked[key] = max(blocked.get(key, 1), row["source_rows"])
                 series[key].update(value=None, budget=None, unavailable=True)
         cur = series.get(period)
@@ -268,11 +269,11 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
                     deltas["budget_var_pct"] = round((v - cur["budget"]) / abs(cur["budget"]) * 100, 2)
             trend = [
                 {"period": pk, "value": series[pk]["value"], "budget": series[pk]["budget"]}
-                for pk in sorted(series, key=sort_key) if not series[pk].get("unavailable")
+                for pk in sorted(series, key=lambda key: sort_key(key, fiscal_start)) if not series[pk].get("unavailable")
             ]
         out.append({
             "metric": k["display_name"] or k["metric"], "category": k["category"],
-            "period": period, "value": cur["value"] if cur else None, "unit": k["unit"], "currency": currency,
+            "period": period, "value": cur["value"] if cur else None, "unit": k["unit"], **metadata,
             "direction_good": k["direction_good"], "prior_value": None,
             "has_data": has_data, "deltas": deltas, "trend": None,
             "is_anomaly": False, "aggregated": True, "granularity": granularity,
@@ -317,7 +318,7 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
         if ds is None:
             return []
 
-        currency = dataset_currency(conn, ds)
+        metadata = dataset_metadata(conn, ds)
         has_kpis = conn.execute(
             "SELECT 1 FROM kpi_configs WHERE dataset_id = ? LIMIT 1", (ds,)
         ).fetchone() is not None
@@ -408,7 +409,7 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
                 "category": r["category"],
                 "period": period,
                 "value": r["value"] if has_data else None,
-                "unit": r["unit"], "currency": currency,
+                "unit": r["unit"], **metadata,
                 "direction_good": r["direction_good"],
                 "prior_value": r["prior_value"] if has_data else None,
                 "has_data": has_data,
@@ -493,7 +494,7 @@ def _bridge_from_rows(pvm_row, mv_row) -> dict | None:
 def _fact_by_metric_id(conn, metric_id: int, period: str) -> ComputedFact | None:
     row = conn.execute(
         """
-        SELECT m.name AS metric, m.category, m.unit, d.currency, cf.period, cf.value, cf.prior_value,
+        SELECT m.name AS metric, m.category, m.unit, d.currency, d.fiscal_year_start, cf.period, cf.value, cf.prior_value,
                cf.mom_pct, cf.yoy_pct, cf.budget_var_abs, cf.budget_var_pct, cf.trend, cf.is_anomaly
         FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
         LEFT JOIN datasets d ON d.id = m.dataset_id
@@ -506,6 +507,7 @@ def _fact_by_metric_id(conn, metric_id: int, period: str) -> ComputedFact | None
     return ComputedFact(
         metric=row["metric"], category=row["category"], period=row["period"],
         value=row["value"], unit=row["unit"], currency=row["currency"] or "USD", prior_value=row["prior_value"],
+        fiscal_year_start=row["fiscal_year_start"] or 1,
         deltas=Deltas(
             mom_pct=row["mom_pct"], yoy_pct=row["yoy_pct"],
             budget_var_abs=row["budget_var_abs"], budget_var_pct=row["budget_var_pct"],

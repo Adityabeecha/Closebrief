@@ -27,6 +27,7 @@ class ComputedFact(BaseModel):
     value: float
     unit: str = "USD"
     currency: str = "USD"
+    fiscal_year_start: int = 1
     prior_value: Optional[float] = None
     deltas: Deltas
     trend: Optional[Trend] = None

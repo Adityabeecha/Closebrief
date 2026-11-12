@@ -116,7 +116,7 @@ def review_queue(all_datasets: bool = False,
         base = (
             """SELECT gr.id AS report_id, m.name AS metric, gr.period,
                       gr.review_status, gr.assigned_email, gr.narrative,
-                      d.id AS dataset_id, d.name AS dataset_name, d.currency
+                      d.id AS dataset_id, d.name AS dataset_name, d.currency, d.fiscal_year_start
                FROM generated_reports gr
                JOIN metrics m ON m.id = gr.metric_id
                JOIN datasets d ON d.id = m.dataset_id
@@ -140,6 +140,7 @@ def review_queue(all_datasets: bool = False,
             "report_id": r["report_id"], "metric": r["metric"], "period": r["period"],
             "review_status": r["review_status"], "assigned_email": r["assigned_email"],
             "dataset_id": r["dataset_id"], "dataset_name": r["dataset_name"], "currency": r["currency"],
+            "fiscal_year_start": r["fiscal_year_start"],
             "preview": (r["narrative"] or "")[:160],
         } for r in rows]
     finally:
