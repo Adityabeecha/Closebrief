@@ -2254,6 +2254,64 @@ document.addEventListener("keydown",e=>{
 function cardKey(e,i){if(e.target===e.currentTarget&&(e.key==="Enter"||e.key===" ")){e.preventDefault();openDetail(i);}}
 function clearCatFilter(){setCat("");}
 function clearSearch(){searchQuery="";const s=$("search");if(s)s.value="";renderCards();}
+/* ---- Statement view: KPIs as a management report, grouped by category ---- */
+// Report order for common categories; anything else follows alphabetically, Uncategorized last.
+const STMT_ORDER=["revenue","growth","sales","gross profit","profitability","margin","cost","costs","expenses","opex",
+  "operating expenses","ebitda","cash","balance sheet","customers","people","headcount","operations"];
+let kpiView=(()=>{try{return localStorage.getItem("cb_kpi_view")==="statement"?"statement":"queue";}catch{return "queue";}})();
+function setKpiView(v){
+  kpiView=v==="statement"?"statement":"queue";
+  try{localStorage.setItem("cb_kpi_view",kpiView);}catch{}
+  syncKpiView();renderCards();
+}
+function syncKpiView(){
+  const on=kpiView==="statement";
+  document.body.classList.toggle("stmt-view",on);
+  const q=$("kv-queue"),s=$("kv-statement");
+  if(q)q.setAttribute("aria-pressed",String(!on));
+  if(s)s.setAttribute("aria-pressed",String(on));
+}
+function stmtCatRank(c){
+  const i=STMT_ORDER.indexOf(String(c||"").toLowerCase());
+  return c==="Uncategorized"?1e4:i<0?1e3:i;
+}
+function planOf(f){
+  const a=f.deltas&&f.deltas.budget_var_abs;
+  return a==null||f.value==null||f.unavailable?null:f.value-a;
+}
+function statementHtml(facts){
+  const groups={};
+  facts.forEach(f=>{(groups[f.category||"Uncategorized"]??=[]).push(f);});
+  const cats=Object.keys(groups).sort((a,b)=>stmtCatRank(a)-stmtCatRank(b)||a.localeCompare(b));
+  const cell=(t,muted)=>`<td class="nbi-num${muted?" muted":""}">${t}</td>`;
+  const delta=(f,key,raw)=>{
+    if(raw==null)return cell("–",true);
+    const good=raw===0?null:(f.direction_good==="down"?raw<0:raw>0);
+    return `<td class="nbi-num ${good===null?"":good?"c-ok":"c-exc"}">${deltaText(f,key)||pct(raw)}</td>`;
+  };
+  let body="";
+  cats.forEach(c=>{
+    body+=`<tr class="cat"><td colspan="5">${esc(c)}</td></tr>`;
+    groups[c].forEach(f=>{
+      const i=shownFacts.indexOf(f);
+      if(!f.has_data||f.unavailable){
+        body+=`<tr class="kpi" data-i="${i}" onclick="openFromStatement(${i})"><td>${esc(f.metric)}</td>${cell("—",true)}${cell("–",true)}${cell("–",true)}${cell("–",true)}</tr>`;
+        return;
+      }
+      const plan=planOf(f),d=f.deltas||{};
+      body+=`<tr class="kpi" data-i="${i}" tabindex="0" role="link" onclick="openFromStatement(${i})" onkeydown="if(event.key==='Enter')openFromStatement(${i})">
+        <td>${esc(f.metric)}</td>${cell(fmt(f.value,f.unit))}${cell(plan==null?"–":fmt(plan,f.unit),plan==null)}
+        ${delta(f,"budget",d.budget_var_pct)}${delta(f,"mom",d.mom_pct)}</tr>`;
+    });
+  });
+  return `<div class="stmt-wrap"><table class="stmt"><thead><tr><th>KPI</th><th>Actual</th><th>Plan</th><th>vs plan</th><th>${esc(priorPeriodLabel())}</th></tr></thead><tbody>${body}</tbody></table></div>
+    <p class="stmt-note">Grouped by category in report order. Categories aren't added up: a category can mix amounts, counts and rates. Pick a KPI to read its commentary.</p>`;
+}
+function openFromStatement(i){
+  const f=shownFacts[i];if(!f)return;
+  setKpiView("queue");
+  const j=shownFacts.indexOf(f);if(j>=0)openDetail(j);
+}
 function renderCards(){
   const cat=catFilter;
   let facts=cat?currentFacts.filter(f=>(f.category||"Uncategorized")===cat):currentFacts;
@@ -2265,6 +2323,8 @@ function renderCards(){
   renderStatrow(facts);renderPills();renderBulkApprove();
   if(!currentFacts.length){$("cards").innerHTML=`<div class="empty-state">No KPIs to show. Select KPIs during import, or switch dataset.</div>`;return;}
   if(!facts.length){$("cards").innerHTML=`<div class="empty-state">No KPIs match ${searchQuery?`“${esc(searchQuery)}”`:"these filters"}. <button class="linkbtn" onclick="clearSearch();clearCatFilter()">Clear filters</button></div>`;return;}
+  syncKpiView();
+  if(kpiView==="statement"){$("cards").innerHTML=statementHtml(facts);return;}
   const q=searchQuery;let html="",last=null;
   facts.forEach((f,i)=>{
     const g=queueGroup(f);
