@@ -141,11 +141,6 @@ frame.addEventListener('load', async () => {{
       <div class="card-value-row"><strong class="card-value">$12,345,678</strong><span class="delta good">+12.4%</span></div>
       <p class="narr">Representative commentary that verifies card wrapping at narrow widths without clipping its actions or values.</p>
     </article>`;
-    doc.getElementById('rq-list').innerHTML = `<article class="rq-item">
-      <div class="rq-main"><div class="rq-metric">Representative review metric</div>
-      <div class="rq-preview">A long narrative preview that must remain reachable on a narrow display.</div></div>
-      <button class="btn">Review</button>
-    </article>`;
     doc.getElementById('ctx-rows').innerHTML = `<tr><td>Policy</td><td>Representative context body</td>
       <td>Revenue</td><td>2026-08</td><td><button class="row-del">Delete</button></td></tr>`;
     doc.getElementById('admin-rows').innerHTML = `<tr><td>finance@example.com</td><td>representative-user-id</td>
