@@ -154,6 +154,9 @@ def ingest_mapping(upload_id: str, mapping: MappingSpec, save_template: bool = F
             template_id = save_mapping_template(conn, up["column_signature"], mapping.model_dump())
 
         facts = compute_and_store(conn, dataset_id)
+        audit.record(conn, "import", "dataset", dataset_id, actor_id=user.id, actor_email=user.email,
+                     summary={"name": up["filename"] if up else upload_id,
+                              "rows": int(summary["import_report"].get("rows_kept", 0))})
         record_receipt(conn, dataset_id, kind="import", filename=up["filename"] if up else upload_id,
                        mapping=mapping.model_dump(), report=summary["import_report"],
                        written_pairs=zip(canonical["metric"], canonical["period"]))

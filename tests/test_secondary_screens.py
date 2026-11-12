@@ -13,7 +13,9 @@ SETUP = r"""
 const els={},timers=new Map(),calls=[],visits=[];let clock=0,response=[],failure=null;
 const $=id=>(els[id]??={innerHTML:'',textContent:'',value:'',disabled:false,hidden:false,style:{},attrs:{},wait:{hidden:true},
   setAttribute(k,v){this.attrs[k]=v},removeAttribute(k){delete this.attrs[k]},
-  querySelector(){return this.wait},focus(){this.focused=true},insertAdjacentHTML(_p,h){this.innerHTML+=h}});
+  querySelector(){return this.wait},cls:new Set(),
+  get classList(){const s=this.cls;return{add:c=>s.add(c),remove:c=>s.delete(c),contains:c=>s.has(c)}},
+  focus(){this.focused=true},insertAdjacentHTML(_p,h){this.innerHTML+=h}});
 const setTimeout=(f,ms)=>{const id=++clock;timers.set(id,{f,ms});return id},clearTimeout=id=>timers.delete(id);
 const api=async(p,o)=>{calls.push([p,o]);if(failure)throw Error(failure);return typeof response==='function'?response(p,o):response};
 const nav=v=>visits.push(v),toast=()=>{},errMsg=e=>e.message;
@@ -28,9 +30,9 @@ const EST_COST_PER_NARR=0.006,modalConfirm=async(...args)=>{modalCalls.push(args
 
 LOADERS = [
     ("loadDigest", "digest-list", "async function loadDigest(", "/* ---------- context", "Nothing approved yet", "Open KPIs"),
-    ("loadContext", "ctx-rows", "async function loadContext(", "async function addContext(", "No context", "Add a context note"),
+    ("loadContext", "ctx-rows", "async function loadContext(", "async function addContext(", "No context", None),
     ("loadAnalytics", "analytics-state", "function _metricList(", "/* ---- Forecast", "No metrics", "Import data"),
-    ("loadReview", "rq-list", "async function loadReview(", "async function openReviewItem(", "Nothing assigned to you", "Open KPIs"),
+    ("loadReview", "rq-list", "async function loadReview(", "async function openReviewItem(", None, None),
     ("loadCosts", "costs-state", "async function loadCosts(", "function deltaChip(", "No usage", "Open the dashboard"),
     ("loadNotifications", "nt-list", "async function loadNotifications(", "async function schCreate(", "No notification channels", "Add a channel"),
     ("loadSchedules", "sch-list", "function schKindFields(", "async function schCreate(", "No schedules", "Add a schedule"),
@@ -54,11 +56,24 @@ def run_screen(case, assertions, extra=""):
 @pytest.mark.parametrize("case", LOADERS, ids=lambda c:c[0])
 def test_empty_screen_explains_purpose_and_offers_next_action(case):
     loader, box, _, _, title, action = case
+    if title is None:
+        pytest.skip("this screen hides when empty")
+    button = f"assert.ok(html.includes('{action}'),html);assert.match(html,/<button/);" if action \
+        else "assert.doesNotMatch(html,/<button/);"
     run_screen(case, f"""
       await {loader}();const html=$('{box}').innerHTML;
       assert.match(html,/<h2|<h3/);assert.ok(html.includes('{title}'),html);
-      assert.ok(html.includes('{action}'),html);assert.match(html,/<p>/);assert.match(html,/<button/);
+      assert.match(html,/<p>/);{button}
       assert.equal(timers.size,0);
+    """)
+
+
+def test_review_queue_hides_when_nothing_is_assigned():
+    run_screen(LOADERS[3], r"""
+      response=[];await loadReview();assert.equal($('rq-list').innerHTML,'');
+      assert.ok($('v-review').classList.contains('rq-empty'));
+      response=[{metric:'Revenue',period:'2026-06'}];await loadReview();
+      assert.ok(!$('v-review').classList.contains('rq-empty'));assert.match($('rq-list').innerHTML,/Revenue/);
     """)
 
 

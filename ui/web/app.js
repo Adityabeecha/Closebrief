@@ -243,11 +243,11 @@ async function openKpiManager(){
   renderKpim();$("kpi-back").classList.add("open");
 }
 function renderKpim(){
-  const dirOpt=v=>`<option value="up"${v==="up"?" selected":""}>↑ up is good</option><option value="down"${v==="down"?" selected":""}>↓ down is good</option>`;
+  const dirOpt=v=>`<option value="up"${v==="up"?" selected":""}>Up is good</option><option value="down"${v==="down"?" selected":""}>Down is good</option>`;
   const aggOpt=v=>rollupOptions(v||"flow");
   $("kpim-rows").innerHTML=kpimState.selected.length?`
-    <div class="kpi-grid hdr" style="grid-template-columns:1.2fr 1.2fr .9fr .7fr .9fr .8fr .3fr"><span>Source metric</span><span>Display name</span><span>Category</span><span>Unit</span><span>Direction</span><span title="How the months combine into a quarter or year">Over a quarter</span><span></span></div>`
-    +kpimState.selected.map((k,i)=>`<div class="kpi-grid" data-i="${i}" style="grid-template-columns:1.2fr 1.2fr .9fr .7fr .9fr .8fr .3fr">
+    <div class="kpi-grid hdr" style="grid-template-columns:1.1fr 1.2fr .9fr .8fr .9fr 1.05fr .3fr"><span>Source metric</span><span>Display name</span><span>Category</span><span>Unit</span><span>Direction</span><span title="How the months combine into a quarter or year">Over a quarter</span><span></span></div>`
+    +kpimState.selected.map((k,i)=>`<div class="kpi-grid" data-i="${i}" style="grid-template-columns:1.1fr 1.2fr .9fr .8fr .9fr 1.05fr .3fr">
       <span style="font-size:12px;color:var(--mut);overflow:hidden;text-overflow:ellipsis" title="${esc(k.source_metric)}">${esc(k.source_metric)}</span>
       <input value="${esc(k.display_name)}" data-f="display_name">
       <input value="${esc(k.category)}" data-f="category">
@@ -678,7 +678,8 @@ function nav(t,{fromRoute=false}={}){
   if(v==="analytics")loadAnalytics();
   if(v==="digest")loadDigest(false);
   if(v==="boardpack")loadBoardPack();
-  if(v==="import"){renderDataHealth();const sp=$("sync-panel");if(sp){sp.hidden=r.place!=="datahub";if(r.place==="datahub")loadSyncSources();}}
+  if(v==="import"){renderDataHealth();if(r.place){const rp=$("receipt-pane");if(rp){rp.style.display="none";rp.innerHTML="";}}
+    const sp=$("sync-panel");if(sp){sp.hidden=r.place!=="datahub"||importStep!==1;if(!sp.hidden)loadSyncSources();}}
   if(v==="activity")loadActivity();
   if(v==="costs")loadCosts();
   if(v==="notifications")loadNotifications();
@@ -788,8 +789,9 @@ function renderMonthHead(){
     :[ds,s.n?`${plural(s.n,"KPI","KPIs")} computed in code`:null,s.n?`${s.approved} of ${s.n} approved`:null]).concat(dataAsOf()).filter(Boolean).join(" · ");
   const next=!canReview()?null:granularity==="month"?closeNextStep(s):rollupNextStep(),btn=$("mh-next");
   btn.style.display=next?"":"none";
+  document.body.classList.toggle("head-drafts",!!next&&next.run==="generateAll()");
   if(next){btn.textContent=next.label;btn.setAttribute("onclick",next.run);}
-  $("mt-kpis").textContent=s.n||"";
+  $("mt-kpis").textContent=(roll&&roll.distinct_kpis)||s.n||"";
   const tab=currentPlace.place?null:currentPlace.tab;
   document.querySelectorAll("#month-tabs a").forEach(a=>{
     a.href=routeHash({tab:a.dataset.tab,period:currentPeriod});
@@ -870,11 +872,11 @@ function receiptHtml(r,open){
   const rep=importReportHtml(r.report||null).html.replace(/^<br>/,"");
   const totals=(r.kpi_totals||[]).map(t=>`<tr><td>${esc(t.metric)}</td><td class="n">${esc(t.periods)}</td><td class="n">${plainNum(t.value_total)}</td><td class="n">${plainNum(t.budget_total)}</td><td class="n">${esc(t.rows)}</td></tr>`).join("");
   return `<div class="rc-meta">${esc(RECEIPT_KIND[r.kind]||r.kind)} · ${esc(r.filename||"")} · ${esc(fmtWhen(r.created_at))}</div>${rep}
-    ${totals?`<table><thead><tr><th>KPI</th><th class="n">Months</th><th class="n">Actual total</th><th class="n">Budget total</th><th class="n">Source rows</th></tr></thead><tbody>${totals}</tbody></table>`:""}`;
+    ${totals?`<div class="receipt-scroll"><table><thead><tr><th>KPI</th><th class="n">Months</th><th class="n">Actual total</th><th class="n">Budget total</th><th class="n">Source rows</th></tr></thead><tbody>${totals}</tbody></table></div>`:""}`;
 }
 async function loadReceipts(){
   const box=$("receipt-pane");if(!box)return;
-  if(currentPlace.place||activeDatasetId==null){box.style.display="none";return;}
+  if(currentPlace.place||activeDatasetId==null){box.style.display="none";box.innerHTML="";return;}
   const ds=activeDatasetId;let rows=[];
   try{rows=await api(`/datasets/${ds}/receipts`);}catch{box.style.display="none";return;}
   if(ds!==activeDatasetId)return;
@@ -1557,7 +1559,9 @@ async function loadReview(){
   if(!done())return;
   _reviewItems=items;updateReviewBadge(items.length);
   if(!box)return;
-  if(!items.length){box.innerHTML=screenState("Nothing assigned to you","Commentary someone assigns to you for approval appears here. Drafts for this close are on the KPIs tab.","nav('kpis')","Open KPIs");return;}
+  const sect=$("v-review");
+  if(!items.length){box.innerHTML="";if(sect)sect.classList.add("rq-empty");return;}
+  if(sect)sect.classList.remove("rq-empty");
   box.innerHTML=items.map((it,i)=>`<div class="rq-item" role="button" tabindex="0" onclick="openReviewItem(${esc(i)})">
     <div class="rq-main"><div class="rq-metric">${esc(it.metric)}</div>
     <div class="rq-preview">${esc(it.preview||"No preview")}</div>
@@ -1797,7 +1801,7 @@ async function setDatasetCurrency(id){
 /* ---------- Settings → Activity: the workspace's audit trail ---------- */
 const ACT_VERB={approved:"Approved",changes_requested:"Asked for changes on",pending:"Sent for review",reopened:"Reopened",
   assign:"Assigned",generate:"Drafted",create:"Created",delete:"Deleted",sync:"Synced",send:"Sent",login:"Signed in",
-  approve:"Approved",edit:"Edited",reject:"Rejected",update:"Updated"};
+  approve:"Approved",edit:"Edited",reject:"Rejected",update:"Updated",import:"Imported"};
 const ACT_THING={report:"commentary",dataset:"dataset",connector:"linked source",context:"context note",
   derived_kpi:"custom KPI",digest:"digest",user:"",workspace:"workspace"};
 // "Approved commentary · Net Revenue, December 2025" from an audit row.
@@ -1820,7 +1824,7 @@ async function loadActivity(){
   try{
     const rows=await api("/audit");if(!done())return;
     $("act-rows").innerHTML=rows.length?rows.map(a=>{const d=describeActivity(a);
-      return `<tr><td>${esc(fmtWhen(a.created_at))}</td><td>${esc(a.actor_email||(a.actor_id?"A team member":"Closebrief"))}</td><td>${esc(d.text)}${d.about?`<small>${esc(d.about)}</small>`:""}</td></tr>`;}).join("")
+      return `<tr><td class="when">${esc(fmtWhen(a.created_at))}</td><td>${esc(a.actor_email||(a.actor_id?"A team member":"Closebrief"))}</td><td>${esc(d.text)}${d.about?`<small>${esc(d.about)}</small>`:""}</td></tr>`;}).join("")
       :screenRow(screenState("No activity yet","Approvals, edits, imports and sends appear here as they happen.","","",),3);
   }catch(e){if(done())$("act-rows").innerHTML=screenRow(screenError(e,"loadActivity()"),3);}
 }
@@ -2066,8 +2070,7 @@ function maybePromptGenerate(){
     el.style.display="";el.className="banner info";
     el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>
       <span>No narratives for ${esc(fmtPeriod(currentPeriod,"long"))} yet.</span>
-      <button class="btn sm primary write-only" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Draft commentary</button>
-      <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">${XICON}</button>`;
+      <button class="ico" style="border:none;margin-left:auto" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">${XICON}</button>`;
   }
 }
 function dismissKey(type){return `cb-dismiss:${(currentUser&&currentUser.email)||"anon"}:${activeDatasetId}:${type}`;}
@@ -2475,7 +2478,7 @@ function openDetail(i,{fromRoute=false}={}){
     $("d-narr").textContent=f.narrative;
     renderGroundedNarrative(f.report_id);
   }else{
-    $("d-narr").innerHTML=f.narrative?esc(f.narrative)+(f.edited&&f.original_narrative?`<details class="tbl" style="margin-top:8px"><summary>Show original (pre-edit)</summary><p style="margin-top:6px;color:var(--mut)">${esc(f.original_narrative)}</p></details>`:""):"No commentary yet. Draft it with the button at the top of this close.";
+    $("d-narr").innerHTML=f.narrative?esc(f.narrative)+(f.edited&&f.original_narrative?`<details class="tbl" style="margin-top:8px"><summary>Show original (pre-edit)</summary><p style="margin-top:6px;color:var(--mut)">${esc(f.original_narrative)}</p></details>`:""):"No commentary yet. Use Draft commentary above to write it for this KPI.";
   }
   $("d-narr-meta").textContent=narrMeta(f);
   $("d-chips").innerHTML=(f.sources||[]).map(s=>`<span class="chip" role="button" tabindex="0" title="Open source note" data-act="source" data-arg="${esc(s.id)}">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
@@ -2829,9 +2832,10 @@ async function loadContext(){
   ctxDocs=docs;
   if(!docs.length){
     $("ctx-scope").innerHTML="";$("ctx-view").style.display="none";
+    if(currentPeriod&&granularity==="month"&&!$("c-date").value)$("c-date").value=currentPeriod;
     $("ctx-rows").innerHTML=currentUser&&["executive","viewer"].includes(currentUser.role)
       ?screenState("No context notes yet","Business events, definitions and policies help explain metric movements. Ask an analyst to add a note.","nav('kpis')","Open KPIs")
-      :screenState("No context notes yet","Add business events, definitions and policies to ground the explanations of your metrics.","$('c-title').focus()","Add a context note","empty",{writeOnly:true});
+      :screenState("No context notes yet","Add business events, definitions and policies with the form, and commentary will cite them when it explains a movement.","","");
     return;
   }
   renderContextList();
@@ -2895,7 +2899,9 @@ function setStep(n){importStep=n;for(let i=1;i<=3;i++){const el=$("st-"+i),done=
     el.className="step"+(done?" done":i===n?" active":"");
     if(i===n)el.setAttribute("aria-current","step");else el.removeAttribute("aria-current");
     el.innerHTML=(done?'<svg class="step-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg><span class="visually-hidden">done · </span>':esc(i)+" · ")+esc(["Upload","Map columns","Pick KPIs"][i-1]);}
-  $("imp-upload").style.display=n===1?"":"none";$("imp-map").style.display=n===2?"":"none";$("imp-kpis").style.display=n===3?"":"none";
+  $("imp-upload").style.display=n===1?"":"none";
+  const sync=$("sync-panel");if(sync&&n!==1)sync.hidden=true;
+  else if(sync&&n===1&&typeof currentPlace!=="undefined"&&currentPlace.place==="datahub")sync.hidden=false;$("imp-map").style.display=n===2?"":"none";$("imp-kpis").style.display=n===3?"":"none";
   if(n!==2)$("imp-join-result").style.display="none";}
 function hasUnfinishedImport(){return importStep===3&&lastImport?.datasetId!=null;}
 async function leaveImport(){
@@ -3204,8 +3210,7 @@ async function confirmKpis(){
   if(el){el.style.display="";el.className="banner ok";
     el.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
       <span>Imported ${plural(li.rows||0,"row")}: ${plural(kpis.length,"KPI","KPIs")} across ${plural(li.periods||0,"period")}. Next, draft the commentary.</span>
-      <button class="write-only btn sm primary" style="margin-left:auto" onclick="$('import-banner').style.display='none';generateAll()">Draft commentary</button>
-      <button class="ico" style="border:none" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">${XICON}</button>`;
+      <button class="ico" style="border:none;margin-left:auto" onclick="$('import-banner').style.display='none'" aria-label="Dismiss">${XICON}</button>`;
   }
   }catch(e){$("imp-result").innerHTML=`<div class="banner err">Import failed to finalize: ${esc(e.message)} <button class="write-only btn sm" onclick="confirmKpis()">Retry</button></div>`;}
   finally{kpiSaving=false;updateKpiSelection();}

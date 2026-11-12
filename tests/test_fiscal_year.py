@@ -76,7 +76,9 @@ def test_fiscal_api_facts_close_targets_and_activity(client):
     steps = {s["id"]: s for s in status["steps"]}
     assert steps["review"]["target"].startswith("#month=2025-06&")
     assert steps["approve"]["target"].startswith("#month=2025-05&")
-    assert len(status["activity"]) == 2
+    # Two approvals in this fiscal quarter, plus the import of the dataset itself.
+    assert len(status["activity"]) == 3
+    assert sum(entry["text"] == "Import dataset" for entry in status["activity"]) == 1
     assert all("2025-03" not in entry["text"] for entry in status["activity"])
 
 
