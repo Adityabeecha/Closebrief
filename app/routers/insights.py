@@ -148,6 +148,7 @@ def forecast_narrative(payload: dict, user: CurrentUser = Depends(require_member
                  settings.openai_model if settings.llm_provider == "openai" else settings.anthropic_model,
                  usage.prompt_tokens, usage.completion_tokens, usage.cost_usd, None, user.id)
     return {"metric": metric, "currency": fc["currency"], "fiscal_year_start": fc["fiscal_year_start"],
+            "data_changed_at": fc["data_changed_at"],
             "projections": fc["projections"], "mape": fc["mape"],
             "narrative": result.narrative}
 

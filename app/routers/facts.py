@@ -29,6 +29,7 @@ from app.datasets import (
     _scope_pred,
     active_dataset_id,
     dataset_metadata,
+    timestamp_text,
 )
 from app.db import get_connection
 from app.domains import get_domain, registry
@@ -494,7 +495,7 @@ def _bridge_from_rows(pvm_row, mv_row) -> dict | None:
 def _fact_by_metric_id(conn, metric_id: int, period: str) -> ComputedFact | None:
     row = conn.execute(
         """
-        SELECT m.name AS metric, m.category, m.unit, d.currency, d.fiscal_year_start, cf.period, cf.value, cf.prior_value,
+        SELECT m.name AS metric, m.category, m.unit, d.currency, d.fiscal_year_start, d.data_changed_at, cf.period, cf.value, cf.prior_value,
                cf.mom_pct, cf.yoy_pct, cf.budget_var_abs, cf.budget_var_pct, cf.trend, cf.is_anomaly
         FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
         LEFT JOIN datasets d ON d.id = m.dataset_id
@@ -508,6 +509,7 @@ def _fact_by_metric_id(conn, metric_id: int, period: str) -> ComputedFact | None
         metric=row["metric"], category=row["category"], period=row["period"],
         value=row["value"], unit=row["unit"], currency=row["currency"] or "USD", prior_value=row["prior_value"],
         fiscal_year_start=row["fiscal_year_start"] or 1,
+        data_changed_at=timestamp_text(row["data_changed_at"]),
         deltas=Deltas(
             mom_pct=row["mom_pct"], yoy_pct=row["yoy_pct"],
             budget_var_abs=row["budget_var_abs"], budget_var_pct=row["budget_var_pct"],
