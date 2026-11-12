@@ -43,6 +43,8 @@ class MappingSpec(BaseModel):
     # existing metrics (a code doesn't drift the way "  Foo Bar" vs "Foo Bar"
     # or "Foo/Bar" vs "Foo Bar" does).
     id_col: Optional[str] = None
+    # Explicitly retain source labels that the summary-row heuristic would drop.
+    keep_labels: list[str] = Field(default_factory=list)
     # wide layout
     wide_period_cols: list[str] = Field(default_factory=list)
     wide_value_label: Optional[str] = None
@@ -54,6 +56,35 @@ class MappingSpec(BaseModel):
 
 class MappingError(Exception):
     """Validation failure. Message names the specific problem column."""
+
+
+_QUARTER_LABEL = re.compile(r"^(?:q[1-4][\s\-_/.']*\d{2,4}|\d{2,4}[\s\-_/.']*q[1-4])$", re.I)
+_YEAR_LABEL = re.compile(
+    r"^(?:(?:fy|fiscal\s+year|year)[\s\-_/.']*\d{2,4}(?:[/\-]\d{2,4})?|\d{4}(?:\s*fy)?)$", re.I
+)
+
+
+def coarse_period_warning(raw) -> str | None:
+    """Explain why a quarter/year label cannot be imported as a month."""
+    label = str(raw).strip()
+    if _QUARTER_LABEL.fullmatch(label):
+        kind, example = "quarterly", "Q1 2025"
+    elif _YEAR_LABEL.fullmatch(label):
+        kind, example = "yearly", "FY24"
+    else:
+        return None
+    return (f"This file has {kind} figures (e.g. {example}). CloseBrief works month by month: "
+            "export monthly figures instead. Quarters and years are added up for you in the Q and Y views.")
+
+
+def import_period_warnings(df: pd.DataFrame, mapping: MappingSpec) -> list[str]:
+    """Inspect every mapped source period, including wide headers and literals."""
+    periods = [mapping.period_literal] if mapping.period_literal else []
+    if mapping.layout == "wide":
+        periods += mapping.wide_period_cols
+    elif not mapping.period_literal and mapping.period_col in df.columns:
+        periods += df[mapping.period_col].dropna().unique().tolist()
+    return list(dict.fromkeys(w for p in periods if (w := coarse_period_warning(p))))
 
 
 _MONTHS = {m.lower(): i for i, m in enumerate(
@@ -149,20 +180,6 @@ def _check_numeric(df: pd.DataFrame, col: str, what: str) -> None:
 _TOTAL_LABEL = re.compile(r"^\s*(sub)?total\b|^\s*grand total\b", re.I)
 
 
-def _is_total_row(label: str, id_value=None, id_col_present: bool = False) -> bool:
-    """A summary/total row masquerading as a data row: its label starts with
-    'Total' (accounts for 'Total Operating Expenses', 'Subtotal', 'Grand
-    Total'), or — when the mapping has a secondary identifier column (e.g. GL
-    Code) — the identifier is blank while the metric label isn't (real line
-    items always carry an id; roll-up rows don't)."""
-    if _TOTAL_LABEL.match(str(label)):
-        return True
-    if id_col_present and (id_value is None or (isinstance(id_value, float) and pd.isna(id_value))
-                           or str(id_value).strip() == ""):
-        return True
-    return False
-
-
 _FORMULA_LEAD = ("=", "+", "@")  # leading '-' is left alone: it means negative
 
 
@@ -180,35 +197,71 @@ def sanitize_label(value) -> str:
     return s
 
 
-def _drop_total_rows(df: pd.DataFrame, metric_col: str | None, id_col: str | None) -> pd.DataFrame:
-    """Remove roll-up/section rows (a 'Total' line, a 'REVENUE' section label
-    with no data, an account whose id is blank because it's a subtotal) before
-    they're normalized into a fake metric. Source-format cleanup, not domain
-    logic — belongs before period/value coercion, not after.
+def likely_total_rows(df: pd.DataFrame, mapping: MappingSpec) -> list[dict]:
+    """The shared summary-row rule for schema preview and confirmed imports.
 
-    A sheet marks its total row in whichever label column reads best, which is
-    not always the column the mapping picked as the metric, so any text column
-    carrying a 'Total' marker condemns the row."""
+    A marker in any text column counts, even when that column isn't mapped.
+    Explicitly kept metric labels override both markers and blank IDs.
+    """
     if df.empty:
-        return df
+        return []
+    metric_col = mapping.metric_col if mapping.layout == "long" else mapping.wide_metric_col
+    fallback = sanitize_label(mapping.wide_value_label or mapping.value_col or "")
+    labels = (df[metric_col].map(sanitize_label) if metric_col in df.columns
+              else pd.Series(fallback, index=df.index))
     is_total = pd.Series(False, index=df.index)
     for col in df.columns:
         if pd.api.types.is_numeric_dtype(df[col]):
             continue
         col_str = df[col].map(lambda v: "" if pd.isna(v) else str(v))
         is_total = is_total | col_str.map(lambda s: bool(_TOTAL_LABEL.match(s)))
-    if metric_col is not None and metric_col in df.columns:
-        label = df[metric_col]
-        label_blank = label.map(lambda v: sanitize_label(v) == "")
-        is_total = is_total | label_blank
-        if id_col and id_col in df.columns:
-            id_blank = df[id_col].isna() | (df[id_col].astype(str).str.strip() == "")
-            is_total = is_total | (id_blank & ~label_blank)
-    return df[~is_total]
+    blank_summary_id = pd.Series(False, index=df.index)
+    if metric_col in df.columns and mapping.id_col in df.columns:
+        ids = df[mapping.id_col]
+        blank_summary_id = (ids.isna() | (ids.astype(str).str.strip() == "")) & (labels != "")
+    kept = labels.isin({sanitize_label(label) for label in mapping.keep_labels})
+    return [
+        {"row": int(index) + 1, "label": labels.loc[index],
+         "reason": "starts with Total" if is_total.loc[index] else "blank ID on a summary row"}
+        for index in df.index[(is_total | blank_summary_id) & ~kept]
+    ]
+
+
+def _drop_total_rows(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
+    totals = likely_total_rows(df, mapping)
+    drop_indices = {row["row"] - 1 for row in totals}
+    drop = pd.Series(df.index.isin(drop_indices), index=df.index)
+    metric_col = mapping.metric_col if mapping.layout == "long" else mapping.wide_metric_col
+    if metric_col in df.columns:
+        # Empty labels aren't metrics; retain the existing section/blank cleanup.
+        drop |= df[metric_col].map(sanitize_label) == ""
+    out = df[~drop].copy()
+    out.attrs["totals_dropped"] = totals
+    return out
+
+
+def _duplicate_source_rows(df: pd.DataFrame, mapping: MappingSpec) -> set[int]:
+    """Compare mapped source cells before coercion or melting loses identity."""
+    columns = [mapping.id_col, *mapping.dimension_cols]
+    if mapping.layout == "long":
+        columns += [mapping.metric_col, mapping.value_col, *mapping.value_cols,
+                    mapping.budget_col, mapping.quantity_col, mapping.price_col,
+                    mapping.budget_quantity_col, mapping.budget_price_col]
+        if not mapping.period_literal:
+            columns.append(mapping.period_col)
+    else:
+        columns += [mapping.wide_metric_col, *mapping.wide_period_cols, *mapping.wide_budget_cols]
+    columns = list(dict.fromkeys(c for c in columns if c and c in df.columns))
+    return set(df.index[df.duplicated(subset=columns)]) if columns else set()
 
 
 def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
     """Return the canonical long-format DataFrame."""
+    df = df.copy()  # Upload cleanup may have removed blank rows; retain source positions.
+    rows_read = len(df)
+    period_warnings = import_period_warnings(df, mapping)
+    if period_warnings:
+        raise MappingError(period_warnings[0])
     if mapping.layout == "long":
         for field in ("metric_col", "quantity_col", "price_col", "budget_quantity_col", "budget_price_col"):
             column = getattr(mapping, field)
@@ -225,7 +278,8 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
             _check_numeric(df, mapping.budget_col, "Budget")
         if mapping.id_col:
             _check_col(df, mapping.id_col, "Id")
-        df = _drop_total_rows(df, mapping.metric_col, mapping.id_col)
+        df = _drop_total_rows(df, mapping)
+        duplicate_rows = _duplicate_source_rows(df, mapping)
         if period_col:
             df = df[df[period_col].notna()]
 
@@ -247,6 +301,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
             for vcol in mapping.value_cols:
                 part = pd.DataFrame()
                 part["period"] = _periods_for(df)
+                part["_source_row"] = df.index + 1
                 base_label = df[mapping.metric_col].map(sanitize_label) if mapping.metric_col else ""
                 suffix = sanitize_label(vcol)
                 part["metric"] = (base_label + " " + suffix).str.strip() if mapping.metric_col else suffix
@@ -272,6 +327,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
             _check_numeric(df, value_col, "Value")
             out = pd.DataFrame()
             out["period"] = _periods_for(df)
+            out["_source_row"] = df.index + 1
             if mapping.metric_col:
                 _check_col(df, mapping.metric_col, "Metric")
                 out["metric"] = df[mapping.metric_col].map(sanitize_label)
@@ -308,7 +364,8 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
             )
         if mapping.id_col:
             _check_col(df, mapping.id_col, "Id")
-        df = _drop_total_rows(df, mapping.wide_metric_col, mapping.id_col)
+        df = _drop_total_rows(df, mapping)
+        duplicate_rows = _duplicate_source_rows(df, mapping)
 
         id_vars = []
         if mapping.wide_metric_col:
@@ -324,6 +381,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
         )
         out = pd.DataFrame()
         out["period"] = melted["_period_raw"].map(parse_period)
+        out["_source_row"] = list(df.index + 1) * len(mapping.wide_period_cols)
         if mapping.wide_metric_col:
             out["metric"] = melted[mapping.wide_metric_col].map(sanitize_label)
         else:
@@ -363,10 +421,33 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
     # metric with null facts — not silently vanish because every one of its
     # rows happened to be empty. store_normalized reads this via out.attrs.
     all_metrics = sorted(str(m) for m in out["metric"].dropna().unique())
+
+    # Identical lines are certainly one line exported twice only when they also
+    # share a row ID. Without an ID column, two identical rows can be two real
+    # sales of the same amount: they're kept (and added), and reported so the
+    # user can check for a double export, rather than silently understating.
+    identical_kept = set() if mapping.id_col else set(duplicate_rows)
+    if not mapping.id_col:
+        duplicate_rows = set()
+
+    def _examples(rows: set[int]) -> list[dict]:
+        hits = out[out["_source_row"].isin({i + 1 for i in rows})]
+        return [{"row": int(r["_source_row"]), "metric": r["metric"], "period": r["period"]}
+                for _, r in hits.drop_duplicates("_source_row").head(20).iterrows()]
+
+    examples, kept_examples = _examples(duplicate_rows), _examples(identical_kept)
+    out = out[~out["_source_row"].isin({i + 1 for i in duplicate_rows})]
     out = out[out["value"].notna()].reset_index(drop=True)
     if out.empty:
         raise MappingError("Mapping produced no valid rows — check the value column and layout")
     out.attrs["all_metrics"] = all_metrics
+    out.attrs["import_report"] = {
+        "rows_read": rows_read, "rows_kept": int(out["_source_row"].nunique()),
+        "duplicates_dropped": {"count": len(duplicate_rows), "examples": examples},
+        "identical_kept": {"count": len(identical_kept), "examples": kept_examples},
+        "totals_dropped": df.attrs["totals_dropped"],
+    }
+    out = out.drop(columns="_source_row")
     return out
 
 
@@ -539,16 +620,16 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
         cur.execute(
             """
             INSERT INTO metric_values (metric_id, period, value, budget, quantity, price,
-                                       budget_quantity, budget_price, dimensions)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                       budget_quantity, budget_price, dimensions, source_rows)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(metric_id, period) DO UPDATE SET
                 value=excluded.value, budget=excluded.budget,
                 quantity=excluded.quantity, price=excluded.price,
                 budget_quantity=excluded.budget_quantity, budget_price=excluded.budget_price,
-                dimensions=excluded.dimensions
+                dimensions=excluded.dimensions, source_rows=excluded.source_rows
             """,
             (metric_id, period, float(value), budget, quantity, price,
-             budget_quantity, budget_price, dims if isinstance(dims, str) else None),
+             budget_quantity, budget_price, dims if isinstance(dims, str) else None, len(group)),
         )
 
         if bridge is not None:
@@ -567,6 +648,17 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
     conn.commit()
     return {
         "rows_normalized": n_written,
+        "import_report": {
+            **canonical.attrs.get("import_report", {
+                "rows_read": len(canonical), "rows_kept": len(canonical),
+                "duplicates_dropped": {"count": 0, "examples": []},
+                "identical_kept": {"count": 0, "examples": []}, "totals_dropped": [],
+            }),
+            "combined": [
+                {"metric": metric, "period": period, "rows": int(count)}
+                for (metric, period), count in canonical.groupby(["metric", "period"]).size().items() if count > 1
+            ][:50],
+        },
         "metrics": sorted(metric_names),
         "periods": sorted(canonical["period"].unique().tolist()),
     }

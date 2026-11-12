@@ -72,8 +72,11 @@ def _summaries(conn, ds, granularity="month"):
         return []
     rows = conn.execute(
         """SELECT cf.period, cf.metric_id, cf.value, m.name, cf.is_anomaly,
-        cf.budget_var_pct, gr.id AS report_id, gr.review_status, gr.faithfulness
+        cf.budget_var_pct, gr.id AS report_id, gr.review_status, gr.faithfulness,
+        COALESCE(k.unit, m.unit) AS unit, mv.source_rows
         FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
+        LEFT JOIN kpi_configs k ON k.dataset_id = m.dataset_id AND k.source_metric = m.name
+        LEFT JOIN metric_values mv ON mv.metric_id = m.id AND mv.period = cf.period
         LEFT JOIN generated_reports gr ON gr.id = (SELECT MAX(g.id) FROM generated_reports g
             WHERE g.metric_id = cf.metric_id AND g.period = cf.period
               AND (g.prompt_version IS NULL OR g.prompt_version NOT LIKE '%-digest'))
@@ -93,7 +96,7 @@ def _summaries(conn, ds, granularity="month"):
         shared.setdefault(run["period"], timestamp.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"))
     groups = {}
     for row in rows:
-        if not has_usable_value(row["metric_id"], row["value"]):
+        if not has_usable_value(row["metric_id"], row["value"], row["unit"], row["source_rows"]):
             continue
         period = row["period"]
         if not re.fullmatch(r"\d{4}-(0[1-9]|1[0-2])", period) or period.startswith("0000"):

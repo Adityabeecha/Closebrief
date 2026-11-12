@@ -19,7 +19,7 @@ CREATE TABLE metrics (id INTEGER PRIMARY KEY AUTOINCREMENT, dataset_id INTEGER, 
     external_id TEXT, UNIQUE(dataset_id, name));
 CREATE TABLE metric_values (id INTEGER PRIMARY KEY AUTOINCREMENT, metric_id INTEGER, period TEXT,
     value REAL, budget REAL, quantity REAL, price REAL, budget_quantity REAL, budget_price REAL,
-    dimensions TEXT, UNIQUE(metric_id, period));
+    dimensions TEXT, source_rows INTEGER NOT NULL DEFAULT 1, UNIQUE(metric_id, period));
 CREATE TABLE pvm_bridges (id INTEGER PRIMARY KEY AUTOINCREMENT, metric_id INTEGER, period TEXT,
     volume REAL, price REAL, mix REAL, total REAL, n_items INTEGER, UNIQUE(metric_id, period));
 """

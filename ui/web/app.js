@@ -2223,7 +2223,7 @@ function renderCards(){
 // One queue row: status dot, name, the variance that matters, and the state in words.
 function queueRow(f,i,q){
   const g=queueGroup(f);
-  if(!f.has_data)return `<div class="qi nodata"><i class="dot" aria-hidden="true"></i><span class="qn">${hl(f.metric,q)}</span><span class="qsub">No data for ${esc(fmtPeriod(currentPeriod))}</span></div>`;
+  if(!f.has_data)return `<div class="qi nodata"><i class="dot" aria-hidden="true"></i><span class="qn">${hl(f.metric,q)}</span><span class="qsub">${f.unavailable_reason?esc(f.unavailable_reason):`No data for ${esc(fmtPeriod(currentPeriod))}`}</span></div>`;
   const plan=f.deltas.budget_var_pct,v=plan!=null?plan:f.deltas.mom_pct;
   const vLabel=plan!=null?"vs plan":priorPeriodLabel();
   const good=v==null||v===0?null:(f.direction_good==="down"?v<0:v>0);
@@ -2859,6 +2859,19 @@ async function importRouteChanged(){
   if(await leaveImport()){history.replaceState(null,"",target);route();}
 }
 function dropFile(e){e.preventDefault();$("drop").classList.remove("drag");const f=e.dataTransfer.files[0];if(f)uploadFile(f);}
+// What the import did to the file, line by line, so totals can be tied back to it.
+function importReportHtml(r){
+  if(!r)return {html:"",attention:false};
+  const items=[],ex=list=>(list||[]).slice(0,3).map(e=>`${esc(e.metric)} ${esc(fmtPeriod(e.period))} (row ${esc(e.row)})`).join(", ");
+  const dup=r.duplicates_dropped||{},same=r.identical_kept||{},tot=r.totals_dropped||[],comb=r.combined||[];
+  if(dup.count)items.push(`<b>${plural(dup.count,"duplicate line")} removed</b>: same row ID as another line. <small>${ex(dup.examples)}</small>`);
+  if(same.count)items.push(`<b>${plural(same.count,"identical row")} kept and added</b>. If the file was exported twice, remove them and import again. <small>${ex(same.examples)}</small>`);
+  const totLabels=[...new Set(tot.map(t=>t.label||"(blank)"))];
+  if(tot.length)items.push(`<b>${plural(tot.length,"total row")} left out</b>: ${totLabels.slice(0,4).map(esc).join(", ")}${totLabels.length>4?"…":""}`);
+  if(comb.length)items.push(`<b>${plural(comb.length,"figure")} made by adding several rows</b> (e.g. ${comb.slice(0,2).map(c=>`${esc(c.metric)} ${esc(fmtPeriod(c.period))}: ${c.rows} rows`).join("; ")}). A percentage KPI made this way has no value.`);
+  const head=`<br><small>${plural(r.rows_read,"row")} read, ${r.rows_kept} kept.</small>`;
+  return {html:head+(items.length?`<ul>${items.map(i=>`<li>${i}</li>`).join("")}</ul>`:""),attention:!!(dup.count||same.count||tot.length)};
+}
 function resetImport(){
   // Lets the user land back on step 1 and pick a DIFFERENT file. A bare file
   // input never re-fires 'change' for the same filename, and stale upload/
@@ -2867,6 +2880,7 @@ function resetImport(){
   const input=$("file-in");if(input)input.value="";
   const month=$("map-month");if(month)month.value="";
   $("imp-result").innerHTML="";$("map-warnings").style.display="none";$("map-hint").style.display="none";
+  const mt=$("map-totals");if(mt){mt.style.display="none";mt.innerHTML="";}
   $("sheet-pick").style.display="none";$("tpl-banner").style.display="none";
   $("imp-join-result").style.display="none";
   setStep(1);
@@ -2916,8 +2930,25 @@ async function loadSchema(){
     wb.style.display="";
     wb.innerHTML=`<b>Worth checking before you confirm:</b><ul style="margin:6px 0 0 18px">${profile.mapping_warnings.map(w=>`<li>${esc(w)}</li>`).join("")}</ul>`;
   }else{wb.style.display="none";}
+  renderTotalRows();
   renderMap();
 }
+// Rows the import would leave out as totals ("Total Opex", or a blank ID on a
+// summary line). A real KPI can start with "Total": tick it to keep it.
+function renderTotalRows(){
+  const box=$("map-totals"),rows=(profile&&profile.likely_total_rows)||[];
+  if(!box)return;
+  if(!rows.length){box.style.display="none";box.innerHTML="";return;}
+  const first=new Map();rows.forEach(r=>{if(!first.has(r.label))first.set(r.label,r);});   // the first row a label appears on
+  const labels=[...first.values()];
+  box.style.display="";
+  box.innerHTML=`<b>${plural(rows.length,"row looks","rows look")} like a total and won't be imported, so nothing is counted twice.</b>
+    <small> If one is a real KPI (say "Total Revenue" is the only revenue line), tick Keep.</small>
+    <ul>${labels.slice(0,30).map(r=>`<li><label><input type="checkbox" class="keep-total" value="${esc(r.label)}"> Keep</label>
+      <b>${esc(r.label||"(blank)")}</b> <small>row ${esc(r.row)} · ${esc(r.reason)}</small></li>`).join("")}</ul>
+    ${labels.length>30?`<small>and ${labels.length-30} more</small>`:""}`;
+}
+function keptTotalLabels(){return [...document.querySelectorAll(".keep-total:checked")].map(c=>c.value);}
 // Initial role for a profiled column. A measure the profiler found to be the
 // same figure as another (amount_local vs amount_usd) starts as "ignore" —
 // the mapping warning already says only one is kept, and keeping both
@@ -2976,10 +3007,11 @@ function buildMapping(){
   const layout=$("layout-sel").value,roleOf={};
   document.querySelectorAll(".role").forEach(s=>roleOf[s.dataset.col]=s.value);
   const by=r=>Object.keys(roleOf).filter(c=>roleOf[c]===r);
-  if(layout==="wide")return{layout:"wide",wide_period_cols:profile.wide_period_cols,wide_metric_col:by("metric_label")[0]||null,wide_value_label:by("metric_label").length?null:"Value",id_col:by("id")[0]||null,dimension_cols:by("dimension")};
+  const keep_labels=keptTotalLabels();
+  if(layout==="wide")return{layout:"wide",wide_period_cols:profile.wide_period_cols,wide_metric_col:by("metric_label")[0]||null,wide_value_label:by("metric_label").length?null:"Value",id_col:by("id")[0]||null,dimension_cols:by("dimension"),keep_labels};
   const measures=by("measure");
   const periodLiteral=sheetPeriod()||(needsMonthPick()&&$("map-month").value)||null;
-  const base={layout:"long",period_col:periodLiteral?null:(by("period")[0]||null),period_literal:periodLiteral,metric_col:by("metric_label")[0]||null,budget_col:by("budget")[0]||null,id_col:by("id")[0]||null,dimension_cols:by("dimension")};
+  const base={layout:"long",period_col:periodLiteral?null:(by("period")[0]||null),period_literal:periodLiteral,metric_col:by("metric_label")[0]||null,budget_col:by("budget")[0]||null,id_col:by("id")[0]||null,dimension_cols:by("dimension"),keep_labels};
   if(measures.length>1)return{...base,value_cols:measures};
   return{...base,value_col:measures[0]||null,quantity_col:by("quantity")[0]||null,price_col:by("price")[0]||null};
 }
@@ -2992,7 +3024,9 @@ async function confirmMapping(m){
   try{
     const res=await api(`/ingest/${upload.upload_id}/mapping?save_template=${$("save-tpl").checked}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(mapping)});
     $("imp-result").innerHTML="";
-    $("norm-summary").innerHTML=`Read ${plural(res.rows_normalized,"row")}: ${plural(res.metrics.length,"KPI","KPIs")} across ${plural(res.periods.length,"period")}.${res.template_id?" The column mapping is saved for next month's file.":""}`;
+    const rep=importReportHtml(res.import_report);
+    $("norm-summary").className="banner imp-report "+(rep.attention?"warn":"ok");
+    $("norm-summary").innerHTML=`Imported ${plural(res.metrics.length,"KPI","KPIs")} across ${plural(res.periods.length,"period")}.${res.template_id?" The column mapping is saved for next month's file.":""}${rep.html}`;
     // dataset_id is the dataset THIS import created; activeDatasetId is still
     // whatever was selected before (or null) until loadDatasets() runs.
     lastImport={rows:res.rows_normalized,metrics:res.metrics.length,periods:res.periods.length,datasetId:res.dataset_id??null};
