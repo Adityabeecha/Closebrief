@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS workspace_invites (
 CREATE TABLE IF NOT EXISTS datasets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    data_changed_at TEXT,
+    data_changed_at TIMESTAMP,
     source_upload_id TEXT,
     currency TEXT NOT NULL DEFAULT 'USD' CHECK (currency IN ('USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'SGD', 'CHF')),
     fiscal_year_start INTEGER NOT NULL DEFAULT 1 CHECK (fiscal_year_start BETWEEN 1 AND 12),
@@ -354,14 +354,14 @@ def _migrate_dataset_freshness(conn: sqlite3.Connection) -> None:
     columns = {row["name"] for row in conn.execute("PRAGMA table_info(datasets)")}
     if "data_changed_at" in columns:
         return
-    conn.execute("ALTER TABLE datasets ADD COLUMN data_changed_at TEXT")
+    conn.execute("ALTER TABLE datasets ADD COLUMN data_changed_at TIMESTAMP")
     if "created_at" in columns:
         conn.execute("UPDATE datasets SET data_changed_at = created_at WHERE data_changed_at IS NULL")
 
 
 _SQLITE_MIGRATIONS = [
     _migrate_dataset_freshness,
-    "ALTER TABLE datasets ADD COLUMN data_changed_at TEXT",
+    "ALTER TABLE datasets ADD COLUMN data_changed_at TIMESTAMP",
     "ALTER TABLE datasets ADD COLUMN fiscal_year_start INTEGER NOT NULL DEFAULT 1 CHECK (fiscal_year_start BETWEEN 1 AND 12)",
     _IMPORT_RECEIPTS_SCHEMA,
     "ALTER TABLE metric_values ADD COLUMN source_rows INTEGER NOT NULL DEFAULT 1",

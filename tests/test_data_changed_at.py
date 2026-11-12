@@ -96,7 +96,9 @@ def test_legacy_backfill_once_and_empty_dataset_stays_null(tmp_path, monkeypatch
     monkeypatch.setattr(settings, "database_url", "")
     monkeypatch.setattr(settings, "db_path", str(tmp_path / "legacy-freshness.db"))
     legacy = sqlite3.connect(settings.db_path)
-    schema = db._SQLITE_SCHEMA.replace("    data_changed_at TEXT,\n", "")
+    schema = db._SQLITE_SCHEMA.replace("    data_changed_at TIMESTAMP,\n", "")
+    # The legacy table really lacks the column (guards against the replace silently missing).
+    assert "data_changed_at" not in schema.split("CREATE TABLE IF NOT EXISTS datasets", 1)[1].split(");", 1)[0]
     legacy.executescript(schema)
     legacy.execute("INSERT INTO datasets (name, created_at) VALUES ('Old', '2001-01-01 00:00:00')")
     legacy.commit()
