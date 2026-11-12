@@ -700,12 +700,12 @@ function closeProgress(facts,shared){
   const status=!n?"empty":approved===n&&shared?"shared":approved===n?"ready":drafted||approved?"in_progress":"not_started";
   return {n,drafted,approved,failed,exceptions,checked:withData.filter(f=>f.faithfulness==="passed").length,shared:!!shared,progress,status};
 }
-const CLOSE_STATUS={empty:["No data",""],not_started:["Not started",""],in_progress:["In progress","prog"],ready:["Ready to share","prog"],shared:["Shared","done"]};
+const CLOSE_STATUS={empty:["No data",""],not_started:["Not started",""],in_progress:["In progress","prog"],ready:["Ready to share","prog"],shared:["Shared","done"],locked:["Locked","locked"]};
 // The server's summary wins when it has one, so every close in the list is scored the same way.
 function closeStateFor(p){
   const m=closeMonths[p];
   if(!m)return p===currentPeriod&&currentFacts?closeProgress(currentFacts,closeShared.has(p)):null;
-  return {n:m.kpis,approved:m.approved,drafted:m.drafted,progress:m.progress,status:m.status,shared:m.status==="shared"};
+  return {n:m.kpis,approved:m.approved,drafted:m.drafted,progress:m.progress,status:m.locked?"locked":m.status,shared:m.status==="shared"};
 }
 function renderCloses(){
   const el=$("close-list");if(!el)return;
@@ -787,7 +787,9 @@ function renderMonthHead(){
   $("mh-sub").textContent=(roll
     ?[ds,`${plural(roll.distinct_kpis??s.n,"KPI","KPIs")} across ${plural(roll.month_count||1,"month")}`,s.n?`${s.approved} of ${plural(s.n,"monthly commentary","monthly commentaries")} approved`:null]
     :[ds,s.n?`${plural(s.n,"KPI","KPIs")} computed in code`:null,s.n?`${s.approved} of ${s.n} approved`:null]).concat(dataAsOf()).filter(Boolean).join(" · ");
-  const next=!canReview()?null:granularity==="month"?closeNextStep(s):rollupNextStep(),btn=$("mh-next");
+  const locked=closeLocked();
+  document.body.classList.toggle("close-locked",locked);
+  const next=!canReview()||locked?null:granularity==="month"?closeNextStep(s):rollupNextStep(),btn=$("mh-next");
   btn.style.display=next?"":"none";
   document.body.classList.toggle("head-drafts",!!next&&next.run==="generateAll()");
   if(next){btn.textContent=next.label;btn.setAttribute("onclick",next.run);}
@@ -813,7 +815,12 @@ function overviewSteps(s,server){
     step("share","Send the digest",s.shared?"Digest sent · open Digest to read it":!remaining?"Open Digest to prepare the leadership summary":"Approve the drafts on KPIs before sharing",s.shared?"done":!remaining?"todo":"blocked",+s.shared,"digest"),
   ];
 }
-let overviewStatus=null,overviewFor=null;
+let overviewStatus=null,overviewFor=null,overviewChanges=null;
+function closeLocked(){
+  const m=closeMonths[currentPeriod];
+  if(m&&m.locked!=null)return !!m.locked;
+  return !!(overviewStatus&&overviewStatus.period===currentPeriod&&overviewStatus.locked);
+}
 async function renderOverview(){
   const first=!currentPeriod;
   const grid=document.querySelector("#v-overview .ov-grid");
@@ -823,7 +830,10 @@ async function renderOverview(){
   const p=currentPeriod;
   paintOverview();
   if(overviewFor!==p){overviewFor=p;overviewStatus=null;
-    try{overviewStatus=await api(`/close/status?period=${encodeURIComponent(p)}`);}catch{overviewStatus=null;}
+    const q=encodeURIComponent(p);
+    [overviewStatus,overviewChanges]=await Promise.all([
+      api(`/close/status?period=${q}`).catch(()=>null),
+      api(`/close/changes?period=${q}&granularity=${granularity}`).catch(()=>null)]);
     if(currentPeriod===p){paintOverview();renderMonthHead();}}
 }
 function paintOverview(){
@@ -848,12 +858,55 @@ function paintOverview(){
     const dataCopy="Add a budget on the Data tab.";
     $("ov-glance").innerHTML+=`<p class="mh-sub">No budget loaded for this close: figures compare with last month. ${canReview()?`<a href="#month=${encodeURIComponent(currentPeriod)}&tab=data">${dataCopy}</a>`:dataCopy}</p>`;
   }
+  paintLock();paintChanges();
   const act=overviewStatus&&overviewStatus.activity;
   const fallback=[activeDatasetObj&&activeDatasetObj.created_at?{at:activeDatasetObj.created_at,text:`${datasetDisplayName(activeDatasetObj.name)||"Dataset"} imported`}:null,
     s.drafted?{at:null,text:`${s.drafted} of ${s.n} commentaries drafted`}:null,s.approved?{at:null,text:`${s.approved} approved`}:null].filter(Boolean);
   const rows=act&&act.length?act:fallback;
   $("ov-activity").innerHTML=rows.length?rows.map(a=>`<p>${a.at?`<time>${esc(fmtDate(a.at))}</time>`:""}<span>${esc(a.text)}${a.actor?` · ${esc(a.actor)}`:""}</span></p>`).join("")
     :`<p><span>Nothing has happened in this close yet.</span></p>`;
+}
+// Lock this close: after the digest is sent, freeze its figures and commentary.
+function paintLock(){
+  const box=$("ov-lock"),st=overviewStatus;
+  if(!box)return;
+  if(!st||st.period!==currentPeriod||(!st.locked&&st.status!=="shared")){box.style.display="none";box.innerHTML="";return;}
+  const changed=st.changes_since_shared||0;
+  const warn=changed?`<p class="warn">${plural(changed,"figure")} changed after this close was sent. Check What changed before relying on the digest.</p>`:"";
+  box.style.display="";
+  box.innerHTML=st.locked
+    ?`<p><b>Locked</b> on ${esc(fmtDate(st.locked_at))}${st.locked_by?` by ${esc(st.locked_by)}`:""}. Imports and syncs skip these months, and commentary can't be changed.</p>
+      <button class="btn write-only" onclick="setCloseLock(false)">Unlock</button>${warn}`
+    :`<p><b>Sent.</b> Lock this close so later imports or syncs can't change its figures or commentary.</p>
+      <button class="btn primary write-only" onclick="setCloseLock(true)">Lock this close</button>${warn}`;
+}
+async function setCloseLock(lock){
+  if(!currentPeriod)return;
+  if(!lock&&!await modalConfirm("Unlock this close?","Imports, syncs and commentary edits will be able to change it again. The unlock is recorded in Activity.",{okLabel:"Unlock",danger:false}))return;
+  try{
+    await api(`/close/${lock?"lock":"unlock"}`,{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({period:currentPeriod,granularity})});
+    toast(lock?"Close locked":"Close unlocked");
+  }catch(e){toast(errMsg(e));}
+  overviewFor=null;await loadCloseMeta();renderOverview();
+}
+// What changed: figures an import, budget, sync or custom KPI changed after they were first loaded.
+const CHANGE_SOURCE={import:"Import",budget_join:"Budget added",sync:"Sheet sync",custom_kpi:"Custom KPI"};
+function changeLine(c){
+  const f=(currentFacts||[]).find(x=>x.metric===c.metric),u=f&&f.unit;
+  const what=c.old_value==null?`added ${fmt(c.new_value,u)}`:c.new_value==null?`removed (was ${fmt(c.old_value,u)})`
+    :`${fmt(c.old_value,u)} → ${fmt(c.new_value,u)}`;
+  return `<p><time>${esc(fmtDate(c.at))}</time><span><b>${esc(c.metric)}</b>${granularity==="month"?"":` · ${esc(fmtPeriod(c.period))}`} · ${c.field==="budget"?"budget ":""}${esc(what)} · ${esc(CHANGE_SOURCE[c.source]||c.source)}${c.actor?` · ${esc(c.actor)}`:""}</span></p>`;
+}
+function paintChanges(){
+  const pane=$("ov-changes-pane"),ch=overviewChanges;
+  if(!pane)return;
+  const list=ch&&ch.changes||[];
+  if(!list.length){pane.style.display="none";return;}
+  pane.style.display="";
+  const shown=list.slice(0,8),more=(ch.total||list.length)-shown.length;
+  $("ov-changes-sub").textContent=`Figures for this close that changed after they were first loaded, newest first.`;
+  $("ov-changes").innerHTML=shown.map(changeLine).join("")+(more>0?`<p><span>and ${plural(more,"more change")}</span></p>`:"");
 }
 function openMetricByName(name){openMetricFromHash(new URLSearchParams({metric:name,period:currentPeriod||""}).toString());}
 
@@ -2867,6 +2920,12 @@ async function importRouteChanged(){
 }
 function dropFile(e){e.preventDefault();$("drop").classList.remove("drag");const f=e.dataTransfer.files[0];if(f)uploadFile(f);}
 // What the import did to the file, line by line, so totals can be tied back to it.
+// Rows a locked close kept out of an import, budget or sync.
+function lockedSkippedText(list){
+  if(!list||!list.length)return "";
+  const rows=list.reduce((n,x)=>n+(x.rows||0),0);
+  return `<b>${plural(rows,"row")} not applied</b> because ${list.length===1?"this close is":"these closes are"} locked: ${list.map(x=>esc(fmtPeriod(x.period,"long"))).join(", ")}. Unlock on the close's Overview to apply them.`;
+}
 function importReportHtml(r){
   if(!r)return {html:"",attention:false};
   const items=[],ex=list=>(list||[]).slice(0,3).map(e=>`${esc(e.metric)} ${esc(fmtPeriod(e.period))} (row ${esc(e.row)})`).join(", ");
@@ -2876,8 +2935,10 @@ function importReportHtml(r){
   const totLabels=[...new Set(tot.map(t=>t.label||"(blank)"))];
   if(tot.length)items.push(`<b>${plural(tot.length,"total row")} left out</b>: ${totLabels.slice(0,4).map(esc).join(", ")}${totLabels.length>4?"…":""}`);
   if(comb.length)items.push(`<b>${plural(comb.length,"figure")} made by adding several rows</b> (e.g. ${comb.slice(0,2).map(c=>`${esc(c.metric)} ${esc(fmtPeriod(c.period))}: ${c.rows} rows`).join("; ")}). A percentage KPI made this way has no value.`);
-  const head=`<br><small>${plural(r.rows_read,"row")} read, ${r.rows_kept} kept.</small>`;
-  return {html:head+(items.length?`<ul>${items.map(i=>`<li>${i}</li>`).join("")}</ul>`:""),attention:!!(dup.count||same.count||tot.length)};
+  const locked=lockedSkippedText(r.locked_skipped);
+  if(locked)items.push(locked);
+  const head=r.rows_read!=null?`<br><small>${plural(r.rows_read,"row")} read, ${r.rows_kept} kept.</small>`:"";
+  return {html:head+(items.length?`<ul>${items.map(i=>`<li>${i}</li>`).join("")}</ul>`:""),attention:!!(dup.count||same.count||tot.length||locked)};
 }
 function resetImport(){
   // Lets the user land back on step 1 and pick a DIFFERENT file. A bare file
@@ -3056,11 +3117,13 @@ async function confirmJoinBudget(){
       body:JSON.stringify({target_dataset_id:Number(targetId),mapping,metric_suffix:$("imp-suffix").value.trim()})});
     $("imp-result").innerHTML="";
     const nm=res.near_misses||[],um=res.unmatched_metrics||[],up_=res.unmatched_periods||[];
-    let html=`<div class="banner ${nm.length||um.length||up_.length?"warn":"ok"}">
+    let html=`<div class="banner ${nm.length||um.length||up_.length||(res.locked_skipped||[]).length?"warn":"ok"}">
       <b>${plural(res.matched,"budget value")} attached.</b></div>`;
     if(nm.length)html+=`<div class="banner info" style="margin-top:10px"><b>Matched by spelling, not an exact name</b> — confirm these are right:
       <ul style="margin:6px 0 0 18px">${nm.map(x=>`<li>"${esc(x.upload_label)}" → <b>${esc(x.matched_metric)}</b></li>`).join("")}</ul></div>`;
     if(um.length)html+=`<div class="banner warn" style="margin-top:10px"><b>No matching metric found</b> for: ${um.map(esc).join(", ")}</div>`;
+    const lockedTxt=lockedSkippedText(res.locked_skipped);
+    if(lockedTxt)html+=`<div class="banner warn" style="margin-top:10px">${lockedTxt}</div>`;
     if(up_.length)html+=`<div class="banner warn" style="margin-top:10px"><b>${plural(up_.length,"period")} had no actuals to attach a budget to</b> — the metric exists, but not for that month yet.</div>`;
     $("imp-join-result").style.display="";$("imp-join-result").innerHTML=html
       +`<div style="margin-top:16px"><button class="btn primary" onclick="finishBudgetJoin(${Number(targetId)})">Done — view dashboard</button>

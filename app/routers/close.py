@@ -12,6 +12,7 @@ from pydantic import BaseModel
 
 from app import audit, scheduling
 from app.api import CurrentUser, require_read, require_write
+from app.board_pack import _period_title
 from app.close_control import lock_status, serialize_writes
 from app.compute.aggregate import GRANULARITIES, months_in, period_key, sort_key
 from app.compute.availability import has_usable_value
@@ -181,7 +182,7 @@ def _activity(conn, ds, period, granularity="month"):
         action = {"lock": "Locked", "unlock": "Unlocked"}.get(entry["action"], entry["action"].replace("_", " "))
         text = f"{action.capitalize()} {report[1]} for {report[0]}" if report else f"{action.capitalize()} dataset"
         if close_entry:
-            text = f"{action} close {period}"
+            text = f"{action} the {_period_title(period)} close"
         result.append(
             {"at": entry["created_at"], "text": text, "actor": entry["actor_email"] or entry["actor_id"] or "System"}
         )
