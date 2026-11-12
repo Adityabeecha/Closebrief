@@ -96,3 +96,12 @@ def test_funnel_import_picker_counts_are_not_dollars(client):  # noqa: F811
     assert counts, sorted(s)[:10]
     assert all(s[m]["unit"] == "count" for m in counts), {m: s[m]["unit"] for m in counts}
     assert all(s[m]["unit"] == "USD" for m in s if m.endswith("_usd"))
+
+
+def test_unrecognised_kpis_say_their_direction_is_a_guess():
+    # F20: the picker asks "which way is good?" instead of silently choosing "up",
+    # which paints every rise in an unrecognised cost green.
+    assert suggest_import_defaults("Warehouse handling")["direction_known"] is False
+    for known in ("Net Revenue", "Operating Expenses", "Cloud Hosting", "Sales Kickoff"):
+        group = "Sales & Marketing" if known == "Sales Kickoff" else None
+        assert suggest_import_defaults(known, group=group)["direction_known"] is True, known
