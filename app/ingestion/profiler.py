@@ -19,11 +19,16 @@ import re
 
 import pandas as pd
 
-from app.ingestion.mapping import MappingError, MappingSpec, normalize
+from app.ingestion.mapping import MappingError, MappingSpec, coarse_period_warning, import_period_warnings, normalize
 
 
 def mapping_warnings(df: pd.DataFrame, mapping: MappingSpec) -> list[str]:
     """Preview the same row combination that the confirmed mapping will store."""
+    warnings = import_period_warnings(df, mapping)
+    # One or two wide columns may not establish a wide-layout guess yet.
+    warnings += [w for c in df.columns if (w := coarse_period_warning(c))]
+    if warnings:
+        return list(dict.fromkeys(warnings))
     try:
         canonical = normalize(df, mapping)
     except MappingError:
@@ -63,6 +68,7 @@ _PERIOD_SHAPED = re.compile(
     r"|\d{4}[\s\-_/.]?(0?[1-9]|1[0-2])"
     r"|(0?[1-9]|1[0-2])[\s\-_/.]\d{4}"
     r"|q[1-4][\s\-_/.']*\d{2,4}"
+    r"|\d{2,4}[\s\-_/.']*q[1-4]"
     r"|fy[\s\-_/.']*\d{2,4}"
     r")\s*$",
     re.I,
@@ -152,7 +158,9 @@ def profile_columns(df: pd.DataFrame) -> dict:
 
         if col in wide_period_cols and layout_guess == "wide":
             role = "measure"  # each wide period column carries values
-        elif dtype == "date" or (_PERIOD_NAME.search(name) and dtype != "numeric"):
+        elif dtype == "date" or (_PERIOD_NAME.search(name) and (
+            dtype != "numeric" or any(coarse_period_warning(v) for v in df[col].dropna().head(30))
+        )):
             role = "period"
         elif dtype in ("numeric", "text") and _ID_NAME.search(name):
             role = "id"

@@ -118,3 +118,57 @@ def test_invalid_percentage_history_is_not_used_in_valid_month(client):  # noqa:
     assert fact["prior_value"] is None
     assert fact["deltas"]["mom_pct"] is None
     assert [r["period"] for r in fact["chart_data"]["trend"]] == ["2025-02"]
+
+
+@pytest.mark.parametrize("label,kind,example", [
+    ("Q1 2025", "quarterly", "Q1 2025"), ("2025 Q2", "quarterly", "Q1 2025"), ("FY24", "yearly", "FY24"),
+])
+@pytest.mark.parametrize("layout", ["long", "wide", "literal"])
+def test_coarse_period_import_refused_without_creating_dataset(client, label, kind, example, layout):  # noqa: F811
+    if layout == "wide":
+        text = f"metric,{label}\nRevenue,100\n"
+        mapping = {"layout": "wide", "wide_metric_col": "metric", "wide_period_cols": [label]}
+    else:
+        text = f"period,metric,value\n{label},Revenue,100\n"
+        mapping = dict(LONG)
+        if layout == "literal":
+            mapping.update(period_col=None, period_literal=label)
+    upload_id = _upload(client, text)
+    response = client.post(f"/ingest/{upload_id}/mapping", json=mapping)
+    assert response.status_code == 422, response.text
+    assert response.json()["detail"] == (
+        f"This file has {kind} figures (e.g. {example}). CloseBrief works month by month: "
+        "export monthly figures instead. Quarters and years are added up for you in the Q and Y views."
+    )
+    assert client.get("/datasets").json()["datasets"] == []
+
+
+@pytest.mark.parametrize("label,period", [
+    ("Jan-25", "2025-01"), ("2025-03", "2025-03"), ("03/2025", "2025-03"), ("2025-03-15", "2025-03"),
+])
+@pytest.mark.parametrize("layout", ["long", "wide", "literal"])
+def test_month_labels_and_full_dates_still_import(client, label, period, layout):  # noqa: F811
+    if layout == "wide":
+        text = f"metric,{label}\nRevenue,100\n"
+        mapping = {"layout": "wide", "wide_metric_col": "metric", "wide_period_cols": [label]}
+    else:
+        text = f"period,metric,value\n{label},Revenue,100\n"
+        mapping = dict(LONG)
+        if layout == "literal":
+            mapping.update(period_col=None, period_literal=label)
+    result = _import(client, text, mapping)
+    assert result["periods"] == [period]
+
+
+@pytest.mark.parametrize("text,kind", [
+    ("period,metric,value\nQ1 2025,Revenue,100\n2025 Q2,Revenue,110\n", "quarterly"),
+    ("period,metric,value\nFY24,Revenue,100\nFY25,Revenue,110\n", "yearly"),
+    ("year,metric,value\n2024,Revenue,100\n2025,Revenue,110\n", "yearly"),
+    ("metric,Q1 2025,2025 Q2,Q3 2025\nRevenue,100,110,120\n", "quarterly"),
+    ("metric,FY24,FY25,FY26\nRevenue,100,110,120\n", "yearly"),
+])
+def test_schema_warns_about_coarse_periods(client, text, kind):  # noqa: F811
+    upload_id = _upload(client, text)
+    response = client.get(f"/ingest/{upload_id}/schema")
+    assert response.status_code == 200, response.text
+    assert any(f"{kind} figures" in w and "export monthly figures" in w for w in response.json()["mapping_warnings"])
