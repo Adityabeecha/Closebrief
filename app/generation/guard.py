@@ -106,10 +106,14 @@ def extract_numbers(text: str) -> list[tuple[float, bool]]:
     return numbers
 
 
-def _is_date_or_duration(match: re.Match, text: str, raw: str, suffix: str, percent: str) -> bool:
+def _is_date_or_duration(match: re.Match, text: str, raw: str, suffix: str, percent: str,
+                         unit: str | None = None) -> bool:
     """True when the matched token is a bare integer used as a duration or a
-    calendar day, rather than a KPI figure."""
+    calendar day, rather than a KPI figure. For a KPI measured in days (DSO),
+    "47 days" IS the figure and must be checked."""
     if percent or suffix or _has_currency(raw) or "." in raw:
+        return False
+    if (unit or "").lower() == "days" and re.match(r"\s*days?\b", text[match.end():match.end() + 8], re.I):
         return False
     digits = raw.replace(",", "").lstrip("+-\u2212")
     if not digits.isdigit():
@@ -141,6 +145,9 @@ def _allowed_values(fact: ComputedFact) -> tuple[set[float], set[float]]:
             percents.add(p)
     # A percent-unit metric's own value IS a percent (e.g. Gross Margin 60% or a
     # derived %-KPI), so allow it to verify when cited with a "%" sign.
+    if (fact.unit or "").lower() == "days":
+        # A days KPI's changes are quoted in days ("up 3 days").
+        magnitudes.update(p for p in percent_kpi_points(fact).values() if p is not None)
     if (fact.unit or "").lower() in ("%", "percent"):
         percents.add(fact.value)
         if fact.prior_value is not None:
@@ -331,7 +338,7 @@ def check_faithfulness(
 
         if not percent and not suffix and not _has_currency(raw) and "." not in raw and value in excluded:
             continue
-        if _is_date_or_duration(match, narrative, raw, suffix, percent):
+        if _is_date_or_duration(match, narrative, raw, suffix, percent, fact.unit):
             continue
 
         allowed = percents if is_percent else magnitudes
@@ -379,7 +386,7 @@ def faithfulness_messages(narrative: str, fact: ComputedFact,
         raw, suffix, percent_token = match.groups()
         if not percent_token and not suffix and not _has_currency(raw) and '.' not in raw and value in excluded:
             continue
-        if _is_date_or_duration(match, narrative, raw, suffix, percent_token):
+        if _is_date_or_duration(match, narrative, raw, suffix, percent_token, fact.unit):
             continue
         token = match.group().strip()
         if _matches_any(value, percents if percent else magnitudes, .02):
