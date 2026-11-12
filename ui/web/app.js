@@ -466,11 +466,15 @@ function priorPeriodLabel(){return granularity==="year"?"vs last year":granulari
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const plural=(n,one,many)=>`${n} ${n===1?one:(many||one+"s")}`;
 const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+// The active dataset's fiscal year start (1 = January). Quarters and years are
+// named by the fiscal year they END in: with an April start, Apr-Jun 2025 is Q1 FY2026.
+function fiscalStart(){return (typeof activeDatasetObj!=="undefined"&&activeDatasetObj&&activeDatasetObj.fiscal_year_start)||1;}
+function fyLabel(y){return fiscalStart()===1?y:`FY${y}`;}
 function fmtPeriodTitle(p){
   if(!p)return"Dashboard";
   if(/^\d{4}-\d{2}$/.test(p))return `${MONTHS[+p.slice(5,7)-1]} ${p.slice(0,4)} close`;
-  if(/^\d{4}-Q\d$/.test(p))return `Q${p.slice(6)} ${p.slice(0,4)} overview`;
-  return `${p} overview`;
+  if(/^\d{4}-Q\d$/.test(p))return `Q${p.slice(6)} ${fyLabel(p.slice(0,4))} overview`;
+  return `${/^\d{4}$/.test(p)?fyLabel(p):p} overview`;
 }
 // People read periods as "Jun 2026"; ISO stays in values, URLs and API calls.
 // style: "short" (Jun 2026) | "long" (June 2026) | "axis" (Jun 26).
@@ -480,7 +484,8 @@ function fmtPeriod(p,style="short"){
   if(m){const name=MONTHS[+m[2]-1];
     return style==="long"?`${name} ${m[1]}`:style==="axis"?`${name.slice(0,3)} ${m[1].slice(2)}`:`${name.slice(0,3)} ${m[1]}`;}
   m=/^(\d{4})-Q(\d)$/.exec(p);
-  if(m)return style==="axis"?`Q${m[2]} ${m[1].slice(2)}`:`Q${m[2]} ${m[1]}`;
+  if(m)return style==="axis"?`Q${m[2]} ${fiscalStart()===1?m[1].slice(2):"FY"+m[1].slice(2)}`:`Q${m[2]} ${fyLabel(m[1])}`;
+  if(/^\d{4}$/.test(p))return fyLabel(p);
   return String(p);
 }
 // One date format everywhere: "01 Nov 2026". A bare date ("2026-11-01") is a
@@ -857,6 +862,29 @@ function dataHealth(facts){
     noData:all.filter(f=>!f.has_data).map(f=>f.metric),
     noBudget:withData.filter(f=>!f.aggregated&&(!f.deltas||f.deltas.budget_var_pct==null)).map(f=>f.metric)};
 }
+// The saved receipt for every import, budget join and sync into this dataset:
+// what was done to the file, and per-KPI totals to tie back to its columns.
+const RECEIPT_KIND={import:"Import",budget_join:"Budget added",connector_sync:"Linked source synced"};
+const plainNum=v=>v==null?"—":(+v).toLocaleString(undefined,{maximumFractionDigits:2});
+function receiptHtml(r,open){
+  const rep=importReportHtml(r.report||null).html.replace(/^<br>/,"");
+  const totals=(r.kpi_totals||[]).map(t=>`<tr><td>${esc(t.metric)}</td><td class="n">${esc(t.periods)}</td><td class="n">${plainNum(t.value_total)}</td><td class="n">${plainNum(t.budget_total)}</td><td class="n">${esc(t.rows)}</td></tr>`).join("");
+  return `<div class="rc-meta">${esc(RECEIPT_KIND[r.kind]||r.kind)} · ${esc(r.filename||"")} · ${esc(fmtWhen(r.created_at))}</div>${rep}
+    ${totals?`<table><thead><tr><th>KPI</th><th class="n">Months</th><th class="n">Actual total</th><th class="n">Budget total</th><th class="n">Source rows</th></tr></thead><tbody>${totals}</tbody></table>`:""}`;
+}
+async function loadReceipts(){
+  const box=$("receipt-pane");if(!box)return;
+  if(currentPlace.place||activeDatasetId==null){box.style.display="none";return;}
+  const ds=activeDatasetId;let rows=[];
+  try{rows=await api(`/datasets/${ds}/receipts`);}catch{box.style.display="none";return;}
+  if(ds!==activeDatasetId)return;
+  if(!rows.length){box.style.display="none";return;}
+  const [latest,...older]=rows;
+  box.style.display="";
+  box.innerHTML=`<h2>Import receipt</h2><p class="rc-meta">What happened to the file, and totals per KPI to check against its columns. Raw figures, unrounded.</p>
+    ${receiptHtml(latest)}
+    ${older.length?`<details><summary>Earlier receipts (${older.length})</summary>${older.map(r=>`<div style="margin-top:12px">${receiptHtml(r)}</div>`).join("")}</details>`:""}`;
+}
 function renderDataHealth(){
   if(typeof dropStaleImport==="function")dropStaleImport();
   const el=$("data-health");if(!el)return;
@@ -872,6 +900,7 @@ function renderDataHealth(){
       detail:h.noBudget.length?names(h.noBudget)+" · commentary can't say how they did against plan":"",
       act:h.noBudget.length?`<button class="write-only btn" onclick="$('imp-mode').value='join';onImportModeChange();$('drop').scrollIntoView({block:'center'})">Add a budget file</button>`:""},
   ];
+  loadReceipts();
   el.style.display="";
   el.innerHTML=`<h2>${esc(P)} data</h2><ol class="checklist">${rows.map(r=>`<li class="cl ${r.done?"done":"todo"}"><span class="box">${r.done?BOXTICK:""}</span>
     <div><b>${r.title}</b>${r.detail?`<small>${r.detail}</small>`:""}</div>${r.done?`<span class="st done">OK</span>`:r.act}</li>`).join("")}</ol>`;
@@ -1716,6 +1745,7 @@ async function loadDatasets(){
         <div class="ws-kmenu" id="kmenu-${ds.id}">
           <button class="write-only" onclick="event.stopPropagation();renameDataset(${ds.id})">Rename</button>
           <button class="write-only" onclick="event.stopPropagation();setDatasetCurrency(${ds.id})">Currency (${esc(ds.currency||"USD")})</button>
+          <button class="write-only" onclick="event.stopPropagation();setFiscalYear(${ds.id})">Fiscal year starts (${esc(MONTHS[(ds.fiscal_year_start||1)-1].slice(0,3))})</button>
           <button class="write-only danger" onclick="event.stopPropagation();deleteDataset(${ds.id})">Delete</button>
         </div>
       </span>
@@ -1738,6 +1768,19 @@ async function renameDataset(id){
 }
 function currencyOptions(selected){
   return CURRENCIES.map(([c,m,name])=>`<option value="${c}" ${c===selected?"selected":""}>${esc(name)} (${esc(m.trim())})</option>`).join("");
+}
+async function setFiscalYear(id){
+  const ds=(datasetsCache||[]).find(d=>d.id===id)||{},cur=ds.fiscal_year_start||1;
+  const start=await _openModalRaw({title:"Fiscal year",okLabel:"Save",
+    body:`<label class="lbl" for="ds-fiscal">${esc(dsName(id))}'s fiscal year starts in</label>
+      <select class="modal-field" id="ds-fiscal">${MONTHS.map((m,i)=>`<option value="${i+1}"${i+1===cur?" selected":""}>${m}</option>`).join("")}</select>
+      <p style="margin-top:10px;font-size:13px;color:var(--text-3)">Quarters and years follow it, named by the year they end in: with an April start, April–June 2025 is Q1 FY2026. Monthly figures don't change.</p>`,
+    getValue:()=>+$("ds-fiscal").value});
+  if(start==null||start===cur)return;
+  try{await api(`/datasets/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({fiscal_year_start:start})});
+    toast(start===1?"Using the calendar year":`Fiscal year now starts in ${MONTHS[start-1]}`);
+    await loadDatasets();if(id===activeDatasetId){overviewFor=null;await loadPeriods();}}
+  catch(e){toast(errMsg(e));}
 }
 async function setDatasetCurrency(id){
   const ds=(datasetsCache||[]).find(d=>d.id===id)||{},cur=ds.currency||"USD";
