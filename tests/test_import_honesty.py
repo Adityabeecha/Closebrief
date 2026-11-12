@@ -50,10 +50,12 @@ def test_wide_duplicates_are_source_rows_not_melted_cells(client):  # noqa: F811
     result = _import(client, "metric,Jan-25,Feb-25\nRevenue,100,110\nRevenue,100,110\nRevenue,100,120\n",
                      {"layout": "wide", "wide_metric_col": "metric", "wide_period_cols": ["Jan-25", "Feb-25"]})
     report = result["import_report"]
-    assert (report["rows_read"], report["rows_kept"], report["duplicates_dropped"]["count"]) == (3, 2, 1)
+    # No ID column: identical rows may be real repeats, so they're kept (added) and reported.
+    assert (report["rows_read"], report["rows_kept"], report["duplicates_dropped"]["count"]) == (3, 3, 0)
+    assert report["identical_kept"]["count"] == 1
     assert report["combined"] == [
-        {"metric": "Revenue", "period": "2025-01", "rows": 2},
-        {"metric": "Revenue", "period": "2025-02", "rows": 2},
+        {"metric": "Revenue", "period": "2025-01", "rows": 3},
+        {"metric": "Revenue", "period": "2025-02", "rows": 3},
     ]
 
 
@@ -90,8 +92,9 @@ def test_schema_warns_how_many_rows_will_be_added(client):  # noqa: F811
 def test_duplicate_report_examples_and_combined_list_are_capped(client):  # noqa: F811
     rows = "".join(f"2025-01,Metric {i},1\n2025-01,Metric {i},1\n2025-01,Metric {i},2\n" for i in range(55))
     report = _import(client, "period,metric,value\n" + rows)["import_report"]
-    assert report["duplicates_dropped"]["count"] == 55
-    assert len(report["duplicates_dropped"]["examples"]) == 20
+    assert report["duplicates_dropped"]["count"] == 0
+    assert report["identical_kept"]["count"] == 55
+    assert len(report["identical_kept"]["examples"]) == 20
     assert len(report["combined"]) == 50
 
 
@@ -103,8 +106,22 @@ def test_numeric_coercion_does_not_make_different_source_rows_duplicates():
 
 def test_duplicate_row_number_survives_empty_source_rows(client):  # noqa: F811
     result = _import(client, "period,metric,value\n2025-01,Revenue,100\n,,\n2025-01,Revenue,100\n")
-    assert result["import_report"]["duplicates_dropped"]["examples"] == [
+    assert result["import_report"]["identical_kept"]["examples"] == [
         {"row": 3, "metric": "Revenue", "period": "2025-01"}]
+
+
+def test_identical_rows_without_an_id_are_both_counted(client):  # noqa: F811
+    # Two $80 web sales in the same month look identical: dropping one would
+    # understate revenue. Only rows sharing a row ID are certainly duplicates.
+    result = _import(client, "period,metric,value,channel\n2025-01,Sales,80,web\n2025-01,Sales,80,web\n",
+                     {**LONG, "dimension_cols": ["channel"]})
+    report = result["import_report"]
+    assert report["duplicates_dropped"]["count"] == 0 and report["identical_kept"]["count"] == 1
+    conn = get_connection()
+    try:
+        assert tuple(conn.execute("SELECT value, source_rows FROM metric_values").fetchone()) == (160, 2)
+    finally:
+        conn.close()
 
 
 def test_invalid_percentage_history_is_not_used_in_valid_month(client):  # noqa: F811
