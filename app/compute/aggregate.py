@@ -22,7 +22,7 @@ _BALANCE_RE = ("cash", "balance", "runway", "headcount", "arr", "active customer
 
 def infer_aggregation_type(name: str, unit: str) -> str:
     u = (unit or "").strip().lower()
-    if u in ("%", "percent", "ratio", "x"):
+    if u in ("%", "percent", "ratio", "x", "days"):
         return "ratio"
     n = (name or "").lower()
     if any(k in n for k in _BALANCE_RE):

@@ -1,5 +1,7 @@
 """Period aggregation rules (v3.0): flow=SUM, balance=LAST, ratio=unavailable."""
 
+import pytest
+
 from app.compute.aggregate import (
     aggregate_series,
     infer_aggregation_type,
@@ -76,3 +78,17 @@ def test_prior_and_year_ago_keys():
     assert prior_key("2025", "year") == "2024"
     assert year_ago_key("2025-Q3", "quarter") == "2024-Q3"
     assert year_ago_key("2025-03", "month") == "2024-03"
+
+
+@pytest.mark.parametrize("name,unit,expected", [
+    ("DSO", "days", "ratio"), ("DPO", "Days", "ratio"), ("Cash Runway", "days", "ratio"),
+    ("Orders", "number", "flow"), ("Cash Balance", "number", "balance"), ("Headcount", "number", "balance"),
+])
+def test_days_and_number_aggregation(name, unit, expected):
+    assert infer_aggregation_type(name, unit) == expected
+
+
+def test_days_are_unavailable_when_rolled_up():
+    out = aggregate_series(MONTHS, "quarter", infer_aggregation_type("DSO", "days"))
+    assert out["2025-Q1"]["unavailable"] is True
+    assert out["2025-Q1"]["value"] is None
