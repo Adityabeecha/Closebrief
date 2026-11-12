@@ -41,7 +41,8 @@ def test_duplicates_dropped_but_distinct_dimensions_and_ids_combined(client):  #
     conn = get_connection()
     try:
         row = conn.execute("SELECT value, budget, source_rows FROM metric_values").fetchone()
-        assert tuple(row) == (300, 270, 3)
+        # By name: a Postgres row iterates its column names, not its values.
+        assert (row["value"], row["budget"], row["source_rows"]) == (300, 270, 3)
     finally:
         conn.close()
 
@@ -119,7 +120,8 @@ def test_identical_rows_without_an_id_are_both_counted(client):  # noqa: F811
     assert report["duplicates_dropped"]["count"] == 0 and report["identical_kept"]["count"] == 1
     conn = get_connection()
     try:
-        assert tuple(conn.execute("SELECT value, source_rows FROM metric_values").fetchone()) == (160, 2)
+        row = conn.execute("SELECT value, source_rows FROM metric_values").fetchone()
+        assert (row["value"], row["source_rows"]) == (160, 2)
     finally:
         conn.close()
 
