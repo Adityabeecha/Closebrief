@@ -243,7 +243,7 @@ def build_board_pack_html(facts: list[dict], period: str, meta: dict | None = No
 
     tiles = (
         f'<div class="tile"><div class="k">KPIs reported</div><div class="v">{len(with_data)}</div>'
-        f'<div class="n">for {e(period)}</div></div>'
+        f'<div class="n">for {e(_period_title(period))}</div></div>'
         f'<div class="tile"><div class="k">Anomalies</div><div class="v">{len(anomalies)}</div>'
         f'<div class="n">{"flagged this period" if anomalies else "none flagged"}</div></div>'
         f'<div class="tile"><div class="k">Largest variance</div><div class="v" style="font-size:15px">{top_txt}</div>'
@@ -283,18 +283,18 @@ def build_board_pack_html(facts: list[dict], period: str, meta: dict | None = No
     return (
         "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">"
         f"<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
-        f"<title>Board Pack — {ds_name} — {e(period)}</title>"
+        f"<title>Board Pack — {ds_name} — {e(_period_title(period))}</title>"
         f"<style>{_assets_css()}{_CSS}</style></head><body><div class=\"pack\">"
         f'<div class="masthead"><div>'
         f'<div class="brand">{logo}<div>close<span>brief</span></div></div>'
         f'<h1>{e(_period_title(period))}<br>Board Pack</h1><p>Every figure computed in code and checked</p>'
-        f'<div class="sub">{ds_name} · {e(period)}</div></div>'
+        f'<div class="sub">{ds_name}</div></div>'
         f'<div class="meta">{ws_line}<div>Generated {generated}</div>'
         f'<div>Deterministic figures · grounded narratives</div></div></div>'
         f'<div class="summary">{tiles}</div>'
         f'<div class="section-label">KPI detail — ordered by variance vs plan</div>'
         f'{body}'
         f'<div class="foot"><span>Closebrief — narrative FP&amp;A</span>'
-        f'<span>{e(period)}</span></div>'
+        f'<span>{e(_period_title(period))}</span></div>'
         f"</div></body></html>"
     )

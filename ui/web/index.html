@@ -406,6 +406,18 @@
   .receipt-pane td.n,.receipt-pane th.n{text-align:right;font-family:var(--font-mono);font-variant-numeric:tabular-nums}
   .receipt-pane details{margin-top:12px;font-size:13px}
   .receipt-pane summary{cursor:pointer;color:var(--text-2)}
+  .head-drafts #gen-all{display:none!important}
+  .nav-empty{padding:2px 8px 10px;font-size:13px;color:var(--text-3);line-height:1.45}
+  #v-review.rq-empty{display:none!important}
+  .kpim-link{font-size:13px;padding:6px 2px}
+  .cl .btn,.cl a.btn{text-decoration:none}
+  .ctx-list .screen-state{border:0;box-shadow:none;background:none;padding:6px 4px}
+  .receipt-pane th.n{font-family:inherit}
+  .receipt-scroll{overflow-x:auto}
+  .q-col{min-width:0}
+  .q-col .search,.q-col .search input{max-width:100%;box-sizing:border-box}
+  .q-col .catbar{max-width:100%}
+  .fc-empty{color:var(--text-3);font-size:14px;display:flex;align-items:center;justify-content:center;height:100%}
   .kpi-grid select.ask{border-color:var(--review);box-shadow:0 0 0 1px var(--review)}
   .dir-note{font-size:12px;color:var(--text-3);white-space:nowrap}
   .kpi-grid select,.kpi-grid input:not([type=checkbox]){padding:7px 9px;border:1px solid var(--line-strong);border-radius:var(--r-sm);background:var(--surface);color:var(--text);width:100%;font-size:13px}
@@ -496,7 +508,7 @@
   .admin-table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--b08);border-radius:16px;overflow:hidden}
   .admin-table th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);padding:11px 14px;background:var(--bg2);border-bottom:1px solid var(--b08);font-weight:700}
   .admin-table td{padding:11px 14px;border-bottom:1px solid var(--bg3);font-size:13px}
-  .act-table td:first-child{white-space:nowrap;color:var(--text-3);font-family:var(--font-mono);font-size:12px}
+  .act-table td.when{white-space:nowrap;color:var(--text-3);font-family:var(--font-mono);font-size:12px}
   .act-table td small{display:block;color:var(--text-3);font-size:12px;margin-top:2px}
   .sync-panel{margin-top:28px}
   .sync-form{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto;gap:10px;align-items:end;margin-bottom:14px}
@@ -777,7 +789,7 @@
   .q-col .search input,.q-col .search input:focus{width:100%}
   .q-col .tool-right{margin-left:0}
   .q-col .catbar{flex-wrap:wrap}
-  .statrow{display:flex;flex-wrap:wrap;gap:6px;margin:0 2px}
+  .q-col .statrow{display:flex;flex-wrap:wrap;gap:6px;margin:0 2px}
   .qs{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--text-2);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-pill);padding:4px 10px}
   .qs:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--line-strong)}
   .qs.exc:before{background:var(--exception)}.qs.rev:before{background:var(--review)}.qs.ok:before{background:var(--verified)}
@@ -1283,8 +1295,8 @@
         <p id="bp-note">The board pack is built from the same computed figures and approved commentary as the KPIs tab.</p>
         <div class="bp-actions">
           <button class="btn" onclick="exportPPTX()">PowerPoint</button>
-          <button class="btn" onclick="exportPDF()">PDF report</button>
-          <button class="btn primary" onclick="printBoardPack()">Print or save as PDF</button>
+          <button class="btn" onclick="exportPDF()">KPI report (PDF)</button>
+          <button class="btn primary" onclick="printBoardPack()">Print board pack</button>
         </div>
       </div>
       <div id="bp-state"></div>
@@ -1335,7 +1347,7 @@
         </div>
         <div class="catbar" id="cat-pills"></div>
         <div class="tool-right">
-          <button class="tbtn write-only" onclick="openKpiManager()" title="Choose which KPIs appear on the dashboard">Manage KPIs</button>
+          <button class="linkbtn write-only kpim-link" onclick="openKpiManager()" title="Choose which KPIs appear and how they roll up">Manage KPIs</button>
         </div>
       </div>
           <div class="filter-pills" id="filter-pills"></div>
@@ -1445,7 +1457,7 @@
             </select>
             <button class="btn primary sm" onclick="runForecast()">Project</button>
           </div>
-          <div class="chart-box" id="box-c-forecast" style="height:220px"><canvas id="c-forecast"></canvas></div>
+          <div class="chart-box" id="box-c-forecast" style="height:220px"><div class="fc-empty">Pick a KPI and a horizon, then press Project.</div></div>
           <div id="fc-meta" class="statrow" style="margin:14px 0 0"></div>
           <div id="fc-narr" style="margin-top:12px"></div>
           <button class="btn sm write-only" id="fc-narr-btn" style="margin-top:10px;display:none" onclick="forecastNarrative()">Explain this forecast</button>
@@ -1724,7 +1736,7 @@
 
     <!-- ---------- ADMIN ---------- -->
     <section id="v-activity" class="wrap" style="display:none">
-      <div class="head"><div><h1>Activity</h1><div class="sub">Every approval, edit, import, sync and send in this workspace, newest first. Each entry is chained to the one before it, so a change to a past entry can be detected.</div></div>
+      <div class="head"><div><div class="sub">Every approval, edit, import, sync and send in this workspace, newest first. Each entry is chained to the one before it, so a change to a past entry can be detected.</div></div>
         <div class="head-actions"><button class="btn admin-only" id="act-verify" onclick="verifyActivity()">Check the log</button></div>
       </div>
       <div id="act-check" role="status"></div>
@@ -1754,7 +1766,7 @@
 </div>
 <!-- KPI manager: edit board selections without re-importing -->
 <div class="cmdk-back" id="kpi-back" onclick="if(event.target===this)$('kpi-back').classList.remove('open')">
-  <div class="cmdk" role="dialog" aria-modal="true" aria-label="Manage KPIs" style="width:min(720px,94vw)">
+  <div class="cmdk" role="dialog" aria-modal="true" aria-label="Manage KPIs" style="width:min(1080px,96vw)">
     <div class="cmdk-in" style="justify-content:space-between"><b style="font-size:15px">Manage KPIs</b>
       <button class="ico" onclick="$('kpi-back').classList.remove('open')" aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
     <div style="padding:14px 16px;max-height:56vh;overflow-y:auto" id="kpim-rows"></div>
