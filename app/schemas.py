@@ -8,6 +8,7 @@ Trend = Literal["up", "down", "flat"]
 
 
 class IngestSummary(BaseModel):
+    import_report: dict = Field(default_factory=dict)
     rows_ingested: int
     metrics: list[str]
     periods: list[str]

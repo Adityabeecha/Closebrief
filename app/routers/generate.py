@@ -10,6 +10,7 @@ from app.api import require_member, require_read, require_write  # noqa: E402
 from app.auth import CurrentUser
 from app.board_pack import build_board_pack_html
 from app.cache import make_insight_key
+from app.close_control import ensure_commentary_unlocked
 from app.compute.correlations import (
     correlations_for_metric,
     detect_consecutive_trends,
@@ -86,9 +87,11 @@ def funnel_narrative(payload: dict, user: CurrentUser = Depends(require_member))
 
 @router.post("/generate-insight", response_model=InsightOutput)
 def generate_insight_endpoint(req: GenerateInsightRequest, user: CurrentUser = Depends(require_member)) -> InsightOutput:
-    _enforce_budget(user)
     conn = get_connection()
     try:
+        # Fail fast without the write lock; _persist_report re-checks under it.
+        ensure_commentary_unlocked(conn, active_dataset_id(conn), req.period, serialize=False)
+        _enforce_budget(user)
         fact = _load_computed_fact(conn, req.metric, req.period)
 
         # Enriched deterministic analysis (v2.1): correlated metrics + trend streak.
@@ -204,6 +207,7 @@ def _persist_report(insight: InsightOutput, user: CurrentUser) -> int:
         metric_id = _active_metric_id(conn, insight.metric)
         if metric_id is None:
             return None
+        ensure_commentary_unlocked(conn, active_dataset_id(conn), insight.period)
         cur = conn.execute(
             """
             INSERT INTO generated_reports (metric_id, period, narrative, sources,

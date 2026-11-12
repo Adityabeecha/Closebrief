@@ -169,7 +169,7 @@ def delete_dataset(conn, dataset_id: int) -> bool:
         "DELETE FROM scheduler_runs WHERE job_id IN (SELECT id FROM scheduled_jobs WHERE dataset_id = ?)",
         (dataset_id,),
     )
-    for table in ("scheduled_jobs", "digest_runs", "derived_metrics", "import_receipts"):
+    for table in ("scheduled_jobs", "digest_runs", "derived_metrics", "import_receipts", "value_changes", "close_locks"):
         conn.execute(f"DELETE FROM {table} WHERE dataset_id = ?", (dataset_id,))
     conn.execute("DELETE FROM kpi_configs WHERE dataset_id = ?", (dataset_id,))
     conn.execute("DELETE FROM metrics WHERE dataset_id = ?", (dataset_id,))

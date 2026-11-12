@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from app import audit, connectors, review, scheduling
 from app.api import require_admin, require_read, require_write  # noqa: E402
 from app.auth import CurrentUser
+from app.close_control import ensure_report_unlocked
 from app.config import resolved_vector_backend, settings
 from app.datasets import (
     _scope_pred,
@@ -210,12 +211,12 @@ def feedback_endpoint(fb: FeedbackIn, user: CurrentUser = Depends(require_write)
         ).fetchone()
         if not exists:
             raise HTTPException(status_code=404, detail=f"Report {fb.report_id} not found")
+        ensure_report_unlocked(conn, fb.report_id)
         cur = conn.execute(
             """INSERT INTO feedback (report_id, action, edited_text, reason, user_id, user_email)
                VALUES (?, ?, ?, ?, ?, ?)""",
             (fb.report_id, fb.action, fb.edited_text, fb.reason, user.id, user.email),
         )
-        conn.commit()
         # Version history (v5.0): an edit snapshots a new version. The first edit
         # also captures the original (v1) so the diff chain starts from generation.
         if fb.action == "edited" and fb.edited_text:
@@ -223,8 +224,9 @@ def feedback_endpoint(fb: FeedbackIn, user: CurrentUser = Depends(require_write)
                 "SELECT COUNT(*) AS n FROM report_versions WHERE report_id = ?", (fb.report_id,)
             ).fetchone()["n"]
             if have == 0 and exists["narrative"]:
-                review.add_version(conn, fb.report_id, exists["narrative"], None, "original")
-            review.add_version(conn, fb.report_id, fb.edited_text, user.id, user.email)
+                review.add_version(conn, fb.report_id, exists["narrative"], None, "original", commit=False)
+            review.add_version(conn, fb.report_id, fb.edited_text, user.id, user.email, commit=False)
+        conn.commit()
         audit.record(conn, fb.action, "report", fb.report_id, actor_id=user.id,
                      actor_email=user.email, summary={"edited": bool(fb.edited_text)})
         return {"feedback_id": int(cur.lastrowid)}
@@ -269,7 +271,8 @@ def sync_connector_endpoint(connector_id: int, user: CurrentUser = Depends(requi
     conn = get_connection()
     try:
         try:
-            result = connectors.sync_connector(conn, connector_id, current_workspace())
+            result = connectors.sync_connector(conn, connector_id, current_workspace(),
+                                               actor_id=user.id, actor_email=user.email)
         except ValueError as e:
             raise HTTPException(status_code=404, detail=str(e)) from e
         audit.record(conn, "sync", "connector", connector_id, actor_id=user.id,

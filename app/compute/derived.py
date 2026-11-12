@@ -53,18 +53,18 @@ def create_derived_metric(conn: sqlite3.Connection, dataset_id: int, name: str, 
     return did
 
 
-def refresh(conn: sqlite3.Connection, dataset_id: int) -> None:
+def refresh(conn: sqlite3.Connection, dataset_id: int, *, actor_id=None, actor_email=None, report=None) -> None:
     """Recompute base facts, then (re)materialize derived metrics from them and
     recompute again so derived KPIs stay current after any base-data change
     (import, connector sync, manual compute). Safe to call when there are no
     derived metrics (materialize returns 0 → single compute)."""
     from app.compute.kpis import compute_and_store
     compute_and_store(conn, dataset_id)
-    if materialize(conn, dataset_id) > 0:
+    if materialize(conn, dataset_id, actor_id=actor_id, actor_email=actor_email, report=report) > 0:
         compute_and_store(conn, dataset_id)
 
 
-def materialize(conn: sqlite3.Connection, dataset_id: int) -> int:
+def materialize(conn: sqlite3.Connection, dataset_id: int, *, actor_id=None, actor_email=None, report=None) -> int:
     """(Re)compute every derived metric's value per period from the base metrics'
     computed_facts, writing metric_values. Returns rows written. Idempotent."""
     derived = conn.execute(
@@ -73,6 +73,11 @@ def materialize(conn: sqlite3.Connection, dataset_id: int) -> int:
     if not derived:
         return 0
 
+    from app.close_control import locked_months, record_changes, skipped_report, snapshot
+
+    before = snapshot(conn, dataset_id)
+    locked = locked_months(conn, dataset_id)
+    skipped = {}
     # base metric -> {period: value} for this dataset.
     facts = conn.execute(
         """SELECT m.name AS metric, cf.period, cf.value
@@ -100,9 +105,14 @@ def materialize(conn: sqlite3.Connection, dataset_id: int) -> int:
     written = 0
     for d in ordered:
         metric_id = get_or_create_metric(conn, dataset_id, d["name"])
-        conn.execute("DELETE FROM metric_values WHERE metric_id = ?", (metric_id,))
-        conn.execute("DELETE FROM computed_facts WHERE metric_id = ?", (metric_id,))
-        by_metric[d["name"]] = {}
+        old = {p: row for (mid, p), row in before.items() if mid == metric_id}
+        for period in set(old) | all_periods:
+            if period in locked:
+                skipped[period] = skipped.get(period, 0) + 1
+                continue
+            conn.execute("DELETE FROM metric_values WHERE metric_id=? AND period=?", (metric_id, period))
+            conn.execute("DELETE FROM computed_facts WHERE metric_id=? AND period=?", (metric_id, period))
+        by_metric[d["name"]] = {p: r["value"] for p, r in old.items() if p in locked}
         refs = referenced_metrics(d["formula"])
         if not refs:
             continue
@@ -116,6 +126,8 @@ def materialize(conn: sqlite3.Connection, dataset_id: int) -> int:
         if len(known) != len(refs):
             continue
         for period in sorted(all_periods):
+            if period in locked:
+                continue
             # Missing base observations may represent closed accounts; undefined
             # derived results must instead propagate as unknown.
             if any(r in names and period not in by_metric[r] for r in refs):
@@ -134,6 +146,13 @@ def materialize(conn: sqlite3.Connection, dataset_id: int) -> int:
                 (metric_id, period, round(float(v), 4)),
             )
             written += 1
-    mark_data_changed(conn, dataset_id)
+    record_changes(conn, dataset_id, before, "custom_kpi", actor_id=actor_id, actor_email=actor_email)
+    if report is not None:
+        counts = {r["period"]: r["rows"] for r in report.get("locked_skipped", [])}
+        for p, n in skipped.items():
+            counts[p] = counts.get(p, 0) + n
+        report["locked_skipped"] = skipped_report(counts)
+    if written:
+        mark_data_changed(conn, dataset_id)
     conn.commit()
     return written
