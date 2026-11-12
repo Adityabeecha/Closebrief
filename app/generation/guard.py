@@ -17,6 +17,7 @@ import math
 import re
 
 from app.currency import symbol
+from app.generation.prompts import percent_kpi_points
 from app.schemas import ComputedFact, ContextSnippet
 
 _CURRENCY_SYMBOLS = "$\u20ac\u00a3\u20b9\u00a5"
@@ -144,6 +145,8 @@ def _allowed_values(fact: ComputedFact) -> tuple[set[float], set[float]]:
         percents.add(fact.value)
         if fact.prior_value is not None:
             percents.add(fact.prior_value)
+        # Its changes are quoted in points ("down 2.0 points"), which read as plain numbers.
+        magnitudes.update(p for p in percent_kpi_points(fact).values() if p is not None)
 
     return magnitudes, percents
 

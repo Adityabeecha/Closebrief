@@ -235,7 +235,7 @@ def test_queue_groups_kpis_in_review_order():
 def test_queue_row_states_the_status_in_words():
     run_js("function queueRow(", "function markQueueSelection(", """
       const queueGroup=f=>!f.has_data?'nodata':f.is_anomaly?'exception':f.review_status==='approved'?'approved':'review';
-      const hl=t=>t,esc=String,fmt=v=>'$'+v,pct=v=>(v>0?'+':'')+v+'%',fmtPeriod=p=>p;
+      const hl=t=>t,esc=String,fmt=v=>'$'+v,pct=v=>(v>0?'+':'')+v+'%',fmtPeriod=p=>p,deltaText=()=>null;
       let detailFact=null,currentPeriod='2026-06',granularity='month';const generatingSet=new Set();
       const priorPeriodLabel=()=>'vs last month';
     """, """
@@ -277,7 +277,7 @@ def test_dataset_display_name_only_normalizes_filenames():
 
 
 def test_overview_no_budget_guidance_links_only_for_writers():
-    run_js("const VIEWS=", "/* ---------- auth", _NAV_SETUP+"const fmt=v=>String(v),pct=v=>String(v);", """
+    run_js("const VIEWS=", "/* ---------- auth", _NAV_SETUP+"const fmt=v=>String(v),pct=v=>String(v),deltaText=()=>null;", """
       currentFacts=[{metric:'Revenue',has_data:true,value:102000,unit:'USD',deltas:{mom_pct:-5.6},sources:[]}];
       paintOverview();let html=$('ov-glance').innerHTML;
       assert.match(html,/No budget loaded for this close: figures compare with last month/);

@@ -129,6 +129,9 @@ def suggest_import_defaults(source_metric: str, group: str | None = None,
             out.pop("name", None)   # the "→ <KPI>" label would contradict the ledger
         out["category"], out["direction_good"] = hint
     out.setdefault("category", "Uncategorized")
+    # Known from the library, the ledger or a cost word; otherwise only a guess, and
+    # a wrong guess paints every cost rise green. The picker asks instead.
+    out["direction_known"] = "direction_good" in out
     out.setdefault("direction_good", "up")
     # A library unit other than the USD default is deliberate (Gross Margin %,
     # Active Customers); otherwise the measure's own name decides.

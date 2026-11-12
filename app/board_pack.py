@@ -40,9 +40,30 @@ def _fmt(v: float | None, unit: str | None, currency: str | None = "USD") -> str
     a, sign, mark = abs(v), "-" if v < 0 else "", symbol(currency)
     if a >= 1_000_000:
         return f"{sign}{mark}{a / 1_000_000:.2f}M"
-    if a >= 1_000:
+    if a >= 100_000:
         return f"{sign}{mark}{a / 1_000:.0f}K"
+    if a >= 1_000:
+        return f"{sign}{mark}{a:,.0f}"   # in full under 100K, as on screen
     return f"{sign}{mark}{a:,.0f}" if currency == "JPY" else f"{sign}{mark}{a:,.2f}"
+
+
+def _delta(f: dict, key: str) -> str:
+    """A variance as written on the pack: points for a percent KPI (38% vs a 40%
+    plan is -2.0 pts), the relative change otherwise."""
+    d = f.get("deltas") or {}
+    rel = d.get({"budget": "budget_var_pct", "mom": "mom_pct", "yoy": "yoy_pct"}[key])
+    if rel is None:
+        return "–"
+    if (f.get("unit") or "").lower() not in ("%", "percent"):
+        return _pct(rel)
+    value = f.get("value")
+    if key == "budget":
+        pts = d.get("budget_var_abs")
+    elif key == "mom":
+        pts = None if value is None or f.get("prior_value") is None else value - f["prior_value"]
+    else:
+        pts = None if value is None or rel == -100 else value - value / (1 + rel / 100)
+    return "–" if pts is None else f"{'+' if pts >= 0 else ''}{round(pts, 1):.1f} pts"
 
 
 def _pct(v: float | None) -> str:
@@ -208,7 +229,7 @@ def build_board_pack_html(facts: list[dict], period: str, meta: dict | None = No
         return abs(v) if v is not None else -1.0
     movers = sorted(with_data, key=_absvar, reverse=True)
     top = next((m for m in movers if _absvar(m) >= 0), None)
-    top_txt = (f"{e(top['metric'])} {_pct((top['deltas'] or {}).get('budget_var_pct'))} vs plan"
+    top_txt = (f"{e(top['metric'])} {_delta(top, 'budget')} vs plan"
                if top else "–")
 
     ds_name = e(dataset_display_name(str(meta.get("dataset_name") or "Dataset")))
@@ -230,11 +251,11 @@ def build_board_pack_html(facts: list[dict], period: str, meta: dict | None = No
         dg = f.get("direction_good") or "up"
         unit = f.get("unit")
         chips = (
-            f'<span class="chip {_delta_class(d.get("mom_pct"), dg)}"><span class="lbl">vs prior period</span>{_pct(d.get("mom_pct"))}</span>'
-            f'<span class="chip {_delta_class(d.get("budget_var_pct"), dg)}"><span class="lbl">vs plan</span>{_pct(d.get("budget_var_pct"))}</span>'
+            f'<span class="chip {_delta_class(d.get("mom_pct"), dg)}"><span class="lbl">vs prior period</span>{_delta(f, "mom")}</span>'
+            f'<span class="chip {_delta_class(d.get("budget_var_pct"), dg)}"><span class="lbl">vs plan</span>{_delta(f, "budget")}</span>'
         )
         if d.get("yoy_pct") is not None:
-            chips += f'<span class="chip {_delta_class(d.get("yoy_pct"), dg)}"><span class="lbl">YoY</span>{_pct(d.get("yoy_pct"))}</span>'
+            chips += f'<span class="chip {_delta_class(d.get("yoy_pct"), dg)}"><span class="lbl">YoY</span>{_delta(f, "yoy")}</span>'
         spark = _sparkline((f.get("chart_data") or {}).get("trend", []))
         narrative = f.get("narrative")
         checked_text, checked, total = _checked_narrative(narrative or '', f)
