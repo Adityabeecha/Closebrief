@@ -10,7 +10,7 @@ from app import audit
 from app import review as review_svc
 from app.api import CurrentUser, require_read, require_write
 from app.config import settings
-from app.datasets import _scope_pred, active_dataset_id
+from app.datasets import _scope_pred, active_dataset_id, timestamp_text
 from app.db import get_connection
 from app.services import bg_executor
 
@@ -116,7 +116,7 @@ def review_queue(all_datasets: bool = False,
         base = (
             """SELECT gr.id AS report_id, m.name AS metric, gr.period,
                       gr.review_status, gr.assigned_email, gr.narrative,
-                      d.id AS dataset_id, d.name AS dataset_name, d.currency, d.fiscal_year_start
+                      d.id AS dataset_id, d.name AS dataset_name, d.currency, d.fiscal_year_start, d.data_changed_at
                FROM generated_reports gr
                JOIN metrics m ON m.id = gr.metric_id
                JOIN datasets d ON d.id = m.dataset_id
@@ -141,6 +141,7 @@ def review_queue(all_datasets: bool = False,
             "review_status": r["review_status"], "assigned_email": r["assigned_email"],
             "dataset_id": r["dataset_id"], "dataset_name": r["dataset_name"], "currency": r["currency"],
             "fiscal_year_start": r["fiscal_year_start"],
+            "data_changed_at": timestamp_text(r["data_changed_at"]),
             "preview": (r["narrative"] or "")[:160],
         } for r in rows]
     finally:

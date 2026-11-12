@@ -12,7 +12,7 @@ from __future__ import annotations
 import sqlite3
 
 from app.compute.formula import FormulaError, evaluate, referenced_metrics, validate
-from app.datasets import get_or_create_metric
+from app.datasets import get_or_create_metric, mark_data_changed
 
 
 def create_derived_metric(conn: sqlite3.Connection, dataset_id: int, name: str, formula: str,
@@ -134,5 +134,6 @@ def materialize(conn: sqlite3.Connection, dataset_id: int) -> int:
                 (metric_id, period, round(float(v), 4)),
             )
             written += 1
+    mark_data_changed(conn, dataset_id)
     conn.commit()
     return written

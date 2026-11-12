@@ -10,6 +10,7 @@ real dataset, and vice-versa, enforced in SQL rather than by hiding UI.
 """
 
 import contextvars
+from datetime import datetime, timezone
 
 from app.currency import validate_currency
 
@@ -118,7 +119,7 @@ def active_dataset_id(conn) -> int | None:
 def list_datasets(conn) -> list[dict]:
     rows = conn.execute(
         f"""
-        SELECT d.id, d.name, d.source_upload_id, d.is_active, d.created_at, d.domain, d.currency, d.fiscal_year_start,
+        SELECT d.id, d.name, d.source_upload_id, d.is_active, d.created_at, d.domain, d.currency, d.fiscal_year_start, d.data_changed_at,
                (SELECT COUNT(*) FROM metrics m WHERE m.dataset_id = d.id) AS metric_count
         FROM datasets d WHERE {_scope_pred('d')} ORDER BY d.id DESC
         """
@@ -130,6 +131,7 @@ def list_datasets(conn) -> list[dict]:
             "is_active": r["id"] == active, "created_at": str(r["created_at"]),
             "domain": r["domain"] or "fpa", "currency": r["currency"],
             "fiscal_year_start": r["fiscal_year_start"],
+            "data_changed_at": timestamp_text(r["data_changed_at"]),
             "metric_count": r["metric_count"],
         }
         for r in rows
@@ -215,5 +217,24 @@ def dataset_currency(conn, dataset_id: int | None) -> str:
 
 def dataset_metadata(conn, dataset_id: int | None) -> dict:
     """Display metadata for an already scope-checked dataset."""
-    row = conn.execute("SELECT currency, fiscal_year_start FROM datasets WHERE id = ?", (dataset_id,)).fetchone() if dataset_id else None
-    return {"currency": row["currency"] if row else "USD", "fiscal_year_start": row["fiscal_year_start"] if row else 1}
+    row = conn.execute(
+        "SELECT currency, fiscal_year_start, data_changed_at FROM datasets WHERE id = ?", (dataset_id,),
+    ).fetchone() if dataset_id else None
+    return {"currency": row["currency"] if row else "USD", "fiscal_year_start": row["fiscal_year_start"] if row else 1,
+            "data_changed_at": timestamp_text(row["data_changed_at"]) if row else None}
+
+
+def timestamp_text(value) -> str | None:
+    """Consistent UTC timestamps for SQLite text and Postgres datetime values."""
+    if value is None:
+        return None
+    parsed = value if isinstance(value, datetime) else datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def mark_data_changed(conn, dataset_id: int) -> None:
+    """Call within the value-writing transaction; metadata edits don't call this."""
+    conn.execute("UPDATE datasets SET data_changed_at = ? WHERE id = ?",
+                 (datetime.now(timezone.utc).isoformat(), dataset_id))
