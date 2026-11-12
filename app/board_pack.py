@@ -37,6 +37,10 @@ def _fmt(v: float | None, unit: str | None, currency: str | None = "USD") -> str
         return f"{round(v, 1):g}%"
     if unit == "count":
         return f"{round(v):,}"
+    if unit == "number":
+        return f"{v:,.2f}".rstrip("0").rstrip(".")
+    if unit == "days":
+        return f"{v:,.1f}".rstrip("0").rstrip(".") + (" day" if abs(v) == 1 else " days")
     a, sign, mark = abs(v), "-" if v < 0 else "", symbol(currency)
     if a >= 1_000_000:
         return f"{sign}{mark}{a / 1_000_000:.2f}M"
@@ -54,7 +58,8 @@ def _delta(f: dict, key: str) -> str:
     rel = d.get({"budget": "budget_var_pct", "mom": "mom_pct", "yoy": "yoy_pct"}[key])
     if rel is None:
         return "–"
-    if (f.get("unit") or "").lower() not in ("%", "percent"):
+    unit = (f.get("unit") or "").lower()
+    if unit not in ("%", "percent", "days"):
         return _pct(rel)
     value = f.get("value")
     if key == "budget":
@@ -63,7 +68,7 @@ def _delta(f: dict, key: str) -> str:
         pts = None if value is None or f.get("prior_value") is None else value - f["prior_value"]
     else:
         pts = None if value is None or rel == -100 else value - value / (1 + rel / 100)
-    return "–" if pts is None else f"{'+' if pts >= 0 else ''}{round(pts, 1):.1f} pts"
+    return "–" if pts is None else f"{'+' if pts >= 0 else ''}{round(pts, 1):.1f} {'days' if unit == 'days' else 'pts'}"
 
 
 def _pct(v: float | None) -> str:

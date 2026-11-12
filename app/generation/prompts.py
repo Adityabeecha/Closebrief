@@ -221,6 +221,10 @@ def _fmt(value: float | None, unit: str = "USD", currency: str = "USD") -> str:
     if unit.lower() == "count":
         count = math.floor(value + 0.5)   # JavaScript Math.round also rounds negative ties upwards.
         return ("\u2212" if count < 0 else "") + f"{abs(count):,}"
+    if unit.lower() in ("number", "days"):
+        places = 1 if unit.lower() == "days" else 2
+        text = _fixed(abs(value), places).rstrip("0").rstrip(".")
+        return ("\u2212" if value < 0 else "") + text + (" days" if unit.lower() == "days" else "")
     sign = "\u2212" if value < 0 else ""
     amount = abs(value)
     if unit.lower() in ("%", "percent", "pp"):
@@ -286,7 +290,8 @@ def build_comparison_context(comparison: PeriodComparison | None, unit: str = "U
 
 
 def _is_pct_kpi(fact: ComputedFact) -> bool:
-    return (fact.unit or "").lower() in ("%", "percent")
+    """Rates and day counts change by absolute amounts (points, days), not by a percent of themselves."""
+    return (fact.unit or "").lower() in ("%", "percent", "days")
 
 
 def percent_kpi_points(fact: ComputedFact) -> dict[str, float | None]:
@@ -299,6 +304,15 @@ def percent_kpi_points(fact: ComputedFact) -> dict[str, float | None]:
 
 def _point_changes(fact: ComputedFact) -> list[str]:
     pts = percent_kpi_points(fact)
+    if (fact.unit or "").lower() == "days":
+        def days(v):
+            return "n/a" if v is None else ("+" if v > 0 else "") + _fmt(v, "days")
+        return [
+            "  - (this KPI is measured in days: its changes are in days; write them as days, never as a percent change)",
+            f"  - month_over_month_change: {days(pts['mom'])}",
+            f"  - year_over_year_change: {days(pts['yoy'])}",
+            f"  - budget_variance: {days(pts['budget'])}",
+        ]
     return [
         "  - (this KPI is itself a percentage: its changes are in percentage points, pp; "
         "write them as points, never as a percent change)",
