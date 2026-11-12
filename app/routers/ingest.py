@@ -25,7 +25,7 @@ from app.db import get_connection
 from app.deps import shared_cache
 from app.ingestion.ingest import IngestValidationError, ingest_dataframe, parse_csv
 from app.ingestion.mapping import MappingError, MappingSpec, match_budget_to_dataset, normalize, store_normalized
-from app.ingestion.profiler import mapping_warnings, profile_columns, suggest_mapping
+from app.ingestion.profiler import mapping_preview, profile_columns, suggest_mapping
 from app.ingestion.templates import get_template as load_template
 from app.ingestion.templates import save_template as save_mapping_template
 from app.ingestion.upload import (
@@ -109,10 +109,11 @@ def ingest_schema(upload_id: str, sheet: str | None = None, _: CurrentUser = Dep
         # low-confidence guess dead-ending in a hard validation error before
         # they see anything).
         suggestion = suggest_mapping(profile, upload_sheet_period(conn, upload_id, sheet))
-        suggestion["warnings"].extend(mapping_warnings(df, MappingSpec(**suggestion["mapping"])))
+        preview = mapping_preview(df, MappingSpec(**suggestion["mapping"]))
+        suggestion["warnings"].extend(preview["mapping_warnings"])
         if suggestion["warnings"]:
             suggestion["confidence"] = "low"
-        return {**profile, "suggested_mapping": suggestion["mapping"],
+        return {**profile, "suggested_mapping": suggestion["mapping"], "likely_total_rows": preview["likely_total_rows"],
                 "mapping_warnings": suggestion["warnings"], "mapping_confidence": suggestion["confidence"]}
     except UploadError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

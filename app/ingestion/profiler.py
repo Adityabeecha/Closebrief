@@ -19,7 +19,19 @@ import re
 
 import pandas as pd
 
-from app.ingestion.mapping import MappingError, MappingSpec, coarse_period_warning, import_period_warnings, normalize
+from app.ingestion.mapping import (
+    MappingError,
+    MappingSpec,
+    coarse_period_warning,
+    import_period_warnings,
+    likely_total_rows,
+    normalize,
+)
+
+
+def mapping_preview(df: pd.DataFrame, mapping: MappingSpec) -> dict:
+    """Schema diagnostics use exactly the import's proposed mapping and rules."""
+    return {"likely_total_rows": likely_total_rows(df, mapping), "mapping_warnings": mapping_warnings(df, mapping)}
 
 
 def mapping_warnings(df: pd.DataFrame, mapping: MappingSpec) -> list[str]:
