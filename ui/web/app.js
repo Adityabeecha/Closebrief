@@ -573,7 +573,7 @@ function toggleCollapse(){
 }
 // Restore collapsed state on load.
 try{if(localStorage.getItem("cb-side-collapsed")==="1")document.body.classList.add("side-collapsed");}catch{}
-const VIEWS=["overview","dashboard","digest","context","boardpack","analytics","review","import","costs","notifications","admin","activity"];
+const VIEWS=["overview","dashboard","digest","context","boardpack","analytics","import","costs","notifications","admin","activity"];
 // Each close (a month, quarter or year) is a workspace with tabs: [URL key, label, the view that renders it].
 const MONTH_TABS=[["overview","Overview","overview"],["kpis","KPIs","dashboard"],["context","Context","context"],
   ["digest","Digest","digest"],["boardpack","Board pack","boardpack"],["data","Data","import"]];
@@ -656,7 +656,7 @@ function nav(t,{fromRoute=false}={}){
   document.querySelectorAll("#settings-head .mtabs a").forEach(a=>{
     if(a.dataset.place===r.place)a.setAttribute("aria-current","page");else a.removeAttribute("aria-current");});
   // Overview carries the review queue beneath the checklist for people who approve.
-  for(const s of VIEWS)$("v-"+s).style.display=(s===v||(s==="review"&&v==="overview"&&canReview()&&currentPeriod))?"":"none";
+  for(const s of VIEWS)$("v-"+s).style.display=s===v?"":"none";
   // The KPIs tab and the open KPI share one workspace: queue + document + inspector.
   $("v-detail").style.display=(r.detail||(v==="dashboard"&&detailFact))?"":"none";
   $("d-empty").style.display=detailFact?"none":"";
@@ -673,7 +673,7 @@ function nav(t,{fromRoute=false}={}){
     setDocTitle(r.place?PLACES.find(p=>p[0]===r.place)[3]
       :!currentPeriod?"Start your first close":r.tab==="overview"?fmtPeriodTitle(currentPeriod):`${tabLabel[1]} · ${fmtPeriodTitle(currentPeriod)}`);
   }
-  if(v==="overview"){renderOverview();if(canReview()&&currentPeriod)loadReview();}
+  if(v==="overview")renderOverview();
   if(v==="context"){ctxScope=r.place?"library":"close";loadContext();}
   if(v==="analytics")loadAnalytics();
   if(v==="digest")loadDigest(false);
@@ -1375,6 +1375,12 @@ async function loadAnalytics(){
   }catch(e){if(done())$("analytics-state").innerHTML=screenError(e,"loadAnalytics()");}
 }
 /* ---- Forecast ---- */
+// Next period plus or minus the backtest's average percentage error.
+function fcRange(next,mape,unit){
+  if(next==null||mape==null||!isFinite(mape))return "–";
+  const d=Math.abs(next)*mape/100;
+  return `${fmt(next-d,unit)} – ${fmt(next+d,unit)}`;
+}
 async function runForecast(){
   const metric=$("fc-metric").value;if(!metric){toast("Pick a metric first");return;}
   const horizon=$("fc-horizon").value||3;
@@ -1388,7 +1394,7 @@ async function runForecast(){
     const next=fc.projections&&fc.projections[0]?fc.projections[0].value:null;
     $("fc-meta").innerHTML=
       `<div class="stat"><div class="stat-lbl">Next period</div><div class="card-value">${fmt(next,fc.unit)}</div></div>`+
-      `<div class="stat" style="--sc:var(--mut)"><div class="stat-lbl" title="Average error of this method on past months">Typical error</div><div class="card-value">${mape}</div>`+
+      `<div class="stat" style="--sc:var(--mut)"><div class="stat-lbl" title="Next period plus or minus this method's average error on past months (${esc(mape)})">Likely range</div><div class="card-value">${fcRange(next,fc.mape,fc.unit)}</div>`+
       `${thin?'<div class="psub" style="margin-top:2px">Only '+(fc.n_history||0)+' periods of history, so treat this as a rough guide</div>':""}</div>`;
     $("fc-narr-btn").style.display="";
   }catch(e){if(chartReg["c-forecast"]){chartReg["c-forecast"].destroy();delete chartReg["c-forecast"];}box.innerHTML=`<div class="an-empty">${esc(errMsg(e))}</div>`;}
@@ -1485,7 +1491,7 @@ async function loadCrossDomain(){
 }
 /* ---- Collaborative review (detail view) ---- */
 // Approval is a separate check from figure verification — see docs/ui-standard.md §3.
-const REVIEW_LABELS={none:"Not approved yet",pending:"Awaiting approval",approved:"Approved",changes_requested:"Changes requested"};
+const REVIEW_LABELS={none:"Not approved yet",pending:"Not approved yet",approved:"Approved",changes_requested:"Changes requested"};
 // Figures check and explanation confidence, as two clearly separate statements.
 function narrMeta(f){
   const bits=[];
@@ -1504,13 +1510,11 @@ function renderReviewStrip(f){
     readonly.innerHTML=canReview()?"":`<button class="btn sm" disabled>Approve</button><p>${demoSession?`<a href="#signup" onclick="event.preventDefault();exitDemo(true)">Sign up to approve commentary</a>`:"Only analysts and admins can approve"}</p>`;
   }
   const strip=$("d-rev-strip");if(!strip)return;
-  if(!f||!f.report_id){strip.style.display="none";$("d-versions").style.display="none";$("d-assign-row").style.display="none";return;}
+  if(!f||!f.report_id){strip.style.display="none";$("d-versions").style.display="none";return;}
   strip.style.display="";
   const st=f.review_status||"none",badge=$("d-rev-badge");
   badge.className="rev-badge "+st;
   badge.textContent=REVIEW_LABELS[st]||REVIEW_LABELS.none;
-  $("d-assigned").textContent=f.assigned_email?("· "+f.assigned_email):"";
-  $("d-assign-row").style.display="none";
   const vb=$("d-versions");vb.style.display="none";vb.innerHTML="";$("d-ver-btn").textContent="History";
 }
 async function reviewReport(status){
@@ -1520,76 +1524,7 @@ async function reviewReport(status){
     detailFact.review_status=status;renderReviewStrip(detailFact);
     const cf=(currentFacts||[]).find(x=>x.report_id===detailFact.report_id);if(cf)cf.review_status=status;
     toast(status==="approved"?"Commentary approved":"Changes requested");
-    refreshReviewBadge();
   }catch(e){toast("Failed: "+errMsg(e));}
-}
-/* ---- Reviewer assignment + review queue (v5.2) ---- */
-async function loadWsMembers(){
-  const dl=$("ws-members");if(!dl)return;
-  if(activeWorkspaceId==null){dl.innerHTML="";return;}
-  try{
-    const ms=await api(`/workspaces/${activeWorkspaceId}/members`);
-    dl.innerHTML=(ms||[]).filter(m=>m.email).map(m=>`<option value="${esc(m.email)}">${esc(m.role||"")}</option>`).join("");
-  }catch{dl.innerHTML="";}
-}
-function toggleAssign(){
-  const row=$("d-assign-row"),show=row.style.display==="none";
-  row.style.display=show?"flex":"none";
-  if(show){loadWsMembers();$("d-assign-email").focus();}
-}
-async function assignReviewer(){
-  if(!detailFact||!detailFact.report_id)return;
-  const email=$("d-assign-email").value.trim();
-  if(!email){toast("Enter a reviewer email");return;}
-  try{
-    await api(`/reports/${detailFact.report_id}/assign`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email})});
-    detailFact.review_status="pending";detailFact.assigned_email=email;
-    const cf=(currentFacts||[]).find(x=>x.report_id===detailFact.report_id);if(cf){cf.review_status="pending";cf.assigned_email=email;}
-    renderReviewStrip(detailFact);$("d-assign-email").value="";
-    toast("Assigned to "+email+" — they’ve been emailed");
-    refreshReviewBadge();
-  }catch(e){toast("Assign failed: "+errMsg(e));}
-}
-let _reviewItems=[];
-async function loadReview(){
-  const box=$("rq-list");if(!box)return;const done=screenLoading("rq-list","Loading the review queue…");
-  let items=[];
-  try{items=await api("/reports/review-queue?all_datasets=true");}
-  catch(e){if(done())box.innerHTML=screenError(e,"loadReview()");return;}
-  if(!done())return;
-  _reviewItems=items;updateReviewBadge(items.length);
-  if(!box)return;
-  const sect=$("v-review");
-  if(!items.length){box.innerHTML="";if(sect)sect.classList.add("rq-empty");return;}
-  if(sect)sect.classList.remove("rq-empty");
-  box.innerHTML=items.map((it,i)=>`<div class="rq-item" role="button" tabindex="0" onclick="openReviewItem(${esc(i)})">
-    <div class="rq-main"><div class="rq-metric">${esc(it.metric)}</div>
-    <div class="rq-preview">${esc(it.preview||"No preview")}</div>
-    <div class="rq-meta">${esc(datasetDisplayName(it.dataset_name))}</div></div>
-    <span class="rq-period">${esc(fmtPeriod(it.period))}</span>
-    <svg class="rq-open" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>`).join("");
-}
-async function openReviewItem(i){
-  const it=_reviewItems[i];if(!it)return;
-  // Switch to the item's dataset first when it isn't the active one.
-  if(it.dataset_id!=null&&it.dataset_id!==activeDatasetId){
-    try{await api(`/datasets/${it.dataset_id}/activate`,{method:"POST"});await loadPeriods();}
-    catch(e){toast("Couldn't open: "+errMsg(e));return;}
-  }
-  const sel=$("period-select");
-  if(sel&&it.period&&sel.value!==it.period&&[...sel.options].some(o=>o.value===it.period)){sel.value=it.period;await loadFacts();}
-  nav("dashboard");
-  const f=(currentFacts||[]).find(x=>x.metric===it.metric&&x.has_data);
-  if(!f){toast("Couldn’t open this metric on the current board");return;}
-  const idx=shownFacts.indexOf(f);
-  if(idx>=0)openDetail(idx);else{searchQuery="";renderCards();openDetail(shownFacts.indexOf(f));}
-}
-function updateReviewBadge(n){
-  const b=$("review-badge");if(!b)return;
-  if(n>0){b.textContent=n;b.style.display="";}else b.style.display="none";
-}
-async function refreshReviewBadge(){
-  try{updateReviewBadge((await api("/reports/review-queue?all_datasets=true")).length);}catch{}
 }
 async function toggleVersions(){
   const box=$("d-versions");
@@ -2049,7 +1984,7 @@ async function loadFacts(){
       <div style="margin:12px 0 4px;font-weight:700;color:var(--ink2)">Couldn't load KPIs</div>
       <div style="font-size:13px;margin-bottom:16px">${esc(e.message||"Something went wrong.")}</div>
       <button class="btn primary" onclick="loadFacts()">Retry</button></div>`;
-  }finally{$("dash-loading").style.display="none";refreshReviewBadge();}
+  }finally{$("dash-loading").style.display="none";}
 }
 function setFreshness(){
   const el=$("dash-fresh");if(!el)return;
@@ -2138,7 +2073,7 @@ const XICON='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke=
 // The pencil tick from the home page's legend: figures computed in code.
 const TICK='<svg viewBox="0 0 26 22" fill="none" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12.2c1.9 1.4 3.6 3.3 5.2 5.6C12.4 11 16.8 6.2 22.6 3.4"/></svg>';
 const seal=ok=>ok
-  ?`<span class="seal" title="Each number matches a computed figure or a cited note as written, and every rise or fall matches the data">${TICK}Figures checked</span>`
+  ?`<span class="seal" title="Numbers verified: each matches a computed figure or a cited note, and every rise or fall matches the data. The reasons come from your context notes and are not verified.">${TICK}Figures checked</span>`
   :`<span class="seal failed" title="A number doesn't match the computed figures, or calls a fall a rise. Review before sharing"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Needs review</span>`;
 const DOCICON='<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
 /* Icon registry for JS-rendered markup. The bell mirrors the static sidebar-nav
@@ -2655,7 +2590,7 @@ async function bulkApprove(){
   const msg=failed?`Approved ${approved.length}; ${plural(failed,"draft")} failed, try again`:`Approved ${plural(approved.length,"draft")}`;
   if(approved.length)toastAction(msg,"Undo",()=>undoBulkApprove(approved));else toast(msg);
 }
-function afterBulkReview(){overviewFor=null;renderCards();renderMonthHead();loadCloseMeta();refreshReviewBadge();}
+function afterBulkReview(){overviewFor=null;renderCards();renderMonthHead();loadCloseMeta();}
 // Put each draft back to the review state it had before the bulk approval.
 async function undoBulkApprove(approved){
   let failed=0;
