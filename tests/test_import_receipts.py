@@ -49,7 +49,9 @@ def test_budget_receipt_uses_matched_names_and_only_affected_periods(client):
     assert response.status_code == 200, response.text
     receipts = client.get(f"/datasets/{ds}/receipts").json()
     assert [r["kind"] for r in receipts] == ["budget_join", "import"]
-    assert receipts[0]["report"] == {k: v for k, v in response.json().items() if k != "dataset_id"}
+    assert receipts[0]["report"] == response.json()["import_report"]
+    assert receipts[0]["report"] == {k: v for k, v in response.json().items()
+                                      if k not in ("dataset_id", "import_report")}
     assert receipts[0]["kpi_totals"] == [
         {"metric": "Revenue", "periods": 1, "value_total": 100, "budget_total": 90, "rows": 1}]
     # Import receipt stays a snapshot after the budget operation.

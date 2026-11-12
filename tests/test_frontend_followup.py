@@ -138,7 +138,8 @@ def run_js(start, end, setup, assertions):
     code = source[source.index(start):source.index(end, source.index(start))]
     script = "const assert=require('node:assert/strict');\n" + setup + "\n" + code
     script += "\n(async()=>{" + assertions + "})().catch(e=>{console.error(e);process.exit(1)});"
-    result = subprocess.run([node, "-e", script], text=True, capture_output=True, timeout=15)
+    # Fed through stdin: a long script on the command line passes the Windows length limit.
+    result = subprocess.run([node, "-"], input=script, text=True, encoding="utf-8", capture_output=True, timeout=15)
     assert result.returncode == 0, result.stderr
 
 

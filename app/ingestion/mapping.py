@@ -463,6 +463,7 @@ def _normalize_label(s: str) -> str:
 
 def match_budget_to_dataset(
     conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_id: int,
+    *, actor_id=None, actor_email=None,
 ) -> dict:
     """Join a budget-only canonical frame onto an EXISTING dataset's metrics,
     by (metric identity, period) — never creates a new metric or a new
@@ -480,7 +481,12 @@ def match_budget_to_dataset(
     all, or a period this dataset has no actuals row for) — rather than
     silently dropping any of the three cases.
     """
+    from app.close_control import locked_months, record_changes, skipped_report, snapshot
     from app.datasets import mark_data_changed
+
+    before = snapshot(conn, dataset_id)
+    locked = locked_months(conn, dataset_id)
+    skipped = {}
 
     rows = conn.execute(
         "SELECT id, name, external_id FROM metrics WHERE dataset_id = ?", (dataset_id,)
@@ -544,17 +550,23 @@ def match_budget_to_dataset(
             unmatched_period.append({"metric": matched_name, "period": period})
             continue
 
+        if period in locked:
+            skipped[period] = skipped.get(period, 0) + len(group)
+            continue
+
         conn.execute(
             "UPDATE metric_values SET budget = ? WHERE id = ?", (budget, existing["id"])
         )
         matched += 1
         written_pairs.add((matched_name, period))
 
+    record_changes(conn, dataset_id, before, "budget_join", actor_id=actor_id, actor_email=actor_email)
     if matched:
         mark_data_changed(conn, dataset_id)
     conn.commit()
     canonical.attrs["written_pairs"] = written_pairs
     return {
+        "locked_skipped": skipped_report(skipped),
         "matched": matched,
         "near_misses": near_misses,
         "unmatched_metrics": sorted(unmatched_metric),
@@ -566,15 +578,37 @@ def _num(v):
     return float(v) if v is not None and pd.notna(v) else None
 
 
-def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_id: int) -> dict:
+def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_id: int, *,
+                     replace=False, actor_id=None, actor_email=None) -> dict:
     """Aggregate canonical rows to one row per metric+period, then upsert into
     metric_values. Dimension-level rows (e.g. revenue by product) are SUMMED to
     the metric total rather than overwriting each other; when those rows carry
     quantity/price detail, a true multi-item Price/Volume/Mix bridge is computed
     from them and stored in pvm_bridges before the collapse."""
+    from app.close_control import locked_months, record_changes, skipped_report, snapshot
     from app.compute.pvm import PVMItem, decompose
     from app.datasets import get_or_create_metric, mark_data_changed
 
+    before = snapshot(conn, dataset_id)
+    locked = locked_months(conn, dataset_id)
+    skipped = {}
+    written_pairs = set()
+    removed = 0
+    if replace:
+        incoming = set(zip(canonical["metric"], canonical["period"]))
+        base = conn.execute("""SELECT m.id, m.name FROM metrics m WHERE m.dataset_id=?
+            AND NOT EXISTS (SELECT 1 FROM derived_metrics d WHERE d.dataset_id=m.dataset_id AND d.name=m.name)""",
+                            (dataset_id,)).fetchall()
+        names = {r["id"]: r["name"] for r in base}
+        for (mid, period), row in before.items():
+            if mid not in names or (names[mid], period) in incoming:
+                continue
+            if period in locked:
+                skipped[period] = skipped.get(period, 0) + row["source_rows"]
+                continue
+            removed += 1
+            for table in ("metric_values", "computed_facts", "pvm_bridges"):
+                conn.execute(f"DELETE FROM {table} WHERE metric_id=? AND period=?", (mid, period))
     cur = conn.cursor()
     # canonical["metric"].unique() only has metrics that survived the null-value
     # drop in normalize(); attrs["all_metrics"] (when present) is the full set
@@ -595,7 +629,6 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
         name: get_or_create_metric(conn, dataset_id, name, external_id=external_ids.get(name))
         for name in sorted(metric_names)
     }
-    conn.commit()
 
     def _sum(series):
         vals = [v for v in series if v is not None and pd.notna(v)]
@@ -603,7 +636,11 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
 
     n_written = 0
     for (metric, period), group in canonical.groupby(["metric", "period"]):
+        if period in locked:
+            skipped[period] = skipped.get(period, 0) + len(group)
+            continue
         metric_id = metric_ids[metric]
+        written_pairs.add((metric, period))
         value = _sum(group["value"])
         budget = _sum(group["budget"])
         quantity = _sum(group["quantity"])
@@ -652,9 +689,11 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
                  bridge.total, len(items)),
             )
         n_written += 1
-    if n_written:
+    record_changes(conn, dataset_id, before, "import", actor_id=actor_id, actor_email=actor_email)
+    if n_written or removed:
         mark_data_changed(conn, dataset_id)
     conn.commit()
+    canonical.attrs["written_pairs"] = written_pairs
     return {
         "rows_normalized": n_written,
         "import_report": {
@@ -663,6 +702,7 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
                 "duplicates_dropped": {"count": 0, "examples": []},
                 "identical_kept": {"count": 0, "examples": []}, "totals_dropped": [],
             }),
+            "locked_skipped": skipped_report(skipped),
             "combined": [
                 {"metric": metric, "period": period, "rows": int(count)}
                 for (metric, period), count in canonical.groupby(["metric", "period"]).size().items() if count > 1

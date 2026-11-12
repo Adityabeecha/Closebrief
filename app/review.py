@@ -14,7 +14,7 @@ REVIEW_STATUSES = ("pending", "approved", "changes_requested")
 
 
 def add_version(conn, report_id: int, narrative: str,
-                editor_id: str | None, editor_email: str | None) -> int:
+                editor_id: str | None, editor_email: str | None, *, commit: bool = True) -> int:
     """Append a version snapshot for a report. Version numbers are 1-based."""
     row = conn.execute(
         "SELECT COALESCE(MAX(version), 0) AS v FROM report_versions WHERE report_id = ?",
@@ -26,7 +26,8 @@ def add_version(conn, report_id: int, narrative: str,
            VALUES (?, ?, ?, ?, ?)""",
         (report_id, version, narrative, editor_id, editor_email),
     )
-    conn.commit()
+    if commit:
+        conn.commit()
     return version
 
 
