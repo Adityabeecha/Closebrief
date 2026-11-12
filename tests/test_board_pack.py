@@ -30,7 +30,8 @@ def test_build_is_self_contained_and_renders_kpis():
     # Self-contained: no external assets (would break in email / offline).
     assert "src=" not in doc and "http://" not in doc and "https://" not in doc
     assert "Net Revenue" in doc and "COGS" in doc
-    assert "Q1 Actuals" in doc and "2025-03" in doc
+    # People read "March 2025", not the ISO key.
+    assert "Q1 Actuals" in doc and "March 2025" in doc
     assert "Up on strong demand." in doc
     assert "<svg" in doc            # inline sparkline
     assert "KPIs reported" in doc
@@ -96,7 +97,7 @@ def test_board_pack_endpoint_returns_html(client):
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("text/html")
     body = r.text
-    assert "Board Pack" in body and "Net Revenue" in body and "2025-03" in body
+    assert "Board Pack" in body and "Net Revenue" in body and "March 2025" in body
     assert "<svg" in body
 
 
