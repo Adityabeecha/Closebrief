@@ -10,6 +10,8 @@ Revenue/up-is-good and every cost increase renders green.
 
 import re
 
+from app.compute.aggregate import infer_aggregation_type
+
 # Cost-line words. Also used to stop the bare "sales" fallback from claiming
 # "Sales Tools & CRM" or "Travel & Entertainment - Sales" as revenue.
 _EXPENSE_NAME = re.compile(
@@ -70,6 +72,8 @@ _COST_GROUP = re.compile(
     re.I,
 )
 
+# Working-capital day counts (DSO, DPO, DIO) and anything named "... days".
+_DAYS_UNIT = re.compile(r"\bdays?\b|\bdso\b|\bdpo\b|\bdio\b|days_", re.I)
 _PERCENT_UNIT = re.compile(r"%|percent|\bpct\b|_pct|\brate\b|_rate|ratio", re.I)
 _USD_UNIT = re.compile(r"usd|\$|revenue|\bcost|spend|\barr\b|_arr|amount|expense|fees|salar|income", re.I)
 _COUNT_UNIT = re.compile(
@@ -84,6 +88,8 @@ def infer_unit(source_metric: str) -> str | None:
     ("closed_won_arr_usd" is money even though it says "won")."""
     if re.search(r"usd|\$", source_metric, re.I):
         return "USD"
+    if _DAYS_UNIT.search(source_metric):
+        return "days"
     if _PERCENT_UNIT.search(source_metric):
         return "%"
     if _COUNT_UNIT.search(source_metric):
@@ -137,4 +143,6 @@ def suggest_import_defaults(source_metric: str, group: str | None = None,
     # Active Customers); otherwise the measure's own name decides.
     if not (lib and lib["unit"] != "USD"):
         out["unit"] = infer_unit(source_metric) or "USD"
+    # How it rolls up into quarters, so the picker can show (and the user change) it.
+    out["aggregation_type"] = infer_aggregation_type(source_metric, out["unit"])
     return out
