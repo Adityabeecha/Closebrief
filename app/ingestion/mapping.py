@@ -480,6 +480,8 @@ def match_budget_to_dataset(
     all, or a period this dataset has no actuals row for) — rather than
     silently dropping any of the three cases.
     """
+    from app.datasets import mark_data_changed
+
     rows = conn.execute(
         "SELECT id, name, external_id FROM metrics WHERE dataset_id = ?", (dataset_id,)
     ).fetchall()
@@ -496,6 +498,7 @@ def match_budget_to_dataset(
     unmatched_metric: set[str] = set()
     unmatched_period: list[dict] = []
     seen_near_miss: set[str] = set()
+    written_pairs = set()
 
     group_cols = ["metric", "period", "id"] if has_id_col else ["metric", "period"]
     for key, group in canonical.groupby(group_cols, dropna=False):
@@ -545,8 +548,12 @@ def match_budget_to_dataset(
             "UPDATE metric_values SET budget = ? WHERE id = ?", (budget, existing["id"])
         )
         matched += 1
+        written_pairs.add((matched_name, period))
 
+    if matched:
+        mark_data_changed(conn, dataset_id)
     conn.commit()
+    canonical.attrs["written_pairs"] = written_pairs
     return {
         "matched": matched,
         "near_misses": near_misses,
@@ -566,7 +573,7 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
     quantity/price detail, a true multi-item Price/Volume/Mix bridge is computed
     from them and stored in pvm_bridges before the collapse."""
     from app.compute.pvm import PVMItem, decompose
-    from app.datasets import get_or_create_metric
+    from app.datasets import get_or_create_metric, mark_data_changed
 
     cur = conn.cursor()
     # canonical["metric"].unique() only has metrics that survived the null-value
@@ -645,6 +652,8 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
                  bridge.total, len(items)),
             )
         n_written += 1
+    if n_written:
+        mark_data_changed(conn, dataset_id)
     conn.commit()
     return {
         "rows_normalized": n_written,

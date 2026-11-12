@@ -22,7 +22,7 @@ _BALANCE_RE = ("cash", "balance", "runway", "headcount", "arr", "active customer
 
 def infer_aggregation_type(name: str, unit: str) -> str:
     u = (unit or "").strip().lower()
-    if u in ("%", "percent", "ratio", "x"):
+    if u in ("%", "percent", "ratio", "x", "days"):
         return "ratio"
     n = (name or "").lower()
     if any(k in n for k in _BALANCE_RE):
@@ -30,21 +30,41 @@ def infer_aggregation_type(name: str, unit: str) -> str:
     return "flow"
 
 
-def period_key(month: str, granularity: str) -> str:
+def period_key(month: str, granularity: str, fiscal_start: int = 1) -> str:
     """Map a "YYYY-MM" month to its period key at the given granularity."""
     y, m = month.split("-")[:2]
     if granularity == "month":
         return f"{y}-{m}"
+    fiscal_year = int(y) + int(fiscal_start != 1 and int(m) >= fiscal_start)
     if granularity == "quarter":
-        q = (int(m) - 1) // 3 + 1
-        return f"{y}-Q{q}"
+        q = ((int(m) - fiscal_start) % 12) // 3 + 1
+        return f"{fiscal_year:04d}-Q{q}"
     if granularity == "year":
-        return y
+        return f"{fiscal_year:04d}"
     raise ValueError(f"Unknown granularity: {granularity}")
 
 
-def sort_key(pkey: str) -> tuple:
+def months_in(pkey: str, granularity: str, fiscal_start: int = 1) -> list[str]:
+    """Calendar months covered by a key named for its fiscal ending year."""
+    if granularity == "month":
+        return [pkey]
+    year = int(pkey[:4]) - int(fiscal_start != 1)
+    offset = fiscal_start - 1
+    if granularity == "quarter":
+        offset += (int(pkey.split("-Q")[1]) - 1) * 3
+        count = 3
+    elif granularity == "year":
+        count = 12
+    else:
+        raise ValueError(f"Unknown granularity: {granularity}")
+    return [f"{(year * 12 + offset + i) // 12:04d}-{(offset + i) % 12 + 1:02d}" for i in range(count)]
+
+
+def sort_key(pkey: str, fiscal_start: int = 1) -> tuple:
     """Chronological sort key for any period key form."""
+    if fiscal_start != 1 and ("-Q" in pkey or "-" not in pkey):
+        first = months_in(pkey, "quarter" if "-Q" in pkey else "year", fiscal_start)[0]
+        return tuple(map(int, first.split("-")))
     if "-Q" in pkey:
         y, q = pkey.split("-Q")
         return (int(y), int(q))
@@ -54,7 +74,7 @@ def sort_key(pkey: str) -> tuple:
     return (int(pkey), 0)
 
 
-def aggregate_series(rows: list[dict], granularity: str, agg_type: str) -> dict[str, dict]:
+def aggregate_series(rows: list[dict], granularity: str, agg_type: str, fiscal_start: int = 1) -> dict[str, dict]:
     """Aggregate one metric's monthly rows into period buckets.
 
     `rows`: [{"period": "YYYY-MM", "value": float, "budget": float|None}, ...]
@@ -63,7 +83,7 @@ def aggregate_series(rows: list[dict], granularity: str, agg_type: str) -> dict[
     """
     buckets: dict[str, list[dict]] = {}
     for r in rows:
-        buckets.setdefault(period_key(r["period"], granularity), []).append(r)
+        buckets.setdefault(period_key(r["period"], granularity, fiscal_start), []).append(r)
 
     out: dict[str, dict] = {}
     for pk, items in buckets.items():
@@ -97,7 +117,7 @@ def _reduce(items: list[dict], agg_type: str) -> dict:
     }
 
 
-def prior_key(pkey: str, granularity: str) -> str | None:
+def prior_key(pkey: str, granularity: str, fiscal_start: int = 1) -> str | None:
     """The immediately-preceding period key (for QoQ / MoM-equivalent deltas)."""
     if granularity == "month":
         y, m = int(pkey[:4]), int(pkey[5:7])
@@ -116,7 +136,7 @@ def prior_key(pkey: str, granularity: str) -> str | None:
     return None
 
 
-def year_ago_key(pkey: str, granularity: str) -> str | None:
+def year_ago_key(pkey: str, granularity: str, fiscal_start: int = 1) -> str | None:
     """The same period one year earlier (for YoY deltas)."""
     if granularity == "month":
         return f"{int(pkey[:4]) - 1}-{pkey[5:7]}"

@@ -14,6 +14,20 @@ from pathlib import Path
 
 from app.config import session_pool_url, settings
 
+_IMPORT_RECEIPTS_SCHEMA = """
+CREATE TABLE IF NOT EXISTS import_receipts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    dataset_id INTEGER NOT NULL REFERENCES datasets(id) ON DELETE CASCADE,
+    workspace_id INTEGER,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    kind TEXT NOT NULL CHECK (kind IN ('import', 'budget_join', 'connector_sync')),
+    filename TEXT NOT NULL,
+    mapping TEXT NOT NULL,
+    report TEXT NOT NULL,
+    kpi_totals TEXT NOT NULL
+);
+"""
+
 # SQLite has no row-level security DDL. Migration 026 extends PostgreSQL RLS;
 # SQLite continues to enforce tenancy through the request-scoped SQL predicates.
 _SQLITE_SCHEMA = """
@@ -49,8 +63,10 @@ CREATE TABLE IF NOT EXISTS workspace_invites (
 CREATE TABLE IF NOT EXISTS datasets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
+    data_changed_at TIMESTAMP,
     source_upload_id TEXT,
     currency TEXT NOT NULL DEFAULT 'USD' CHECK (currency IN ('USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'SGD', 'CHF')),
+    fiscal_year_start INTEGER NOT NULL DEFAULT 1 CHECK (fiscal_year_start BETWEEN 1 AND 12),
     is_active INTEGER NOT NULL DEFAULT 0,
     domain TEXT NOT NULL DEFAULT 'fpa',
     is_demo INTEGER NOT NULL DEFAULT 0,
@@ -330,7 +346,24 @@ CREATE TABLE IF NOT EXISTS digest_runs (
 """
 
 # Columns added after first release; applied to pre-existing SQLite DBs on startup.
+_SQLITE_SCHEMA += _IMPORT_RECEIPTS_SCHEMA
+
+
+def _migrate_dataset_freshness(conn: sqlite3.Connection) -> None:
+    """Backfill existing datasets once, when the timestamp column is introduced."""
+    columns = {row["name"] for row in conn.execute("PRAGMA table_info(datasets)")}
+    if "data_changed_at" in columns:
+        return
+    conn.execute("ALTER TABLE datasets ADD COLUMN data_changed_at TIMESTAMP")
+    if "created_at" in columns:
+        conn.execute("UPDATE datasets SET data_changed_at = created_at WHERE data_changed_at IS NULL")
+
+
 _SQLITE_MIGRATIONS = [
+    _migrate_dataset_freshness,
+    "ALTER TABLE datasets ADD COLUMN data_changed_at TIMESTAMP",
+    "ALTER TABLE datasets ADD COLUMN fiscal_year_start INTEGER NOT NULL DEFAULT 1 CHECK (fiscal_year_start BETWEEN 1 AND 12)",
+    _IMPORT_RECEIPTS_SCHEMA,
     "ALTER TABLE metric_values ADD COLUMN source_rows INTEGER NOT NULL DEFAULT 1",
     "ALTER TABLE datasets ADD COLUMN currency TEXT NOT NULL DEFAULT 'USD' "
     "CHECK (currency IN ('USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'SGD', 'CHF'))",

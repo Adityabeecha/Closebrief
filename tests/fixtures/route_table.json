@@ -294,6 +294,16 @@
     ]
   ],
   [
+    "/datasets/{dataset_id}/receipts",
+    [
+      "GET"
+    ],
+    true,
+    [
+      "require_read"
+    ]
+  ],
+  [
     "/digest",
     [
       "GET"

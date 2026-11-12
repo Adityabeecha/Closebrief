@@ -120,6 +120,7 @@ def sync_connector(conn, connector_id: int, workspace_id: int | None, *, fetch=f
         set_active,
         set_workspace_scope,
     )
+    from app.import_receipts import record_receipt
     from app.ingestion.ingest import ingest_dataframe, parse_csv
 
     row = _get(conn, connector_id, workspace_id)
@@ -149,11 +150,15 @@ def sync_connector(conn, connector_id: int, workspace_id: int | None, *, fetch=f
         ).fetchone()
         ds_id = ds["id"] if ds else create_dataset(
             conn, ds_name, activate=False, workspace_id=row["workspace_id"])
-        ingest_dataframe(conn, df, ds_id)
+        summary = ingest_dataframe(conn, df, ds_id)
         _recompute_with_derived(conn, ds_id)
         if active_dataset_id(conn) is None:
             set_active(conn, ds_id)
         _finish("ok", None)
+        record_receipt(conn, ds_id, kind="connector_sync", filename=row["name"],
+                       mapping={"layout": "long", "period_col": "period", "metric_col": "metric",
+                                "value_col": "value", "budget_col": "budget"},
+                       report=summary.model_dump(), written_pairs=zip(df["metric"], df["period"]))
         return {"status": "ok", "dataset_id": ds_id, "rows": len(df)}
     except Exception:  # noqa: BLE001 - upstream errors may contain credentials or source rows
         conn.rollback()

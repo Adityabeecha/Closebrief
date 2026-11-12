@@ -10,6 +10,7 @@ real dataset, and vice-versa, enforced in SQL rather than by hiding UI.
 """
 
 import contextvars
+from datetime import datetime, timezone
 
 from app.currency import validate_currency
 
@@ -118,7 +119,7 @@ def active_dataset_id(conn) -> int | None:
 def list_datasets(conn) -> list[dict]:
     rows = conn.execute(
         f"""
-        SELECT d.id, d.name, d.source_upload_id, d.is_active, d.created_at, d.domain, d.currency,
+        SELECT d.id, d.name, d.source_upload_id, d.is_active, d.created_at, d.domain, d.currency, d.fiscal_year_start, d.data_changed_at,
                (SELECT COUNT(*) FROM metrics m WHERE m.dataset_id = d.id) AS metric_count
         FROM datasets d WHERE {_scope_pred('d')} ORDER BY d.id DESC
         """
@@ -129,6 +130,8 @@ def list_datasets(conn) -> list[dict]:
             "id": r["id"], "name": r["name"], "source_upload_id": r["source_upload_id"],
             "is_active": r["id"] == active, "created_at": str(r["created_at"]),
             "domain": r["domain"] or "fpa", "currency": r["currency"],
+            "fiscal_year_start": r["fiscal_year_start"],
+            "data_changed_at": timestamp_text(r["data_changed_at"]),
             "metric_count": r["metric_count"],
         }
         for r in rows
@@ -166,7 +169,7 @@ def delete_dataset(conn, dataset_id: int) -> bool:
         "DELETE FROM scheduler_runs WHERE job_id IN (SELECT id FROM scheduled_jobs WHERE dataset_id = ?)",
         (dataset_id,),
     )
-    for table in ("scheduled_jobs", "digest_runs", "derived_metrics"):
+    for table in ("scheduled_jobs", "digest_runs", "derived_metrics", "import_receipts"):
         conn.execute(f"DELETE FROM {table} WHERE dataset_id = ?", (dataset_id,))
     conn.execute("DELETE FROM kpi_configs WHERE dataset_id = ?", (dataset_id,))
     conn.execute("DELETE FROM metrics WHERE dataset_id = ?", (dataset_id,))
@@ -209,7 +212,29 @@ def get_or_create_metric(conn, dataset_id: int, name: str, external_id: str | No
 
 def dataset_currency(conn, dataset_id: int | None) -> str:
     """Currency for an already scope-checked dataset (USD for an empty workspace)."""
-    if dataset_id is None:
-        return "USD"
-    row = conn.execute("SELECT currency FROM datasets WHERE id = ?", (dataset_id,)).fetchone()
-    return row["currency"] if row else "USD"
+    return dataset_metadata(conn, dataset_id)["currency"]
+
+
+def dataset_metadata(conn, dataset_id: int | None) -> dict:
+    """Display metadata for an already scope-checked dataset."""
+    row = conn.execute(
+        "SELECT currency, fiscal_year_start, data_changed_at FROM datasets WHERE id = ?", (dataset_id,),
+    ).fetchone() if dataset_id else None
+    return {"currency": row["currency"] if row else "USD", "fiscal_year_start": row["fiscal_year_start"] if row else 1,
+            "data_changed_at": timestamp_text(row["data_changed_at"]) if row else None}
+
+
+def timestamp_text(value) -> str | None:
+    """Consistent UTC timestamps for SQLite text and Postgres datetime values."""
+    if value is None:
+        return None
+    parsed = value if isinstance(value, datetime) else datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def mark_data_changed(conn, dataset_id: int) -> None:
+    """Call within the value-writing transaction; metadata edits don't call this."""
+    conn.execute("UPDATE datasets SET data_changed_at = ? WHERE id = ?",
+                 (datetime.now(timezone.utc).isoformat(), dataset_id))

@@ -43,7 +43,7 @@ def parse_csv(raw_bytes: bytes) -> pd.DataFrame:
 
 
 def ingest_dataframe(conn: sqlite3.Connection, df: pd.DataFrame, dataset_id: int) -> IngestSummary:
-    from app.datasets import get_or_create_metric
+    from app.datasets import get_or_create_metric, mark_data_changed
 
     cur = conn.cursor()
     metric_ids = {
@@ -65,6 +65,8 @@ def ingest_dataframe(conn: sqlite3.Connection, df: pd.DataFrame, dataset_id: int
             (metric_id, row["period"], float(row["value"]), budget),
         )
         rows_ingested += 1
+    if rows_ingested:
+        mark_data_changed(conn, dataset_id)
     conn.commit()
 
     return IngestSummary(

@@ -13,7 +13,7 @@ from app.currency import validate_currency
 from app.datasets import (
     _scope_pred,
     active_dataset_id,
-    dataset_currency,
+    dataset_metadata,
     delete_dataset,
     list_datasets,
     set_active,
@@ -21,8 +21,20 @@ from app.datasets import (
 from app.db import get_connection
 from app.deps import shared_cache
 from app.domains import registry
+from app.import_receipts import list_receipts
 
 router = APIRouter()
+
+
+@router.get("/datasets/{dataset_id}/receipts")
+def dataset_receipts(dataset_id: int, _: CurrentUser = Depends(require_read)) -> list[dict]:
+    conn = get_connection()
+    try:
+        if conn.execute(f"SELECT id FROM datasets WHERE id = ? AND {_scope_pred()}", (dataset_id,)).fetchone() is None:
+            raise HTTPException(status_code=404, detail=f"Dataset {dataset_id} not found")
+        return list_receipts(conn, dataset_id)
+    finally:
+        conn.close()
 
 
 @router.get("/datasets")
@@ -31,7 +43,7 @@ def get_datasets(_: CurrentUser = Depends(require_read)) -> dict:
     conn = get_connection()
     try:
         ds = active_dataset_id(conn)
-        return {"datasets": list_datasets(conn), "active_id": ds, "currency": dataset_currency(conn, ds)}
+        return {"datasets": list_datasets(conn), "active_id": ds, **dataset_metadata(conn, ds)}
     finally:
         conn.close()
 
@@ -49,12 +61,12 @@ def activate_dataset(dataset_id: int, user: CurrentUser = Depends(require_read))
         ).fetchone()
         if not exists:
             raise HTTPException(status_code=404, detail=f"Dataset {dataset_id} not found")
-        dataset_currency_value = dataset_currency(conn, dataset_id)
+        metadata = dataset_metadata(conn, dataset_id)
         if user.role in ("analyst", "admin"):
             set_active(conn, dataset_id)
     finally:
         conn.close()
-    return {"active_id": dataset_id, "currency": dataset_currency_value}
+    return {"active_id": dataset_id, **metadata}
 
 
 @router.patch("/datasets/{dataset_id}")
@@ -62,6 +74,8 @@ def rename_dataset(dataset_id: int, payload: dict, _: CurrentUser = Depends(requ
     """Rename a dataset and/or set its analytics domain or currency."""
     name = payload.get("name")
     domain = payload.get("domain")
+    if "fiscal_year_start" in payload and (type(payload["fiscal_year_start"]) is not int or not 1 <= payload["fiscal_year_start"] <= 12):
+        raise HTTPException(status_code=422, detail="fiscal_year_start must be an integer from 1 to 12")
     if "currency" in payload:
         try:
             validate_currency(payload["currency"])
@@ -79,12 +93,14 @@ def rename_dataset(dataset_id: int, payload: dict, _: CurrentUser = Depends(requ
             conn.execute("UPDATE datasets SET domain = ? WHERE id = ?", (domain, dataset_id))
         if "currency" in payload:
             conn.execute("UPDATE datasets SET currency = ? WHERE id = ?", (payload["currency"], dataset_id))
+        if "fiscal_year_start" in payload:
+            conn.execute("UPDATE datasets SET fiscal_year_start = ? WHERE id = ?", (payload["fiscal_year_start"], dataset_id))
         conn.commit()
-        currency = dataset_currency(conn, dataset_id)
+        metadata = dataset_metadata(conn, dataset_id)
     finally:
         conn.close()
     shared_cache().bump_namespace()
-    return {"id": dataset_id, "name": name, "domain": domain, "currency": currency}
+    return {"id": dataset_id, "name": name, "domain": domain, **metadata}
 
 
 @router.delete("/datasets/{dataset_id}", status_code=204)
@@ -118,7 +134,8 @@ def list_periods(granularity: str = "month", _: CurrentUser = Depends(require_re
             """,
             (ds,),
         ).fetchall()
-        keys = {period_key(r["period"], granularity) for r in rows}
-        return sorted(keys, key=sort_key)
+        fiscal_start = dataset_metadata(conn, ds)["fiscal_year_start"]
+        keys = {period_key(r["period"], granularity, fiscal_start) for r in rows}
+        return sorted(keys, key=lambda key: sort_key(key, fiscal_start))
     finally:
         conn.close()

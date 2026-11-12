@@ -10,10 +10,10 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app import audit, scheduling
 from app.api import CurrentUser, require_read
-from app.compute.aggregate import GRANULARITIES, period_key, sort_key
+from app.compute.aggregate import GRANULARITIES, months_in, period_key, sort_key
 from app.compute.availability import has_usable_value
 from app.context.store import _row_to_doc
-from app.datasets import _scope_pred, active_dataset_id, current_workspace
+from app.datasets import _scope_pred, active_dataset_id, current_workspace, dataset_metadata
 from app.db import get_connection
 from app.retrieval.retrieve import _effective_ok, _metric_ok
 
@@ -70,6 +70,7 @@ def _summaries(conn, ds, granularity="month"):
     """
     if ds is None:
         return []
+    fiscal_start = dataset_metadata(conn, ds)["fiscal_year_start"]
     rows = conn.execute(
         """SELECT cf.period, cf.metric_id, cf.value, m.name, cf.is_anomaly,
         cf.budget_var_pct, gr.id AS report_id, gr.review_status, gr.faithfulness,
@@ -119,7 +120,7 @@ def _summaries(conn, ds, granularity="month"):
     # Roll months up into the requested closes. For months this is one-to-one.
     buckets = {}
     for month, g in groups.items():
-        b = buckets.setdefault(period_key(month, granularity),
+        b = buckets.setdefault(period_key(month, granularity, fiscal_start),
                                {"g": dict.fromkeys(_COUNTS, 0), "months": [], "shared": [], "at": None, "ids": set()})
         for k in _COUNTS:
             b["g"][k] += g[k]
@@ -130,7 +131,7 @@ def _summaries(conn, ds, granularity="month"):
             b["at"] = max(b["at"] or "", shared[month])
     out = [{**_finish(period, b["g"], b["months"], b["shared"], b["at"]), "distinct_kpis": len(b["ids"])}
            for period, b in buckets.items()]
-    out.sort(key=lambda x: sort_key(x["period"]), reverse=True)
+    out.sort(key=lambda x: sort_key(x["period"], fiscal_start), reverse=True)
     return out
 
 
@@ -151,6 +152,7 @@ def months(granularity: str = "month", _: CurrentUser = Depends(require_read)):
 
 
 def _activity(conn, ds, period, granularity="month"):
+    covered_months = set(months_in(period, granularity, dataset_metadata(conn, ds)["fiscal_year_start"]))
     reports = {
         str(r["id"]): (r["period"], r["name"])
         for r in conn.execute(
@@ -162,7 +164,7 @@ def _activity(conn, ds, period, granularity="month"):
     result = []
     for entry in audit.list_entries(conn, current_workspace(), limit=2147483647):
         report = reports.get(str(entry["entity_id"])) if entry["entity_type"] == "report" else None
-        in_close = bool(report) and _granularity_of(report[0]) == "month" and period_key(report[0], granularity) == period
+        in_close = bool(report) and report[0] in covered_months
         relevant = in_close or (
             entry["entity_type"] == "dataset" and str(entry["entity_id"]) == str(ds)
         )
@@ -193,7 +195,8 @@ def status(period: str, _: CurrentUser = Depends(require_read)):
         if granularity != "month":
             # Commentary lives on months: send each open step to the earliest
             # month that still needs it (or the latest month once it's done).
-            by_month = {m["period"]: _steps(m["period"], m) for m in _summaries(conn, ds) if m["period"] in s["months"]}
+            covered_months = set(months_in(period, granularity, dataset_metadata(conn, ds)["fiscal_year_start"]))
+            by_month = {m["period"]: _steps(m["period"], m) for m in _summaries(conn, ds) if m["period"] in covered_months}
             for i, st in enumerate(steps):
                 todo = [m for m in sorted(by_month) if by_month[m][i]["state"] != "done"]
                 target = (todo or sorted(by_month))[0 if todo else -1]
