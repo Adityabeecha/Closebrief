@@ -203,13 +203,13 @@ def compute_and_store(
             (
                 int(f["metric_id"]),
                 f["period"],
-                f["value"],
-                f["prior_value"],
-                f["mom_pct"],
-                f["yoy_pct"],
-                f["budget_var_abs"],
-                f["budget_var_pct"],
-                f["trend"],
+                _db_num(f["value"]),
+                _db_num(f["prior_value"]),
+                _db_num(f["mom_pct"]),
+                _db_num(f["yoy_pct"]),
+                _db_num(f["budget_var_abs"]),
+                _db_num(f["budget_var_pct"]),
+                f["trend"] if isinstance(f["trend"], str) else None,
                 int(bool(f["is_anomaly"])),
             ),
         )
@@ -220,6 +220,12 @@ def compute_and_store(
     reset_changed_commentary(conn, changed)
     conn.commit()
     return facts.drop(columns=["metric_id"])
+
+
+def _db_num(v):
+    """A missing pandas number is NaN. SQLite stores NaN as NULL but Postgres keeps it
+    as the float NaN, so write None for anything missing."""
+    return None if v is None or pd.isna(v) else float(v)
 
 
 _COMPARED = ("value", "prior_value", "mom_pct", "yoy_pct", "budget_var_abs", "budget_var_pct")
