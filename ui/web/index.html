@@ -394,6 +394,9 @@
   .kpi-finish{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:14px}
   .kpi-grid.hdr{background:var(--surface-2);border-top:1px solid var(--line);border-radius:var(--r-md) var(--r-md) 0 0;font-weight:600;font-size:12px;color:var(--text-3);padding-top:10px;padding-bottom:10px}
   .kpi-grid:last-child{border-radius:0 0 var(--r-md) var(--r-md)}
+  .map-totals ul,.imp-report ul{margin:6px 0 0 18px;display:flex;flex-direction:column;gap:4px}
+  .map-totals label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+  .map-totals small,.imp-report small{color:var(--text-3)}
   .kpi-grid select.ask{border-color:var(--review);box-shadow:0 0 0 1px var(--review)}
   .dir-note{font-size:12px;color:var(--text-3);white-space:nowrap}
   .kpi-grid select,.kpi-grid input:not([type=checkbox]){padding:7px 9px;border:1px solid var(--line-strong);border-radius:var(--r-sm);background:var(--surface);color:var(--text);width:100%;font-size:13px}
@@ -1576,6 +1579,7 @@
         <p class="imp-say">We matched each column to what it holds. Check the last column, change anything that's wrong, then confirm.</p>
         <div class="banner info" id="tpl-banner" style="display:none"></div>
         <div class="banner info" id="map-warnings" style="display:none"></div>
+        <div class="banner warn map-totals" id="map-totals" style="display:none"></div>
         <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap">
           <div id="sheet-pick" style="display:none"><label for="sheet-sel" class="lbl">Sheet</label><select class="pill-btn" id="sheet-sel" onchange="loadSchema()"></select></div>
           <div><label for="layout-sel" class="lbl">Layout</label><select class="pill-btn" id="layout-sel" onchange="renderMap()">
