@@ -319,6 +319,95 @@
       "summary": "Board Pack"
     }
   },
+  "/close/changes": {
+    "get": {
+      "operationId": "changes_close_changes_get",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "period",
+          "required": true,
+          "schema": {
+            "title": "Period",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "granularity",
+          "required": false,
+          "schema": {
+            "default": "month",
+            "title": "Granularity",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Changes",
+      "tags": [
+        "close"
+      ]
+    }
+  },
+  "/close/lock": {
+    "post": {
+      "operationId": "lock_close_lock_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CloseSelection"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Lock",
+      "tags": [
+        "close"
+      ]
+    }
+  },
   "/close/months": {
     "get": {
       "operationId": "months_close_months_get",
@@ -372,6 +461,22 @@
             "title": "Period",
             "type": "string"
           }
+        },
+        {
+          "in": "query",
+          "name": "granularity",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Granularity"
+          }
         }
       ],
       "responses": {
@@ -395,6 +500,45 @@
         }
       },
       "summary": "Status",
+      "tags": [
+        "close"
+      ]
+    }
+  },
+  "/close/unlock": {
+    "post": {
+      "operationId": "unlock_close_unlock_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/CloseSelection"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Unlock",
       "tags": [
         "close"
       ]
@@ -1664,6 +1808,22 @@
             "default": false,
             "title": "Save Template",
             "type": "boolean"
+          }
+        },
+        {
+          "in": "query",
+          "name": "target_dataset_id",
+          "required": false,
+          "schema": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Dataset Id"
           }
         }
       ],

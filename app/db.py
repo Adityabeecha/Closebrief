@@ -28,6 +28,35 @@ CREATE TABLE IF NOT EXISTS import_receipts (
 );
 """
 
+
+_CLOSE_CONTROL_SCHEMA = """
+CREATE TABLE IF NOT EXISTS value_changes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    workspace_id INTEGER,
+    dataset_id INTEGER NOT NULL REFERENCES datasets(id) ON DELETE CASCADE,
+    metric_id INTEGER NOT NULL REFERENCES metrics(id) ON DELETE CASCADE,
+    period TEXT NOT NULL,
+    field TEXT NOT NULL CHECK (field IN ('value', 'budget')),
+    old_value REAL,
+    new_value REAL,
+    source TEXT NOT NULL CHECK (source IN ('import', 'budget_join', 'sync', 'custom_kpi')),
+    actor_id TEXT,
+    actor_email TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_value_changes_dataset_period ON value_changes(dataset_id, period);
+CREATE TABLE IF NOT EXISTS close_locks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    workspace_id INTEGER,
+    dataset_id INTEGER NOT NULL REFERENCES datasets(id) ON DELETE CASCADE,
+    period TEXT NOT NULL,
+    locked_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    locked_by_id TEXT,
+    locked_by_email TEXT,
+    UNIQUE(dataset_id, period)
+);
+"""
+
 # SQLite has no row-level security DDL. Migration 026 extends PostgreSQL RLS;
 # SQLite continues to enforce tenancy through the request-scoped SQL predicates.
 _SQLITE_SCHEMA = """
@@ -346,7 +375,7 @@ CREATE TABLE IF NOT EXISTS digest_runs (
 """
 
 # Columns added after first release; applied to pre-existing SQLite DBs on startup.
-_SQLITE_SCHEMA += _IMPORT_RECEIPTS_SCHEMA
+_SQLITE_SCHEMA += _IMPORT_RECEIPTS_SCHEMA + _CLOSE_CONTROL_SCHEMA
 
 
 def _migrate_dataset_freshness(conn: sqlite3.Connection) -> None:
@@ -359,11 +388,16 @@ def _migrate_dataset_freshness(conn: sqlite3.Connection) -> None:
         conn.execute("UPDATE datasets SET data_changed_at = created_at WHERE data_changed_at IS NULL")
 
 
+def _migrate_close_control(conn: sqlite3.Connection) -> None:
+    conn.executescript(_CLOSE_CONTROL_SCHEMA)
+
+
 _SQLITE_MIGRATIONS = [
     _migrate_dataset_freshness,
     "ALTER TABLE datasets ADD COLUMN data_changed_at TIMESTAMP",
     "ALTER TABLE datasets ADD COLUMN fiscal_year_start INTEGER NOT NULL DEFAULT 1 CHECK (fiscal_year_start BETWEEN 1 AND 12)",
     _IMPORT_RECEIPTS_SCHEMA,
+    _migrate_close_control,
     "ALTER TABLE metric_values ADD COLUMN source_rows INTEGER NOT NULL DEFAULT 1",
     "ALTER TABLE datasets ADD COLUMN currency TEXT NOT NULL DEFAULT 'USD' "
     "CHECK (currency IN ('USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'SGD', 'CHF'))",

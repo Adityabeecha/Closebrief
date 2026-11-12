@@ -29,7 +29,8 @@ CREATE TABLE pvm_bridges (id INTEGER PRIMARY KEY AUTOINCREMENT, metric_id INTEGE
 def conn():
     c = sqlite3.connect(":memory:")
     c.row_factory = sqlite3.Row
-    c.executescript(SCHEMA)
+    from app.db import _CLOSE_CONTROL_SCHEMA
+    c.executescript(SCHEMA + _CLOSE_CONTROL_SCHEMA)
     from app.datasets import create_dataset
     dataset_id = create_dataset(c, "test")
     yield c, dataset_id
@@ -81,6 +82,7 @@ def test_wide_budget_length_mismatch_errors():
 
 # ---------- dimension aggregation + multi-item PVM ----------
 
+@pytest.mark.sqlite_only
 def test_dimension_rows_aggregate_not_overwrite(conn):
     # Two products, same metric+period: value must SUM to 300, not keep last.
     canonical = pd.DataFrame([
@@ -98,6 +100,7 @@ def test_dimension_rows_aggregate_not_overwrite(conn):
     assert row["value"] == 300 and row["budget"] == 270
 
 
+@pytest.mark.sqlite_only
 def test_multi_item_pvm_bridge_stored(conn):
     canonical = pd.DataFrame([
         {"metric": "Revenue", "period": "2025-01", "value": 250, "budget": 500,

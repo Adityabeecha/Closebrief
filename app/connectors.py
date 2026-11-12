@@ -109,7 +109,8 @@ def all_enabled(conn) -> list[tuple[int, int | None]]:
 
 
 # ---------------------------------------------------------------- sync
-def sync_connector(conn, connector_id: int, workspace_id: int | None, *, fetch=fetch_bytes) -> dict:
+def sync_connector(conn, connector_id: int, workspace_id: int | None, *, fetch=fetch_bytes,
+                   actor_id=None, actor_email=None) -> dict:
     """Fetch the source, ingest into the connector's dataset, recompute. `fetch`
     is injectable so tests run without network. Idempotent per period."""
     from app.compute.derived import refresh as _recompute_with_derived
@@ -150,16 +151,17 @@ def sync_connector(conn, connector_id: int, workspace_id: int | None, *, fetch=f
         ).fetchone()
         ds_id = ds["id"] if ds else create_dataset(
             conn, ds_name, activate=False, workspace_id=row["workspace_id"])
-        summary = ingest_dataframe(conn, df, ds_id)
-        _recompute_with_derived(conn, ds_id)
+        summary = ingest_dataframe(conn, df, ds_id, source="sync", actor_id=actor_id, actor_email=actor_email)
+        _recompute_with_derived(conn, ds_id, actor_id=actor_id, actor_email=actor_email, report=summary.import_report)
         if active_dataset_id(conn) is None:
             set_active(conn, ds_id)
         _finish("ok", None)
         record_receipt(conn, ds_id, kind="connector_sync", filename=row["name"],
                        mapping={"layout": "long", "period_col": "period", "metric_col": "metric",
                                 "value_col": "value", "budget_col": "budget"},
-                       report=summary.model_dump(), written_pairs=zip(df["metric"], df["period"]))
-        return {"status": "ok", "dataset_id": ds_id, "rows": len(df)}
+                       report={**summary.model_dump(), **summary.import_report}, written_pairs=df.attrs["written_pairs"])
+        return {"status": "ok", "dataset_id": ds_id, "rows": summary.rows_ingested,
+                "import_report": summary.import_report}
     except Exception:  # noqa: BLE001 - upstream errors may contain credentials or source rows
         conn.rollback()
         error = "Connector sync failed; check source availability, file format and configuration."

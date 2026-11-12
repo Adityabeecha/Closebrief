@@ -124,6 +124,7 @@ def ingest_schema(upload_id: str, sheet: str | None = None, _: CurrentUser = Dep
 
 @router.post("/ingest/{upload_id}/mapping")
 def ingest_mapping(upload_id: str, mapping: MappingSpec, save_template: bool = False,
+                   target_dataset_id: int | None = None,
                    user: CurrentUser = Depends(require_write)) -> dict:
     conn = get_connection()
     try:
@@ -136,13 +137,19 @@ def ingest_mapping(upload_id: str, mapping: MappingSpec, save_template: bool = F
         up = conn.execute(
             "SELECT filename, column_signature, currency FROM uploads WHERE id = ?", (upload_id,)
         ).fetchone()
-        # A mapping confirmation is a new dataset: its metrics/facts are scoped
-        # to it so it never mixes with earlier uploads on the dashboard.
-        dataset_id = create_dataset(
+        existing = conn.execute(
+            f"SELECT id FROM datasets WHERE source_upload_id=? AND {_scope_pred()} ORDER BY id DESC LIMIT 1",
+            (upload_id,)).fetchone()
+        if target_dataset_id is not None:
+            existing = conn.execute(f"SELECT id FROM datasets WHERE id=? AND {_scope_pred()}",
+                                    (target_dataset_id,)).fetchone()
+            if existing is None:
+                raise HTTPException(status_code=404, detail="Dataset not found")
+        dataset_id = existing["id"] if existing else create_dataset(
             conn, name=up["filename"] if up else upload_id, source_upload_id=upload_id,
-            uploaded_by=user.id, uploaded_by_email=user.email, currency=up["currency"] if up else "USD",
-        )
-        summary = store_normalized(conn, canonical, dataset_id)
+            uploaded_by=user.id, uploaded_by_email=user.email, currency=up["currency"] if up else "USD")
+        summary = store_normalized(conn, canonical, dataset_id, replace=bool(existing),
+                                   actor_id=user.id, actor_email=user.email)
         conn.execute(
             "UPDATE uploads SET mapping = ? WHERE id = ?",
             (mapping.model_dump_json(), upload_id),
@@ -153,13 +160,15 @@ def ingest_mapping(upload_id: str, mapping: MappingSpec, save_template: bool = F
         if save_template:
             template_id = save_mapping_template(conn, up["column_signature"], mapping.model_dump())
 
+        derived_metrics.refresh(conn, dataset_id, actor_id=user.id, actor_email=user.email,
+                                report=summary["import_report"])
         facts = compute_and_store(conn, dataset_id)
         audit.record(conn, "import", "dataset", dataset_id, actor_id=user.id, actor_email=user.email,
                      summary={"name": up["filename"] if up else upload_id,
                               "rows": int(summary["import_report"].get("rows_kept", 0))})
         record_receipt(conn, dataset_id, kind="import", filename=up["filename"] if up else upload_id,
                        mapping=mapping.model_dump(), report=summary["import_report"],
-                       written_pairs=zip(canonical["metric"], canonical["period"]))
+                       written_pairs=canonical.attrs["written_pairs"])
         _notify_anomalies(conn, dataset_id)
         shared_cache().bump_namespace()
         return {**summary, "dataset_id": dataset_id, **dataset_metadata(conn, dataset_id),
@@ -212,14 +221,15 @@ def ingest_join_budget(upload_id: str, payload: dict,
         if suffix:
             canonical["metric"] = canonical["metric"].astype(str).str.strip() + " " + suffix
 
-        report = match_budget_to_dataset(conn, canonical, target_dataset_id)
-        compute_and_store(conn, target_dataset_id)
+        report = match_budget_to_dataset(conn, canonical, target_dataset_id,
+                                         actor_id=user.id, actor_email=user.email)
+        derived_metrics.refresh(conn, target_dataset_id, actor_id=user.id, actor_email=user.email, report=report)
         up = get_upload(conn, upload_id)
         record_receipt(conn, target_dataset_id, kind="budget_join", filename=up["filename"],
                        mapping={**mapping.model_dump(), "metric_suffix": suffix}, report=report,
                        written_pairs=canonical.attrs["written_pairs"])
         shared_cache().bump_namespace()
-        return {**report, "dataset_id": target_dataset_id}
+        return {**report, "import_report": report, "dataset_id": target_dataset_id}
     except UploadError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     finally:
@@ -348,14 +358,15 @@ def create_derived_kpi(payload: dict, user: CurrentUser = Depends(require_write)
                 direction_good=payload.get("direction_good", "up"))
         except FormulaError as e:
             raise HTTPException(status_code=422, detail=str(e)) from e
-        derived_metrics.materialize(conn, ds)
+        report = {}
+        derived_metrics.materialize(conn, ds, actor_id=user.id, actor_email=user.email, report=report)
         compute_and_store(conn, ds)
         audit.record(conn, "create", "derived_kpi", did, actor_id=user.id,
                      actor_email=user.email, summary={"name": name, "formula": formula})
     finally:
         conn.close()
     shared_cache().bump_namespace()
-    return {"id": did, "name": name}
+    return {"id": did, "name": name, "import_report": report}
 
 
 @router.get("/kpis")
