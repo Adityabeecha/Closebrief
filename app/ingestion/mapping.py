@@ -421,11 +421,21 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
     # metric with null facts — not silently vanish because every one of its
     # rows happened to be empty. store_normalized reads this via out.attrs.
     all_metrics = sorted(str(m) for m in out["metric"].dropna().unique())
-    duplicates = out[out["_source_row"].isin({i + 1 for i in duplicate_rows})]
-    examples = [
-        {"row": int(r["_source_row"]), "metric": r["metric"], "period": r["period"]}
-        for _, r in duplicates.drop_duplicates("_source_row").head(20).iterrows()
-    ]
+
+    # Identical lines are certainly one line exported twice only when they also
+    # share a row ID. Without an ID column, two identical rows can be two real
+    # sales of the same amount: they're kept (and added), and reported so the
+    # user can check for a double export, rather than silently understating.
+    identical_kept = set() if mapping.id_col else set(duplicate_rows)
+    if not mapping.id_col:
+        duplicate_rows = set()
+
+    def _examples(rows: set[int]) -> list[dict]:
+        hits = out[out["_source_row"].isin({i + 1 for i in rows})]
+        return [{"row": int(r["_source_row"]), "metric": r["metric"], "period": r["period"]}
+                for _, r in hits.drop_duplicates("_source_row").head(20).iterrows()]
+
+    examples, kept_examples = _examples(duplicate_rows), _examples(identical_kept)
     out = out[~out["_source_row"].isin({i + 1 for i in duplicate_rows})]
     out = out[out["value"].notna()].reset_index(drop=True)
     if out.empty:
@@ -434,6 +444,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
     out.attrs["import_report"] = {
         "rows_read": rows_read, "rows_kept": int(out["_source_row"].nunique()),
         "duplicates_dropped": {"count": len(duplicate_rows), "examples": examples},
+        "identical_kept": {"count": len(identical_kept), "examples": kept_examples},
         "totals_dropped": df.attrs["totals_dropped"],
     }
     out = out.drop(columns="_source_row")
@@ -640,7 +651,8 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
         "import_report": {
             **canonical.attrs.get("import_report", {
                 "rows_read": len(canonical), "rows_kept": len(canonical),
-                "duplicates_dropped": {"count": 0, "examples": []}, "totals_dropped": [],
+                "duplicates_dropped": {"count": 0, "examples": []},
+                "identical_kept": {"count": 0, "examples": []}, "totals_dropped": [],
             }),
             "combined": [
                 {"metric": metric, "period": period, "rows": int(count)}
