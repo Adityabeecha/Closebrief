@@ -64,6 +64,10 @@ def compute_kpis(df: pd.DataFrame, anomaly_z_threshold: float = 2.0) -> pd.DataF
                     None if budget == 0 else (value - budget) / abs(budget) * 100.0
                 )
 
+            forecast = row.get("forecast")
+            forecast_var_abs = None if forecast is None or pd.isna(forecast) else value - forecast
+            forecast_var_pct = (None if forecast_var_abs is None or forecast == 0
+                                else forecast_var_abs / abs(forecast) * 100.0)
             mom_series.append(mom_pct)
 
             # Trend: linear-regression slope over the trailing 12 months
@@ -82,6 +86,8 @@ def compute_kpis(df: pd.DataFrame, anomaly_z_threshold: float = 2.0) -> pd.DataF
                     "yoy_pct": yoy_pct,
                     "budget_var_abs": budget_var_abs,
                     "budget_var_pct": budget_var_pct,
+                    "forecast_var_abs": forecast_var_abs,
+                    "forecast_var_pct": forecast_var_pct,
                     "trend": trend,
                     "is_anomaly": False,  # filled in below once mom_series is complete
                 }
@@ -149,7 +155,7 @@ def compute_and_store(
     if dataset_id is not None:
         rows = conn.execute(
             """
-            SELECT m.id AS metric_id, m.name AS metric, mv.period, mv.value, mv.budget
+            SELECT m.id AS metric_id, m.name AS metric, mv.period, mv.value, mv.budget, mv.forecast
             FROM metric_values mv JOIN metrics m ON m.id = mv.metric_id
             WHERE m.dataset_id = ?
             """,
@@ -158,7 +164,7 @@ def compute_and_store(
     else:
         rows = conn.execute(
             """
-            SELECT m.id AS metric_id, m.name AS metric, mv.period, mv.value, mv.budget
+            SELECT m.id AS metric_id, m.name AS metric, mv.period, mv.value, mv.budget, mv.forecast
             FROM metric_values mv JOIN metrics m ON m.id = mv.metric_id
             """
         ).fetchall()
@@ -180,7 +186,7 @@ def compute_and_store(
         marks = ",".join("?" * len(metric_ids))
         for r in conn.execute(
             f"""SELECT metric_id, period, value, prior_value, mom_pct, yoy_pct,
-                       budget_var_abs, budget_var_pct
+                       budget_var_abs, budget_var_pct, forecast_var_abs, forecast_var_pct
                 FROM computed_facts WHERE metric_id IN ({marks})""",
             tuple(metric_ids),
         ).fetchall():
@@ -192,12 +198,13 @@ def compute_and_store(
             """
             INSERT INTO computed_facts
                 (metric_id, period, value, prior_value, mom_pct, yoy_pct,
-                 budget_var_abs, budget_var_pct, trend, is_anomaly)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 budget_var_abs, budget_var_pct, forecast_var_abs, forecast_var_pct, trend, is_anomaly)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(metric_id, period) DO UPDATE SET
                 value=excluded.value, prior_value=excluded.prior_value,
                 mom_pct=excluded.mom_pct, yoy_pct=excluded.yoy_pct,
                 budget_var_abs=excluded.budget_var_abs, budget_var_pct=excluded.budget_var_pct,
+                forecast_var_abs=excluded.forecast_var_abs, forecast_var_pct=excluded.forecast_var_pct,
                 trend=excluded.trend, is_anomaly=excluded.is_anomaly
             """,
             (
@@ -209,6 +216,8 @@ def compute_and_store(
                 _db_num(f["yoy_pct"]),
                 _db_num(f["budget_var_abs"]),
                 _db_num(f["budget_var_pct"]),
+                _db_num(f["forecast_var_abs"]),
+                _db_num(f["forecast_var_pct"]),
                 f["trend"] if isinstance(f["trend"], str) else None,
                 int(bool(f["is_anomaly"])),
             ),
@@ -228,7 +237,7 @@ def _db_num(v):
     return None if v is None or pd.isna(v) else float(v)
 
 
-_COMPARED = ("value", "prior_value", "mom_pct", "yoy_pct", "budget_var_abs", "budget_var_pct")
+_COMPARED = ("value", "prior_value", "mom_pct", "yoy_pct", "budget_var_abs", "budget_var_pct", "forecast_var_abs", "forecast_var_pct")
 
 
 def facts_row(facts: pd.DataFrame, key: tuple[int, str]) -> list:

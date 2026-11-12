@@ -10,7 +10,7 @@ def _kpi_totals(conn, dataset_id: int, written_pairs) -> list[dict]:
     pairs = set(written_pairs)
     totals = {}
     for row in conn.execute(
-        """SELECT m.name, mv.period, mv.value, mv.budget, mv.source_rows
+        """SELECT m.name, mv.period, mv.value, mv.budget, mv.forecast, mv.source_rows
            FROM metric_values mv JOIN metrics m ON m.id = mv.metric_id
            WHERE m.dataset_id = ? ORDER BY m.name, mv.period""", (dataset_id,),
     ).fetchall():
@@ -23,6 +23,8 @@ def _kpi_totals(conn, dataset_id: int, written_pairs) -> list[dict]:
         item["value_total"] += float(row["value"])
         if row["budget"] is not None:
             item["budget_total"] = (item["budget_total"] or 0.0) + float(row["budget"])
+        if row["forecast"] is not None:
+            item["forecast_total"] = item.get("forecast_total", 0.0) + float(row["forecast"])
         item["rows"] += int(row["source_rows"])
     return list(totals.values())
 

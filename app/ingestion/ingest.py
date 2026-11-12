@@ -39,6 +39,10 @@ def parse_csv(raw_bytes: bytes) -> pd.DataFrame:
     if not np.isfinite(df["budget"].dropna()).all():
         raise IngestValidationError("Column 'budget' contains non-finite entries")
 
+    if "forecast" in df:
+        df["forecast"] = pd.to_numeric(df["forecast"], errors="coerce")
+        if not np.isfinite(df["forecast"].dropna()).all():
+            raise IngestValidationError("Column 'forecast' contains non-finite entries")
     return df
 
 
@@ -65,14 +69,17 @@ def ingest_dataframe(conn: sqlite3.Connection, df: pd.DataFrame, dataset_id: int
         metric_id = metric_ids[row["metric"]]
         written_pairs.add((row["metric"], row["period"]))
         budget = None if pd.isna(row["budget"]) else float(row["budget"])
+        forecast = row.get("forecast")
+        forecast = None if forecast is None or pd.isna(forecast) else float(forecast)
         cur.execute(
             """
-            INSERT INTO metric_values (metric_id, period, value, budget)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(metric_id, period) DO UPDATE SET value=excluded.value, budget=excluded.budget
+            INSERT INTO metric_values (metric_id, period, value, budget, forecast)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(metric_id, period) DO UPDATE SET value=excluded.value, budget=excluded.budget, forecast=excluded.forecast
             """,
-            (metric_id, row["period"], float(row["value"]), budget),
+            (metric_id, row["period"], float(row["value"]), budget, forecast),
         )
+        conn.execute("DELETE FROM metric_breakdowns WHERE metric_id=? AND period=?", (metric_id, row["period"]))
         rows_ingested += 1
     record_changes(conn, dataset_id, before, source, actor_id=actor_id, actor_email=actor_email)
     if rows_ingested:
