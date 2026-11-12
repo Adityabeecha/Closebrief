@@ -59,6 +59,11 @@
   .btn.ghost{background:transparent;color:var(--text);border-color:var(--line-strong)}
   .btn.ghost:hover{background:var(--surface-3);border-color:var(--text-3)}
   .btn .short{display:none}
+  .gh{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;margin-left:4px;border-radius:var(--r-sm);color:var(--text-2);flex:none}
+  .gh:hover{color:var(--text);background:var(--surface-3)}
+  .gh svg{width:22px;height:22px}
+  #nav-signin{white-space:nowrap}
+  @media (max-width:720px){#nav-signin{padding:9px 8px!important}.gh{width:36px;height:36px;margin-left:0}}
 
   /* ---- hero ---- */
   .hero{position:relative;text-align:center;padding:28px 0 0;isolation:isolate}
@@ -204,6 +209,7 @@
     <nav aria-label="Main"><a class="link" href="#verification">Verification</a><a class="link" href="#close">How a close works</a><a class="link" href="#evidence">Evidence</a></nav>
     <a class="link" href="/app" id="nav-signin" style="font-size:15px;font-weight:600;color:var(--text-2);text-decoration:none;padding:9px 12px">Sign in</a>
     <a class="btn md" href="/app?demo=1" data-cta><span class="long" data-cta-label>Open the demo</span><span class="short" data-cta-short>Demo</span></a>
+    <a class="gh" href="https://github.com/Adityabeecha/Closebrief" target="_blank" rel="noopener" aria-label="Closebrief source code on GitHub (opens in a new tab)" title="Source code on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></a>
   </div>
 </header>
 
@@ -328,7 +334,7 @@
 </main>
 
 <footer>
-  <div class="wrap"><span>Closebrief</span><span>Figures on this page are sample data.</span><a href="https://github.com/Adityabeecha/Closebrief" rel="noopener">Source code</a><a href="https://github.com/Adityabeecha/Closebrief/issues" rel="noopener">Questions and feedback</a></div>
+  <div class="wrap"><span>Closebrief</span><span>Figures on this page are sample data.</span><a href="https://github.com/Adityabeecha/Closebrief" rel="noopener">Source code</a><a href="https://github.com/Adityabeecha/Closebrief/issues" rel="noopener">Questions and feedback</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div>
 </footer>
 
 <script>
@@ -342,16 +348,10 @@
     var t=document.getElementById(m.getAttribute("data-t"));if(t){link(m,t);link(t,m);}
   });
 
-  // A saved session opens the newest unfinished month in the same workspace.
-  var token=null;
-  try{
-    token=localStorage.getItem("cb-session-token");
-    if(!token){
-      var key=Object.keys(localStorage).find(function(k){return /^sb-.*-auth-token$/.test(k);});
-      if(key){var session=JSON.parse(localStorage.getItem(key));token=session.access_token||(session.currentSession&&session.currentSession.access_token);}
-    }
-  }catch(e){}
-  if(token){
+  // A signed-in browser (the session itself is an HttpOnly cookie this page
+  // can't read; cb_signed_in is just a hint) opens the newest unfinished month.
+  var signedIn=/(?:^|;\s*)cb_signed_in=1(?:;|$)/.test(document.cookie);
+  if(signedIn){
     function returning(label,href){
       document.querySelectorAll("[data-cta],#nav-signin").forEach(function(a){a.href=href;});
       document.querySelectorAll("[data-cta-label],#nav-signin").forEach(function(el){el.textContent=label;});
@@ -360,7 +360,7 @@
     }
     returning("Open your workspace","/app");
     var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},8000);
-    var headers={Authorization:"Bearer "+token};
+    var headers={"X-Closebrief-Client":"1"};
     try{var ws=localStorage.getItem("cb-ws");if(/^[1-9]\d*$/.test(ws||""))headers["X-Workspace-Id"]=ws;}catch(e){}
     fetch("/close/months",{headers:headers,signal:controller.signal}).then(function(r){if(!r.ok)throw new Error("Months unavailable");return r.json();}).then(function(months){
       if(!Array.isArray(months))throw new Error("Invalid months");

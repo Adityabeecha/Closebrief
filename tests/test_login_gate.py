@@ -102,18 +102,18 @@ def test_sign_up_mode_asks_password_managers_for_a_new_password():
 
 def test_guest_entry_opens_the_app_read_only():
     run_js("let demoSession=false, guestSession=false", "function exitDemo(", _DOM + """
-      let authToken='old',appStarted=true,started=0;
+      let signedIn=true,appStarted=true,started=0;
       const document={body:{classList:{add(){}}}};
       const hideLogin=()=>{},startApp=()=>{started++;};
     """, """
       enterGuest();
       assert.equal(guestSession,true);assert.equal(demoSession,false);
-      assert.equal(authToken,null);assert.equal(started,1);
+      assert.equal(signedIn,false);assert.equal(started,1);
       assert.match($('demo-bar-text').innerHTML,/guest/);
       assert.equal($('demo-bar-exit').textContent,'Sign in');
     """)
     run_js("async function startApp(", "function applyRole(", """
-      let authToken=null,demoSession=false,guestSession=true,currentUser=null,applied=null;
+      let signedIn=false,demoSession=false,guestSession=true,currentUser=null,applied=null;
       const applyRole=u=>{applied=u;};
       const loadPeriods=()=>({then(){}});
     """, """
@@ -126,9 +126,9 @@ def test_guest_button_only_shows_when_the_server_allows_guests():
     html = INDEX.read_text(encoding="utf-8")
     assert re.search(r'<button type="button" class="lg-guest" id="lg-guest" style="display:none"', html)
     run_js("async function boot(", "/* ================= Google Sign-In", _DOM + """
-      let appCfg={},sb=null,authToken=null,appStarted=false;
+      let appCfg={},sb=null,signedIn=false,appStarted=false;
       const fetch=async()=>({json:async()=>({auth_enabled:false,allow_guest:true})});
-      const initSentry=()=>{},hideLogin=()=>{},startApp=()=>{},savedSessionToken=()=>null;
+      const initSentry=()=>{},hideLogin=()=>{},startApp=()=>{},takeLegacyToken=()=>null;
       $('lg-guest').style.display='none';$('lg-guest-note').style.display='none';
     """, """
       await boot();

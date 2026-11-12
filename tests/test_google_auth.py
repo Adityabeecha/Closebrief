@@ -396,8 +396,12 @@ def test_auth_google_endpoint_issues_a_session(client, keypair):
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["email"] == "ep@example.com" and body["role"] == "viewer"
-    # The issued token works on a normally-gated endpoint.
-    me = client.get("/me", headers={"Authorization": "Bearer " + body["token"]})
+    # S8: the session is an HttpOnly cookie, never handed to page scripts.
+    assert "token" not in body
+    cookie = next(c for c in r.headers.get_list("set-cookie") if c.startswith("cb_session="))
+    assert "httponly" in cookie.lower() and "samesite=lax" in cookie.lower()
+    # The cookie works on a normally-gated endpoint (the test client keeps it).
+    me = client.get("/me")
     assert me.status_code == 200 and me.json()["email"] == "ep@example.com"
 
 
