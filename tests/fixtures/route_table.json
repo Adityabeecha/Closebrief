@@ -560,16 +560,6 @@
     ]
   ],
   [
-    "/insights/cross-domain",
-    [
-      "GET"
-    ],
-    true,
-    [
-      "require_read"
-    ]
-  ],
-  [
     "/insights/root-cause",
     [
       "GET"

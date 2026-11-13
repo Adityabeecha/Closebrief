@@ -660,14 +660,6 @@
   .frow{display:flex;gap:10px;flex-wrap:wrap}
   .frow>*{flex:1;min-width:120px}
   /* Cross-domain signals */
-  .xd-item{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--b08)}
-  .xd-item:last-child{border-bottom:none}
-  .xd-r{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;flex:none;width:52px;text-align:center}
-  .xd-r.pos{color:var(--green)} .xd-r.neg{color:var(--red)}
-  .xd-body{min-width:0;flex:1;font-size:13px}
-  .xd-pair{font-weight:700;color:var(--ink);line-height:1.4}
-  .xd-meta{font-size:12px;color:var(--mut2);margin-top:2px}
-  .xd-arrow{color:var(--mut2);font-weight:700}
   /* Review workflow (detail) */
   .rev-strip{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:10px 0 4px}
   .rev-badge{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;padding:3px 9px;border-radius:999px}
@@ -973,6 +965,7 @@
   .glance button:first-child{border-top:none}
   .glance-more{margin-top:6px}
   .rollup-note{margin:10px 0 0;font-size:13px;color:var(--text-3)}
+  .anom-why{margin:10px 0 0;font-size:13px;color:var(--text-2);line-height:1.5}
   .glance button:hover span:first-child{color:var(--text);text-decoration:underline}
   .glance b{font-family:var(--font-mono);font-weight:600;color:var(--text);white-space:nowrap}
   .ov-activity p{display:flex;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:14px;color:var(--text-2);margin:0}
@@ -1453,7 +1446,7 @@
       <div class="head">
         <div>
           <h1>Analyze</h1>
-          <div class="sub">Quick estimates, custom KPIs and links between datasets. Every number here is calculated, never written by AI. The forecast and what-if are rough guides, not a plan or a budget.</div>
+          <div class="sub">Quick estimates and custom KPIs. Every number here is calculated, never written by AI. The forecast and what-if are rough guides, not a plan or a budget.</div>
         </div>
       </div>
       <div id="analytics-state"></div>
@@ -1462,7 +1455,6 @@
           <button data-tool="0" aria-pressed="true" onclick="anTool(0)"><b>Forecast</b><small>A quick estimate of the next few periods, with a likely range</small></button>
           <button data-tool="1" aria-pressed="false" onclick="anTool(1)"><b>What-if scenario</b><small>A quick sensitivity check on the latest month</small></button>
           <button data-tool="2" aria-pressed="false" class="write-only" onclick="anTool(2)"><b>Custom KPI</b><small>A new KPI built from a formula</small></button>
-          <button data-tool="3" aria-pressed="false" onclick="anTool(3)"><b>Links between datasets</b><small>Metrics that move together, and which moves first</small></button>
         </nav>
       <div class="an-grid an-one">
 
@@ -1521,12 +1513,6 @@
             </div>
             <div><button class="write-only btn primary" id="kb-btn" onclick="createDerivedKpi()">Create KPI</button></div>
           </div>
-        </div>
-
-        <!-- Cross-domain signals -->
-        <div class="panel">
-          <h2>Links between datasets</h2><div class="psub">Metrics in different datasets that move together, and how many months one runs ahead of the other.</div>
-          <div id="xd-list"><div class="an-empty">Loading…</div></div>
         </div>
 
       </div>

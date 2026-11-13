@@ -90,12 +90,15 @@ def compute_kpis(df: pd.DataFrame, anomaly_z_threshold: float = 2.0) -> pd.DataF
                     "forecast_var_pct": forecast_var_pct,
                     "trend": trend,
                     "is_anomaly": False,  # filled in below once mom_series is complete
+                    "anomaly_basis": None,
+                    "anomaly_z": None,
                 }
             )
 
-        anomalies = _flag_anomalies(mom_series, anomaly_z_threshold)
-        for i in range(len(anomalies)):
-            results[len(results) - len(anomalies) + i]["is_anomaly"] = anomalies[i]
+        judged = judge_anomalies(list(g["_month"]), mom_series, anomaly_z_threshold)
+        start = len(results) - len(judged)
+        for i, (flag, basis, z) in enumerate(judged):
+            results[start + i].update(is_anomaly=flag, anomaly_basis=basis, anomaly_z=z)
 
     return pd.DataFrame(results)
 
@@ -117,6 +120,48 @@ def _trend_direction(values: list[float], flat_slope_threshold: float = 0.005) -
     if normalized_slope < -flat_slope_threshold:
         return "down"
     return "flat"
+
+
+def _z(value: float, history: list[float], min_std: float = 0.0) -> float:
+    std = max(float(np.std(history)), min_std)
+    return 0.0 if std == 0 else (value - float(np.mean(history))) / std
+
+
+# A seasonal pattern can repeat exactly, leaving no spread in the year-on-year
+# differences; judge a departure from it against at least 1 percentage point.
+_SEASONAL_MIN_STD = 1.0
+
+
+def judge_anomalies(months: list[int], mom_series: list[float | None],
+                    z_threshold: float) -> list[tuple[bool, str | None, float | None]]:
+    """(is_anomaly, basis, z) per month, in order.
+
+    'seasonal': when the same month a year earlier has its own month-on-month change,
+    judge d = this change minus last year's change for that month against the trailing
+    history of such differences, so a December that rises every year isn't flagged
+    every year. Needs 3 earlier differences; otherwise fall back to
+    'month_on_month', today's rule (this change against the trailing changes, 3 needed).
+    None when there isn't enough history to judge."""
+    mom_by_month = {m: v for m, v in zip(months, mom_series) if v is not None}
+    out: list[tuple[bool, str | None, float | None]] = []
+    moms: list[float] = []
+    diffs: list[float] = []
+    for month, mom in zip(months, mom_series):
+        last_year = mom_by_month.get(month - 12)
+        diff = None if mom is None or last_year is None else mom - last_year
+        if diff is not None and len(diffs) >= 3:
+            z = _z(diff, diffs, _SEASONAL_MIN_STD)
+            out.append((abs(z) > z_threshold, "seasonal", round(z, 2)))
+        elif mom is not None and len(moms) >= 3:
+            z = _z(mom, moms)
+            out.append((abs(z) > z_threshold, "month_on_month", round(z, 2)))
+        else:
+            out.append((False, None, None))
+        if mom is not None:
+            moms.append(mom)
+        if diff is not None:
+            diffs.append(diff)
+    return out
 
 
 def _flag_anomalies(mom_series: list[float | None], z_threshold: float) -> list[bool]:
@@ -198,14 +243,16 @@ def compute_and_store(
             """
             INSERT INTO computed_facts
                 (metric_id, period, value, prior_value, mom_pct, yoy_pct,
-                 budget_var_abs, budget_var_pct, forecast_var_abs, forecast_var_pct, trend, is_anomaly)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 budget_var_abs, budget_var_pct, forecast_var_abs, forecast_var_pct, trend, is_anomaly,
+                 anomaly_basis, anomaly_z)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(metric_id, period) DO UPDATE SET
                 value=excluded.value, prior_value=excluded.prior_value,
                 mom_pct=excluded.mom_pct, yoy_pct=excluded.yoy_pct,
                 budget_var_abs=excluded.budget_var_abs, budget_var_pct=excluded.budget_var_pct,
                 forecast_var_abs=excluded.forecast_var_abs, forecast_var_pct=excluded.forecast_var_pct,
-                trend=excluded.trend, is_anomaly=excluded.is_anomaly
+                trend=excluded.trend, is_anomaly=excluded.is_anomaly,
+                anomaly_basis=excluded.anomaly_basis, anomaly_z=excluded.anomaly_z
             """,
             (
                 int(f["metric_id"]),
@@ -220,6 +267,8 @@ def compute_and_store(
                 _db_num(f["forecast_var_pct"]),
                 f["trend"] if isinstance(f["trend"], str) else None,
                 int(bool(f["is_anomaly"])),
+                f["anomaly_basis"] if isinstance(f["anomaly_basis"], str) else None,
+                _db_num(f["anomaly_z"]),
             ),
         )
     changed = [
@@ -229,6 +278,21 @@ def compute_and_store(
     reset_changed_commentary(conn, changed)
     conn.commit()
     return facts.drop(columns=["metric_id"])
+
+
+def refresh_stale_anomalies(conn) -> int:
+    """Recompute datasets whose facts predate the seasonal anomaly rule.
+
+    Under the current rule a flagged month always records how it was judged, so a
+    flagged month with no basis can only come from the old rule. Recomputing leaves
+    the figures (and so approvals) as they are; afterwards no row matches, so this
+    runs once per dataset. Returns how many datasets were recomputed."""
+    stale = [r["dataset_id"] for r in conn.execute(
+        """SELECT DISTINCT m.dataset_id FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
+           WHERE cf.is_anomaly = 1 AND cf.anomaly_basis IS NULL""").fetchall()]
+    for ds in stale:
+        compute_and_store(conn, ds)
+    return len(stale)
 
 
 def _db_num(v):

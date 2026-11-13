@@ -60,6 +60,20 @@ async def lifespan(_app: "FastAPI"):
             conn.close()
     except Exception:  # noqa: BLE001 - index is an optimization, never block boot
         logger.warning("could not create idx_feedback_report", exc_info=True)
+    # Facts computed before the seasonal anomaly rule get recomputed once, so old
+    # every-December flags clear and each flag can say how it was judged.
+    try:
+        from app.compute.kpis import refresh_stale_anomalies
+
+        conn = get_connection()
+        try:
+            n = refresh_stale_anomalies(conn)
+            if n:
+                logger.info("recomputed %d dataset(s) for the seasonal anomaly rule", n)
+        finally:
+            conn.close()
+    except Exception:  # noqa: BLE001 - a backfill must never block boot
+        logger.warning("could not refresh anomalies computed under the old rule", exc_info=True)
     if settings.demo_mode:
         # Seed the sample dataset on a background thread — embedding the demo
         # context docs takes a few seconds and must not delay boot / the health

@@ -17,7 +17,7 @@ from app.compute.aggregate import (
     sort_key,
     year_ago_key,
 )
-from app.compute.availability import combined_percentage_reason, has_usable_value
+from app.compute.availability import combined_percentage_reason, has_usable_value, needs_reason
 from app.compute.close_views import breakdown_available, breakdown_coverage, contributors, load_values, variance, ytd
 from app.compute.correlations import (
     compute_correlations,
@@ -44,6 +44,8 @@ from app.schemas import (
 )
 
 router = APIRouter()
+# The z-score past which a month's change is an anomaly (app/compute/kpis.py default).
+ANOMALY_Z = 2.0
 
 
 @router.get("/correlations")
@@ -275,7 +277,8 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
             "period": period, "value": cur["value"] if cur else None, "unit": k["unit"], **metadata,
             "direction_good": k["direction_good"], "prior_value": pv if has_data else None,
             "has_data": has_data, "deltas": deltas, "trend": None,
-            "is_anomaly": False, "aggregated": True, "granularity": granularity,
+            "is_anomaly": False, "anomaly": None, "aggregated": True, "granularity": granularity,
+            "needs_reason_flag": has_data and needs_reason(False, deltas["budget_var_pct"], metadata["reason_threshold_pct"]),
             "aggregation_type": agg,
             "forecast": cur.get("forecast") if has_data else None,
             "budget": cur.get("budget") if has_data else None,
@@ -333,7 +336,7 @@ def build_facts(conn, ds, period, granularity, user, include_charts=True):
                    k.category, k.unit, k.direction_good, k.aggregation_type,
                    cf.value, cf.prior_value, cf.mom_pct, cf.yoy_pct,
                    cf.budget_var_abs, cf.budget_var_pct, cf.forecast_var_abs, cf.forecast_var_pct, mv.forecast, mv.budget,
-                   cf.trend, cf.is_anomaly, mv.source_rows
+                   cf.trend, cf.is_anomaly, cf.anomaly_basis, cf.anomaly_z, mv.source_rows
             FROM kpi_configs k
             LEFT JOIN metrics m ON m.dataset_id = k.dataset_id AND m.name = k.source_metric
             LEFT JOIN computed_facts cf ON cf.metric_id = m.id AND cf.period = ?
@@ -349,7 +352,7 @@ def build_facts(conn, ds, period, granularity, user, include_charts=True):
             SELECT m.id AS metric_id, m.name AS metric, m.category, m.unit,
                    m.direction_good, NULL AS aggregation_type, cf.value, cf.prior_value, cf.mom_pct,
                    cf.yoy_pct, cf.budget_var_abs, cf.budget_var_pct, cf.forecast_var_abs, cf.forecast_var_pct, mv.forecast, mv.budget,
-                   cf.trend, cf.is_anomaly, mv.source_rows
+                   cf.trend, cf.is_anomaly, cf.anomaly_basis, cf.anomaly_z, mv.source_rows
             FROM metrics m
             LEFT JOIN computed_facts cf ON cf.metric_id = m.id AND cf.period = ?
             LEFT JOIN metric_values mv ON mv.metric_id = m.id AND mv.period = cf.period
@@ -435,6 +438,11 @@ def build_facts(conn, ds, period, granularity, user, include_charts=True):
             },
             "trend": r["trend"] if has_data and r["trend"] in ("up", "down", "flat") else None,
             "is_anomaly": bool(r["is_anomaly"]) if has_data else False,
+            # How the month was judged: against last year's same month, or month on month.
+            "anomaly": ({"basis": r["anomaly_basis"], "z": r["anomaly_z"], "threshold": ANOMALY_Z}
+                        if has_data and r["anomaly_basis"] else None),
+            "needs_reason_flag": has_data and needs_reason(
+                r["is_anomaly"], r["budget_var_pct"], metadata["reason_threshold_pct"]),
             "report_id": report["id"] if report else None,
             "review_status": report["review_status"] if report else None,
             "assigned_email": report["assigned_email"] if report else None,

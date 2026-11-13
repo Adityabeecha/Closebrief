@@ -43,8 +43,6 @@ L = {c[0]: c for c in LOADERS}
 def run_screen(case, assertions, extra=""):
     _, _, start, end, *_ = case
     helpers = section("/* ---------- secondary screen states", "/* ================= ADVANCED ANALYTICS")
-    if case[0] == "loadAnalytics":
-        extra += "const loadCrossDomain=async()=>{};"
     if case[0] == "loadDigest":
         extra += section("const TICK=", "const DOCICON=")
         extra += section("let digestGenerating=false;", "async function loadDigest(")
@@ -137,18 +135,6 @@ def test_costs_format_money_and_days_with_standard_helpers():
       await loadCosts();assert.match($('costs-stats').innerHTML,/\$102K/);
       assert.match($('costs-table').innerHTML,/02 Jul 2026/);assert.match($('costs-table').innerHTML,/\$12\.5/);
     """)
-
-
-def test_cross_dataset_signals_have_loading_empty_and_retry_states():
-    case = ('loadCrossDomain', 'xd-list', 'async function loadCrossDomain(',
-            '/* ---- Collaborative review', 'No links between datasets', 'Import another dataset')
-    run_screen(case, r"""
-      response=[];await loadCrossDomain();assert.match($('xd-list').innerHTML,/No links between datasets.*Import another dataset/s);
-      failure='403';await loadCrossDomain();assert.match($('xd-list').innerHTML,/admin access.*loadCrossDomain\(\).*Retry/s);
-      assert.equal(timers.size,0);
-    """)
-
-
 
 
 
