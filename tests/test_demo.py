@@ -218,7 +218,7 @@ def test_every_seeded_demo_narrative_passes_faithfulness(client):
         passed, bad = check_faithfulness(r["narrative"], fact)
         assert passed, (fact.metric, r["period"], r["narrative"], bad)
         assert len(r["narrative"].split()) < 90
-        assert "No reason recorded yet." in r["narrative"]
+        assert "No reason recorded" not in r["narrative"] and "The note" not in r["narrative"]
         assert "vs plan" in r["narrative"] or "vs last month" in r["narrative"]
     conn.close()
 
@@ -267,8 +267,8 @@ def test_template_uses_only_relevant_cited_reasons_and_real_comparisons(client, 
         else "vs plan" in text
     )
     assert bool(json.loads(report["sources"])) is cited
-    assert (doc.title in text) is cited
-    assert ("No reason recorded yet." in text) is not cited
+    assert ("price increase" in text) is cited
+    assert doc.title not in text and "No reason recorded" not in text
     assert check_faithfulness(
         text, route_facts._fact_by_metric_id(conn, mid, period), [ContextSnippet(id="ctx_999", body=doc.body)]
     )[0]

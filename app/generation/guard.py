@@ -138,8 +138,11 @@ def _allowed_values(fact: ComputedFact) -> tuple[set[float], set[float]]:
         magnitudes.add(fact.deltas.budget_var_abs)
     if fact.variance_bridge:
         magnitudes.update(fact.variance_bridge.values())
+    for c in fact.contributors or []:
+        magnitudes.update(v for v in (c.get("value"), c.get("budget"), c.get("var_abs")) if v is not None)
 
     percents = set()
+    percents.update(c["var_pct"] for c in fact.contributors or [] if c.get("var_pct") is not None)
     for p in (fact.deltas.mom_pct, fact.deltas.yoy_pct, fact.deltas.budget_var_pct):
         if p is not None:
             percents.add(p)
@@ -270,10 +273,12 @@ def direction_issue(text: str, match: re.Match, value: float, is_percent: bool,
         return None
     d = fact.deltas
     if is_percent:
-        changes = [d.mom_pct, d.yoy_pct, d.budget_var_pct]
+        changes = [d.mom_pct, d.yoy_pct, d.budget_var_pct,
+                   *(c.get("var_pct") for c in fact.contributors or [])]
         levels = [fact.value, fact.prior_value] if (fact.unit or "").lower() in ("%", "percent") else []
     else:
-        changes = [d.budget_var_abs, *((fact.variance_bridge or {}).values())]
+        changes = [d.budget_var_abs, *((fact.variance_bridge or {}).values()),
+                   *(c.get("var_abs") for c in fact.contributors or [])]
         levels = [fact.value, fact.prior_value]
     signs = [_sign(v) for v in changes if v is not None and _matches_any(value, {v}, 0.0)]
     if after_to and any(v is not None and _matches_any(value, {v}, 0.0) for v in levels):

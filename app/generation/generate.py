@@ -6,7 +6,14 @@ import time
 
 from app.generation.guard import check_faithfulness, faithfulness_messages
 from app.generation.llm_client import LLMClient, LLMGenerationError
-from app.generation.prompts import FIGURE_RULES, PROMPT_VERSION, SYSTEM_PROMPT, _fmt, build_user_prompt
+from app.generation.prompts import (
+    FIGURE_RULES,
+    PROMPT_VERSION,
+    SYSTEM_PROMPT,
+    _fmt,
+    build_user_prompt,
+    percent_kpi_points,
+)
 from app.schemas import ComputedFact, ContextSnippet, InsightOutput, SourceRef, TrendStreak
 
 
@@ -70,10 +77,20 @@ def _without_context_closing(narrative: str, fact: ComputedFact, streak: TrendSt
     if streak:
         word = "grown" if streak.direction == "growing" else "declined"
         observation = f"It has {word} for {_fmt(streak.months, 'count')} consecutive months."
-        present = r"\b(?:consecutive|straight|successive) months\b"
+        present = r"\b(?:consecutive|straight|successive) months\b|\b\d+ months\b"
     elif fact.deltas.yoy_pct is not None:
-        observation = f"It is {_fmt(fact.deltas.yoy_pct, '%')} year over year."
-        present = r"\byear[- ]over[- ]year\b|\byoy\b|\b(?:last|previous) year\b"
+        if (fact.unit or "").lower() in ("%", "percent", "days"):
+            # A rate or a day count changes by points or days, never by a percent of itself.
+            change = percent_kpi_points(fact)["yoy"]
+            if change is None:
+                return text
+            unit = "days" if (fact.unit or "").lower() == "days" else "points"
+            size = f"{abs(change):.1f}".removesuffix(".0")
+            observation = (f"It is {size} {unit} {'higher' if change > 0 else 'lower'} than a year ago."
+                           if round(change, 1) else "It is level with a year ago.")
+        else:
+            observation = f"It is {_fmt(fact.deltas.yoy_pct, '%')} year over year."
+        present = r"\byear[- ]over[- ]year\b|\byoy\b|\b(?:last|previous) year\b|\byear ago\b"
     elif fact.is_anomaly:
         observation = "This period is flagged as an anomaly."
         present = r"\banomal(?:y|ous)\b"

@@ -1,6 +1,7 @@
 """HTTP routes moved from app.main: generate."""
 
 import json
+import re
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -85,6 +86,27 @@ def funnel_narrative(payload: dict, user: CurrentUser = Depends(require_member))
     return {"funnel": funnel, "narrative": result.narrative}
 
 
+def _attach_contributors(conn, ds, metric_id, fact) -> None:
+    """Give a month's draft the KPI's breakdown (largest variances first), so it can say
+    which department or product drove the variance. Best effort: no breakdown, no change."""
+    if not re.fullmatch(r"\d{4}-\d{2}", fact.period or ""):
+        return
+    try:
+        from app.compute.aggregate import infer_aggregation_type
+        from app.compute.close_views import contributors
+
+        cfg = conn.execute("SELECT aggregation_type FROM kpi_configs WHERE dataset_id = ? AND source_metric = ?",
+                           (ds, fact.metric)).fetchone()
+        agg = (cfg["aggregation_type"] if cfg else None) or infer_aggregation_type(fact.metric, fact.unit)
+        result = contributors(conn, {"id": metric_id, "name": fact.metric}, fact.period, [fact.period], agg, fact.unit)
+    except Exception:  # noqa: BLE001 - a draft never fails for want of a breakdown
+        return
+    if result.get("available") and result.get("members"):
+        fact.contributor_dimension = result["dimension"]
+        fact.contributors = [{k: m.get(k) for k in ("member", "value", "budget", "var_abs", "var_pct")}
+                             for m in result["members"][:4]]
+
+
 @router.post("/generate-insight", response_model=InsightOutput)
 def generate_insight_endpoint(req: GenerateInsightRequest, user: CurrentUser = Depends(require_member)) -> InsightOutput:
     conn = get_connection()
@@ -114,6 +136,7 @@ def generate_insight_endpoint(req: GenerateInsightRequest, user: CurrentUser = D
                 streak = detect_consecutive_trends(conn, mrow["id"], req.period)
                 if streak is not None:
                     trend_streak = TrendStreak(**streak)
+                _attach_contributors(conn, ds, mrow["id"], fact)
 
         # Sources are only ever retrieved from the caller's own Context Library.
         # Hand-supplied context (a local-dev/testing convenience) is ignored when
