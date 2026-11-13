@@ -369,6 +369,59 @@
       ]
     }
   },
+  "/close/export.xlsx": {
+    "get": {
+      "operationId": "export_close_close_export_xlsx_get",
+      "parameters": [
+        {
+          "in": "query",
+          "name": "period",
+          "required": true,
+          "schema": {
+            "title": "Period",
+            "type": "string"
+          }
+        },
+        {
+          "in": "query",
+          "name": "granularity",
+          "required": false,
+          "schema": {
+            "default": "month",
+            "title": "Granularity",
+            "type": "string"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "description": "Successful Response"
+        },
+        "422": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          },
+          "description": "Validation Error"
+        }
+      },
+      "summary": "Export Close",
+      "tags": [
+        "close"
+      ]
+    }
+  },
   "/close/lock": {
     "post": {
       "operationId": "lock_close_lock_post",
@@ -1168,6 +1221,33 @@
         }
       },
       "summary": "Digest Preview"
+    }
+  },
+  "/digest/recipients": {
+    "get": {
+      "description": "Safe preview of the current workspace's digest delivery targets.",
+      "operationId": "digest_recipients_digest_recipients_get",
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "title": "Response Digest Recipients Digest Recipients Get",
+                "type": "array"
+              }
+            }
+          },
+          "description": "Successful Response"
+        }
+      },
+      "summary": "Digest Recipients",
+      "tags": [
+        "notifications"
+      ]
     }
   },
   "/digest/send": {

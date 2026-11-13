@@ -8,12 +8,14 @@ from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from pydantic import BaseModel
 
 from app import audit, scheduling
 from app.api import CurrentUser, require_read, require_write
 from app.board_pack import _period_title
 from app.close_control import lock_status, serialize_writes
+from app.close_export import XLSX_TYPE, build_close_workbook, content_disposition
 from app.compute.aggregate import GRANULARITIES, months_in, period_key, sort_key
 from app.compute.availability import has_usable_value
 from app.context.store import _row_to_doc
@@ -179,7 +181,7 @@ def _activity(conn, ds, period, granularity="month"):
         )
         if not relevant:
             continue
-        action = {"lock": "Locked", "unlock": "Unlocked"}.get(entry["action"], entry["action"].replace("_", " "))
+        action = {"lock": "Locked", "unlock": "Unlocked", "export": "Exported"}.get(entry["action"], entry["action"].replace("_", " "))
         text = f"{action.capitalize()} {report[1]} for {report[0]}" if report else f"{action.capitalize()} dataset"
         if close_entry:
             text = f"{action} the {_period_title(period)} close"
@@ -333,18 +335,23 @@ def changes(period: str, granularity: str = "month", _: CurrentUser = Depends(re
         if ds is None:
             return {"changes": [], "total": 0}
         covered = _close_months(conn, ds, period, granularity)
-        placeholders = ",".join("?" for _ in covered)
-        where = f"vc.dataset_id=? AND vc.period IN ({placeholders})"
-        args = (ds, *covered)
-        total = conn.execute(f"SELECT COUNT(*) AS n FROM value_changes vc WHERE {where}", args).fetchone()["n"]
-        rows = conn.execute(f"""SELECT vc.*, m.name FROM value_changes vc JOIN metrics m ON m.id=vc.metric_id
-                                WHERE {where} ORDER BY vc.created_at DESC, vc.id DESC LIMIT 500""", args).fetchall()
-        return {"changes": [{"metric": r["name"], "period": r["period"], "field": r["field"],
-                             "old_value": r["old_value"], "new_value": r["new_value"], "source": r["source"],
-                             "actor": r["actor_email"] or r["actor_id"] or "System",
-                             "at": timestamp_text(r["created_at"])} for r in rows], "total": total}
+        return _change_rows(conn, ds, covered)
     finally:
         conn.close()
+
+
+def _change_rows(conn, ds, covered):
+    """The same bounded change history for JSON and Excel."""
+    placeholders = ",".join("?" for _ in covered)
+    where = f"vc.dataset_id=? AND vc.period IN ({placeholders})"
+    args = (ds, *covered)
+    total = conn.execute(f"SELECT COUNT(*) AS n FROM value_changes vc WHERE {where}", args).fetchone()["n"]
+    rows = conn.execute(f"""SELECT vc.*, m.name FROM value_changes vc JOIN metrics m ON m.id=vc.metric_id
+                            WHERE {where} ORDER BY vc.created_at DESC, vc.id DESC LIMIT 500""", args).fetchall()
+    return {"changes": [{"metric": r["name"], "period": r["period"], "field": r["field"],
+                         "old_value": r["old_value"], "new_value": r["new_value"], "source": r["source"],
+                         "actor": r["actor_email"] or r["actor_id"] or "System",
+                         "at": timestamp_text(r["created_at"])} for r in rows], "total": total}
 
 
 class CloseSelection(BaseModel):
@@ -390,3 +397,24 @@ def lock(payload: CloseSelection, user: CurrentUser = Depends(require_write)):
 @router.post("/unlock")
 def unlock(payload: CloseSelection, user: CurrentUser = Depends(require_write)):
     return _set_lock(payload, user, False)
+
+
+@router.get("/export.xlsx", response_class=Response, responses={200: {"content": {XLSX_TYPE: {"schema": {"type": "string", "format": "binary"}}}}})
+def export_close(period: str, granularity: str = "month", user: CurrentUser = Depends(require_read)):
+    from app.routers.facts import build_facts
+
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        if ds is None:
+            raise HTTPException(status_code=404, detail="No active dataset")
+        covered = _close_months(conn, ds, period, granularity)
+        facts = build_facts(conn, ds, period, granularity, user, include_charts=False)
+        summary = next((s for s in _summaries(conn, ds, granularity) if s["period"] == period), None)
+        name = conn.execute("SELECT name FROM datasets WHERE id=?", (ds,)).fetchone()["name"]
+        content = build_close_workbook(conn, ds, name, period, granularity, covered, facts, summary,
+                                       _change_rows(conn, ds, covered)["changes"])
+        audit.record(conn, "export", "close", ds, actor_id=user.id, actor_email=user.email, summary={"period": period})
+        return Response(content, media_type=XLSX_TYPE, headers={"Content-Disposition": content_disposition(name, period)})
+    finally:
+        conn.close()
