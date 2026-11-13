@@ -254,6 +254,8 @@
   .axis-note{font-size:12px;color:var(--mut2);margin-top:6px}
   #d-narr{font-size:17px;line-height:1.6;margin-top:10px}
   #d-rev-strip{margin-top:14px}
+  .ctx-hint{margin:0;font-size:12px;color:var(--mut)}
+  .change-note{margin:8px 0 0;padding:8px 12px;border-left:3px solid var(--amber);background:var(--b04,rgba(0,0,0,.03));font-size:13px;color:var(--ink2,inherit)}
   .panel{background:var(--card);border:1px solid var(--b08);border-radius:16px;padding:20px}
   .panel h2,.panel h3{font-size:13px;font-weight:700}
   .panel .psub{font-size:12px;color:var(--mut);margin:3px 0 14px}
@@ -1034,7 +1036,7 @@
   .ctx-view dt{color:var(--text-3)}.ctx-view dd{margin:0;color:var(--text)}
   .ctx-h{font-size:18px;font-weight:700;letter-spacing:-.015em;margin:0}
   #v-context .ctx-form{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);margin:0}
-  @media (max-width:1100px){.ov-grid{grid-template-columns:1fr}.dg-grid{grid-template-columns:1fr}}
+  @media (max-width:1100px){.ov-grid{grid-template-columns:minmax(0,1fr)}.ov-grid .pane{min-width:0;overflow-wrap:anywhere}.dg-grid{grid-template-columns:1fr}}
   body.in-settings #v-costs>.head>div:first-child,body.in-settings #v-notifications>.head>div:first-child,body.in-settings #v-admin>.head>div:first-child{display:none}
   body.in-settings #v-costs>.head,body.in-settings #v-notifications>.head,body.in-settings #v-admin>.head{justify-content:flex-end}
   .data-health{margin-bottom:22px}
@@ -1396,8 +1398,10 @@
             <span class="rev-badge none" id="d-rev-badge">Not approved yet</span>
             <button class="btn sm write-only" onclick="reviewReport('approved')">Approve</button>
             <button class="btn sm write-only" onclick="reviewReport('changes_requested')">Request changes</button>
+            <button class="btn sm write-only" id="d-edit-btn" onclick="detailFact&&editNarr(detailFact.report_id)">Edit</button>
             <button class="btn sm" id="d-ver-btn" onclick="toggleVersions()">History</button>
           </div>
+          <p id="d-change-note" class="change-note" style="display:none"></p>
           <div id="d-readonly-approval" class="readonly-approval" style="display:none"></div>
           <div id="d-versions" style="display:none;margin:4px 0 10px"></div>
           <div class="qa">
@@ -1553,8 +1557,11 @@
               </select></div>
             <div><label for="c-title" class="lbl">Title</label><input id="c-title" required placeholder="March 2025 pricing change"></div>
             <div class="ctx-full"><label for="c-body" class="lbl">Body</label><textarea id="c-body" required placeholder="What happened, when, and which metrics it affects…"></textarea></div>
-            <div><label for="c-tags" class="lbl">Metric tags (comma-separated, empty = all)</label><input id="c-tags" placeholder="Net Revenue, Churned ARR"></div>
+            <div><label for="c-tags" class="lbl">KPI tags (comma-separated; empty = background for every KPI)</label><input id="c-tags" placeholder="Net Revenue, Churned ARR"></div>
             <div><label for="c-date" class="lbl">Effective date (YYYY-MM)</label><input id="c-date" placeholder="2025-03"></div>
+            <div><label for="c-scope" class="lbl">Applies to</label>
+              <select id="c-scope"><option value="dataset">This dataset only</option><option value="workspace">Every dataset</option></select></div>
+            <p class="ctx-full ctx-hint">A note explains a variance only when it is tagged with that KPI and dated in that month (an event note counts for up to two months after).</p>
             <div class="ctx-full" style="text-align:right"><button class="btn primary" type="submit">Add to library</button></div>
           </form>
         </div>

@@ -719,7 +719,7 @@ function closeProgress(facts,shared){
   const status=!n?"empty":approved===n&&shared?"shared":approved===n?"ready":drafted||approved?"in_progress":"not_started";
   return {n,drafted,approved,failed,exceptions,checked:withData.filter(f=>f.faithfulness==="passed").length,shared:!!shared,progress,status};
 }
-const CLOSE_STATUS={empty:["No data",""],not_started:["Not started",""],in_progress:["In progress","prog"],ready:["Ready to share","prog"],shared:["Shared","done"],locked:["Locked","locked"]};
+const CLOSE_STATUS={loading:["Loading…",""],empty:["No data",""],not_started:["Not started",""],in_progress:["In progress","prog"],ready:["Ready to share","prog"],shared:["Shared","done"],locked:["Locked","locked"]};
 // The server's summary wins when it has one, so every close in the list is scored the same way.
 function closeStateFor(p){
   const m=closeMonths[p];
@@ -760,6 +760,7 @@ async function loadCloseMeta(){
   try{const ms=await api(`/close/months?granularity=${granularity}`);closeMonths=Object.fromEntries(ms.map(m=>[m.period,m]));}catch{closeMonths={};}
   try{const runs=await api("/digests/history");closeShared=new Set(runs.map(r=>r.period));}catch{closeShared=new Set();}
   renderCloses();renderMonthHead();
+  if(currentPeriod&&$("ov-checklist"))paintOverview();   // a roll-up's checklist waits for these
 }
 // This close's state. Months are scored from their facts (fresh after every
 // approval); a quarter or year has no commentary of its own, so it uses the
@@ -767,7 +768,9 @@ async function loadCloseMeta(){
 function currentCloseState(){
   const local=closeProgress(currentFacts,closeShared.has(currentPeriod));
   const m=granularity==="month"?null:closeMonths[currentPeriod];
-  if(!m)return local;
+  // A quarter or year has no commentary of its own: until the server's roll-up of its
+  // months arrives, say so rather than score it from quarter facts ("0 of 5 approved").
+  if(!m)return granularity==="month"?local:{...local,drafted:0,approved:0,checked:0,failed:0,loading:true,status:"loading"};
   const checked=m.checked??0,shared=m.status==="shared";
   return {n:m.kpis,drafted:m.drafted,approved:m.approved,checked,failed:Math.max(0,m.drafted-checked),
     exceptions:m.exceptions,needs_reason:m.needs_reason,shared,progress:m.progress,
@@ -799,16 +802,17 @@ function renderMonthHead(){
   if(!currentPeriod){head.style.display="none";return;}
   const s=currentCloseState();
   $("mh-title").textContent=fmtPeriodTitle(currentPeriod);
-  const [word,cls]=CLOSE_STATUS[(closeStateFor(currentPeriod)||s).status]||CLOSE_STATUS[s.status];
+  const [word,cls]=CLOSE_STATUS[s.loading?"loading":(closeStateFor(currentPeriod)||s).status]||CLOSE_STATUS[s.status];
   const pill=$("mh-pill");pill.textContent=word;pill.className="mh-pill "+cls;
   const ds=activeDatasetObj&&datasetDisplayName(activeDatasetObj.name);
   const roll=granularity!=="month"&&closeMonths[currentPeriod];
   $("mh-sub").textContent=(roll
     ?[ds,`${plural(roll.distinct_kpis??s.n,"KPI","KPIs")} across ${plural(roll.month_count||1,"month")}`,s.n?`${s.approved} of ${plural(s.n,"monthly commentary","monthly commentaries")} approved`:null]
+    :s.loading?[ds,"Loading this close…"]
     :[ds,s.n?`${plural(s.n,"KPI","KPIs")} computed in code`:null,s.n?`${s.approved} of ${s.n} approved`:null]).concat(dataAsOf()).filter(Boolean).join(" · ");
   const locked=closeLocked();
   document.body.classList.toggle("close-locked",locked);
-  const next=!canReview()||locked?null:granularity==="month"?closeNextStep(s):rollupNextStep(),btn=$("mh-next");
+  const next=!canReview()||locked||s.loading?null:granularity==="month"?closeNextStep(s):rollupNextStep(),btn=$("mh-next");
   btn.style.display=next?"":"none";
   document.body.classList.toggle("head-drafts",!!next&&next.run==="generateAll()");
   if(next){btn.textContent=next.label;btn.setAttribute("onclick",next.run);}
@@ -825,7 +829,8 @@ function renderMonthHead(){
 const BOXTICK='<svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
 // The close checklist: the server's steps when it has them, otherwise derived from the facts.
 function overviewSteps(s,server){
-  if(server&&server.steps&&server.steps.length)return server.steps;
+  if(server&&server.steps&&server.steps.length&&server.period===currentPeriod)return server.steps;
+  if(granularity!=="month")return null;   // a roll-up's steps come only from the server
   const P=currentPeriod,m=closeMonths[P]||{},flagged=s.drafted-s.checked,undrafted=s.n-s.drafted,remaining=s.n-s.approved,pending=s.drafted-s.approved;
   const needs=m.needs_reason??s.needs_reason??(currentFacts||[]).filter(f=>f.has_data&&bigMove(f)&&!f.sources?.length).length;
   const step=(id,title,detail,state,count,tab)=>({id,title,detail,state,count,target:routeHash({tab,period:P})});
@@ -861,7 +866,9 @@ async function renderOverview(){
 function paintOverview(){
   const s=currentCloseState();
   $("ov-check-title").textContent=s.status==="shared"?`${fmtPeriodTitle(currentPeriod)} is shared`:"What's left before this close can be shared";
-  $("ov-checklist").innerHTML=overviewSteps(s,overviewStatus).map(st=>{
+  const steps=overviewSteps(s,overviewStatus);
+  if(!steps){$("ov-checklist").innerHTML=`<li class="cl"><span class="box"></span><div><b>Loading this close…</b><small>Adding up its months</small></div></li>`;}
+  else $("ov-checklist").innerHTML=steps.map(st=>{
     const done=st.state==="done";
     const act=done?`<span class="st done">Done</span>`:st.state==="blocked"?`<span class="st wait">Waiting</span>`
       :`<a class="btn" href="${esc(st.target)}">${esc(st.id==="import"?"Import":st.id==="share"?"Open digest":"Open")}</a>`;
@@ -1354,7 +1361,7 @@ function renderRootCause(rc){
   if(rc.drivers&&rc.drivers.length)
     drivers=`<div class="rc-sec-label">Moved with</div><div class="rc-drivers">`+rc.drivers.map(d=>`<b>${esc(d.metric)}</b> (r=${d.r})`).join(" · ")+`</div>`;
   box.innerHTML=`<section class="rc-section">
-    <div class="rc-head"><span class="rc-title">Root cause: ${esc(rc.primary_factor||"")}</span>${z}</div>
+    <div class="rc-head"><span class="rc-title">What stands out: ${esc(rc.primary_factor||"")}</span>${z}</div>
     ${bars}${trend}${drivers}
     <div style="margin-top:12px"><button class="btn sm write-only" id="d-rc-narr-btn" onclick="rootCauseNarrative()">Explain (AI)</button></div>
     <div id="d-rc-narr" style="margin-top:10px"></div></section>`;
@@ -1578,13 +1585,22 @@ function renderReviewStrip(f){
   const st=f.review_status||"none",badge=$("d-rev-badge");
   badge.className="rev-badge "+st;
   badge.textContent=REVIEW_LABELS[st]||REVIEW_LABELS.none;
+  const cn=$("d-change-note");
+  if(cn){const show=st==="changes_requested"&&f.change_note;cn.style.display=show?"":"none";cn.textContent=show?`Requested change: ${f.change_note}`:"";}
   const vb=$("d-versions");vb.style.display="none";vb.innerHTML="";$("d-ver-btn").textContent="History";
 }
 async function reviewReport(status){
   if(!detailFact||!detailFact.report_id)return;
+  let note=null;
+  if(status==="changes_requested"){
+    note=await modalInput("Request changes",{label:"What should change?",textarea:true,required:true,
+      placeholder:"e.g. say the R&D overspend is timing only; drop the last sentence",okLabel:"Request changes"});
+    if(note==null)return;
+  }
   try{
-    await api(`/reports/${detailFact.report_id}/review`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({status})});
-    detailFact.review_status=status;renderReviewStrip(detailFact);
+    await api(`/reports/${detailFact.report_id}/review`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({status,note})});
+    if(note)await api("/feedback",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({report_id:detailFact.report_id,action:"rejected",reason:note})}).catch(()=>null);
+    detailFact.review_status=status;detailFact.change_note=note||detailFact.change_note;renderReviewStrip(detailFact);
     const cf=(currentFacts||[]).find(x=>x.report_id===detailFact.report_id);if(cf)cf.review_status=status;
     toast(status==="approved"?"Commentary approved":"Changes requested");
     overviewFor=null;renderMonthHead();renderCards();loadCloseMeta();
@@ -1871,8 +1887,10 @@ async function loadSyncSources(){
   try{
     const rows=await api("/connectors");
     box.innerHTML=rows.map(c=>{
-      const last=c.last_sync_at?`Last synced ${fmtWhen(c.last_sync_at)}`:"Not synced yet";
-      const status=c.last_status==="error"?` · <span class="bad">${esc(c.last_error||"Last sync failed")}</span>`:"";
+      // last_sync_at is the last sync that worked; a failure says so on its own.
+      const failed=c.last_status==="error";
+      const last=c.last_sync_at?`Last synced ${fmtWhen(c.last_sync_at)}`:failed?"Never synced":"Not synced yet";
+      const status=failed?` · <span class="bad">Latest sync failed: ${esc(c.last_error||"unknown error")}</span>`:"";
       return `<div class="sync-row"><div class="grow"><b>${esc(c.name)}</b><small>${c.kind==="google_sheets"?"Google Sheet":"CSV link"} → dataset “${esc(c.dataset_name||c.name)}” · ${esc(last)}${status}</small></div>
         <button class="btn sm" data-act="sync-now" data-arg="${esc(c.id)}">Sync now</button>
         <button class="btn sm ghost" data-act="sync-remove" data-arg="${esc(c.id)}">Remove</button></div>`;}).join("");
@@ -2067,6 +2085,12 @@ async function loadFacts(){
     renderCloses();renderMonthHead();boardPackFor=null;
     if($("v-overview").style.display!=="none")renderOverview();
     loadConflicts();renderFunnel();
+    // A KPI open on screen follows the new close (another month, a quarter, a year) or,
+    // when this close doesn't have it, the page drops back to the queue: never the old figures.
+    if(detailFact&&$("v-detail").style.display!=="none"){
+      const i=shownFacts.findIndex(x=>x.metric===detailFact.metric&&x.has_data);
+      if(i>=0)openDetail(i,{fromRoute:true});else{detailFact=null;$("v-detail").style.display="none";}
+    }
   }catch(e){
     clearTimeout(_factsSlowT);
     $("statrow").innerHTML="";$("dash-sub").textContent="Couldn't load data";
@@ -2260,8 +2284,11 @@ function streakBadge(s){
 const QUEUE_GROUPS=[["exception","Exceptions"],["review","Needs review"],["approved","Approved"],["nodata","No data this period"]];
 function queueGroup(f){
   if(!f.has_data)return "nodata";
-  if(f.is_anomaly||f.faithfulness==="failed")return "exception";
+  // An approved anomaly is dealt with: it moves to Approved, so the tiles agree with
+  // "5 of 5 approved" in the header. A figure that failed the check stays an exception.
+  if(f.faithfulness==="failed")return "exception";
   if(f.review_status==="approved")return "approved";
+  if(f.is_anomaly)return "exception";
   return "review";
 }
 function renderStatrow(facts){
@@ -2393,7 +2420,7 @@ function queueRow(f,i,q){
   const tone=good===null?"":good?"c-ok":"c-exc";
   const state=generatingSet.has(f.metric)?"Drafting…"
     :g==="exception"?(f.is_anomaly?"Anomaly":"Figures need review")
-    :g==="approved"?"Approved":f.narrative?"Draft ready":"Not drafted";
+    :g==="approved"?(f.is_anomaly?"Approved · anomaly":"Approved"):f.narrative?"Draft ready":"Not drafted";
   const sel=!!(detailFact&&detailFact.metric===f.metric);
   const tip=anomalyWhy(f);
   return `<div class="qi ${g}${sel?" on":""}" data-i="${i}"${tip?` title="${esc(tip)}"`:""} onclick="openDetail(${i})" onkeydown="cardKey(event,${i})" tabindex="0" role="link"${sel?' aria-current="true"':""} aria-label="${esc(f.metric)}, ${esc(f.unavailable?"no value":fmt(f.value,f.unit))}, ${esc(state)}">
@@ -2636,8 +2663,12 @@ const G_FIELD={
   "year-over-year %":"year-over-year","budget variance %":"vs plan"};
 async function renderGroundedNarrative(reportId){
   const el=$("d-narr");
-  try{groundingData=await api(`/reports/${reportId}/grounding`);}
-  catch{el.textContent=detailFact?detailFact.narrative||"":"";return;}
+  let g;
+  try{g=await api(`/reports/${reportId}/grounding`);}
+  catch{if(detailFact&&detailFact.report_id===reportId)el.textContent=detailFact.narrative||"";return;}
+  // The analyst may have opened another KPI while this loaded: never paint its text there.
+  if(!detailFact||detailFact.report_id!==reportId)return;
+  groundingData=g;
   const sents=(groundingData.sentences||[]);
   if(!sents.length){el.textContent=(detailFact&&detailFact.narrative)||"";return;}
   el.innerHTML=sents.map(s=>`<span class="gsent ${s.kind}" data-i="${s.idx}" role="button" tabindex="0" title="Show what supports this sentence" onclick="showSentenceGrounding(${s.idx})">${esc(s.text)}</span>`).join(" ")
@@ -2751,7 +2782,10 @@ function bigMove(f){
   return !!f.is_anomaly||(plan!=null&&Math.abs(plan)>reasonThreshold());
 }
 function needsReason(f){
-  if(!f||!f.has_data||(f.sources&&f.sources.length))return false;
+  if(!f||!f.has_data)return false;
+  // Same rule as the close checklist: a note tagged with this KPI for this month.
+  if(f.reason_note!==undefined){if(f.reason_note)return false;}
+  else if(f.sources&&f.sources.length)return false;
   return bigMove(f);
 }
 // Why a month was flagged, in words: the rule, the comparison and how far out it is.
@@ -2789,11 +2823,13 @@ function addReasonFor(metric){
   setTimeout(()=>{
     ctxNew();
     $("c-type").value="event_note";
-    if(!$("c-title").value)$("c-title").value=`Why ${metric} moved in ${fmtPeriod(currentPeriod,"long")}`;
+    // Always this KPI's prefill: an unsaved note for another KPI must not be filed under this one.
+    $("c-title").value=`Why ${metric} moved in ${fmtPeriod(currentPeriod,"long")}`;
     $("c-tags").value=metric;
+    if($("c-scope"))$("c-scope").value="dataset";
     if(granularity==="month")$("c-date").value=currentPeriod;
     const body=$("c-body");
-    if(!body.value){const start=reasonStarter((currentFacts||[]).find(f=>f.metric===metric));if(start)body.value=start;}
+    body.value=reasonStarter((currentFacts||[]).find(f=>f.metric===metric))||"";
     body.focus();body.setSelectionRange&&body.setSelectionRange(body.value.length,body.value.length);
   },60);
 }
@@ -2857,9 +2893,17 @@ function updateGenButton(){
 }
 function applyGenerated(r){
   const f=currentFacts.find(x=>x.metric===r.metric);
+  // A new draft is a new report: it starts unreviewed, unedited, with no change request.
   if(f)Object.assign(f,{narrative:r.narrative,sources:r.sources||[],confidence:r.confidence,
     faithfulness:r.faithfulness,report_id:r.report_id,cost_usd:r.cost_usd,
-    trend_streak:r.trend_streak||f.trend_streak,generated_by:r.generated_by});
+    trend_streak:r.trend_streak||f.trend_streak,generated_by:r.generated_by,
+    review_status:r.report_id!==f.report_id?null:f.review_status,
+    edited:r.report_id!==f.report_id?false:f.edited,original_narrative:r.report_id!==f.report_id?null:f.original_narrative,
+    change_note:r.report_id!==f.report_id?null:f.change_note});
+  // The KPI open on screen shows its new draft straight away.
+  if(f&&detailFact&&detailFact.metric===f.metric&&$("v-detail").style.display!=="none"){
+    const i=shownFacts.findIndex(x=>x.metric===f.metric);if(i>=0)openDetail(i,{fromRoute:true});
+  }
 }
 async function generateAll(){
   if(currentUser&&currentUser.role==="viewer")return;
@@ -2909,9 +2953,16 @@ async function rejectNarr(id,btn){
 async function editNarr(id){
   const f=currentFacts.find(x=>x.report_id===id);
   const cur=(f&&f.narrative)||"";
-  const t=await modalInput(`Edit commentary${f?": "+f.metric:""}`,{label:"Narrative",value:cur,textarea:true,okLabel:"Save"});
-  if(t==null||t===cur)return;
-  await feedback(id,"edited",null,{edited_text:t});loadFacts();
+  const t=await modalInput(`Edit commentary${f?": "+f.metric:""}`,{label:"Commentary",value:cur,textarea:true,okLabel:"Save edit"});
+  if(t==null||!t.trim()||t===cur)return;
+  try{
+    const r=await api("/feedback",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({report_id:id,action:"edited",edited_text:t})});
+    const bad=(r&&r.unverified)||[];
+    toast(bad.length?`Edit saved. ${plural(bad.length,"figure isn't","figures aren't")} in the checked draft or its notes, so it's flagged for review.`
+      :f&&f.review_status==="approved"?"Edit saved. It needs approving again.":"Edit saved");
+    const metric=f&&f.metric;await loadFacts();overviewFor=null;loadCloseMeta();
+    if(metric){const i=shownFacts.findIndex(x=>x.metric===metric);if(i>=0)openDetail(i,{fromRoute:true});}
+  }catch(e){toast("Couldn't save the edit: "+errMsg(e));}
 }
 
 /* ---------- digest ---------- */
@@ -3034,7 +3085,7 @@ function renderContextList(){
   $("ctx-rows").innerHTML=docs.map(d=>{
     const on=d.id===ctxSel;
     return `<div class="ctx-item${on?" on":""}">
-      <button class="ctx-open" onclick="ctxOpen(${esc(d.id)})"${on?' aria-current="true"':""}><b>${esc(d.title)}</b><small>${esc(d.type.replace("_"," "))} · ${esc(ctxWhen(d))}</small></button>
+      <button class="ctx-open" onclick="ctxOpen(${esc(d.id)})"${on?' aria-current="true"':""}><b>${esc(d.title)}</b><small>${esc(d.type.replace("_"," "))} · ${esc(ctxWhen(d))}${d.dataset_id==null?" · every dataset":""}</small></button>
       <button class="row-del write-only" aria-label="Delete ${esc(d.title)}" onclick="delContext(${esc(d.id)})">${XICON}</button></div>`;
   }).join("")||`<p class="ctx-none">No notes dated in ${esc(fmtPeriod(currentPeriod))}. <button class="linkbtn" onclick="ctxScope='all';renderContextList()">Show all notes</button></p>`;
   paintContextDetail();
@@ -3046,7 +3097,8 @@ function paintContextDetail(){
   view.style.display="";
   view.innerHTML=`<span class="ctx-type">${esc(d.type.replace("_"," "))}</span><h2>${esc(d.title)}</h2><p class="ctx-body">${esc(d.body)}</p>
     <dl><dt>Feeds</dt><dd>${d.metric_tags.length?d.metric_tags.map(t=>`<span class="ctx-tag">${esc(t)}</span>`).join(" "):"Every KPI"}</dd>
-    <dt>Applies to</dt><dd>${esc(ctxWhen(d,"long"))}</dd></dl>`;
+    <dt>Applies to</dt><dd>${esc(ctxWhen(d,"long"))}</dd>
+    <dt>Dataset</dt><dd>${d.dataset_id==null?"Every dataset":esc(datasetDisplayName((activeDatasetObj&&activeDatasetObj.name)||"This dataset"))}</dd></dl>`;
 }
 function ctxOpen(id){ctxSel=id;ctxComposing=false;renderContextList();}
 function ctxNew(){
@@ -3057,7 +3109,7 @@ async function addContext(e){
   e.preventDefault();
   const tags=$("c-tags").value.split(",").map(s=>s.trim()).filter(Boolean);
   await api("/context",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({type:$("c-type").value,title:$("c-title").value,body:$("c-body").value,metric_tags:tags,effective_date:$("c-date").value||null})});
+    body:JSON.stringify({type:$("c-type").value,title:$("c-title").value,body:$("c-body").value,metric_tags:tags,effective_date:$("c-date").value||null,scope:($("c-scope")&&$("c-scope").value)||"dataset"})});
   toast("Added to the context library");["c-title","c-body","c-tags","c-date"].forEach(id=>$(id).value="");ctxComposing=false;ctxSel=null;loadContext();
 }
 async function delContext(id){
@@ -3241,7 +3293,7 @@ function renderMap(){
   $("map-holder").innerHTML=`<table class="map"><thead><tr><th>Column</th><th>Type</th><th>Sample</th><th>What it holds</th></tr></thead><tbody>`+
     profile.columns.map(c=>{const wp=profile.wide_period_cols.includes(c.column_name);
       const role=roleFor(c);
-      return`<tr><td><b>${esc(c.column_name)}</b>${layout==="wide"&&wp?' <span class="suggest">a month</span>':""}${c.redundant_with&&role==="ignore"?` <span class="suggest">duplicate of ${esc(c.redundant_with)}</span>`:""}</td>
+      return`<tr><td><b>${esc(c.column_name)}</b>${layout==="wide"&&wp?' <span class="suggest">a month</span>':""}${c.redundant_with&&role==="ignore"&&layout!=="wide"?` <span class="suggest">duplicate of ${esc(c.redundant_with)}</span>`:""}</td>
         <td>${esc(c.dtype)}</td><td class="samp">${c.sample_values.slice(0,3).map(esc).join(" · ")}</td>
         <td>${layout==="wide"&&wp?'<span class="samp">One month of values</span>':`<select data-col="${esc(c.column_name)}" class="role" aria-label="What column ${esc(c.column_name)} holds" onchange="updateMapHint()">${ROLES.map(r=>`<option value="${r}" ${role===r?"selected":""}>${ROLE_LABELS[r]||r}</option>`).join("")}</select>`}</td></tr>`;
     }).join("")+`</tbody></table>`;
@@ -3345,6 +3397,9 @@ async function confirmJoinBudget(){
     $("imp-join-result").style.display="";$("imp-join-result").innerHTML=html
       +`<div style="margin-top:16px"><button class="btn primary" onclick="finishBudgetJoin(${Number(targetId)})">Done — view dashboard</button>
          <button class="btn" style="margin-left:8px" onclick="resetImport()">Import another file</button></div>`;
+    // The open dataset's figures changed: refresh them now, so a close opened from the
+    // sidebar (not only "Done") compares with the new budget.
+    if(Number(targetId)===activeDatasetId)loadPeriods().catch(()=>{});
   }catch(e){$("imp-result").innerHTML=`<div class="banner err">${warnIcon()}${esc(e.message)}</div>`;}
 }
 // QA #9: the dashboard showed pre-join facts ("vs plan –") until a full reload.
