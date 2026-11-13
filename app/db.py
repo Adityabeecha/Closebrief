@@ -113,6 +113,7 @@ CREATE TABLE IF NOT EXISTS datasets (
     source_upload_id TEXT,
     currency TEXT NOT NULL DEFAULT 'USD' CHECK (currency IN ('USD', 'EUR', 'GBP', 'INR', 'JPY', 'CAD', 'AUD', 'SGD', 'CHF')),
     fiscal_year_start INTEGER NOT NULL DEFAULT 1 CHECK (fiscal_year_start BETWEEN 1 AND 12),
+    reason_threshold_pct REAL NOT NULL DEFAULT 10 CHECK (reason_threshold_pct >= 1 AND reason_threshold_pct <= 100),
     is_active INTEGER NOT NULL DEFAULT 0,
     domain TEXT NOT NULL DEFAULT 'fpa',
     is_demo INTEGER NOT NULL DEFAULT 0,
@@ -167,6 +168,8 @@ CREATE TABLE IF NOT EXISTS computed_facts (
     forecast_var_pct REAL,
     trend TEXT,
     is_anomaly INTEGER NOT NULL DEFAULT 0,
+    anomaly_basis TEXT CHECK (anomaly_basis IN ('seasonal', 'month_on_month')),
+    anomaly_z REAL,
     UNIQUE(metric_id, period)
 );
 
@@ -413,6 +416,10 @@ def _migrate_close_control(conn: sqlite3.Connection) -> None:
 
 
 _SQLITE_MIGRATIONS = [
+    "ALTER TABLE computed_facts ADD COLUMN anomaly_basis TEXT CHECK (anomaly_basis IN ('seasonal', 'month_on_month'))",
+    "ALTER TABLE computed_facts ADD COLUMN anomaly_z REAL",
+    "ALTER TABLE datasets ADD COLUMN reason_threshold_pct REAL NOT NULL DEFAULT 10 "
+    "CHECK (reason_threshold_pct >= 1 AND reason_threshold_pct <= 100)",
     "ALTER TABLE metric_values ADD COLUMN forecast REAL",
     "ALTER TABLE computed_facts ADD COLUMN forecast_var_abs REAL",
     "ALTER TABLE computed_facts ADD COLUMN forecast_var_pct REAL",
