@@ -1587,6 +1587,7 @@ async function reviewReport(status){
     detailFact.review_status=status;renderReviewStrip(detailFact);
     const cf=(currentFacts||[]).find(x=>x.report_id===detailFact.report_id);if(cf)cf.review_status=status;
     toast(status==="approved"?"Commentary approved":"Changes requested");
+    overviewFor=null;renderMonthHead();renderCards();loadCloseMeta();
   }catch(e){toast("Failed: "+errMsg(e));}
 }
 async function toggleVersions(){
@@ -1975,7 +1976,10 @@ function setGranularity(g){
   if(g===granularity)return Promise.resolve();granularity=g;
   document.querySelectorAll("#gran-seg button").forEach(b=>{b.classList.toggle("active",b.dataset.g===g);b.setAttribute("aria-pressed",String(b.dataset.g===g));});
   $("closes-label").textContent={month:"Closes",quarter:"Quarters",year:"Years"}[g];showAllCloses=false;
-  return loadPeriods();
+  return loadPeriods().then(()=>{
+    if(currentPeriod&&currentPlace&&!currentPlace.place)
+      history.replaceState(null,"",routeHash({tab:currentPlace.tab||"overview",period:currentPeriod}));
+  });
 }
 function stepPeriod(dir){
   const sel=$("period-select"),i=sel.selectedIndex+dir;
@@ -2067,6 +2071,7 @@ async function loadFacts(){
       <div style="font-size:13px;margin-bottom:16px">${esc(e.message||"Something went wrong.")}</div>
       <button class="btn primary" onclick="loadFacts()">Retry</button></div>`;
   }finally{$("dash-loading").style.display="none";}
+  if(currentPlace&&!currentPlace.place&&currentPlace.tab==="overview"){overviewFor=null;renderOverview();}
 }
 function setFreshness(){
   const el=$("dash-fresh");if(!el)return;
@@ -2750,7 +2755,7 @@ function anomalyWhy(f){
   const z=Math.abs(a.z).toFixed(1),t=a.threshold;
   return a.basis==="seasonal"
     ?`Anomaly: this month's change differs from the same month last year by ${z}× the usual spread (flagged above ${t}×), so a normal seasonal swing isn't flagged.`
-    :`Anomaly: this month's change is ${z}× the usual month-to-month spread (flagged above ${t}×). Once there's a year of history it is compared with the same month last year instead.`;
+    :`Anomaly: this month's change is ${z}× the usual month-to-month spread (flagged above ${t}×). Once a few months each have a year-earlier comparison, it is judged against the same month last year instead.`;
 }
 function renderWhyNone(f){
   const el=$("d-why");if(!el)return;
@@ -2932,8 +2937,8 @@ function renderDigest(d){
 }
 // Where the close's digest stands: sent, ready to send, or waiting on approvals.
 function digestStateBar(d){
-  if(d.sent_at)return `<div class="dg-state ready" role="status"><b>Sent ${esc(fmtDate(d.sent_at))}.</b> Leadership received the approved commentary below.</div>`;
-  if(d.ready)return `<div class="dg-state ready" role="status"><b>Every KPI is approved.</b> Sending delivers this digest to the channels set up in Settings.</div>`;
+  if(d.sent_at)return `<div class="dg-state ready" role="status"><b>Sent ${esc(fmtDate(d.sent_at))}.</b> This is the approved commentary it carried.</div>`;
+  if(d.ready)return `<div class="dg-state ready" role="status"><b>Every KPI is approved.</b> Before it goes, you'll see exactly who receives it.</div>`;
   const n=(d.pending||[]).length,names=(d.pending||[]).slice(0,3).join(", ")+(n>3?` and ${n-3} more`:"");
   return `<div class="dg-state wait" role="status"><span><b>${plural(n,"KPI still needs","KPIs still need")} approval</b> before this can be sent: ${esc(names)}.</span>
     <button class="btn sm" onclick="nav('kpis')">Open KPIs</button></div>`;
@@ -3144,6 +3149,7 @@ async function onImportModeChange(){
   $("imp-target-wrap").style.display=isJoinMode()?"":"none";
   $("imp-suffix-wrap").style.display=isJoinMode()?"":"none";
   $("imp-confirm-btn").textContent=isJoinMode()?`Match & attach ${joinWord()}`:"Confirm columns";
+  renderMapWarnings();
   if(isJoinMode()){
     try{
       const d=await api("/datasets");
@@ -3165,6 +3171,8 @@ async function importSample(btn){
 async function uploadFile(file){
   const fd=new FormData();fd.append("file",file);
   $("imp-result").innerHTML='<div class="loading"><span class="spin"></span> Uploading &amp; profiling…</div>';
+  // A new file starts clean: the last import's summary isn't this one's.
+  const ns=$("norm-summary");if(ns){ns.innerHTML="";ns.className="";}
   try{
     upload=await api("/ingest/upload",{method:"POST",body:fd});$("imp-result").innerHTML="";importStartedFor=activeDatasetId;
     if(upload)upload.filename=file.name;   // for the dataset-name default
@@ -3179,13 +3187,22 @@ async function loadSchema(){
   const sheet=$("sheet-pick").style.display!=="none"?$("sheet-sel").value:null;
   profile=await api(`/ingest/${upload.upload_id}/schema${sheet?`?sheet=${encodeURIComponent(sheet)}`:""}`);
   $("layout-sel").value=profile.layout_guess;
-  const wb=$("map-warnings");
-  if(profile.mapping_warnings&&profile.mapping_warnings.length){
-    wb.style.display="";
-    wb.innerHTML=`<b>Worth checking before you confirm:</b><ul style="margin:6px 0 0 18px">${profile.mapping_warnings.map(w=>`<li>${esc(w)}</li>`).join("")}</ul>`;
-  }else{wb.style.display="none";}
+  renderMapWarnings();
   renderTotalRows();
   renderMap();
+}
+// Warnings about a new import. A file that will be refused shows only why; a budget
+// or forecast being attached skips the checks meant for actuals.
+function renderMapWarnings(){
+  const wb=$("map-warnings");if(!wb||!profile)return;
+  let list=isJoinMode()?[]:(profile.mapping_warnings||[]);
+  const refusal=list.find(w=>/CloseBrief works month by month/.test(w));
+  if(refusal)list=[refusal];
+  if(list.length){
+    wb.style.display="";
+    wb.innerHTML=refusal?`<b>This file can't be imported:</b> ${esc(refusal)}`
+      :`<b>Worth checking before you confirm:</b><ul style="margin:6px 0 0 18px">${list.map(w=>`<li>${esc(w)}</li>`).join("")}</ul>`;
+  }else{wb.style.display="none";}
 }
 // Rows the import would leave out as totals ("Total Opex", or a blank ID on a
 // summary line). A real KPI can start with "Total": tick it to keep it.
@@ -3236,6 +3253,10 @@ function mappingProblem(){
   if($("layout-sel").value!=="long")return null;
   const roles=[...document.querySelectorAll(".role")].map(s=>s.value);
   if(needsMonthPick()&&!$("map-month").value)return "This file has no date column. Set one column to “Month or date”, or choose the month the whole file covers.";
+  if(isJoinMode()){
+    if(!roles.some(r=>r==="measure"||r==="budget"||r==="forecast"))return `Set the column with the ${joinWord()} amounts to “${joinWord()==="forecast"?"Latest forecast":"Budget or plan"}”.`;
+    return null;
+  }
   if(!roles.includes("measure"))return "Set the column with the amounts to track to “Actual amount”.";
   return null;
 }
@@ -3266,6 +3287,11 @@ function buildMapping(){
   const measures=by("measure");
   const periodLiteral=sheetPeriod()||(needsMonthPick()&&$("map-month").value)||null;
   const base={layout:"long",period_col:periodLiteral?null:(by("period")[0]||null),period_literal:periodLiteral,metric_col:by("metric_label")[0]||null,budget_col:by("budget")[0]||null,forecast_col:by("forecast")[0]||null,id_col:by("id")[0]||null,dimension_cols:by("dimension"),keep_labels};
+  if(isJoinMode()&&!measures.length){
+    // Adding a budget or forecast to a dataset: that column is the amount being attached.
+    const amount=by(joinWord())[0]||by("budget")[0]||by("forecast")[0];
+    if(amount)return{...base,value_col:amount,budget_col:null,forecast_col:null};
+  }
   if(measures.length>1)return{...base,value_cols:measures};
   return{...base,value_col:measures[0]||null,quantity_col:by("quantity")[0]||null,price_col:by("price")[0]||null};
 }

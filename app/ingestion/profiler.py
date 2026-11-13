@@ -49,10 +49,17 @@ def mapping_warnings(df: pd.DataFrame, mapping: MappingSpec) -> list[str]:
     combined = counts[counts > 1]
     if combined.empty:
         return []
+    if mapping.dimension_cols:
+        # Several rows per KPI and month is what a breakdown is: they're added up, and kept by part.
+        return [
+            f"Each KPI's {mapping.dimension_cols[0]} rows ({int(combined.max())} at most per month) will be added up "
+            f"to its monthly total, and kept so you can see them under Contributors."
+        ]
+    dedupe = " Rows with the same row ID are dropped as duplicates first." if mapping.id_col else ""
     return [
-        f"This mapping combines {int(combined.sum())} rows into {len(combined)} metric/month figures "
-        f"(up to {int(combined.max())} rows per figure). They will be ADDED together. "
-        "Check the metric and dimension columns; percentages need one row per month."
+        f"{len(combined)} KPI/month figures have more than one row ({int(combined.sum())} rows in all); "
+        f"they will be added together.{dedupe} A percentage KPI made this way has no value, so it needs one "
+        "row per month."
     ]
 
 # Column-name patterns (case-insensitive)
@@ -431,8 +438,16 @@ def suggest_mapping(profile: dict, sheet_period: str | None = None) -> dict:
             )
 
     metric_col = mapping.get("metric_col") or mapping.get("wide_metric_col")
+    breakdown = set(mapping.get("dimension_cols") or [])
     alternatives = [c for c in profile.get("metric_alternatives") or [] if c != metric_col]
-    if metric_col and alternatives:
+    if metric_col and alternatives and set(alternatives) <= breakdown:
+        # Already mapped as the breakdown: say what will happen, and how to change it if wrong.
+        names = ", ".join(f'"{c}"' for c in alternatives)
+        warnings.append(
+            f"Rows could be grouped by \"{metric_col}\" or by {names}. {names} is set as the breakdown, so its rows "
+            f"are added into each KPI and kept under Contributors. If its values are separate KPIs, make it the KPI name instead."
+        )
+    elif metric_col and alternatives:
         warnings.append(
             f"Rows could be grouped by \"{metric_col}\" or by {', '.join(alternatives)} — these are "
             f"different reports, not different spellings of the same one, and nothing in the file's "

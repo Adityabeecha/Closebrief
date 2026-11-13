@@ -1589,6 +1589,7 @@
           <small>.csv or .xlsx · NetSuite, QuickBooks &amp; Excel exports · wide or long layout</small><br><br>
           <input type="file" id="file-in" accept=".csv,.xlsx" style="display:none" onchange="uploadFile(this.files[0])">
           <button class="btn" onclick="document.getElementById('file-in').click()">Browse files</button>
+          <button class="linkbtn" style="margin-left:8px" onclick="importSample(this)">or try it with sample data</button>
         </div>
       </div>
       <div class="write-only" id="imp-map" style="display:none">
