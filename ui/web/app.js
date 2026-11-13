@@ -795,6 +795,9 @@ function renderMonthHead(){
   document.body.classList.toggle("head-drafts",!!next&&next.run==="generateAll()");
   if(next){btn.textContent=next.label;btn.setAttribute("onclick",next.run);}
   $("mt-kpis").textContent=(roll&&roll.distinct_kpis)||s.n||"";
+  const note=$("rollup-note");
+  if(note){note.hidden=granularity==="month";
+    note.textContent=granularity==="month"?"":`Commentary is written per month; this ${granularity==="year"?"year":"quarter"} view adds the months up (amounts are summed, balances use the last month, rates aren't added).`;}
   const tab=currentPlace.place?null:currentPlace.tab;
   document.querySelectorAll("#month-tabs a").forEach(a=>{
     a.href=routeHash({tab:a.dataset.tab,period:currentPeriod});
@@ -816,7 +819,7 @@ function overviewSteps(s,server){
     step("share","Send the digest",s.shared?"Digest sent · open Digest to read it":!remaining?"Open Digest to prepare the leadership summary":"Approve the drafts on KPIs before sharing",s.shared?"done":!remaining?"todo":"blocked",+s.shared,"digest"),
   ];
 }
-let overviewStatus=null,overviewFor=null,overviewChanges=null;
+let overviewStatus=null,overviewFor=null,overviewChanges=null,glanceAll=false;
 function closeLocked(){
   const m=closeMonths[currentPeriod];
   if(m&&m.locked!=null)return !!m.locked;
@@ -849,12 +852,14 @@ function paintOverview(){
   // At a glance: the four biggest movers against plan (or the prior period without a budget).
   const movers=(currentFacts||[]).filter(f=>f.has_data&&!f.unavailable).map(f=>{
     const plan=f.deltas&&f.deltas.budget_var_pct,v=plan!=null?plan:f.deltas&&f.deltas.mom_pct;return {f,v,plan:plan!=null};
-  }).filter(x=>x.v!=null).sort((a,b)=>Math.abs(b.v)-Math.abs(a.v)).slice(0,4);
+  }).filter(x=>x.v!=null).sort((a,b)=>Math.abs(b.v)-Math.abs(a.v));
+  const allMovers=movers.length;if(!glanceAll)movers.splice(4);
   $("ov-glance-title").textContent=`${fmtPeriod(currentPeriod,"long")} at a glance`;
   $("ov-glance").innerHTML=movers.length?`<div class="glance">${movers.map(({f,v,plan})=>{
     const good=v===0?null:(f.direction_good==="down"?v<0:v>0);
     return `<button data-act="metric" data-arg="${esc(f.metric)}"><span>${esc(f.metric)}</span><b>${fmt(f.value,f.unit)} <span class="${good===null?"":good?"c-ok":"c-exc"}">${deltaText(f,plan?"budget":"mom")||pct(v)}</span><span class="visually-hidden"> ${plan?"vs plan":"vs prior period"}</span></b></button>`;}).join("")}</div>`
     :`<p class="mh-sub">No movements to show for this close.</p>`;
+  if(allMovers>4)$("ov-glance").innerHTML+=`<button class="linkbtn glance-more" onclick="glanceAll=!glanceAll;paintOverview()">${glanceAll?"Show the top 4":`Show all ${allMovers}`}</button>`;
   if(movers.length&&movers.every(x=>!x.plan)){
     const dataCopy="Add a budget on the Data tab.";
     $("ov-glance").innerHTML+=`<p class="mh-sub">No budget loaded for this close: figures compare with last month. ${canReview()?`<a href="#month=${encodeURIComponent(currentPeriod)}&tab=data">${dataCopy}</a>`:dataCopy}</p>`;
@@ -2716,6 +2721,15 @@ function renderWhyNone(f){
     ?"Add a context note and the commentary will cite it next time it's drafted."
     :"An analyst can add the reason as a context note."}</span>${canReview()?`<button class="btn sm" data-act="reason" data-arg="${esc(f.metric)}">Add a reason</button>`:""}</div>`;
 }
+// The note's first line: the movement it explains, so the reason is written against the numbers.
+function reasonStarter(f){
+  if(!f||!f.has_data||f.unavailable)return "";
+  const d=f.deltas||{},when=fmtPeriod(currentPeriod,"long");
+  const vs=d.budget_var_abs!=null
+    ?`${deltaText(f,"budget")||"–"} vs plan (${d.budget_var_abs>0?"+":""}${fmt(d.budget_var_abs,f.unit)})`
+    :d.mom_pct!=null?`${deltaText(f,"mom")||"–"} ${priorPeriodLabel()}`:"";
+  return `${f.metric} was ${fmt(f.value,f.unit)} in ${when}${vs?`, ${vs}`:""}. Reason: `;
+}
 // Opens the close's Context tab with a new note already pointed at this KPI and month.
 function addReasonFor(metric){
   nav("context");
@@ -2725,7 +2739,9 @@ function addReasonFor(metric){
     if(!$("c-title").value)$("c-title").value=`Why ${metric} moved in ${fmtPeriod(currentPeriod,"long")}`;
     $("c-tags").value=metric;
     if(granularity==="month")$("c-date").value=currentPeriod;
-    $("c-body").focus();
+    const body=$("c-body");
+    if(!body.value){const start=reasonStarter((currentFacts||[]).find(f=>f.metric===metric));if(start)body.value=start;}
+    body.focus();body.setSelectionRange&&body.setSelectionRange(body.value.length,body.value.length);
   },60);
 }
 
