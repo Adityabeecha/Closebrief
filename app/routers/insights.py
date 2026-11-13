@@ -1,16 +1,15 @@
 """Advanced analytics (v5.0/5.3): deterministic forecasting, what-if scenarios,
-cross-dataset correlations, and anomaly root-cause — with optional LLM narratives
+and anomaly root-cause — with optional LLM narratives
 that only phrase the computed numbers."""
 
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.api import CurrentUser, require_member, require_read
-from app.compute.cross_domain import cross_domain_correlations
 from app.compute.forecast import backtest_mape, forecast, next_periods
 from app.compute.root_cause import decompose as root_cause_decompose
 from app.compute.scenario import run_scenario
 from app.config import settings
-from app.datasets import active_dataset_id, dataset_metadata, list_datasets
+from app.datasets import active_dataset_id, dataset_metadata
 from app.db import get_connection
 from app.generation.llm_client import LLMGenerationError, get_llm_client
 from app.generation.prompts import (
@@ -72,20 +71,6 @@ def get_forecast(metric: str, horizon: int = 3, _: CurrentUser = Depends(require
     fc = _forecast_inputs(metric, max(1, min(12, horizon)))
     return {**fc, "history": fc["history"][-6:],
             "projections": fc["projections"], "mape": fc["mape"], "n_history": fc["n_history"]}
-
-
-@router.get("/insights/cross-domain")
-def cross_domain_endpoint(_: CurrentUser = Depends(require_read)) -> list[dict]:
-    """Strong correlations between metrics in different datasets of the workspace
-    (e.g. Marketing spend → FP&A revenue), with the best lead/lag. Deterministic."""
-    conn = get_connection()
-    try:
-        ds_ids = [d["id"] for d in list_datasets(conn)]
-        if len(ds_ids) < 2:
-            return []
-        return cross_domain_correlations(conn, ds_ids)
-    finally:
-        conn.close()
 
 
 @router.post("/scenario")
