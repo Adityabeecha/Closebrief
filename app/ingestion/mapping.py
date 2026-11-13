@@ -595,7 +595,7 @@ def _num(v):
 
 
 def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_id: int, *,
-                     replace=False, actor_id=None, actor_email=None) -> dict:
+                     replace=False, actor_id=None, actor_email=None, source="import") -> dict:
     """Aggregate canonical rows to one row per metric+period, then upsert into
     metric_values. Dimension-level rows (e.g. revenue by product) are SUMMED to
     the metric total rather than overwriting each other; when those rows carry
@@ -708,7 +708,7 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
                  bridge.total, len(items)),
             )
         n_written += 1
-    record_changes(conn, dataset_id, before, "import", actor_id=actor_id, actor_email=actor_email)
+    record_changes(conn, dataset_id, before, source, actor_id=actor_id, actor_email=actor_email)
     if n_written or removed:
         mark_data_changed(conn, dataset_id)
     conn.commit()

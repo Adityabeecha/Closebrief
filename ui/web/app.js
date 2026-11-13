@@ -1893,7 +1893,12 @@ async function syncSourceNow(id){
   toast("Syncing…");
   try{
     const r=await api(`/connectors/${id}/sync`,{method:"POST"});
-    if(r.status==="ok"){toast(`Synced ${plural(r.rows||0,"row")}`);await loadDatasets();await loadPeriods();}
+    if(r.status==="ok"){
+      const rep=r.import_report||{},m=r.mapping||{};
+      const read=rep.rows_read!=null?`${rep.rows_read} rows read, ${rep.rows_kept} kept`:plural(r.rows||0,"figure");
+      const cols=[m.value_col&&`amount: ${m.value_col}`,m.budget_col&&`budget: ${m.budget_col}`,m.forecast_col&&`forecast: ${m.forecast_col}`,
+        (m.dimension_cols||[])[0]&&`breakdown: ${m.dimension_cols[0]}`].filter(Boolean).join(" · ");
+      toast(`Synced: ${read}${cols?` (${cols})`:""}`);await loadDatasets();await loadPeriods();}
     else toast(r.error||"Sync failed");
   }catch(e){toast(errMsg(e));}
   await loadSyncSources();
