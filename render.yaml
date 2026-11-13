@@ -9,13 +9,12 @@ services:
     plan: free               # $0, sleeps after ~15 min idle (cold start ~50s).
                              # Change to `starter` (~$7/mo) to avoid sleeps.
     branch: main
-    # Deploys are promoted manually from the Render dashboard after CI is green.
-    autoDeploy: false
+    # Deploy every push to main once its GitHub checks (CI) pass.
+    autoDeployTrigger: checksPass
     healthCheckPath: /health
-    # NOTE: free plan does not support preDeployCommand, so migrations are NOT
-    # applied automatically. Run once from your machine against the Supabase URL:
-    #   DATABASE_URL="<pooler url>" python -m app.db migrate --no-copy --no-reindex
-    # (On the paid `starter` plan you can restore preDeployCommand instead.)
+    # Migrations: on startup the app applies any pending app/migrations/pg/*.sql
+    # itself (auto_migrate=true in app/config.py), so nothing runs by hand. The
+    # free plan has no preDeployCommand; on `starter` you could move it there.
     envVars:
       - key: APP_ENV
         value: prod

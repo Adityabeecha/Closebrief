@@ -62,8 +62,8 @@ Non-secret config (`APP_ENV=prod`, `LLM_PROVIDER=openai`, `VECTOR_BACKEND=pgvect
 ## CI/CD
 
 `.github/workflows/ci.yml` gates every push/PR to `main`: **pip-audit -> ruff -> pytest ->
-eval recall@5 >= 90% -> docker build**. Render automatic deploys are disabled
-(`autoDeploy: false`); CI does not call Render.
+eval recall@5 >= 90% -> docker build**. Render deploys `main` automatically once
+those checks pass (`autoDeployTrigger: checksPass` in `render.yaml`); CI does not call Render.
 
 - `.github/workflows/nightly-eval.yml` runs the full eval **with** the LLM nightly;
   needs `OPENAI_API_KEY` as a **repository** Actions secret.
@@ -71,8 +71,11 @@ eval recall@5 >= 90% -> docker build**. Render automatic deploys are disabled
 
 ## Releasing
 
-Merge to `main` -> wait for CI to be green -> select **Manual Deploy** in the
-Render dashboard -> check `/health` returns a successful response.
+Merge to `main` -> CI goes green -> Render deploys it -> check `/health` returns a
+successful response. Pending Postgres migrations run on that first start. If the
+Render service was created before `autoDeployTrigger` was set, also choose
+**Settings -> Build & Deploy -> Auto-Deploy -> After CI Checks Pass** once in the
+dashboard (or **Manual Deploy** to release by hand).
 
 ## Monitoring
 
