@@ -36,6 +36,7 @@ from app.compute.correlations import (
 from app.compute.funnel import compute_funnel
 from app.compute.kpis import compute_kpis
 from app.compute.pvm import bridge_for_metric_row
+from app.context.reasons import dataset_notes, reason_note
 from app.datasets import (
     _scope_pred,
     active_dataset_id,
@@ -382,11 +383,12 @@ def build_facts(conn, ds, period, granularity, user, include_charts=True):
     all_values = load_values(conn, ds)
     breakdowns = breakdown_coverage(conn, ds, [period])
     month_parts = part_variances(conn, ds, [period])
+    notes = dataset_notes(conn, ds)
     sensitive = user.role == "admin"   # gate cost/latency/emails to admins
     # Batch the per-card report + feedback lookups into two queries instead of
     # ~3 per card (was an N+1 over the dashboard's hot path).
     metric_ids = [r["metric_id"] for r in rows if r["metric_id"] is not None]
-    reports_by_metric, edited_by_report, reviewer_by_report = {}, {}, {}
+    reports_by_metric, edited_by_report, reviewer_by_report, change_note_by_report = {}, {}, {}, {}
     if metric_ids:
         ph = ",".join("?" * len(metric_ids))
         for rr in conn.execute(
@@ -404,12 +406,14 @@ def build_facts(conn, ds, period, granularity, user, include_charts=True):
         if report_ids:
             ph2 = ",".join("?" * len(report_ids))
             for fr in conn.execute(
-                f"""SELECT report_id, action, edited_text, user_email
+                f"""SELECT report_id, action, edited_text, reason, user_email
                     FROM feedback WHERE report_id IN ({ph2}) ORDER BY id ASC""",
                 tuple(report_ids),
             ).fetchall():
                 if fr["action"] == "edited" and fr["edited_text"] is not None:
                     edited_by_report[fr["report_id"]] = fr["edited_text"]
+                if fr["action"] == "rejected" and fr["reason"]:
+                    change_note_by_report[fr["report_id"]] = fr["reason"]
                 if fr["user_email"] is not None:
                     reviewer_by_report[fr["report_id"]] = fr["user_email"]
 
@@ -432,6 +436,7 @@ def build_facts(conn, ds, period, granularity, user, include_charts=True):
                                  budget_var_abs=r["budget_var_abs"], floor=metadata["reason_threshold_abs"],
                                  parts=month_parts.get((r["metric_id"], period), ()))
         report = reports_by_metric.get(r["metric_id"]) if has_data else None
+        note = reason_note(notes, r["metric"], period) if has_data and trigger else None
         edited = edited_by_report.get(report["id"]) if report else None
         reviewer = reviewer_by_report.get(report["id"]) if report else None
         out.append({
@@ -465,8 +470,11 @@ def build_facts(conn, ds, period, granularity, user, include_charts=True):
             "needs_reason_flag": bool(has_data and trigger),
             # What made it need a reason: the anomaly, the total, or one part (Sales inside Opex).
             "reason_trigger": trigger if has_data else None,
+            # The note that records this month's reason, if one does (same rule as the close checklist).
+            "reason_note": {"id": note.id, "title": note.title} if note else None,
             "report_id": report["id"] if report else None,
             "review_status": report["review_status"] if report else None,
+            "change_note": change_note_by_report.get(report["id"]) if report else None,
             "assigned_email": report["assigned_email"] if report else None,
             "narrative": (edited or report["narrative"]) if report else None,
             "original_narrative": report["narrative"] if (report and edited) else None,

@@ -169,6 +169,8 @@ def delete_dataset(conn, dataset_id: int) -> bool:
         conn.execute("DELETE FROM metric_values WHERE metric_id = ?", (mid,))
         conn.execute("DELETE FROM pvm_bridges WHERE metric_id = ?", (mid,))
         conn.execute("DELETE FROM metric_breakdowns WHERE metric_id = ?", (mid,))
+    # Notes written for this dataset go with it; workspace-wide notes stay.
+    conn.execute("DELETE FROM context_documents WHERE dataset_id = ?", (dataset_id,))
     conn.execute(
         "DELETE FROM scheduler_runs WHERE job_id IN (SELECT id FROM scheduled_jobs WHERE dataset_id = ?)",
         (dataset_id,),

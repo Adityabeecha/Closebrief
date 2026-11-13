@@ -19,8 +19,8 @@ from app.close_export import XLSX_TYPE, build_close_workbook, content_dispositio
 from app.compute.aggregate import GRANULARITIES, months_in, period_key, sort_key
 from app.compute.availability import has_usable_value, needs_reason
 from app.compute.close_views import part_variances
-from app.context.store import _row_to_doc
-from app.datasets import _scope_pred, active_dataset_id, current_workspace, dataset_metadata, timestamp_text
+from app.context.reasons import dataset_notes, reason_recorded
+from app.datasets import active_dataset_id, current_workspace, dataset_metadata, timestamp_text
 from app.db import get_connection
 
 router = APIRouter(prefix="/close", tags=["close"])
@@ -47,18 +47,6 @@ def _label(period):
 
 
 _COUNTS = ("kpis", "drafted", "approved", "checked", "needs_reason", "exceptions", "flagged")
-
-
-def reason_recorded(doc, metric: str, month: str) -> bool:
-    """A note explains this KPI's month only when it names the KPI and is either dated
-    in that month or an undated event note. An untagged note ("Q1 seasonality"), a
-    definition, or last year's note no longer counts as this month's reason."""
-    tags = {str(t).strip().lower() for t in (doc.metric_tags or [])}
-    if str(metric).strip().lower() not in tags:
-        return False
-    if doc.effective_date:
-        return str(doc.effective_date)[:7] == month
-    return doc.type == "event_note"
 
 
 def _finish(period, g, months, shared_months, shared_at):
@@ -93,7 +81,7 @@ def _summaries(conn, ds, granularity="month"):
     floor, parts = meta["reason_threshold_abs"], part_variances(conn, ds)
     rows = conn.execute(
         """SELECT cf.period, cf.metric_id, cf.value, m.name, cf.is_anomaly, cf.budget_var_abs,
-        cf.budget_var_pct, gr.id AS report_id, gr.review_status, gr.faithfulness,
+        cf.budget_var_pct, k.display_name, gr.id AS report_id, gr.review_status, gr.faithfulness,
         COALESCE(k.unit, m.unit) AS unit, mv.source_rows
         FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
         LEFT JOIN kpi_configs k ON k.dataset_id = m.dataset_id AND k.source_metric = m.name
@@ -107,7 +95,7 @@ def _summaries(conn, ds, granularity="month"):
         ORDER BY cf.period DESC""",
         (ds,),
     ).fetchall()
-    docs = [_row_to_doc(r) for r in conn.execute(f"SELECT * FROM context_documents WHERE {_scope_pred()}").fetchall()]
+    docs = dataset_notes(conn, ds)   # another dataset's note is never this one's reason
     runs = scheduling.list_digest_runs(conn, ds, limit=2147483647)
     shared = {}
     for run in runs:
@@ -137,7 +125,8 @@ def _summaries(conn, ds, granularity="month"):
                                parts=parts.get((row["metric_id"], period), ()))
         if flagged:
             group["flagged"] += 1
-            if not any(reason_recorded(doc, row["name"], period) for doc in docs):
+            names = {row["name"], row["display_name"] or row["name"]}
+            if not any(reason_recorded(doc, n, period) for doc in docs for n in names):
                 group["needs_reason"] += 1
     # Roll months up into the requested closes. For months this is one-to-one.
     buckets = {}
@@ -154,8 +143,9 @@ def _summaries(conn, ds, granularity="month"):
     out = [{**_finish(period, b["g"], b["months"], b["shared"], b["at"]), "distinct_kpis": len(b["ids"])}
            for period, b in buckets.items()]
     for summary in out:
-        covered = months_in(summary["period"], granularity, fiscal_start)
-        summary.update(lock_status(conn, ds, covered))
+        # A quarter is locked when every month it has figures for is locked (Q4 with
+        # only October locked is locked; November isn't there to change).
+        summary.update(lock_status(conn, ds, summary["months"] or months_in(summary["period"], granularity, fiscal_start)))
     out.sort(key=lambda x: sort_key(x["period"], fiscal_start), reverse=True)
     return out
 

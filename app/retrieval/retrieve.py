@@ -1,9 +1,12 @@
 """Top-k context retrieval (US-B3).
 
 Given a metric + period, embed a query, search the vector store, then apply
-business filters: keep a chunk only if (a) it has no metric_tags or is tagged
-for this metric, and (b) its effective_date (if any) is on or before the
-period. Never returns more than k chunks (token/cost control).
+business filters. Notes that can be read as the cause of a move (event notes and
+historical commentary) must be tagged with this KPI, and a dated event note must be
+from this month or the two before it: an untagged "Q1 seasonality" note must never
+explain an October margin drop. Untagged notes are background only (definitions,
+glossary, policy). Nothing dated after the period is used. Never returns more than
+k chunks (token/cost control).
 """
 
 from app.context.embeddings import Embedder
@@ -17,16 +20,42 @@ def _period_key(period: str) -> str:
     return period[:7]
 
 
+# Notes that describe what happened (and so read as a reason) versus background.
+CAUSAL_TYPES = {"event_note", "historical_commentary"}
+EVENT_WINDOW_MONTHS = 3  # this month and the two before it
+
+
+def _month_index(key: str) -> int | None:
+    try:
+        return int(key[:4]) * 12 + int(key[5:7]) - 1
+    except (TypeError, ValueError):
+        return None
+
+
 def _effective_ok(doc: ContextDoc, period: str) -> bool:
     if not doc.effective_date:
         return True
-    return _period_key(doc.effective_date) <= _period_key(period)
+    eff, per = _period_key(doc.effective_date), _period_key(period)
+    if eff > per:
+        return False
+    if doc.type == "event_note":
+        e, p = _month_index(eff), _month_index(per)
+        if e is not None and p is not None:
+            return p - e < EVENT_WINDOW_MONTHS
+    return True
+
+
+def _tagged_for(doc: ContextDoc, metric: str) -> bool:
+    want = str(metric).strip().lower()
+    return any(str(t).strip().lower() == want for t in doc.metric_tags or [])
 
 
 def _metric_ok(doc: ContextDoc, metric: str) -> bool:
+    if doc.type in CAUSAL_TYPES:
+        return _tagged_for(doc, metric)
     if not doc.metric_tags:
-        return True  # untagged docs are globally relevant
-    return metric in doc.metric_tags
+        return True  # an untagged definition or policy is background for every KPI
+    return _tagged_for(doc, metric)
 
 
 def build_query(metric: str, period: str) -> str:

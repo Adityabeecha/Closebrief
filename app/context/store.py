@@ -16,8 +16,19 @@ def _embed_text(doc: ContextDocIn) -> str:
     return f"{doc.title}\n{doc.body}".strip()
 
 
+def _row_dataset(row) -> int | None:
+    try:
+        value = row["dataset_id"]
+    except (IndexError, KeyError):
+        return None
+    return int(value) if value is not None else None
+
+
 def _row_to_doc(row: sqlite3.Row) -> ContextDoc:
+    dataset_id = _row_dataset(row)
     return ContextDoc(
+        dataset_id=dataset_id,
+        scope="dataset" if dataset_id is not None else "workspace",
         id=row["id"],
         type=row["type"],
         title=row["title"],
@@ -37,13 +48,30 @@ class ContextStore:
         self._embedder = embedder
         self._vs = vector_store
 
+    def _dataset_for(self, doc: ContextDocIn, current: int | None = None) -> int | None:
+        """A note scoped to a dataset keeps the dataset it was written for; a new one
+        takes the dataset open now. Workspace-wide notes have none."""
+        if doc.scope == "workspace":
+            return None
+        if current is not None:
+            return current
+        return self._open_dataset()
+
+    def _open_dataset(self) -> int | None:
+        from app.datasets import active_dataset_id
+
+        try:
+            return active_dataset_id(self._conn)
+        except Exception:  # noqa: BLE001 - a bare store (no datasets table) has no open dataset
+            return None
+
     def add(self, doc: ContextDocIn) -> ContextDoc:
         from app.datasets import current_workspace
 
         cur = self._conn.execute(
             """
-            INSERT INTO context_documents (type, title, body, metric_tags, effective_date, workspace_id)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO context_documents (type, title, body, metric_tags, effective_date, workspace_id, dataset_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 doc.type,
@@ -52,6 +80,7 @@ class ContextStore:
                 json.dumps(doc.metric_tags),
                 doc.effective_date,
                 current_workspace(),
+                self._dataset_for(doc),
             ),
         )
         self._conn.commit()
@@ -70,24 +99,32 @@ class ContextStore:
         ).fetchone()
         return _row_to_doc(row) if row else None
 
-    def list(self) -> list[ContextDoc]:
-        # Scoped to the caller's universe: demo sessions see only demo-seeded
-        # docs; real sessions never see them. Retrieval and conflict detection
-        # both build from list(), so they inherit the same isolation.
+    def list(self, dataset_id: int | None = None, *, all_datasets: bool = False) -> list[ContextDoc]:
+        """Notes for one dataset: its own plus workspace-wide ones (dataset_id NULL).
+
+        Scoped to the caller's universe: demo sessions see only demo-seeded docs;
+        real sessions never see them. Retrieval, conflict detection and the reason
+        check all build from list(), so a note written for one dataset never explains
+        another dataset's numbers. Without a dataset_id the open dataset is used."""
         from app.datasets import _scope_pred
 
         rows = self._conn.execute(
             f"SELECT * FROM context_documents WHERE {_scope_pred()} ORDER BY id"
         ).fetchall()
-        return [_row_to_doc(r) for r in rows]
+        docs = [_row_to_doc(r) for r in rows]
+        if all_datasets:
+            return docs
+        ds = dataset_id if dataset_id is not None else self._open_dataset()
+        return [d for d in docs if d.dataset_id is None or d.dataset_id == ds]
 
     def update(self, doc_id: int, doc: ContextDocIn) -> ContextDoc | None:
-        if self.get(doc_id) is None:
+        existing = self.get(doc_id)
+        if existing is None:
             return None
         self._conn.execute(
             """
             UPDATE context_documents
-            SET type=?, title=?, body=?, metric_tags=?, effective_date=?
+            SET type=?, title=?, body=?, metric_tags=?, effective_date=?, dataset_id=?
             WHERE id=?
             """,
             (
@@ -96,6 +133,7 @@ class ContextStore:
                 doc.body,
                 json.dumps(doc.metric_tags),
                 doc.effective_date,
+                self._dataset_for(doc, existing.dataset_id),
                 doc_id,
             ),
         )
@@ -120,7 +158,7 @@ class ContextStore:
     def reindex_all(self) -> int:
         """Rebuild every vector from the DB. Useful after switching embedder
         or restoring a DB without its index."""
-        docs = self.list()
+        docs = self.list(all_datasets=True)
         if not docs:
             return 0
         vectors = self._embedder.embed([_embed_text(d) for d in docs])

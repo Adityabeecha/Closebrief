@@ -74,7 +74,7 @@ def test_retrieval_finds_authorized_context_below_other_workspace_hits(tmp_path)
     vectors.add(list(range(1, 7)), np.array([query] * 5 + [query * 0.5]))
     # The five higher-scoring documents belong to other workspaces and are
     # correctly absent from this caller's scoped context store.
-    doc = ContextDoc(id=6, type="event_note", title="Local context", body="Revenue grew")
+    doc = ContextDoc(id=6, type="event_note", title="Local context", body="Revenue grew", metric_tags=["Revenue"])
     store = SimpleNamespace(list=lambda: [doc])
     assert [chunk.id for chunk in retrieve("Revenue", "2025-02", store, embedder, vectors, k=1)] == [6]
 
