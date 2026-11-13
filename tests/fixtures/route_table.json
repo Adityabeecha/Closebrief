@@ -134,6 +134,16 @@
     ]
   ],
   [
+    "/close/export.xlsx",
+    [
+      "GET"
+    ],
+    true,
+    [
+      "require_read"
+    ]
+  ],
+  [
     "/close/lock",
     [
       "POST"
@@ -341,6 +351,16 @@
     true,
     [
       "require_read"
+    ]
+  ],
+  [
+    "/digest/recipients",
+    [
+      "GET"
+    ],
+    true,
+    [
+      "require_write"
     ]
   ],
   [
