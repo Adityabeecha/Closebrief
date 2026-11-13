@@ -87,7 +87,9 @@ def test_combined_percent_unavailable_but_currency_still_sums(client, granularit
 def test_schema_warns_how_many_rows_will_be_added(client):  # noqa: F811
     upload = _upload(client, "period,metric,value,region\n2025-01,Revenue,100,East\n2025-01,Revenue,200,West\n")
     schema = client.get(f"/ingest/{upload}/schema").json()
-    assert any("2 rows" in w and "added together" in w for w in schema["mapping_warnings"])
+    # region is the breakdown: its rows are added into each KPI and kept under Contributors.
+    assert any("region rows (2 at most" in w and "added up" in w and "Contributors" in w
+               for w in schema["mapping_warnings"])
 
 
 def test_duplicate_report_examples_and_combined_list_are_capped(client):  # noqa: F811

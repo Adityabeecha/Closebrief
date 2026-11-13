@@ -164,7 +164,6 @@ def sync_connector(conn, connector_id: int, workspace_id: int | None, *, fetch=f
     """Fetch the source, ingest into the connector's dataset, recompute. `fetch`
     is injectable so tests run without network. Idempotent per period."""
     from app.compute.derived import refresh as _recompute_with_derived
-    from app.compute.kpis import compute_and_store
     from app.datasets import (
         active_dataset_id,
         create_dataset,
@@ -214,7 +213,6 @@ def sync_connector(conn, connector_id: int, workspace_id: int | None, *, fetch=f
                                    actor_id=actor_id, actor_email=actor_email)
         report = summary["import_report"]
         _recompute_with_derived(conn, ds_id, actor_id=actor_id, actor_email=actor_email, report=report)
-        compute_and_store(conn, ds_id)
         if active_dataset_id(conn) is None:
             set_active(conn, ds_id)
         if not cfg.get("mapping"):

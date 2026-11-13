@@ -237,40 +237,41 @@ def compute_and_store(
         ).fetchall():
             before[(int(r["metric_id"]), r["period"])] = tuple(r[k] for k in _COMPARED)
 
-    cur = conn.cursor()
-    for _, f in facts.iterrows():
-        cur.execute(
-            """
-            INSERT INTO computed_facts
-                (metric_id, period, value, prior_value, mom_pct, yoy_pct,
-                 budget_var_abs, budget_var_pct, forecast_var_abs, forecast_var_pct, trend, is_anomaly,
-                 anomaly_basis, anomaly_z)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(metric_id, period) DO UPDATE SET
-                value=excluded.value, prior_value=excluded.prior_value,
-                mom_pct=excluded.mom_pct, yoy_pct=excluded.yoy_pct,
-                budget_var_abs=excluded.budget_var_abs, budget_var_pct=excluded.budget_var_pct,
-                forecast_var_abs=excluded.forecast_var_abs, forecast_var_pct=excluded.forecast_var_pct,
-                trend=excluded.trend, is_anomaly=excluded.is_anomaly,
-                anomaly_basis=excluded.anomaly_basis, anomaly_z=excluded.anomaly_z
-            """,
-            (
-                int(f["metric_id"]),
-                f["period"],
-                _db_num(f["value"]),
-                _db_num(f["prior_value"]),
-                _db_num(f["mom_pct"]),
-                _db_num(f["yoy_pct"]),
-                _db_num(f["budget_var_abs"]),
-                _db_num(f["budget_var_pct"]),
-                _db_num(f["forecast_var_abs"]),
-                _db_num(f["forecast_var_pct"]),
-                f["trend"] if isinstance(f["trend"], str) else None,
-                int(bool(f["is_anomaly"])),
-                f["anomaly_basis"] if isinstance(f["anomaly_basis"], str) else None,
-                _db_num(f["anomaly_z"]),
-            ),
+    # One batch: on a remote database each statement is a round trip.
+    sql = """
+        INSERT INTO computed_facts
+            (metric_id, period, value, prior_value, mom_pct, yoy_pct,
+             budget_var_abs, budget_var_pct, forecast_var_abs, forecast_var_pct, trend, is_anomaly,
+             anomaly_basis, anomaly_z)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(metric_id, period) DO UPDATE SET
+            value=excluded.value, prior_value=excluded.prior_value,
+            mom_pct=excluded.mom_pct, yoy_pct=excluded.yoy_pct,
+            budget_var_abs=excluded.budget_var_abs, budget_var_pct=excluded.budget_var_pct,
+            forecast_var_abs=excluded.forecast_var_abs, forecast_var_pct=excluded.forecast_var_pct,
+            trend=excluded.trend, is_anomaly=excluded.is_anomaly,
+            anomaly_basis=excluded.anomaly_basis, anomaly_z=excluded.anomaly_z
+        """
+    rows = [
+        (
+            int(f["metric_id"]),
+            f["period"],
+            _db_num(f["value"]),
+            _db_num(f["prior_value"]),
+            _db_num(f["mom_pct"]),
+            _db_num(f["yoy_pct"]),
+            _db_num(f["budget_var_abs"]),
+            _db_num(f["budget_var_pct"]),
+            _db_num(f["forecast_var_abs"]),
+            _db_num(f["forecast_var_pct"]),
+            f["trend"] if isinstance(f["trend"], str) else None,
+            int(bool(f["is_anomaly"])),
+            f["anomaly_basis"] if isinstance(f["anomaly_basis"], str) else None,
+            _db_num(f["anomaly_z"]),
         )
+        for _, f in facts.iterrows()
+    ]
+    conn.executemany(sql, rows)
     changed = [
         key for key in ((int(f["metric_id"]), f["period"]) for _, f in facts.iterrows())
         if key in before and _figures_differ(before[key], tuple(facts_row(facts, key)))

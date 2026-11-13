@@ -702,6 +702,16 @@ class PostgresConnection:
             lastrowid = row["id"] if row else None
         return _PgCursor(cur, lastrowid)
 
+    def executemany(self, sql: str, seq_of_params):
+        """Many rows in one batch: psycopg pipelines them, so a few hundred figures cost
+        a handful of round trips to the database instead of one each."""
+        rows = [tuple(p) for p in seq_of_params]
+        if not rows:
+            return None
+        with self._raw.cursor() as cur:
+            cur.executemany(_driver_sql(_translate(sql, has_params=True), has_params=True), rows)
+        return None
+
     def cursor(self):
         return self
 

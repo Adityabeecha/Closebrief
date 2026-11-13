@@ -18,6 +18,28 @@ def _sum(group, field):
     return sum(values) if values else None
 
 
+def member_rows(ws, metric_id, period, group, dimension=None) -> list[tuple]:
+    """The breakdown rows for one KPI and month, ready to insert (none for fewer than two parts)."""
+    if "dimensions" not in group:
+        return []
+    decoded = [dimensions(raw) for raw in group["dimensions"]]
+    dimension = dimension or next((key for row in decoded for key in row), None)
+    if dimension is None:
+        return []
+    members = [_member(row.get(dimension)) for row in decoded]
+    if len(set(members)) < 2:
+        return []
+    grouped = group.copy()
+    grouped["_member"] = members
+    return [(ws, metric_id, period, dimension, member, _sum(rows, "value"), _sum(rows, "budget"),
+             _sum(rows, "forecast"), len(rows)) for member, rows in grouped.groupby("_member")]
+
+
+INSERT_MEMBERS = """INSERT INTO metric_breakdowns
+    (workspace_id, metric_id, period, dimension, member, value, budget, forecast, source_rows)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+
+
 def replace_members(conn, metric_id, period, group, dimension=None):
     conn.execute("DELETE FROM metric_breakdowns WHERE metric_id=? AND period=?", (metric_id, period))
     if "dimensions" not in group:

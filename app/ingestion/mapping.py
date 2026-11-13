@@ -650,6 +650,10 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
         vals = [v for v in series if v is not None and pd.notna(v)]
         return float(sum(vals)) if vals else None
 
+    from app.ingestion.breakdowns import INSERT_MEMBERS, member_rows
+
+    ws = conn.execute("SELECT workspace_id FROM datasets WHERE id = ?", (dataset_id,)).fetchone()["workspace_id"]
+    value_rows, member_keys, members = [], [], []
     n_written = 0
     for (metric, period), group in canonical.groupby(["metric", "period"]):
         if period in locked:
@@ -678,23 +682,10 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
         budget_price = _num(group["budget_price"].iloc[0]) if len(group) == 1 else None
         dims = group["dimensions"].iloc[0] if len(group) == 1 else None
 
-        cur.execute(
-            """
-            INSERT INTO metric_values (metric_id, period, value, budget, forecast, quantity, price,
-                                       budget_quantity, budget_price, dimensions, source_rows)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(metric_id, period) DO UPDATE SET
-                value=excluded.value, budget=excluded.budget, forecast=excluded.forecast,
-                quantity=excluded.quantity, price=excluded.price,
-                budget_quantity=excluded.budget_quantity, budget_price=excluded.budget_price,
-                dimensions=excluded.dimensions, source_rows=excluded.source_rows
-            """,
-            (metric_id, period, float(value), budget, forecast, quantity, price,
-             budget_quantity, budget_price, dims if isinstance(dims, str) else None, len(group)),
-        )
-
-        from app.ingestion.breakdowns import replace_members
-        replace_members(conn, metric_id, period, group, canonical.attrs.get("dimension_column"))
+        value_rows.append((metric_id, period, float(value), budget, forecast, quantity, price,
+                           budget_quantity, budget_price, dims if isinstance(dims, str) else None, len(group)))
+        member_keys.append((metric_id, period))
+        members += member_rows(ws, metric_id, period, group, canonical.attrs.get("dimension_column"))
         if bridge is not None:
             cur.execute(
                 """
@@ -708,6 +699,20 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
                  bridge.total, len(items)),
             )
         n_written += 1
+    # One batch per table: on a remote database each statement is a round trip.
+    conn.executemany(
+        """
+        INSERT INTO metric_values (metric_id, period, value, budget, forecast, quantity, price,
+                                   budget_quantity, budget_price, dimensions, source_rows)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(metric_id, period) DO UPDATE SET
+            value=excluded.value, budget=excluded.budget, forecast=excluded.forecast,
+            quantity=excluded.quantity, price=excluded.price,
+            budget_quantity=excluded.budget_quantity, budget_price=excluded.budget_price,
+            dimensions=excluded.dimensions, source_rows=excluded.source_rows
+        """, value_rows)
+    conn.executemany("DELETE FROM metric_breakdowns WHERE metric_id = ? AND period = ?", member_keys)
+    conn.executemany(INSERT_MEMBERS, members)
     record_changes(conn, dataset_id, before, source, actor_id=actor_id, actor_email=actor_email)
     if n_written or removed:
         mark_data_changed(conn, dataset_id)
