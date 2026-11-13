@@ -6,9 +6,13 @@ AI drafts the commentary around those facts and the business context you add.
 
 Every generated figure is checked against supplied facts or source context at
 its written precision. Checks also compare rise/fall wording with the direction
-of the computed change. Reviewers can inspect, edit, and approve the draft.
-The digest uses approved commentary; sending is blocked until every KPI in the
-close has approved commentary.
+of the computed change. The check covers the numbers; the reasons come from your
+own context notes. You inspect, edit, and approve each draft. The digest uses
+approved commentary; sending is blocked until every KPI in the close has approved
+commentary.
+
+CloseBrief does the last mile of month-end, the commentary. It isn't a planning,
+budgeting, or BI tool: your model stays in Excel or your FP&A system.
 
 ## Main flow
 
@@ -18,10 +22,24 @@ close has approved commentary.
 2. Review the month's values, changes against plan, trends, and flagged movements.
 3. Add reasons as context notes for the relevant metrics and period, then draft
    or revise commentary using those notes and computed facts.
-4. Review the figures and explanation, assign a reviewer if needed, and approve
-   each KPI's commentary. Edits are recorded in version history.
-5. Preview the digest of approved commentary, then send it through configured
-   email, Slack, or webhook channels once all KPIs are approved.
+4. Review the figures and explanation, then approve each KPI's commentary.
+   Edits are recorded in version history.
+5. Preview the digest of approved commentary and who it goes to, then send it
+   through configured email, Slack, or webhook channels once all KPIs are approved.
+6. Lock the close so later imports or syncs can't change its figures or commentary.
+
+## What a close shows
+
+- **Each KPI:** actual, plan and forecast, variances, the prior month and year,
+  and fiscal year to date, in a review queue or as a statement grouped by category.
+- **Why it moved:** contributors by department, product, or region when the import
+  has a breakdown column, and anomalies judged against the same month last year.
+- **Needs a reason:** anomalies and variances past the dataset's threshold
+  (10% by default) are listed until a context note explains them.
+- **Control:** an import receipt with per-KPI totals, a log of every figure an
+  import changed, and an Activity history of approvals, sends, and locks.
+- **Outputs:** the leadership digest, a print-ready board pack, PDF, PowerPoint,
+  and an Excel workbook of the whole close.
 
 ## Run locally
 
