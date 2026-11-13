@@ -17,7 +17,7 @@ GRANULARITIES = ("month", "quarter", "year")
 
 # Name heuristics for inferring the aggregation type when the KPI library
 # doesn't pin one. Ratio is detected primarily by unit == "%".
-_BALANCE_RE = ("cash", "balance", "runway", "headcount", "arr", "active customers", "customers", "logos")
+_BALANCE_RE = ("cash", "balance", "runway", "headcount", "arr", "mrr", "active customers", "customers", "logos")
 # Words that make a KPI a monthly movement even when it also names a balance.
 _FLOW_RE = ("cost", "expense", "spend", "payroll", "salar", "churn", "new ", "added", "lost",
             "gained", "bookings", "revenue", "hires", "won", "net change")

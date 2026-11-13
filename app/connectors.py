@@ -183,8 +183,9 @@ def sync_connector(conn, connector_id: int, workspace_id: int | None, *, fetch=f
 
     def _finish(status: str, error: str | None):
         conn.execute(
-            "UPDATE connectors SET last_status = ?, last_error = ?, last_sync_at = CURRENT_TIMESTAMP WHERE id = ?",
-            (status, error, connector_id),
+            "UPDATE connectors SET last_status = ?, last_error = ?, "
+            "last_sync_at = CASE WHEN ? = 'ok' THEN CURRENT_TIMESTAMP ELSE last_sync_at END WHERE id = ?",
+            (status, error, status, connector_id),
         )
         conn.commit()
 
@@ -211,6 +212,16 @@ def sync_connector(conn, connector_id: int, workspace_id: int | None, *, fetch=f
             conn, ds_name, activate=False, workspace_id=row["workspace_id"])
         summary = store_normalized(conn, canonical, ds_id, replace=ds is not None, source="sync",
                                    actor_id=actor_id, actor_email=actor_email)
+        from app.kpis.library import suggest_import_defaults, words
+        configs = []
+        for metric in conn.execute("SELECT name FROM metrics WHERE dataset_id = ?", (ds_id,)).fetchall():
+            name = metric["name"]
+            defaults = suggest_import_defaults(name)
+            configs.append((ds_id, name, words(name), defaults["category"], defaults["unit"],
+                            defaults["direction_good"], defaults["aggregation_type"]))
+        conn.executemany(
+            "INSERT INTO kpi_configs (dataset_id, source_metric, display_name, category, unit, direction_good, aggregation_type) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(dataset_id, source_metric) DO NOTHING", configs)
         report = summary["import_report"]
         _recompute_with_derived(conn, ds_id, actor_id=actor_id, actor_email=actor_email, report=report)
         if active_dataset_id(conn) is None:

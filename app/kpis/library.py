@@ -25,17 +25,31 @@ KPI_LIBRARY = [
     {"name": "Gross Margin %", "match": r"gross ?margin ?%|gm ?%", "category": "Profitability", "unit": "%", "direction_good": "up"},
     {"name": "Gross Profit", "match": r"gross ?(profit|margin(?! ?%))", "category": "Profitability", "unit": "USD", "direction_good": "up"},
     {"name": "EBITDA", "match": r"ebitda", "category": "Profitability", "unit": "USD", "direction_good": "up"},
+    {"name": "Logo Churn %", "match": "logo churn|churn.*%", "category": "Retention", "unit": "%", "direction_good": "down"},
+    {"name": "Net Revenue Retention", "match": "net revenue retention|\\bnrr\\b", "category": "Retention", "unit": "%", "direction_good": "up"},
+    {"name": "ARR", "match": "^arr$", "category": "Revenue", "unit": "USD", "direction_good": "up"},
+    {"name": "MRR", "match": "^mrr$", "category": "Revenue", "unit": "USD", "direction_good": "up"},
+    {"name": "DSO", "match": "\\bdso\\b|days sales outstanding", "category": "Working Capital", "unit": "days", "direction_good": "down"},
+    {"name": "DPO", "match": "\\bdpo\\b|days payable outstanding", "category": "Working Capital", "unit": "days", "direction_good": "up"},
+    {"name": "Research & Development", "match": "research.*development|\\br&d\\b", "category": "Cost", "unit": "USD", "direction_good": "down"},
+    {"name": "General & Administrative", "match": "general.*administrative|\\bg&a\\b", "category": "Cost", "unit": "USD", "direction_good": "down"},
     {"name": "Churned ARR", "match": r"churn", "category": "Retention", "unit": "USD", "direction_good": "down"},
     {"name": "Cost of Revenue", "match": r"cost of (revenue|sales|goods)|\bcogs\b", "category": "Cost", "unit": "USD", "direction_good": "down"},
     {"name": "Revenue", "match": r"\brevenue\b|turnover", "category": "Revenue", "unit": "USD", "direction_good": "up"},
     {"name": "Other Income", "match": r"\bincome\b", "category": "Other Income", "unit": "USD", "direction_good": "up"},
-    {"name": "Headcount Cost", "match": r"headcount ?(cost|expense|spend)|payroll|people ?cost|salaries|commissions",
-     "category": "Cost", "unit": "USD", "direction_good": "down"},
+    {
+        "name": "Headcount Cost",
+        "match": r"headcount ?(cost|expense|spend)|payroll|people ?cost|salaries|commissions",
+        "category": "Cost",
+        "unit": "USD",
+        "direction_good": "down",
+    },
     {"name": "Marketing Spend", "match": r"marketing|s&m|advertis", "category": "Cost", "unit": "USD", "direction_good": "down"},
     {"name": "OpEx", "match": r"op(erating)? ?ex(pense)?s?|overheads", "category": "Cost", "unit": "USD", "direction_good": "down"},
     {"name": "Cash Runway", "match": r"cash ?(runway|balance)|runway", "category": "Balance Sheet", "unit": "USD", "direction_good": "up"},
     {"name": "New Bookings", "match": r"bookings|new ?(arr|business)", "category": "Sales", "unit": "USD", "direction_good": "up"},
     {"name": "Active Customers", "match": r"(active )?customers|logos|accounts", "category": "Growth", "unit": "count", "direction_good": "up"},
+    {"name": "Headcount", "match": r"headcount", "category": "Growth", "unit": "count", "direction_good": "up"},
     {"name": "Revenue", "match": r"\bsales\b(?! ?&)", "unless": _EXPENSE_NAME, "category": "Revenue", "unit": "USD", "direction_good": "up"},
 ]
 
@@ -44,8 +58,9 @@ def library_listing() -> list[dict]:
     """The library as shown to users: each KPI once, without matcher internals.
     (A KPI can appear twice when it needs a late, lower-priority pattern.)"""
     seen: set[str] = set()
-    return [{k: v for k, v in kpi.items() if k not in ("match", "unless")} for kpi in KPI_LIBRARY
-            if not (kpi["name"] in seen or seen.add(kpi["name"]))]
+    return [
+        {k: v for k, v in kpi.items() if k not in ("match", "unless")} for kpi in KPI_LIBRARY if not (kpi["name"] in seen or seen.add(kpi["name"]))
+    ]
 
 
 def words(name: str) -> str:
@@ -126,8 +141,7 @@ def _hint_from_code(code: str | None) -> tuple[str, str] | None:
     return {"4": ("Revenue", "up"), "5": ("Cost", "down"), "6": ("Cost", "down")}.get(digits[0])
 
 
-def suggest_import_defaults(source_metric: str, group: str | None = None,
-                            code: str | None = None) -> dict:
+def suggest_import_defaults(source_metric: str, group: str | None = None, code: str | None = None) -> dict:
     """KPI-picker defaults for one imported metric. `group` is the file's own
     account-group/section value and `code` its account code — both outrank
     name heuristics because they come from the customer's ledger."""
@@ -140,7 +154,7 @@ def suggest_import_defaults(source_metric: str, group: str | None = None,
         hint = ("Cost", "down")
     if hint:
         if lib and (lib["category"], lib["direction_good"]) != hint:
-            out.pop("name", None)   # the "→ <KPI>" label would contradict the ledger
+            out.pop("name", None)  # the "→ <KPI>" label would contradict the ledger
         out["category"], out["direction_good"] = hint
     out.setdefault("category", "Uncategorized")
     # Known from the library, the ledger or a cost word; otherwise only a guess, and

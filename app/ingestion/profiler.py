@@ -392,7 +392,12 @@ def suggest_mapping(profile: dict, sheet_period: str | None = None) -> dict:
                 f"{', '.join(period_candidates)} look like per-row transaction dates, so every row "
                 f"is filed under {sheet_period} and those columns are kept as dimensions."
             )
-        elif period_candidates and not repeating:
+        elif period_candidates and not repeating and (any(
+            distinct[c] >= profile["row_count"] * 0.8 for c in id_candidates
+        ) or all(
+            distinct[c] >= profile["row_count"] * 0.8 or null_pct.get(c, 0) > _PERIOD_MAX_NULL_PCT
+            for c in period_candidates
+        )):
             reasons = []
             if transactional:
                 reasons.append(f"{', '.join(transactional)} holds a different date on almost every row")
@@ -457,7 +462,7 @@ def suggest_mapping(profile: dict, sheet_period: str | None = None) -> dict:
     # A metric-name column with very few distinct values relative to the
     # row count under-detects: it's probably an attribute, not the metric
     # identity, even though it won a name/cardinality tie-break upstream.
-    if metric_col and distinct.get(metric_col, 0) <= 1:
+    if metric_col and distinct.get(metric_col, 0) <= 1 and any(c not in breakdown for c in alternatives):
         warnings.append(
             f"\"{metric_col}\" has only {distinct.get(metric_col, 0)} distinct value(s) — "
             f"that would collapse everything into a single metric. Double-check this is the right column."

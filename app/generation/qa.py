@@ -6,6 +6,7 @@ endpoint and the Q&A eval so both measure the same behavior.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 from app.generation.guard import check_faithfulness
@@ -24,8 +25,7 @@ class QAResult:
     cost_usd: float
 
 
-def answer_question(llm_client, fact: ComputedFact, context: list[ContextSnippet],
-                    question: str, history: list[dict] | None = None) -> QAResult:
+def answer_question(llm_client, fact: ComputedFact, context: list[ContextSnippet], question: str, history: list[dict] | None = None) -> QAResult:
     """Answer `question` about one metric under the faithfulness guarantee.
 
     Raises LLMGenerationError if the first generation fails (caller decides how to
@@ -40,10 +40,13 @@ def answer_question(llm_client, fact: ComputedFact, context: list[ContextSnippet
     cost = usage.cost_usd or 0.0
 
     if not passed:
-        stricter = (base + "\n\nYour previous answer used unverifiable number(s): "
-                    + ", ".join(str(v) for v in unverified)
-                    + '. Rewrite using ONLY the numbers in the Computed facts block, or say '
-                      '"The data available doesn\'t answer that."')
+        stricter = (
+            base
+            + "\n\nYour previous answer used unverifiable number(s): "
+            + ", ".join(str(v) for v in unverified)
+            + ". Rewrite using ONLY the numbers in the Computed facts block, or say "
+            '"The data available doesn\'t answer that."'
+        )
         try:
             retry, usage2 = llm_client.generate_narrative(QA_SYSTEM_PROMPT, stricter)
             p += usage2.prompt_tokens or 0
@@ -55,7 +58,16 @@ def answer_question(llm_client, fact: ComputedFact, context: list[ContextSnippet
             pass
 
     return QAResult(
-        answer=result.narrative or "",
+        answer=clean_answer(result.narrative or ""),
         sources_used=list(result.sources_used or []),
-        grounded=passed, prompt_tokens=p, completion_tokens=c, cost_usd=cost,
+        grounded=passed,
+        prompt_tokens=p,
+        completion_tokens=c,
+        cost_usd=cost,
     )
+
+
+def clean_answer(answer: str) -> str:
+    answer = re.sub(r'(?i)(?:as noted in\s+)?(?:context\s+)?snippet\s+id\s*[:=]?\s*["\']?[\w-]+["\']?', "", answer)
+    answer = re.sub(r'(?i)["\']?\bctx_\d+\b["\']?', "", answer)
+    return re.sub(r"\s+([.,;:])", r"\1", re.sub(r" {2,}", " ", answer)).strip()
