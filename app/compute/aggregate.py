@@ -103,6 +103,22 @@ def aggregate_series(rows: list[dict], granularity: str, agg_type: str, fiscal_s
     return out
 
 
+def like_for_like(rows: list[dict], period: str, other: str, granularity: str, agg_type: str,
+                  fiscal_start: int = 1) -> float | None:
+    """The other period's value over the same months as `period` has data for, so a
+    year with three months is compared with the same three months, not a whole year.
+    None when any of those months is missing."""
+    mine = months_in(period, granularity, fiscal_start)
+    theirs = months_in(other, granularity, fiscal_start)
+    present = {r["period"] for r in rows if r["period"] in set(mine)}
+    picks = [theirs[i] for i, m in enumerate(mine) if m in present and i < len(theirs)]
+    by_month = {r["period"]: r for r in rows}
+    if not picks or any(m not in by_month for m in picks):
+        return None
+    reduced = _reduce(sorted((by_month[m] for m in picks), key=lambda r: r["period"]), agg_type)
+    return None if reduced["unavailable"] else reduced["value"]
+
+
 def _reduce(items: list[dict], agg_type: str) -> dict:
     if agg_type == "ratio":
         # A percentage cannot be summed or averaged into a meaningful period

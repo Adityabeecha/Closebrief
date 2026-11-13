@@ -53,15 +53,16 @@ def create_derived_metric(conn: sqlite3.Connection, dataset_id: int, name: str, 
     return did
 
 
-def refresh(conn: sqlite3.Connection, dataset_id: int, *, actor_id=None, actor_email=None, report=None) -> None:
+def refresh(conn: sqlite3.Connection, dataset_id: int, *, actor_id=None, actor_email=None, report=None):
     """Recompute base facts, then (re)materialize derived metrics from them and
     recompute again so derived KPIs stay current after any base-data change
     (import, connector sync, manual compute). Safe to call when there are no
     derived metrics (materialize returns 0 → single compute)."""
     from app.compute.kpis import compute_and_store
-    compute_and_store(conn, dataset_id)
+    facts = compute_and_store(conn, dataset_id)
     if materialize(conn, dataset_id, actor_id=actor_id, actor_email=actor_email, report=report) > 0:
-        compute_and_store(conn, dataset_id)
+        facts = compute_and_store(conn, dataset_id)
+    return facts   # the final facts, so callers needn't compute them a second time
 
 
 def materialize(conn: sqlite3.Connection, dataset_id: int, *, actor_id=None, actor_email=None, report=None) -> int:

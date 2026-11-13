@@ -28,7 +28,7 @@ def test_anomaly_says_how_it_was_judged():
     seasonal = _js("anomalyWhy({is_anomaly:true,anomaly:{basis:'seasonal',z:-2.77,threshold:2}})")
     assert "same month last year by 2.8× the usual spread (flagged above 2×)" in seasonal
     mom = _js("anomalyWhy({is_anomaly:true,anomaly:{basis:'month_on_month',z:3.1,threshold:2}})")
-    assert "3.1× the usual month-to-month spread" in mom and "a year of history" in mom
+    assert "3.1× the usual month-to-month spread" in mom and "a year-earlier comparison" in mom
     assert _js("anomalyWhy({is_anomaly:false,anomaly:{basis:'seasonal',z:1,threshold:2}})") == ""
 
 

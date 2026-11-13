@@ -25,6 +25,9 @@ class Deltas(BaseModel):
 
 class ComputedFact(BaseModel):
     forecast: Optional[float] = None
+    # One breakdown level (department, product, region), largest variance first.
+    contributor_dimension: Optional[str] = None
+    contributors: Optional[list[dict]] = None
     metric: str
     category: str = "Uncategorized"
     period: str

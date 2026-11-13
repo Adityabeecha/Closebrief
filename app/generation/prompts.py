@@ -14,17 +14,19 @@ from app.schemas import (
     TrendStreak,
 )
 
-PROMPT_VERSION = "v4-close-commentary"
+PROMPT_VERSION = "v5-close-commentary"
 
 FIGURE_RULES = """Copy figures exactly as supplied, including currency symbols, signs, suffixes and precision. Never calculate or introduce numbers, \
 including numbers from context notes that are absent from Computed facts."""
 
 SYSTEM_PROMPT = """You write month-end KPI commentary for an FP&A team in plain English.
 Use fewer than 90 words, normally three short sentences, with no headings, bullets or hype.
-Open with what moved and by how much versus plan, using the supplied budget variance; if no budget comparison exists, say it is unavailable \
-and use the supplied prior-period movement.
-Then explain the reason ONLY when a relevant analyst context note supports it. Name the note in the prose and return its id in \
-sources_used. If no note explains the move, say exactly: "No reason recorded yet". Never invent a cause.
+Open with the KPI's value and how it moved versus plan, using the supplied budget variance; if no budget comparison exists, \
+use the supplied prior-period movement.
+When contributors are supplied, say which part drove the variance, using its supplied figures.
+Then give the reason ONLY when a relevant analyst context note supports it. State the reason itself in plain words, as a finance \
+analyst would; never mention notes, note titles, "context" or sources in the prose. Return the note's id in sources_used. If no \
+note explains the move, say nothing about a reason. Never invent a cause.
 End with what to watch next month ONLY when an available trend, anomaly or recorded context supports a specific observation. Do not \
 forecast or invent a target; omit this sentence when unsupported.
 Every number must come from Computed facts. Return the narrative and only the context ids actually used.""" \
@@ -354,6 +356,14 @@ def build_user_prompt(
             "movement into price, volume, or mix effects yourself. A cause stated in "
             "a context snippet may still be cited as the reason."
         )
+    if fact.contributors:
+        lines.append(f"  - contributors by {fact.contributor_dimension or 'part'} (largest variance first):")
+        for c in fact.contributors:
+            lines.append(
+                f"      - {c['member']}: value {_fmt(c.get('value'), fact.unit, fact.currency)}, "
+                f"plan {_fmt(c.get('budget'), fact.unit, fact.currency)}, "
+                f"variance {_fmt(c.get('var_abs'), _delta_unit(fact.unit), fact.currency)} "
+                f"({_fmt(c.get('var_pct'), '%')})")
     lines += build_trend_streak_context(trend_streak)
     lines += build_comparison_context(comparison, fact.unit, fact.currency)
     lines += build_correlation_context(correlations or [], fact.metric)

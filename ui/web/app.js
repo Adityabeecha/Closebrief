@@ -1587,6 +1587,7 @@ async function reviewReport(status){
     detailFact.review_status=status;renderReviewStrip(detailFact);
     const cf=(currentFacts||[]).find(x=>x.report_id===detailFact.report_id);if(cf)cf.review_status=status;
     toast(status==="approved"?"Commentary approved":"Changes requested");
+    overviewFor=null;renderMonthHead();renderCards();loadCloseMeta();
   }catch(e){toast("Failed: "+errMsg(e));}
 }
 async function toggleVersions(){
@@ -1748,7 +1749,7 @@ async function loadDatasets(){
           <button class="write-only" onclick="event.stopPropagation();renameDataset(${ds.id})">Rename</button>
           <button class="write-only" onclick="event.stopPropagation();setDatasetCurrency(${ds.id})">Currency (${esc(ds.currency||"USD")})</button>
           <button class="write-only" onclick="event.stopPropagation();setFiscalYear(${ds.id})">Fiscal year starts (${esc(MONTHS[(ds.fiscal_year_start||1)-1].slice(0,3))})</button>
-          <button class="write-only" onclick="event.stopPropagation();setReasonThreshold(${ds.id})">Needs a reason above (${esc(String(ds.reason_threshold_pct??10))}%)</button>
+          <button class="write-only" onclick="event.stopPropagation();setReasonThreshold(${ds.id})">Needs a reason above (${esc(String(ds.reason_threshold_pct??10))}%${ds.reason_threshold_abs?` and ${esc(fmt(ds.reason_threshold_abs,"USD",ds.currency))}`:""})</button>
           <button class="write-only danger" onclick="event.stopPropagation();deleteDataset(${ds.id})">Delete</button>
         </div>
       </span>
@@ -1786,15 +1787,20 @@ async function setFiscalYear(id){
   catch(e){toast(errMsg(e));}
 }
 async function setReasonThreshold(id){
-  const ds=(datasetsCache||[]).find(d=>d.id===id)||{},cur=ds.reason_threshold_pct??10;
+  const ds=(datasetsCache||[]).find(d=>d.id===id)||{},cur=ds.reason_threshold_pct??10,curAbs=ds.reason_threshold_abs||null;
   const v=await _openModalRaw({title:"When a variance needs a reason",okLabel:"Save",
-    body:`<label class="lbl" for="ds-threshold">In ${esc(dsName(id))}, ask for a reason when a KPI is more than</label>
+    body:`<label class="lbl" for="ds-threshold">In ${esc(dsName(id))}, ask for a reason when a KPI, or any one part of it (a department, product or region), is more than</label>
       <div style="display:flex;align-items:center;gap:8px"><input class="modal-field" id="ds-threshold" type="number" min="1" max="100" step="0.5" value="${esc(String(cur))}" style="max-width:110px"><span>% from plan</span></div>
-      <p style="margin-top:10px;font-size:13px;color:var(--text-3)">Anomalies always need a reason. This only changes which variances the checklist asks you to explain; figures and approvals don't change.</p>`,
-    getValue:()=>{const n=+$("ds-threshold").value;if(Number.isFinite(n)&&n>=1&&n<=100)return n;toast("Enter a number from 1 to 100");return undefined;}});
-  if(v==null||v===cur)return;
-  try{await api(`/datasets/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({reason_threshold_pct:v})});
-    toast(`Variances over ${v}% from plan now need a reason`);
+      <label class="lbl" for="ds-threshold-abs" style="margin-top:12px">and at least (optional)</label>
+      <div style="display:flex;align-items:center;gap:8px"><input class="modal-field" id="ds-threshold-abs" type="number" min="0" step="1000" placeholder="no minimum" value="${curAbs==null?"":esc(String(curAbs))}" style="max-width:150px"><span>${esc(ds.currency||"USD")} from plan</span></div>
+      <p style="margin-top:10px;font-size:13px;color:var(--text-3)">With a minimum, a 12% miss on a small line doesn't ask for a reason, and a 4% miss on a big one doesn't either unless it's past the percentage too. Anomalies always need a reason. Figures and approvals don't change.</p>`,
+    getValue:()=>{const n=+$("ds-threshold").value,raw=$("ds-threshold-abs").value.trim(),a=raw===""?null:+raw;
+      if(!(Number.isFinite(n)&&n>=1&&n<=100)){toast("Enter a percentage from 1 to 100");return undefined;}
+      if(a!==null&&!(Number.isFinite(a)&&a>=0)){toast("Enter a minimum of 0 or more, or leave it empty");return undefined;}
+      return {pct:n,abs:a&&a>0?a:null};}});
+  if(v==null||(v.pct===cur&&v.abs===curAbs))return;
+  try{await api(`/datasets/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({reason_threshold_pct:v.pct,reason_threshold_abs:v.abs})});
+    toast(`Variances over ${v.pct}%${v.abs?` and ${fmt(v.abs,"USD",ds.currency)}`:""} from plan now need a reason`);
     await loadDatasets();if(id===activeDatasetId){overviewFor=null;await loadPeriods();}}
   catch(e){toast(errMsg(e));}
 }
@@ -1887,7 +1893,12 @@ async function syncSourceNow(id){
   toast("Syncing…");
   try{
     const r=await api(`/connectors/${id}/sync`,{method:"POST"});
-    if(r.status==="ok"){toast(`Synced ${plural(r.rows||0,"row")}`);await loadDatasets();await loadPeriods();}
+    if(r.status==="ok"){
+      const rep=r.import_report||{},m=r.mapping||{};
+      const read=rep.rows_read!=null?`${rep.rows_read} rows read, ${rep.rows_kept} kept`:plural(r.rows||0,"figure");
+      const cols=[m.value_col&&`amount: ${m.value_col}`,m.budget_col&&`budget: ${m.budget_col}`,m.forecast_col&&`forecast: ${m.forecast_col}`,
+        (m.dimension_cols||[])[0]&&`breakdown: ${m.dimension_cols[0]}`].filter(Boolean).join(" · ");
+      toast(`Synced: ${read}${cols?` (${cols})`:""}`);await loadDatasets();await loadPeriods();}
     else toast(r.error||"Sync failed");
   }catch(e){toast(errMsg(e));}
   await loadSyncSources();
@@ -1970,7 +1981,10 @@ function setGranularity(g){
   if(g===granularity)return Promise.resolve();granularity=g;
   document.querySelectorAll("#gran-seg button").forEach(b=>{b.classList.toggle("active",b.dataset.g===g);b.setAttribute("aria-pressed",String(b.dataset.g===g));});
   $("closes-label").textContent={month:"Closes",quarter:"Quarters",year:"Years"}[g];showAllCloses=false;
-  return loadPeriods();
+  return loadPeriods().then(()=>{
+    if(currentPeriod&&currentPlace&&!currentPlace.place)
+      history.replaceState(null,"",routeHash({tab:currentPlace.tab||"overview",period:currentPeriod}));
+  });
 }
 function stepPeriod(dir){
   const sel=$("period-select"),i=sel.selectedIndex+dir;
@@ -2062,6 +2076,7 @@ async function loadFacts(){
       <div style="font-size:13px;margin-bottom:16px">${esc(e.message||"Something went wrong.")}</div>
       <button class="btn primary" onclick="loadFacts()">Retry</button></div>`;
   }finally{$("dash-loading").style.display="none";}
+  if(currentPlace&&!currentPlace.place&&currentPlace.tab==="overview"){overviewFor=null;renderOverview();}
 }
 function setFreshness(){
   const el=$("dash-fresh");if(!el)return;
@@ -2745,13 +2760,17 @@ function anomalyWhy(f){
   const z=Math.abs(a.z).toFixed(1),t=a.threshold;
   return a.basis==="seasonal"
     ?`Anomaly: this month's change differs from the same month last year by ${z}× the usual spread (flagged above ${t}×), so a normal seasonal swing isn't flagged.`
-    :`Anomaly: this month's change is ${z}× the usual month-to-month spread (flagged above ${t}×). Once there's a year of history it is compared with the same month last year instead.`;
+    :`Anomaly: this month's change is ${z}× the usual month-to-month spread (flagged above ${t}×). Once a few months each have a year-earlier comparison, it is judged against the same month last year instead.`;
 }
 function renderWhyNone(f){
   const el=$("d-why");if(!el)return;
   const why=anomalyWhy(f);
   if(!needsReason(f)){el.innerHTML=why?`<p class="anom-why">${esc(why)}</p>`:"";return;}
-  el.innerHTML=(why?`<p class="anom-why">${esc(why)}</p>`:"")+`<div class="why-none" role="note"><span><b>No reason recorded.</b> ${canReview()
+  const t=f.reason_trigger,lim=reasonThreshold();
+  const what=t&&t.kind==="part"
+    ?`${esc(t.part)} is ${esc(pct(t.var_pct)||"")} vs plan (${esc((t.var_abs>0?"+":"")+fmt(t.var_abs,f.unit))}), past the ${esc(String(lim))}% threshold, even though the total is ${esc(deltaText(f,"budget")||"within it")}. `
+    :t&&t.kind==="total"?`It's ${esc(deltaText(f,"budget")||"")} vs plan, past the ${esc(String(lim))}% threshold. `:"";
+  el.innerHTML=(why?`<p class="anom-why">${esc(why)}</p>`:"")+`<div class="why-none" role="note"><span><b>No reason recorded.</b> ${what}${canReview()
     ?"Add a context note and the commentary will cite it next time it's drafted."
     :"An analyst can add the reason as a context note."}</span>${canReview()?`<button class="btn sm" data-act="reason" data-arg="${esc(f.metric)}">Add a reason</button>`:""}</div>`;
 }
@@ -2923,8 +2942,8 @@ function renderDigest(d){
 }
 // Where the close's digest stands: sent, ready to send, or waiting on approvals.
 function digestStateBar(d){
-  if(d.sent_at)return `<div class="dg-state ready" role="status"><b>Sent ${esc(fmtDate(d.sent_at))}.</b> Leadership received the approved commentary below.</div>`;
-  if(d.ready)return `<div class="dg-state ready" role="status"><b>Every KPI is approved.</b> Sending delivers this digest to the channels set up in Settings.</div>`;
+  if(d.sent_at)return `<div class="dg-state ready" role="status"><b>Sent ${esc(fmtDate(d.sent_at))}.</b> This is the approved commentary it carried.</div>`;
+  if(d.ready)return `<div class="dg-state ready" role="status"><b>Every KPI is approved.</b> Before it goes, you'll see exactly who receives it.</div>`;
   const n=(d.pending||[]).length,names=(d.pending||[]).slice(0,3).join(", ")+(n>3?` and ${n-3} more`:"");
   return `<div class="dg-state wait" role="status"><span><b>${plural(n,"KPI still needs","KPIs still need")} approval</b> before this can be sent: ${esc(names)}.</span>
     <button class="btn sm" onclick="nav('kpis')">Open KPIs</button></div>`;
@@ -3135,6 +3154,7 @@ async function onImportModeChange(){
   $("imp-target-wrap").style.display=isJoinMode()?"":"none";
   $("imp-suffix-wrap").style.display=isJoinMode()?"":"none";
   $("imp-confirm-btn").textContent=isJoinMode()?`Match & attach ${joinWord()}`:"Confirm columns";
+  renderMapWarnings();
   if(isJoinMode()){
     try{
       const d=await api("/datasets");
@@ -3156,6 +3176,8 @@ async function importSample(btn){
 async function uploadFile(file){
   const fd=new FormData();fd.append("file",file);
   $("imp-result").innerHTML='<div class="loading"><span class="spin"></span> Uploading &amp; profiling…</div>';
+  // A new file starts clean: the last import's summary isn't this one's.
+  const ns=$("norm-summary");if(ns){ns.innerHTML="";ns.className="";}
   try{
     upload=await api("/ingest/upload",{method:"POST",body:fd});$("imp-result").innerHTML="";importStartedFor=activeDatasetId;
     if(upload)upload.filename=file.name;   // for the dataset-name default
@@ -3170,13 +3192,22 @@ async function loadSchema(){
   const sheet=$("sheet-pick").style.display!=="none"?$("sheet-sel").value:null;
   profile=await api(`/ingest/${upload.upload_id}/schema${sheet?`?sheet=${encodeURIComponent(sheet)}`:""}`);
   $("layout-sel").value=profile.layout_guess;
-  const wb=$("map-warnings");
-  if(profile.mapping_warnings&&profile.mapping_warnings.length){
-    wb.style.display="";
-    wb.innerHTML=`<b>Worth checking before you confirm:</b><ul style="margin:6px 0 0 18px">${profile.mapping_warnings.map(w=>`<li>${esc(w)}</li>`).join("")}</ul>`;
-  }else{wb.style.display="none";}
+  renderMapWarnings();
   renderTotalRows();
   renderMap();
+}
+// Warnings about a new import. A file that will be refused shows only why; a budget
+// or forecast being attached skips the checks meant for actuals.
+function renderMapWarnings(){
+  const wb=$("map-warnings");if(!wb||!profile)return;
+  let list=isJoinMode()?[]:(profile.mapping_warnings||[]);
+  const refusal=list.find(w=>/CloseBrief works month by month/.test(w));
+  if(refusal)list=[refusal];
+  if(list.length){
+    wb.style.display="";
+    wb.innerHTML=refusal?`<b>This file can't be imported:</b> ${esc(refusal)}`
+      :`<b>Worth checking before you confirm:</b><ul style="margin:6px 0 0 18px">${list.map(w=>`<li>${esc(w)}</li>`).join("")}</ul>`;
+  }else{wb.style.display="none";}
 }
 // Rows the import would leave out as totals ("Total Opex", or a blank ID on a
 // summary line). A real KPI can start with "Total": tick it to keep it.
@@ -3227,6 +3258,10 @@ function mappingProblem(){
   if($("layout-sel").value!=="long")return null;
   const roles=[...document.querySelectorAll(".role")].map(s=>s.value);
   if(needsMonthPick()&&!$("map-month").value)return "This file has no date column. Set one column to “Month or date”, or choose the month the whole file covers.";
+  if(isJoinMode()){
+    if(!roles.some(r=>r==="measure"||r==="budget"||r==="forecast"))return `Set the column with the ${joinWord()} amounts to “${joinWord()==="forecast"?"Latest forecast":"Budget or plan"}”.`;
+    return null;
+  }
   if(!roles.includes("measure"))return "Set the column with the amounts to track to “Actual amount”.";
   return null;
 }
@@ -3257,6 +3292,11 @@ function buildMapping(){
   const measures=by("measure");
   const periodLiteral=sheetPeriod()||(needsMonthPick()&&$("map-month").value)||null;
   const base={layout:"long",period_col:periodLiteral?null:(by("period")[0]||null),period_literal:periodLiteral,metric_col:by("metric_label")[0]||null,budget_col:by("budget")[0]||null,forecast_col:by("forecast")[0]||null,id_col:by("id")[0]||null,dimension_cols:by("dimension"),keep_labels};
+  if(isJoinMode()&&!measures.length){
+    // Adding a budget or forecast to a dataset: that column is the amount being attached.
+    const amount=by(joinWord())[0]||by("budget")[0]||by("forecast")[0];
+    if(amount)return{...base,value_col:amount,budget_col:null,forecast_col:null};
+  }
   if(measures.length>1)return{...base,value_cols:measures};
   return{...base,value_col:measures[0]||null,quantity_col:by("quantity")[0]||null,price_col:by("price")[0]||null};
 }

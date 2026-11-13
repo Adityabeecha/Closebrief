@@ -12,6 +12,8 @@ Snowflake/BigQuery/QuickBooks are the same shape plus auth — added later.
 from __future__ import annotations
 
 import json
+import re
+import urllib.error
 import urllib.request
 
 from app.notifications.channels import public_urlopen, validate_public_url
@@ -20,13 +22,37 @@ KINDS = ("csv_url", "google_sheets")
 _MAX_SYNC_BYTES = 10 * 1024 * 1024   # same 10MB cap as manual upload
 
 
+class SyncError(Exception):
+    """A sync failure whose message is safe to show: written by us, never echoing the
+    source's contents or credentials."""
+
+
+_DRIVE_FILE = re.compile(r"drive\.google\.com/(?:file/d/|open\?(?:[^#]*&)?id=|uc\?(?:[^#]*&)?id=)([\w-]{10,})")
+_SHEET = re.compile(r"docs\.google\.com/spreadsheets/d/([\w-]{10,})")
+
+
+def source_url(url: str) -> str:
+    """The address to download. A Google Drive share link ('.../file/d/<id>/view') is a
+    preview page, so it becomes the file's download address; a Google Sheets link becomes
+    its CSV export."""
+    url = (url or "").strip()
+    drive = _DRIVE_FILE.search(url)
+    if drive:
+        return f"https://drive.google.com/uc?export=download&id={drive.group(1)}"
+    sheet = _SHEET.search(url)
+    if sheet:
+        gid = re.search(r"[#&?]gid=(\d+)", url)
+        return f"https://docs.google.com/spreadsheets/d/{sheet.group(1)}/export?format=csv&gid={gid.group(1) if gid else '0'}"
+    return url
+
+
 def build_url(kind: str, config: dict) -> str:
     """The fetch URL for a connector. Google Sheets becomes its CSV-export URL."""
     if kind == "csv_url":
         url = (config.get("url") or "").strip()
         if not url:
             raise ValueError("csv_url connector needs a 'url'")
-        return url
+        return source_url(url)
     if kind == "google_sheets":
         sheet_id = (config.get("sheet_id") or "").strip()
         if not sheet_id:
@@ -41,8 +67,32 @@ def fetch_bytes(url: str) -> bytes:
     size cap. Google's export URL redirects; urllib follows it."""
     validate_public_url(url)   # reuse the webhook SSRF guard
     req = urllib.request.Request(url, headers={"User-Agent": "Closebrief-Connector/1.0"})
-    with public_urlopen(req, timeout=30) as resp:
-        return resp.read(_MAX_SYNC_BYTES + 1)
+    try:
+        with public_urlopen(req, timeout=30) as resp:
+            return resp.read(_MAX_SYNC_BYTES + 1)
+    except urllib.error.HTTPError as exc:
+        if exc.code in (401, 403):
+            raise SyncError(f"The link isn't shared publicly (HTTP {exc.code}). Set sharing to "
+                            "“Anyone with the link can view” and sync again.") from None
+        if exc.code == 404:
+            raise SyncError("Nothing was found at that link (HTTP 404). Check the link still opens.") from None
+        raise SyncError(f"The link couldn't be downloaded (HTTP {exc.code}).") from None
+    except (urllib.error.URLError, TimeoutError, OSError):
+        raise SyncError("The link couldn't be reached. Check that it opens in a private browser window.") from None
+
+
+def _read_source(raw: bytes):
+    """Read a downloaded CSV or Excel file the same way an upload is read."""
+    from app.ingestion.upload import UploadError, _read_frame
+
+    head = raw[:512].lstrip().lower()
+    if head.startswith((b"<!doctype html", b"<html")):
+        raise SyncError("The link returned a web page, not a file. Share it as “Anyone with the link can view”; "
+                        "a Google Drive file link or a Google Sheets link both work.")
+    try:
+        return _read_frame(raw, "source.xlsx" if raw[:2] == b"PK" else "source.csv")
+    except UploadError as exc:
+        raise SyncError(f"{exc}. The link must be a CSV or Excel (.xlsx) file.") from None
 
 
 # ---------------------------------------------------------------- CRUD
@@ -122,7 +172,8 @@ def sync_connector(conn, connector_id: int, workspace_id: int | None, *, fetch=f
         set_workspace_scope,
     )
     from app.import_receipts import record_receipt
-    from app.ingestion.ingest import ingest_dataframe, parse_csv
+    from app.ingestion.mapping import MappingError, MappingSpec, normalize, store_normalized
+    from app.ingestion.profiler import profile_columns, suggest_mapping
 
     row = _get(conn, connector_id, workspace_id)
     if row is None:
@@ -141,8 +192,15 @@ def sync_connector(conn, connector_id: int, workspace_id: int | None, *, fetch=f
     try:                                # doesn't leak this connector's workspace
         raw = fetch(build_url(kind, cfg))
         if len(raw) > _MAX_SYNC_BYTES:
-            raise ValueError(f"source exceeds the {_MAX_SYNC_BYTES // (1024 * 1024)}MB limit")
-        df = parse_csv(raw)
+            raise SyncError(f"The file is over the {_MAX_SYNC_BYTES // (1024 * 1024)}MB limit.")
+        df = _read_source(raw)
+        # The same column detection as an upload; the first good sync's mapping is kept,
+        # so later syncs read the file the same way.
+        mapping = cfg.get("mapping") or suggest_mapping(profile_columns(df))["mapping"]
+        try:
+            canonical = normalize(df, MappingSpec(**mapping))
+        except (MappingError, ValueError) as exc:
+            raise SyncError(f"{exc} Columns found: {', '.join(map(str, df.columns))[:300]}.") from None
         # Operate in the connector's workspace so the dataset is tenant-scoped.
         set_workspace_scope(row["workspace_id"])
         ds = conn.execute(
@@ -151,20 +209,27 @@ def sync_connector(conn, connector_id: int, workspace_id: int | None, *, fetch=f
         ).fetchone()
         ds_id = ds["id"] if ds else create_dataset(
             conn, ds_name, activate=False, workspace_id=row["workspace_id"])
-        summary = ingest_dataframe(conn, df, ds_id, source="sync", actor_id=actor_id, actor_email=actor_email)
-        _recompute_with_derived(conn, ds_id, actor_id=actor_id, actor_email=actor_email, report=summary.import_report)
+        summary = store_normalized(conn, canonical, ds_id, replace=ds is not None, source="sync",
+                                   actor_id=actor_id, actor_email=actor_email)
+        report = summary["import_report"]
+        _recompute_with_derived(conn, ds_id, actor_id=actor_id, actor_email=actor_email, report=report)
         if active_dataset_id(conn) is None:
             set_active(conn, ds_id)
+        if not cfg.get("mapping"):
+            conn.execute("UPDATE connectors SET config = ? WHERE id = ?",
+                         (json.dumps({**cfg, "mapping": mapping}), connector_id))
         _finish("ok", None)
-        record_receipt(conn, ds_id, kind="connector_sync", filename=row["name"],
-                       mapping={"layout": "long", "period_col": "period", "metric_col": "metric",
-                                "value_col": "value", "budget_col": "budget"},
-                       report={**summary.model_dump(), **summary.import_report}, written_pairs=df.attrs["written_pairs"])
-        return {"status": "ok", "dataset_id": ds_id, "rows": summary.rows_ingested,
-                "import_report": summary.import_report}
+        record_receipt(conn, ds_id, kind="connector_sync", filename=row["name"], mapping=mapping,
+                       report=report, written_pairs=canonical.attrs.get("written_pairs", set()))
+        return {"status": "ok", "dataset_id": ds_id, "rows": summary.get("rows_normalized", 0),
+                "import_report": report, "mapping": mapping}
+    except SyncError as exc:
+        conn.rollback()
+        _finish("error", str(exc))
+        return {"status": "error", "error": str(exc)}
     except Exception:  # noqa: BLE001 - upstream errors may contain credentials or source rows
         conn.rollback()
-        error = "Connector sync failed; check source availability, file format and configuration."
+        error = "The sync failed unexpectedly. Check the link opens and is a CSV or Excel file, then sync again."
         _finish("error", error)
         return {"status": "error", "error": error}
     finally:

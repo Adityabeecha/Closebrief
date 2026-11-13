@@ -188,15 +188,15 @@ def _demo_reason(doc, period: str, mom: float | None) -> str | None:
         return None
     title = doc.title
     if title == "March 2025 enterprise pricing change" and mom is not None and mom > 0:
-        return f'The note "{title}" records the enterprise price increase behind the uplift.'
+        return "The March enterprise price increase drove the uplift."
     if title == "Q1 brand campaign" and period <= "2025-03":
-        return f'The note "{title}" records the campaign behind elevated marketing spend.'
+        return "The Q1 brand campaign raised marketing spend."
     if title == "Churn analysis memo" and period <= "2025-03":
-        return f'The note "{title}" attributes churn to SMB logo losses.'
+        return "Churn came from SMB logo losses."
     if title == "February paid brand push" and period == "2025-02" and mom is not None and mom > 0:
-        return f'The note "{title}" records the campaign that lifted impressions and conversions.'
+        return "A paid brand push lifted impressions and conversions."
     if title == "April creative fatigue" and period == "2025-04" and mom is not None and mom < 0:
-        return f'The note "{title}" attributes the decline in clicks to fatigued ad creative.'
+        return "Fatigued ad creative drove the decline in clicks."
     return None
 
 
@@ -240,7 +240,6 @@ def _seed_narratives(conn, ds: int, docs: list, period: str | None = None) -> No
             narr += " " + reason
         else:
             doc = None
-            narr += " No reason recorded yet."
         if f["is_anomaly"]:
             narr += " Watch next month for a repeat of this unusual movement."
         sources = (

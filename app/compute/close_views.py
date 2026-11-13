@@ -30,6 +30,24 @@ def breakdown_coverage(conn, dataset_id, covered):
     return result
 
 
+def part_variances(conn, dataset_id, months=None) -> dict:
+    """{(metric_id, month): [{member, var_abs, var_pct}]} for parts with a plan."""
+    sql = """SELECT mb.metric_id, mb.period, mb.member, mb.value, mb.budget FROM metric_breakdowns mb
+             JOIN metrics m ON m.id = mb.metric_id WHERE m.dataset_id = ? AND mb.budget IS NOT NULL"""
+    args = [dataset_id]
+    if months:
+        sql += f" AND mb.period IN ({','.join('?' for _ in months)})"
+        args += list(months)
+    out = {}
+    for r in conn.execute(sql, tuple(args)).fetchall():
+        if r["value"] is None:
+            continue
+        absolute, pct = variance(r["value"], r["budget"])
+        out.setdefault((r["metric_id"], r["period"]), []).append(
+            {"member": r["member"], "var_abs": absolute, "var_pct": pct})
+    return out
+
+
 def breakdown_available(actuals, breakdowns, covered, agg_type):
     expected = {r["period"] for r in actuals if r["period"] in covered}
     if agg_type == "balance" and expected:

@@ -29,7 +29,7 @@ KPI_LIBRARY = [
     {"name": "Cost of Revenue", "match": r"cost of (revenue|sales|goods)|\bcogs\b", "category": "Cost", "unit": "USD", "direction_good": "down"},
     {"name": "Revenue", "match": r"\brevenue\b|turnover", "category": "Revenue", "unit": "USD", "direction_good": "up"},
     {"name": "Other Income", "match": r"\bincome\b", "category": "Other Income", "unit": "USD", "direction_good": "up"},
-    {"name": "Headcount Cost", "match": r"headcount|payroll|people ?cost|salaries|commissions",
+    {"name": "Headcount Cost", "match": r"headcount ?(cost|expense|spend)|payroll|people ?cost|salaries|commissions",
      "category": "Cost", "unit": "USD", "direction_good": "down"},
     {"name": "Marketing Spend", "match": r"marketing|s&m|advertis", "category": "Cost", "unit": "USD", "direction_good": "down"},
     {"name": "OpEx", "match": r"op(erating)? ?ex(pense)?s?|overheads", "category": "Cost", "unit": "USD", "direction_good": "down"},
@@ -48,8 +48,15 @@ def library_listing() -> list[dict]:
             if not (kpi["name"] in seen or seen.add(kpi["name"]))]
 
 
+def words(name: str) -> str:
+    """'GrossMarginPct' / 'gross_margin_pct' -> 'Gross Margin Pct', so word rules see the words."""
+    s = re.sub(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", " ", str(name or ""))
+    return re.sub(r"[_\-]+", " ", s)
+
+
 def suggest_kpi(source_metric: str) -> dict | None:
     """Best library match for a source metric name, or None."""
+    source_metric = words(source_metric)
     for kpi in KPI_LIBRARY:
         if re.search(kpi["match"], source_metric, re.I):
             if kpi.get("unless") is not None and kpi["unless"].search(source_metric):
@@ -78,7 +85,7 @@ _PERCENT_UNIT = re.compile(r"%|percent|\bpct\b|_pct|\brate\b|_rate|ratio", re.I)
 _USD_UNIT = re.compile(r"usd|\$|revenue|\bcost|spend|\barr\b|_arr|amount|expense|fees|salar|income", re.I)
 _COUNT_UNIT = re.compile(
     r"clicks|impressions|\bmqls?\b|\bsqls?\b|\bsqos?\b|opportunit|closed_won|\bwon\b|leads|visits|"
-    r"sessions|signups|users|customers|logos|deals|\bcount\b|units|orders|tickets|headcount$",
+    r"sessions|signups|users|customers|logos|deals|\bcount\b|units|orders|tickets|headcount(?! ?(cost|expense|spend))",
     re.I,
 )
 
@@ -86,6 +93,7 @@ _COUNT_UNIT = re.compile(
 def infer_unit(source_metric: str) -> str | None:
     """Unit from the measure name. An explicit currency suffix wins
     ("closed_won_arr_usd" is money even though it says "won")."""
+    source_metric = words(source_metric)
     if re.search(r"usd|\$", source_metric, re.I):
         return "USD"
     if _DAYS_UNIT.search(source_metric):
@@ -143,6 +151,10 @@ def suggest_import_defaults(source_metric: str, group: str | None = None,
     # Active Customers); otherwise the measure's own name decides.
     if not (lib and lib["unit"] != "USD"):
         out["unit"] = infer_unit(source_metric) or "USD"
+    # A name that says it's a rate ("GrossMarginPct", "ChurnRate") isn't the dollar
+    # KPI the library matched ("Gross Profit", "Churned ARR"): keep the rate, drop the label.
+    if lib and lib["unit"] == "USD" and out["unit"] in ("%", "days"):
+        out.pop("name", None)
     # How it rolls up into quarters, so the picker can show (and the user change) it.
     out["aggregation_type"] = infer_aggregation_type(source_metric, out["unit"])
     return out

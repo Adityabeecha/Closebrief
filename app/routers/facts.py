@@ -11,14 +11,23 @@ from app.compute.aggregate import (
     GRANULARITIES,
     aggregate_series,
     infer_aggregation_type,
+    like_for_like,
     months_in,
     period_key,
     prior_key,
     sort_key,
     year_ago_key,
 )
-from app.compute.availability import combined_percentage_reason, has_usable_value, needs_reason
-from app.compute.close_views import breakdown_available, breakdown_coverage, contributors, load_values, variance, ytd
+from app.compute.availability import combined_percentage_reason, has_usable_value, needs_reason, reason_trigger
+from app.compute.close_views import (
+    breakdown_available,
+    breakdown_coverage,
+    contributors,
+    load_values,
+    part_variances,
+    variance,
+    ytd,
+)
 from app.compute.correlations import (
     compute_correlations,
     correlations_for_metric,
@@ -238,6 +247,7 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
     out = []
     prior = prior_key(period, granularity, fiscal_start)
     yago = year_ago_key(period, granularity, fiscal_start)
+    total_months = len(months_in(period, granularity, fiscal_start))
     for k in kpis:
         agg = k["aggregation_type"] or infer_aggregation_type(k["display_name"] or k["metric"], k["unit"])
         rows = all_values.get(k["metric_id"], [])
@@ -259,6 +269,10 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
             v = cur["value"]
             pv = (series.get(prior) or {}).get("value")
             yv = (series.get(yago) or {}).get("value")
+            if cur.get("months", 0) < total_months:
+                # An incomplete quarter or year: compare the same months, not a whole period.
+                pv = like_for_like(rows, period, prior, granularity, agg, fiscal_start)
+                yv = like_for_like(rows, period, yago, granularity, agg, fiscal_start)
             if pv:
                 deltas["mom_pct"] = round((v - pv) / abs(pv) * 100, 2)
             if yv:
@@ -278,7 +292,10 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
             "direction_good": k["direction_good"], "prior_value": pv if has_data else None,
             "has_data": has_data, "deltas": deltas, "trend": None,
             "is_anomaly": False, "anomaly": None, "aggregated": True, "granularity": granularity,
-            "needs_reason_flag": has_data and needs_reason(False, deltas["budget_var_pct"], metadata["reason_threshold_pct"]),
+            "period_months": (cur or {}).get("months", 0), "period_months_total": total_months,
+            "needs_reason_flag": has_data and needs_reason(False, deltas["budget_var_pct"], metadata["reason_threshold_pct"],
+                                                           budget_var_abs=deltas["budget_var_abs"],
+                                                           floor=metadata["reason_threshold_abs"]),
             "aggregation_type": agg,
             "forecast": cur.get("forecast") if has_data else None,
             "budget": cur.get("budget") if has_data else None,
@@ -364,6 +381,7 @@ def build_facts(conn, ds, period, granularity, user, include_charts=True):
 
     all_values = load_values(conn, ds)
     breakdowns = breakdown_coverage(conn, ds, [period])
+    month_parts = part_variances(conn, ds, [period])
     sensitive = user.role == "admin"   # gate cost/latency/emails to admins
     # Batch the per-card report + feedback lookups into two queries instead of
     # ~3 per card (was an N+1 over the dashboard's hot path).
@@ -410,6 +428,9 @@ def build_facts(conn, ds, period, granularity, user, include_charts=True):
         has_data = has_usable_value(r["metric_id"], r["value"], r["unit"], r["source_rows"])
         reason = combined_percentage_reason(r["unit"], r["source_rows"])
         agg = r["aggregation_type"] or infer_aggregation_type(r["metric"], r["unit"])
+        trigger = reason_trigger(r["is_anomaly"], r["budget_var_pct"], metadata["reason_threshold_pct"],
+                                 budget_var_abs=r["budget_var_abs"], floor=metadata["reason_threshold_abs"],
+                                 parts=month_parts.get((r["metric_id"], period), ()))
         report = reports_by_metric.get(r["metric_id"]) if has_data else None
         edited = edited_by_report.get(report["id"]) if report else None
         reviewer = reviewer_by_report.get(report["id"]) if report else None
@@ -441,8 +462,9 @@ def build_facts(conn, ds, period, granularity, user, include_charts=True):
             # How the month was judged: against last year's same month, or month on month.
             "anomaly": ({"basis": r["anomaly_basis"], "z": r["anomaly_z"], "threshold": ANOMALY_Z}
                         if has_data and r["anomaly_basis"] else None),
-            "needs_reason_flag": has_data and needs_reason(
-                r["is_anomaly"], r["budget_var_pct"], metadata["reason_threshold_pct"]),
+            "needs_reason_flag": bool(has_data and trigger),
+            # What made it need a reason: the anomaly, the total, or one part (Sales inside Opex).
+            "reason_trigger": trigger if has_data else None,
             "report_id": report["id"] if report else None,
             "review_status": report["review_status"] if report else None,
             "assigned_email": report["assigned_email"] if report else None,

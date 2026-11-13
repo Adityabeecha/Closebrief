@@ -80,6 +80,10 @@ def rename_dataset(dataset_id: int, payload: dict, _: CurrentUser = Depends(requ
         t = payload["reason_threshold_pct"]
         if type(t) not in (int, float) or not 1 <= t <= 100:
             raise HTTPException(status_code=422, detail="reason_threshold_pct must be a number from 1 to 100")
+    if "reason_threshold_abs" in payload:
+        f = payload["reason_threshold_abs"]
+        if f is not None and (type(f) not in (int, float) or f < 0):
+            raise HTTPException(status_code=422, detail="reason_threshold_abs must be a number of at least 0, or null")
     if "currency" in payload:
         try:
             validate_currency(payload["currency"])
@@ -102,6 +106,10 @@ def rename_dataset(dataset_id: int, payload: dict, _: CurrentUser = Depends(requ
         if "reason_threshold_pct" in payload:
             conn.execute("UPDATE datasets SET reason_threshold_pct = ? WHERE id = ?",
                          (float(payload["reason_threshold_pct"]), dataset_id))
+        if "reason_threshold_abs" in payload:
+            f = payload["reason_threshold_abs"]
+            conn.execute("UPDATE datasets SET reason_threshold_abs = ? WHERE id = ?",
+                         (None if f is None or f == 0 else float(f), dataset_id))
         conn.commit()
         metadata = dataset_metadata(conn, dataset_id)
     finally:

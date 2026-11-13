@@ -160,9 +160,8 @@ def ingest_mapping(upload_id: str, mapping: MappingSpec, save_template: bool = F
         if save_template:
             template_id = save_mapping_template(conn, up["column_signature"], mapping.model_dump())
 
-        derived_metrics.refresh(conn, dataset_id, actor_id=user.id, actor_email=user.email,
-                                report=summary["import_report"])
-        facts = compute_and_store(conn, dataset_id)
+        facts = derived_metrics.refresh(conn, dataset_id, actor_id=user.id, actor_email=user.email,
+                                        report=summary["import_report"])
         audit.record(conn, "import", "dataset", dataset_id, actor_id=user.id, actor_email=user.email,
                      summary={"name": up["filename"] if up else upload_id,
                               "rows": int(summary["import_report"].get("rows_kept", 0))})
