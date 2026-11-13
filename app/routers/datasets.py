@@ -76,6 +76,10 @@ def rename_dataset(dataset_id: int, payload: dict, _: CurrentUser = Depends(requ
     domain = payload.get("domain")
     if "fiscal_year_start" in payload and (type(payload["fiscal_year_start"]) is not int or not 1 <= payload["fiscal_year_start"] <= 12):
         raise HTTPException(status_code=422, detail="fiscal_year_start must be an integer from 1 to 12")
+    if "reason_threshold_pct" in payload:
+        t = payload["reason_threshold_pct"]
+        if type(t) not in (int, float) or not 1 <= t <= 100:
+            raise HTTPException(status_code=422, detail="reason_threshold_pct must be a number from 1 to 100")
     if "currency" in payload:
         try:
             validate_currency(payload["currency"])
@@ -95,6 +99,9 @@ def rename_dataset(dataset_id: int, payload: dict, _: CurrentUser = Depends(requ
             conn.execute("UPDATE datasets SET currency = ? WHERE id = ?", (payload["currency"], dataset_id))
         if "fiscal_year_start" in payload:
             conn.execute("UPDATE datasets SET fiscal_year_start = ? WHERE id = ?", (payload["fiscal_year_start"], dataset_id))
+        if "reason_threshold_pct" in payload:
+            conn.execute("UPDATE datasets SET reason_threshold_pct = ? WHERE id = ?",
+                         (float(payload["reason_threshold_pct"]), dataset_id))
         conn.commit()
         metadata = dataset_metadata(conn, dataset_id)
     finally:

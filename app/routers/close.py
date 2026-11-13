@@ -17,7 +17,7 @@ from app.board_pack import _period_title
 from app.close_control import lock_status, serialize_writes
 from app.close_export import XLSX_TYPE, build_close_workbook, content_disposition
 from app.compute.aggregate import GRANULARITIES, months_in, period_key, sort_key
-from app.compute.availability import has_usable_value
+from app.compute.availability import has_usable_value, needs_reason
 from app.context.store import _row_to_doc
 from app.datasets import _scope_pred, active_dataset_id, current_workspace, dataset_metadata, timestamp_text
 from app.db import get_connection
@@ -76,7 +76,8 @@ def _summaries(conn, ds, granularity="month"):
     """
     if ds is None:
         return []
-    fiscal_start = dataset_metadata(conn, ds)["fiscal_year_start"]
+    meta = dataset_metadata(conn, ds)
+    fiscal_start, threshold = meta["fiscal_year_start"], meta["reason_threshold_pct"]
     rows = conn.execute(
         """SELECT cf.period, cf.metric_id, cf.value, m.name, cf.is_anomaly,
         cf.budget_var_pct, gr.id AS report_id, gr.review_status, gr.faithfulness,
@@ -118,7 +119,7 @@ def _summaries(conn, ds, granularity="month"):
         group["approved"] += int(row["review_status"] == "approved")
         group["checked"] += int(row["faithfulness"] == "passed")
         group["exceptions"] += int(bool(row["is_anomaly"]))
-        flagged = bool(row["is_anomaly"]) or (row["budget_var_pct"] is not None and abs(row["budget_var_pct"]) > 10)
+        flagged = needs_reason(row["is_anomaly"], row["budget_var_pct"], threshold)
         if flagged:
             group["flagged"] += 1
             if not any(_metric_ok(doc, row["name"]) and _effective_ok(doc, period) for doc in docs):

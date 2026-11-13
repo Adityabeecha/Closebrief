@@ -827,7 +827,7 @@ const BOXTICK='<svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-line
 function overviewSteps(s,server){
   if(server&&server.steps&&server.steps.length)return server.steps;
   const P=currentPeriod,m=closeMonths[P]||{},flagged=s.drafted-s.checked,undrafted=s.n-s.drafted,remaining=s.n-s.approved,pending=s.drafted-s.approved;
-  const needs=m.needs_reason??s.needs_reason??(currentFacts||[]).filter(f=>f.has_data&&(f.is_anomaly||Math.abs(f.deltas?.budget_var_pct||0)>10)&&!f.sources?.length).length;
+  const needs=m.needs_reason??s.needs_reason??(currentFacts||[]).filter(f=>f.has_data&&bigMove(f)&&!f.sources?.length).length;
   const step=(id,title,detail,state,count,tab)=>({id,title,detail,state,count,target:routeHash({tab,period:P})});
   return [
     step("import","Import actuals and budget",s.n?`${plural(s.n,"KPI","KPIs")} imported · open Data to check coverage`:"Import actuals on the Data tab to start this close",s.n?"done":"todo",s.n,"data"),
@@ -1748,6 +1748,7 @@ async function loadDatasets(){
           <button class="write-only" onclick="event.stopPropagation();renameDataset(${ds.id})">Rename</button>
           <button class="write-only" onclick="event.stopPropagation();setDatasetCurrency(${ds.id})">Currency (${esc(ds.currency||"USD")})</button>
           <button class="write-only" onclick="event.stopPropagation();setFiscalYear(${ds.id})">Fiscal year starts (${esc(MONTHS[(ds.fiscal_year_start||1)-1].slice(0,3))})</button>
+          <button class="write-only" onclick="event.stopPropagation();setReasonThreshold(${ds.id})">Needs a reason above (${esc(String(ds.reason_threshold_pct??10))}%)</button>
           <button class="write-only danger" onclick="event.stopPropagation();deleteDataset(${ds.id})">Delete</button>
         </div>
       </span>
@@ -1781,6 +1782,19 @@ async function setFiscalYear(id){
   if(start==null||start===cur)return;
   try{await api(`/datasets/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({fiscal_year_start:start})});
     toast(start===1?"Using the calendar year":`Fiscal year now starts in ${MONTHS[start-1]}`);
+    await loadDatasets();if(id===activeDatasetId){overviewFor=null;await loadPeriods();}}
+  catch(e){toast(errMsg(e));}
+}
+async function setReasonThreshold(id){
+  const ds=(datasetsCache||[]).find(d=>d.id===id)||{},cur=ds.reason_threshold_pct??10;
+  const v=await _openModalRaw({title:"When a variance needs a reason",okLabel:"Save",
+    body:`<label class="lbl" for="ds-threshold">In ${esc(dsName(id))}, ask for a reason when a KPI is more than</label>
+      <div style="display:flex;align-items:center;gap:8px"><input class="modal-field" id="ds-threshold" type="number" min="1" max="100" step="0.5" value="${esc(String(cur))}" style="max-width:110px"><span>% from plan</span></div>
+      <p style="margin-top:10px;font-size:13px;color:var(--text-3)">Anomalies always need a reason. This only changes which variances the checklist asks you to explain; figures and approvals don't change.</p>`,
+    getValue:()=>{const n=+$("ds-threshold").value;if(Number.isFinite(n)&&n>=1&&n<=100)return n;toast("Enter a number from 1 to 100");return undefined;}});
+  if(v==null||v===cur)return;
+  try{await api(`/datasets/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({reason_threshold_pct:v})});
+    toast(`Variances over ${v}% from plan now need a reason`);
     await loadDatasets();if(id===activeDatasetId){overviewFor=null;await loadPeriods();}}
   catch(e){toast(errMsg(e));}
 }
@@ -2366,7 +2380,8 @@ function queueRow(f,i,q){
     :g==="exception"?(f.is_anomaly?"Anomaly":"Figures need review")
     :g==="approved"?"Approved":f.narrative?"Draft ready":"Not drafted";
   const sel=!!(detailFact&&detailFact.metric===f.metric);
-  return `<div class="qi ${g}${sel?" on":""}" data-i="${i}" onclick="openDetail(${i})" onkeydown="cardKey(event,${i})" tabindex="0" role="link"${sel?' aria-current="true"':""} aria-label="${esc(f.metric)}, ${esc(f.unavailable?"no value":fmt(f.value,f.unit))}, ${esc(state)}">
+  const tip=anomalyWhy(f);
+  return `<div class="qi ${g}${sel?" on":""}" data-i="${i}"${tip?` title="${esc(tip)}"`:""} onclick="openDetail(${i})" onkeydown="cardKey(event,${i})" tabindex="0" role="link"${sel?' aria-current="true"':""} aria-label="${esc(f.metric)}, ${esc(f.unavailable?"no value":fmt(f.value,f.unit))}, ${esc(state)}">
     <i class="dot" aria-hidden="true"></i><span class="qn">${hl(f.metric,q)}</span>
     <span class="qv nbi-num ${tone}">${v==null?"–":deltaText(f,plan!=null?"budget":"mom")||pct(v)}</span>
     <span class="qsub"><span class="nbi-num">${f.unavailable?"—":fmt(f.value,f.unit)}</span> · ${vLabel} · ${esc(state)}</span></div>`;
@@ -2712,16 +2727,31 @@ const EST_COST_PER_NARR=0.006;
 let generatingSet=new Set(), skipRise=false;
 // Simple concurrency pool: run `worker` over `items`, at most `n` in flight.
 /* ---------- a big movement with no recorded reason asks for one, right where it's read ---------- */
-// "Big" is the same rule the close checklist uses: an anomaly, or more than 10% against plan.
+// "Big" is the same rule the close checklist uses: an anomaly, or further from plan than
+// the dataset's threshold (10% unless changed in the dataset menu).
+function reasonThreshold(){return (typeof activeDatasetObj!=="undefined"&&activeDatasetObj&&activeDatasetObj.reason_threshold_pct)||10;}
+function bigMove(f){
+  if(f.needs_reason_flag!=null)return !!f.needs_reason_flag;
+  const plan=f.deltas&&f.deltas.budget_var_pct;
+  return !!f.is_anomaly||(plan!=null&&Math.abs(plan)>reasonThreshold());
+}
 function needsReason(f){
   if(!f||!f.has_data||(f.sources&&f.sources.length))return false;
-  const plan=f.deltas&&f.deltas.budget_var_pct;
-  return !!f.is_anomaly||(plan!=null&&Math.abs(plan)>10);
+  return bigMove(f);
+}
+// Why a month was flagged, in words: the rule, the comparison and how far out it is.
+function anomalyWhy(f){
+  const a=f&&f.anomaly;if(!f||!f.is_anomaly||!a)return "";
+  const z=Math.abs(a.z).toFixed(1),t=a.threshold;
+  return a.basis==="seasonal"
+    ?`Anomaly: this month's change differs from the same month last year by ${z}× the usual spread (flagged above ${t}×), so a normal seasonal swing isn't flagged.`
+    :`Anomaly: this month's change is ${z}× the usual month-to-month spread (flagged above ${t}×). Once there's a year of history it is compared with the same month last year instead.`;
 }
 function renderWhyNone(f){
   const el=$("d-why");if(!el)return;
-  if(!needsReason(f)){el.innerHTML="";return;}
-  el.innerHTML=`<div class="why-none" role="note"><span><b>No reason recorded.</b> ${canReview()
+  const why=anomalyWhy(f);
+  if(!needsReason(f)){el.innerHTML=why?`<p class="anom-why">${esc(why)}</p>`:"";return;}
+  el.innerHTML=(why?`<p class="anom-why">${esc(why)}</p>`:"")+`<div class="why-none" role="note"><span><b>No reason recorded.</b> ${canReview()
     ?"Add a context note and the commentary will cite it next time it's drafted."
     :"An analyst can add the reason as a context note."}</span>${canReview()?`<button class="btn sm" data-act="reason" data-arg="${esc(f.metric)}">Add a reason</button>`:""}</div>`;
 }

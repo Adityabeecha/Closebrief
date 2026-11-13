@@ -237,7 +237,7 @@ def test_queue_row_states_the_status_in_words():
       const queueGroup=f=>!f.has_data?'nodata':f.is_anomaly?'exception':f.review_status==='approved'?'approved':'review';
       const hl=t=>t,esc=String,fmt=v=>'$'+v,pct=v=>(v>0?'+':'')+v+'%',fmtPeriod=p=>p,deltaText=()=>null;
       let detailFact=null,currentPeriod='2026-06',granularity='month';const generatingSet=new Set();
-      const priorPeriodLabel=()=>'vs last month';
+      const priorPeriodLabel=()=>'vs last month',anomalyWhy=()=>'';
     """, """
       const row=queueRow({metric:'Bad debt',has_data:true,is_anomaly:true,value:212,direction_good:'down',deltas:{budget_var_pct:136}},0,'');
       assert.match(row,/class="qi exception"/);assert.match(row,/Anomaly/);assert.match(row,/c-exc/);assert.match(row,/vs plan/);
@@ -277,7 +277,8 @@ def test_dataset_display_name_only_normalizes_filenames():
 
 
 def test_overview_no_budget_guidance_links_only_for_writers():
-    run_js("const VIEWS=", "/* ---------- auth", _NAV_SETUP+"const fmt=v=>String(v),pct=v=>String(v),deltaText=()=>null;", """
+    run_js("const VIEWS=", "/* ---------- auth", _NAV_SETUP+"const fmt=v=>String(v),pct=v=>String(v),deltaText=()=>null,"
+           "bigMove=f=>!!f.is_anomaly||Math.abs(f.deltas?.budget_var_pct||0)>10;", """
       currentFacts=[{metric:'Revenue',has_data:true,value:102000,unit:'USD',deltas:{mom_pct:-5.6},sources:[]}];
       paintOverview();let html=$('ov-glance').innerHTML;
       assert.match(html,/No budget loaded for this close: figures compare with last month/);
@@ -300,7 +301,7 @@ def test_bulk_approve_skips_anomalies_flagged_and_approved_drafts():
 
 
 def test_reason_prompt_only_for_big_moves_without_a_cited_note():
-    run_js("function needsReason(", "function renderWhyNone(", "", """
+    run_js("function reasonThreshold(", "function renderWhyNone(", "", """
       const f=o=>({has_data:true,is_anomaly:false,sources:[],deltas:{budget_var_pct:2},...o});
       assert.equal(needsReason(f({})),false);
       assert.equal(needsReason(f({is_anomaly:true})),true);
