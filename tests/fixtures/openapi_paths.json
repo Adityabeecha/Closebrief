@@ -2046,33 +2046,6 @@
       "summary": "Ingest Schema"
     }
   },
-  "/insights/cross-domain": {
-    "get": {
-      "description": "Strong correlations between metrics in different datasets of the workspace\n(e.g. Marketing spend \u2192 FP&A revenue), with the best lead/lag. Deterministic.",
-      "operationId": "cross_domain_endpoint_insights_cross_domain_get",
-      "responses": {
-        "200": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "items": {
-                  "additionalProperties": true,
-                  "type": "object"
-                },
-                "title": "Response Cross Domain Endpoint Insights Cross Domain Get",
-                "type": "array"
-              }
-            }
-          },
-          "description": "Successful Response"
-        }
-      },
-      "summary": "Cross Domain Endpoint",
-      "tags": [
-        "insights"
-      ]
-    }
-  },
   "/insights/root-cause": {
     "get": {
       "description": "Deterministic root-cause decomposition of a metric's move in a period:\nz-score vs its own baseline, price/volume/mix attribution, correlated movers,\nand trend streak. No LLM \u2014 every number is computed.",

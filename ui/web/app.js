@@ -1429,6 +1429,8 @@ function _fillMetricSelect(id){
 // Analyze shows one tool at a time; the list on the left picks it.
 let anToolIdx=0;
 function anTool(i){
+  const tools=[...document.querySelectorAll(".an-tools button")];
+  if(tools.length&&!tools.some(b=>+b.dataset.tool===i))i=0;
   anToolIdx=i;
   document.querySelectorAll(".an-tools button").forEach(b=>b.setAttribute("aria-pressed",String(+b.dataset.tool===i)));
   document.querySelectorAll(".an-one>.panel").forEach((p,k)=>p.style.display=k===i?"":"none");
@@ -1448,7 +1450,6 @@ async function loadAnalytics(){
     $("analytics-state").innerHTML="";$("analytics-tools").style.display="";
     $("kb-chips").innerHTML=_anMetrics.map((m,i)=>`<span class="fchip" role="button" tabindex="0" onclick="insertMetricToken(${esc(i)})">${esc(m.name)}</span>`).join("");
     onLever();$("scn-out").innerHTML='<div class="an-empty">Pick a metric and move a lever to project.</div>';
-    await loadCrossDomain();
   }catch(e){if(done())$("analytics-state").innerHTML=screenError(e,"loadAnalytics()");}
 }
 /* ---- Forecast ---- */
@@ -1550,21 +1551,6 @@ async function createDerivedKpi(){
     const chips=$("kb-chips");if(chips)chips.innerHTML=_anMetrics.map((m,i)=>`<span class="fchip" role="button" tabindex="0" onclick="insertMetricToken(${i})">${esc(m.name)}</span>`).join("");
   }catch(e){toast("Failed: "+errMsg(e));}
   finally{btn.disabled=false;}
-}
-/* ---- Cross-dataset signals ---- */
-async function loadCrossDomain(){
-  const box=$("xd-list");if(!box)return;const done=screenLoading("xd-list","Looking for links between datasets…");
-  try{
-    const rows=await api("/insights/cross-domain");if(!done())return;
-    if(!rows.length){box.innerHTML=screenState("No links between datasets yet","Import a second dataset that covers the same months to see which metrics move together.","nav('import')","Import another dataset","empty",{writeOnly:true});return;}
-    box.innerHTML=rows.slice(0,12).map(p=>{
-      const cls=p.direction==="positive"?"pos":"neg";
-      const lag=p.lag?`${Math.abs(p.lag)}-period ${p.lag>0?"lead":"lag"}`:"same period";
-      return `<div class="xd-item"><div class="xd-r ${cls}">${p.r>0?"+":""}${p.r}</div>
-        <div class="xd-body"><div class="xd-pair">${esc(p.metric_a)} <span class="xd-arrow">↔</span> ${esc(p.metric_b)}</div>
-        <div class="xd-meta">${esc(datasetDisplayName(p.dataset_a))} → ${esc(datasetDisplayName(p.dataset_b))} · ${lag} · ${p.months} mo overlap</div></div></div>`;
-    }).join("");
-  }catch(e){if(done())box.innerHTML=screenError(e,"loadCrossDomain()");}
 }
 /* ---- Collaborative review (detail view) ---- */
 // Approval is a separate check from figure verification — see docs/ui-standard.md §3.
