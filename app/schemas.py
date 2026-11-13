@@ -19,9 +19,12 @@ class Deltas(BaseModel):
     yoy_pct: Optional[float] = None
     budget_var_abs: Optional[float] = None
     budget_var_pct: Optional[float] = None
+    forecast_var_abs: Optional[float] = None
+    forecast_var_pct: Optional[float] = None
 
 
 class ComputedFact(BaseModel):
+    forecast: Optional[float] = None
     metric: str
     category: str = "Uncategorized"
     period: str

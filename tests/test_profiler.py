@@ -58,5 +58,5 @@ def test_budget_name_variants():
         "Fcst": ["12"], "Target": ["11"],
     })
     r = roles(profile_columns(df))
-    assert r["Fcst"] == "budget"
+    assert r["Fcst"] == "forecast"
     assert r["Target"] == "budget"

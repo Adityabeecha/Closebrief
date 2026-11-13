@@ -95,6 +95,11 @@ def aggregate_series(rows: list[dict], granularity: str, agg_type: str, fiscal_s
         items.sort(key=lambda r: r["period"])
         out[pk] = _reduce(items, agg_type)
         out[pk]["months"] = len(items)
+        if any("forecast" in i for i in items):
+            forecasts = [i["forecast"] for i in items if i.get("forecast") is not None]
+            out[pk]["forecast"] = (None if out[pk]["unavailable"] else items[-1].get("forecast")
+                                   if agg_type == "balance" or agg_type == "ratio"
+                                   else sum(forecasts) if forecasts else None)
     return out
 
 

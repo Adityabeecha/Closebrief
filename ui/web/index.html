@@ -771,6 +771,24 @@
   .banner{border-radius:var(--r-md);font-size:14px}
 
   /* ---- the workspace: queue | document + inspector ---- */
+  .kv-seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--r-pill,999px);overflow:hidden}
+  .kv-seg button{border:0;background:none;padding:6px 12px;font-size:13px;font-weight:700;color:var(--text-3);cursor:pointer}
+  .kv-seg button[aria-pressed="true"]{background:var(--surface-3);color:var(--text-1,var(--ink))}
+  .stmt-view .ws-split{grid-template-columns:minmax(0,1fr)}
+  .stmt-view .d-col,.stmt-view #q-bulk{display:none}
+  .stmt-wrap{overflow-x:auto}
+  .stmt{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+  .stmt th{font-size:12px;font-weight:700;color:var(--text-3);text-align:right;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  .stmt th:first-child,.stmt td:first-child{text-align:left}
+  .stmt td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+  .stmt td:first-child{white-space:normal}
+  .stmt tbody tr.kpi{cursor:pointer}
+  .stmt tbody tr.kpi:hover td{background:var(--surface-2,rgba(127,127,127,.06))}
+  .stmt tr.cat td{font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--text-3);padding-top:16px;background:none}
+  .stmt td.muted{color:var(--text-3)}
+  .contrib{min-width:0;font-size:13px}
+  .contrib th,.contrib td{padding:6px 8px}
+  .stmt-note{font-size:13px;color:var(--text-3);margin:10px 2px 0}
   .ws-split{display:grid;grid-template-columns:340px minmax(0,1fr);gap:22px;align-items:start;margin-top:4px}
   .q-col{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 12px 12px;scrollbar-width:thin}
   .q-col .toolbar{flex-direction:column;align-items:stretch;gap:10px;margin:12px 2px}
@@ -1343,6 +1361,10 @@
         </div>
         <div class="catbar" id="cat-pills"></div>
         <div class="tool-right">
+          <div class="kv-seg" role="group" aria-label="How to list KPIs">
+            <button type="button" id="kv-queue" aria-pressed="true" onclick="setKpiView('queue')">Queue</button>
+            <button type="button" id="kv-statement" aria-pressed="false" onclick="setKpiView('statement')">Statement</button>
+          </div>
           <button class="linkbtn write-only kpim-link" onclick="openKpiManager()" title="Choose which KPIs appear and how they roll up">Manage KPIs</button>
         </div>
       </div>
@@ -1391,6 +1413,10 @@
         <div class="panel insp">
           <h3>Figures</h3>
           <dl class="figs" id="d-figs"></dl>
+        </div>
+        <div class="panel insp" id="d-contrib-panel" style="display:none">
+          <h3 id="d-contrib-title">Contributors</h3><div class="psub" id="d-contrib-sub"></div>
+          <div id="d-contrib" class="stmt-wrap"></div>
         </div>
         <div class="panel insp">
           <h3 id="d-trend-title">Trend</h3><div class="psub">Actual vs budget, by month</div>
@@ -1561,6 +1587,7 @@
             <select id="imp-mode" class="pill-btn" onchange="onImportModeChange()">
               <option value="new">New dataset</option>
               <option value="join">Add budget to an existing dataset</option>
+              <option value="forecast">Add a forecast to an existing dataset</option>
             </select></div>
           <div id="imp-target-wrap" style="display:none">
             <label class="lbl" for="imp-target">Target dataset</label>
