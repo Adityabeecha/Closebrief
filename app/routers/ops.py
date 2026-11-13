@@ -1,6 +1,7 @@
 """HTTP routes moved from app.main: ops."""
 
 import hmac
+import json
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
@@ -15,6 +16,7 @@ from app.datasets import (
 )
 from app.db import get_connection
 from app.deps import shared_cache, shared_vector_store
+from app.generation.guard import figures_not_in
 from app.generation.llm_client import get_llm_client
 from app.routes_common import _ALERT_LATENCIES, _LATENCIES
 from app.schemas import (
@@ -203,7 +205,7 @@ def feedback_endpoint(fb: FeedbackIn, user: CurrentUser = Depends(require_write)
         # Scope the report to the caller's universe (demo vs real) so feedback can
         # never reach across it — the report's dataset must match the request scope.
         exists = conn.execute(
-            f"""SELECT gr.narrative FROM generated_reports gr
+            f"""SELECT gr.narrative, gr.sources, gr.review_status, gr.faithfulness FROM generated_reports gr
                 JOIN metrics m ON m.id = gr.metric_id
                 JOIN datasets d ON d.id = m.dataset_id
                 WHERE gr.id = ? AND {_scope_pred('d')}""",
@@ -226,10 +228,26 @@ def feedback_endpoint(fb: FeedbackIn, user: CurrentUser = Depends(require_write)
             if have == 0 and exists["narrative"]:
                 review.add_version(conn, fb.report_id, exists["narrative"], None, "original", commit=False)
             review.add_version(conn, fb.report_id, fb.edited_text, user.id, user.email, commit=False)
+            # An edit keeps "Figures checked" only if every figure in it was in the checked
+            # draft or a note it cited; a new number flags the draft. An approved draft that
+            # is edited goes back for approval.
+            cited = [int(x["id"]) for x in json.loads(exists["sources"] or "[]") if str(x.get("id", "")).isdigit()]
+            bodies = [r["body"] for r in conn.execute(
+                f"SELECT body FROM context_documents WHERE id IN ({','.join('?' * len(cited))})", tuple(cited)
+            ).fetchall()] if cited else []
+            unverified = figures_not_in(fb.edited_text, [exists["narrative"], *bodies])
+            conn.execute(
+                "UPDATE generated_reports SET faithfulness = ?, review_status = ? WHERE id = ?",
+                ("failed" if unverified else exists["faithfulness"],
+                 None if exists["review_status"] == "approved" else exists["review_status"], fb.report_id),
+            )
         conn.commit()
         audit.record(conn, fb.action, "report", fb.report_id, actor_id=user.id,
                      actor_email=user.email, summary={"edited": bool(fb.edited_text)})
-        return {"feedback_id": int(cur.lastrowid)}
+        out = {"feedback_id": int(cur.lastrowid)}
+        if fb.action == "edited" and fb.edited_text:
+            out["unverified"] = unverified
+        return out
     finally:
         conn.close()
 

@@ -122,7 +122,8 @@ def _primary_factor(cf, pvm, drivers, unit) -> str:
         return f"{cf['budget_var_pct']:+.1f}% vs plan"
     if drivers:
         d = drivers[0]
-        return f"moves with {d['metric']} (r={d['r']})"
+        # Every P&L line rises with growth: a correlation is a pattern, not a cause.
+        return f"moves with {d['metric']} (r={d['r']}), a pattern rather than a cause"
     if cf["mom_pct"] is not None:
         return f"{cf['mom_pct']:+.1f}% month-over-month"
     return "no dominant single driver"
