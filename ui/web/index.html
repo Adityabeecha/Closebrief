@@ -971,6 +971,8 @@
   .glance{display:flex;flex-direction:column}
   .glance button{display:flex;justify-content:space-between;gap:12px;align-items:baseline;padding:9px 0;border:none;border-top:1px solid var(--line);background:none;font:inherit;font-size:14px;color:var(--text-2);text-align:left;cursor:pointer}
   .glance button:first-child{border-top:none}
+  .glance-more{margin-top:6px}
+  .rollup-note{margin:10px 0 0;font-size:13px;color:var(--text-3)}
   .glance button:hover span:first-child{color:var(--text);text-decoration:underline}
   .glance b{font-family:var(--font-mono);font-weight:600;color:var(--text);white-space:nowrap}
   .ov-activity p{display:flex;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:14px;color:var(--text-2);margin:0}
@@ -1259,6 +1261,7 @@
         <a href="#" data-tab="boardpack">Board pack</a>
         <a href="#" data-tab="data" class="write-only">Data</a>
       </nav>
+      <p class="rollup-note" id="rollup-note" hidden></p>
     </header>
 
     <!-- ---------- SETTINGS HEADER: workspace settings share one place ---------- -->
@@ -1308,6 +1311,7 @@
       <div class="bp-bar">
         <p id="bp-note">The board pack is built from the same computed figures and approved commentary as the KPIs tab.</p>
         <div class="bp-actions">
+          <button class="btn" onclick="exportExcel(this)">Excel (.xlsx)</button>
           <button class="btn" onclick="exportPPTX()">PowerPoint</button>
           <button class="btn" onclick="exportPDF()">KPI report (PDF)</button>
           <button class="btn primary" onclick="printBoardPack()">Print board pack</button>
@@ -1338,6 +1342,7 @@
             <div class="export-menu" id="export-menu">
               <button id="export-pack-btn" onclick="exportBoardPack()"><b>Board pack</b><span>Print-ready pack for the board</span></button>
               <button onclick="exportPDF()"><b>PDF report</b><span>Every KPI with its commentary</span></button>
+              <button onclick="exportExcel()"><b>Excel</b><span>Every KPI, variance and approved commentary</span></button>
               <button onclick="exportPPTX()"><b>PowerPoint</b><span>Editable .pptx deck</span></button>
             </div>
           </div>

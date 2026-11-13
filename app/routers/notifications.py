@@ -6,7 +6,7 @@ import json
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.api import CurrentUser, require_admin
+from app.api import CurrentUser, require_admin, require_write
 from app.datasets import current_workspace
 from app.db import get_connection
 from app.notifications.channels import NotificationError, make_channel
@@ -103,5 +103,33 @@ def test_notification_config(config_id: int, _: CurrentUser = Depends(require_ad
         except Exception as e:  # noqa: BLE001 - surface delivery failures to the caller
             raise HTTPException(status_code=502, detail=f"Delivery failed: {e}") from e
         return {"ok": True}
+    finally:
+        conn.close()
+
+
+@router.get("/digest/recipients")
+def digest_recipients(_: CurrentUser = Depends(require_write)) -> list[dict]:
+    """Safe preview of the current workspace's digest delivery targets."""
+    conn = get_connection()
+    try:
+        recipients = []
+        for cfg in notif_list_configs(conn, current_workspace()):
+            config, channel = cfg["config"], cfg["channel"]
+            events = config.get("events")
+            if not cfg["enabled"] or (events and "digest_generated" not in events):
+                continue
+            if channel == "email":
+                to = config.get("recipients") or []
+                # A single address may be stored as a string; joining it would split it into characters.
+                label = to if isinstance(to, str) else ", ".join(str(x) for x in to)
+            elif channel in ("slack", "teams", "webhook"):
+                key = "url" if channel == "webhook" else "webhook_url"
+                url = config.get(key) or ""
+                # The last 4 characters only, and none of a URL too short for that to stay vague.
+                label = f"{channel.capitalize()} webhook" + (f" (…{url[-4:]})" if len(url) >= 16 else "")
+            else:
+                label = channel
+            recipients.append({"id": cfg["id"], "channel": channel, "label": label})
+        return recipients
     finally:
         conn.close()
