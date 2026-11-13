@@ -271,13 +271,14 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
                 for pk in sorted(series, key=lambda key: sort_key(key, fiscal_start)) if not series[pk].get("unavailable")
             ]
         out.append({
-            "metric": k["display_name"] or k["metric"], "category": k["category"],
+            "metric": k["display_name"] or k["metric"], "metric_id": k["metric_id"], "category": k["category"],
             "period": period, "value": cur["value"] if cur else None, "unit": k["unit"], **metadata,
-            "direction_good": k["direction_good"], "prior_value": None,
+            "direction_good": k["direction_good"], "prior_value": pv if has_data else None,
             "has_data": has_data, "deltas": deltas, "trend": None,
             "is_anomaly": False, "aggregated": True, "granularity": granularity,
             "aggregation_type": agg,
             "forecast": cur.get("forecast") if has_data else None,
+            "budget": cur.get("budget") if has_data else None,
             "has_breakdown": agg != "ratio" and k["unit"] != "%" and breakdown_available(
                 rows, breakdowns.get(k["metric_id"], []), months_in(period, granularity, fiscal_start), agg),
             "ytd": None,
@@ -306,156 +307,153 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
     granularity=quarter|year aggregates monthly values per each KPI's rule."""
     if granularity not in GRANULARITIES:
         raise HTTPException(status_code=422, detail=f"granularity must be one of {GRANULARITIES}")
-    if granularity != "month":
-        conn = get_connection()
-        try:
-            ds = active_dataset_id(conn)
-            if ds is None:
-                return []
-            return _aggregated_facts(conn, ds, period, granularity, include_charts)
-        finally:
-            conn.close()
     conn = get_connection()
     try:
         ds = active_dataset_id(conn)
-        if ds is None:
-            return []
-
-        metadata = dataset_metadata(conn, ds)
-        has_kpis = conn.execute(
-            "SELECT 1 FROM kpi_configs WHERE dataset_id = ? LIMIT 1", (ds,)
-        ).fetchone() is not None
-
-        if has_kpis:
-            # Driver = selected KPIs; category/unit/direction come from the
-            # KPI config, metric row is matched by name within the dataset.
-            rows = conn.execute(
-                """
-                SELECT m.id AS metric_id, k.source_metric AS metric,
-                       k.category, k.unit, k.direction_good, k.aggregation_type,
-                       cf.value, cf.prior_value, cf.mom_pct, cf.yoy_pct,
-                       cf.budget_var_abs, cf.budget_var_pct, cf.forecast_var_abs, cf.forecast_var_pct, mv.forecast,
-                       cf.trend, cf.is_anomaly, mv.source_rows
-                FROM kpi_configs k
-                LEFT JOIN metrics m ON m.dataset_id = k.dataset_id AND m.name = k.source_metric
-                LEFT JOIN computed_facts cf ON cf.metric_id = m.id AND cf.period = ?
-                LEFT JOIN metric_values mv ON mv.metric_id = m.id AND mv.period = cf.period
-                WHERE k.dataset_id = ?
-                ORDER BY ABS(COALESCE(cf.budget_var_abs, 0)) DESC, k.source_metric
-                """,
-                (period, ds),
-            ).fetchall()
-        else:
-            rows = conn.execute(
-                """
-                SELECT m.id AS metric_id, m.name AS metric, m.category, m.unit,
-                       m.direction_good, NULL AS aggregation_type, cf.value, cf.prior_value, cf.mom_pct,
-                       cf.yoy_pct, cf.budget_var_abs, cf.budget_var_pct, cf.forecast_var_abs, cf.forecast_var_pct, mv.forecast,
-                       cf.trend, cf.is_anomaly, mv.source_rows
-                FROM metrics m
-                LEFT JOIN computed_facts cf ON cf.metric_id = m.id AND cf.period = ?
-                LEFT JOIN metric_values mv ON mv.metric_id = m.id AND mv.period = cf.period
-                WHERE m.dataset_id = ?
-                ORDER BY ABS(COALESCE(cf.budget_var_abs, 0)) DESC, m.name
-                """,
-                (period, ds),
-            ).fetchall()
-
-        all_values = load_values(conn, ds)
-        breakdowns = breakdown_coverage(conn, ds, [period])
-        sensitive = user.role == "admin"   # gate cost/latency/emails to admins
-        # Batch the per-card report + feedback lookups into two queries instead of
-        # ~3 per card (was an N+1 over the dashboard's hot path).
-        metric_ids = [r["metric_id"] for r in rows if r["metric_id"] is not None]
-        reports_by_metric, edited_by_report, reviewer_by_report = {}, {}, {}
-        if metric_ids:
-            ph = ",".join("?" * len(metric_ids))
-            for rr in conn.execute(
-                f"""SELECT gr.id, gr.metric_id, gr.narrative, gr.sources, gr.confidence,
-                           gr.faithfulness, gr.cost_usd, gr.latency_ms, gr.user_email,
-                           gr.review_status, gr.assigned_email
-                    FROM generated_reports gr
-                    WHERE gr.metric_id IN ({ph}) AND gr.period = ?
-                      AND (gr.prompt_version IS NULL OR gr.prompt_version NOT LIKE '%-digest')
-                    ORDER BY gr.id ASC""",
-                (*metric_ids, period),
-            ).fetchall():
-                reports_by_metric[rr["metric_id"]] = rr   # ASC → latest id wins
-            report_ids = [rr["id"] for rr in reports_by_metric.values()]
-            if report_ids:
-                ph2 = ",".join("?" * len(report_ids))
-                for fr in conn.execute(
-                    f"""SELECT report_id, action, edited_text, user_email
-                        FROM feedback WHERE report_id IN ({ph2}) ORDER BY id ASC""",
-                    tuple(report_ids),
-                ).fetchall():
-                    if fr["action"] == "edited" and fr["edited_text"] is not None:
-                        edited_by_report[fr["report_id"]] = fr["edited_text"]
-                    if fr["user_email"] is not None:
-                        reviewer_by_report[fr["report_id"]] = fr["user_email"]
-
-        card_data = _prefetch_cards(
-            conn,
-            {r["metric_id"]: r["metric"] for r in rows
-             if has_usable_value(r["metric_id"], r["value"], r["unit"], r["source_rows"])},
-            period,
-            {r["metric_id"]: r["unit"] for r in rows},
-        )
-        out = []
-        for r in rows:
-            card = card_data.get(r["metric_id"])
-            if card and card[2]:
-                r = {**dict(r), **card[2]}
-            has_data = has_usable_value(r["metric_id"], r["value"], r["unit"], r["source_rows"])
-            reason = combined_percentage_reason(r["unit"], r["source_rows"])
-            agg = r["aggregation_type"] or infer_aggregation_type(r["metric"], r["unit"])
-            report = reports_by_metric.get(r["metric_id"]) if has_data else None
-            edited = edited_by_report.get(report["id"]) if report else None
-            reviewer = reviewer_by_report.get(report["id"]) if report else None
-            out.append({
-                "metric": r["metric"],
-                "category": r["category"],
-                "period": period,
-                "value": r["value"] if has_data else None,
-                "unit": r["unit"], **metadata,
-                "direction_good": r["direction_good"],
-                "prior_value": r["prior_value"] if has_data else None,
-                "has_data": has_data,
-                "forecast": r["forecast"] if has_data else None,
-                "has_breakdown": has_data and agg != "ratio" and r["unit"] != "%" and r["metric_id"] in breakdowns,
-                "ytd": ytd(all_values.get(r["metric_id"], []), period, metadata["fiscal_year_start"], agg, r["unit"])
-                       if has_data else None,
-                "unavailable_reason": reason,
-                "deltas": {
-                    "mom_pct": r["mom_pct"] if has_data else None, "yoy_pct": r["yoy_pct"] if has_data else None,
-                    "budget_var_abs": r["budget_var_abs"] if has_data else None,
-                    "budget_var_pct": r["budget_var_pct"] if has_data else None,
-                    "forecast_var_abs": r["forecast_var_abs"] if has_data else None,
-                    "forecast_var_pct": r["forecast_var_pct"] if has_data else None,
-                },
-                "trend": r["trend"] if has_data and r["trend"] in ("up", "down", "flat") else None,
-                "is_anomaly": bool(r["is_anomaly"]) if has_data else False,
-                "report_id": report["id"] if report else None,
-                "review_status": report["review_status"] if report else None,
-                "assigned_email": report["assigned_email"] if report else None,
-                "narrative": (edited or report["narrative"]) if report else None,
-                "original_narrative": report["narrative"] if (report and edited) else None,
-                "edited": edited is not None,
-                "sources": json.loads(report["sources"]) if (report and report["sources"]) else [],
-                "confidence": report["confidence"] if report else None,
-                "faithfulness": report["faithfulness"] if report else None,
-                # Cost, latency and user emails are operational/PII detail — only
-                # admins see them (matches /costs being admin-only).
-                "cost_usd": report["cost_usd"] if (report and sensitive) else None,
-                "latency_ms": report["latency_ms"] if (report and sensitive) else None,
-                "generated_by": report["user_email"] if (report and sensitive) else None,
-                "reviewed_by": reviewer if (report and sensitive) else None,
-                "chart_data": card_data[r["metric_id"]][0] if include_charts and has_data else None,
-                "trend_streak": card_data[r["metric_id"]][1] if has_data else None,
-            })
-        return out
+        return build_facts(conn, ds, period, granularity, user, include_charts) if ds is not None else []
     finally:
         conn.close()
+
+
+def build_facts(conn, ds, period, granularity, user, include_charts=True):
+    """One source for dashboard and export figures, on the caller's connection."""
+    if granularity != "month":
+        return _aggregated_facts(conn, ds, period, granularity, include_charts)
+    metadata = dataset_metadata(conn, ds)
+    has_kpis = conn.execute(
+        "SELECT 1 FROM kpi_configs WHERE dataset_id = ? LIMIT 1", (ds,)
+    ).fetchone() is not None
+
+    if has_kpis:
+        # Driver = selected KPIs; category/unit/direction come from the
+        # KPI config, metric row is matched by name within the dataset.
+        rows = conn.execute(
+            """
+            SELECT m.id AS metric_id, k.source_metric AS metric,
+                   k.category, k.unit, k.direction_good, k.aggregation_type,
+                   cf.value, cf.prior_value, cf.mom_pct, cf.yoy_pct,
+                   cf.budget_var_abs, cf.budget_var_pct, cf.forecast_var_abs, cf.forecast_var_pct, mv.forecast, mv.budget,
+                   cf.trend, cf.is_anomaly, mv.source_rows
+            FROM kpi_configs k
+            LEFT JOIN metrics m ON m.dataset_id = k.dataset_id AND m.name = k.source_metric
+            LEFT JOIN computed_facts cf ON cf.metric_id = m.id AND cf.period = ?
+            LEFT JOIN metric_values mv ON mv.metric_id = m.id AND mv.period = cf.period
+            WHERE k.dataset_id = ?
+            ORDER BY ABS(COALESCE(cf.budget_var_abs, 0)) DESC, k.source_metric
+            """,
+            (period, ds),
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            """
+            SELECT m.id AS metric_id, m.name AS metric, m.category, m.unit,
+                   m.direction_good, NULL AS aggregation_type, cf.value, cf.prior_value, cf.mom_pct,
+                   cf.yoy_pct, cf.budget_var_abs, cf.budget_var_pct, cf.forecast_var_abs, cf.forecast_var_pct, mv.forecast, mv.budget,
+                   cf.trend, cf.is_anomaly, mv.source_rows
+            FROM metrics m
+            LEFT JOIN computed_facts cf ON cf.metric_id = m.id AND cf.period = ?
+            LEFT JOIN metric_values mv ON mv.metric_id = m.id AND mv.period = cf.period
+            WHERE m.dataset_id = ?
+            ORDER BY ABS(COALESCE(cf.budget_var_abs, 0)) DESC, m.name
+            """,
+            (period, ds),
+        ).fetchall()
+
+    all_values = load_values(conn, ds)
+    breakdowns = breakdown_coverage(conn, ds, [period])
+    sensitive = user.role == "admin"   # gate cost/latency/emails to admins
+    # Batch the per-card report + feedback lookups into two queries instead of
+    # ~3 per card (was an N+1 over the dashboard's hot path).
+    metric_ids = [r["metric_id"] for r in rows if r["metric_id"] is not None]
+    reports_by_metric, edited_by_report, reviewer_by_report = {}, {}, {}
+    if metric_ids:
+        ph = ",".join("?" * len(metric_ids))
+        for rr in conn.execute(
+            f"""SELECT gr.id, gr.metric_id, gr.narrative, gr.sources, gr.confidence,
+                       gr.faithfulness, gr.cost_usd, gr.latency_ms, gr.user_email,
+                       gr.review_status, gr.assigned_email
+                FROM generated_reports gr
+                WHERE gr.metric_id IN ({ph}) AND gr.period = ?
+                  AND (gr.prompt_version IS NULL OR gr.prompt_version NOT LIKE '%-digest')
+                ORDER BY gr.id ASC""",
+            (*metric_ids, period),
+        ).fetchall():
+            reports_by_metric[rr["metric_id"]] = rr   # ASC → latest id wins
+        report_ids = [rr["id"] for rr in reports_by_metric.values()]
+        if report_ids:
+            ph2 = ",".join("?" * len(report_ids))
+            for fr in conn.execute(
+                f"""SELECT report_id, action, edited_text, user_email
+                    FROM feedback WHERE report_id IN ({ph2}) ORDER BY id ASC""",
+                tuple(report_ids),
+            ).fetchall():
+                if fr["action"] == "edited" and fr["edited_text"] is not None:
+                    edited_by_report[fr["report_id"]] = fr["edited_text"]
+                if fr["user_email"] is not None:
+                    reviewer_by_report[fr["report_id"]] = fr["user_email"]
+
+    card_data = _prefetch_cards(
+        conn,
+        {r["metric_id"]: r["metric"] for r in rows
+         if has_usable_value(r["metric_id"], r["value"], r["unit"], r["source_rows"])},
+        period,
+        {r["metric_id"]: r["unit"] for r in rows},
+    )
+    out = []
+    for r in rows:
+        card = card_data.get(r["metric_id"])
+        if card and card[2]:
+            r = {**dict(r), **card[2]}
+        has_data = has_usable_value(r["metric_id"], r["value"], r["unit"], r["source_rows"])
+        reason = combined_percentage_reason(r["unit"], r["source_rows"])
+        agg = r["aggregation_type"] or infer_aggregation_type(r["metric"], r["unit"])
+        report = reports_by_metric.get(r["metric_id"]) if has_data else None
+        edited = edited_by_report.get(report["id"]) if report else None
+        reviewer = reviewer_by_report.get(report["id"]) if report else None
+        out.append({
+            "metric": r["metric"],
+            "metric_id": r["metric_id"], "aggregation_type": agg,
+            "category": r["category"],
+            "period": period,
+            "value": r["value"] if has_data else None,
+            "unit": r["unit"], **metadata,
+            "direction_good": r["direction_good"],
+            "prior_value": r["prior_value"] if has_data else None,
+            "has_data": has_data,
+            "forecast": r["forecast"] if has_data else None,
+            "budget": r["budget"] if has_data else None,
+            "has_breakdown": has_data and agg != "ratio" and r["unit"] != "%" and r["metric_id"] in breakdowns,
+            "ytd": ytd(all_values.get(r["metric_id"], []), period, metadata["fiscal_year_start"], agg, r["unit"])
+                   if has_data else None,
+            "unavailable_reason": reason,
+            "deltas": {
+                "mom_pct": r["mom_pct"] if has_data else None, "yoy_pct": r["yoy_pct"] if has_data else None,
+                "budget_var_abs": r["budget_var_abs"] if has_data else None,
+                "budget_var_pct": r["budget_var_pct"] if has_data else None,
+                "forecast_var_abs": r["forecast_var_abs"] if has_data else None,
+                "forecast_var_pct": r["forecast_var_pct"] if has_data else None,
+            },
+            "trend": r["trend"] if has_data and r["trend"] in ("up", "down", "flat") else None,
+            "is_anomaly": bool(r["is_anomaly"]) if has_data else False,
+            "report_id": report["id"] if report else None,
+            "review_status": report["review_status"] if report else None,
+            "assigned_email": report["assigned_email"] if report else None,
+            "narrative": (edited or report["narrative"]) if report else None,
+            "original_narrative": report["narrative"] if (report and edited) else None,
+            "edited": edited is not None,
+            "sources": json.loads(report["sources"]) if (report and report["sources"]) else [],
+            "confidence": report["confidence"] if report else None,
+            "faithfulness": report["faithfulness"] if report else None,
+            # Cost, latency and user emails are operational/PII detail — only
+            # admins see them (matches /costs being admin-only).
+            "cost_usd": report["cost_usd"] if (report and sensitive) else None,
+            "latency_ms": report["latency_ms"] if (report and sensitive) else None,
+            "generated_by": report["user_email"] if (report and sensitive) else None,
+            "reviewed_by": reviewer if (report and sensitive) else None,
+            "chart_data": card_data[r["metric_id"]][0] if include_charts and has_data else None,
+            "trend_streak": card_data[r["metric_id"]][1] if has_data else None,
+        })
+    return out
 
 
 def _active_metric_id(conn, metric: str) -> int | None:
