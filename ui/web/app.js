@@ -1748,7 +1748,7 @@ async function loadDatasets(){
           <button class="write-only" onclick="event.stopPropagation();renameDataset(${ds.id})">Rename</button>
           <button class="write-only" onclick="event.stopPropagation();setDatasetCurrency(${ds.id})">Currency (${esc(ds.currency||"USD")})</button>
           <button class="write-only" onclick="event.stopPropagation();setFiscalYear(${ds.id})">Fiscal year starts (${esc(MONTHS[(ds.fiscal_year_start||1)-1].slice(0,3))})</button>
-          <button class="write-only" onclick="event.stopPropagation();setReasonThreshold(${ds.id})">Needs a reason above (${esc(String(ds.reason_threshold_pct??10))}%)</button>
+          <button class="write-only" onclick="event.stopPropagation();setReasonThreshold(${ds.id})">Needs a reason above (${esc(String(ds.reason_threshold_pct??10))}%${ds.reason_threshold_abs?` and ${esc(fmt(ds.reason_threshold_abs,"USD",ds.currency))}`:""})</button>
           <button class="write-only danger" onclick="event.stopPropagation();deleteDataset(${ds.id})">Delete</button>
         </div>
       </span>
@@ -1786,15 +1786,20 @@ async function setFiscalYear(id){
   catch(e){toast(errMsg(e));}
 }
 async function setReasonThreshold(id){
-  const ds=(datasetsCache||[]).find(d=>d.id===id)||{},cur=ds.reason_threshold_pct??10;
+  const ds=(datasetsCache||[]).find(d=>d.id===id)||{},cur=ds.reason_threshold_pct??10,curAbs=ds.reason_threshold_abs||null;
   const v=await _openModalRaw({title:"When a variance needs a reason",okLabel:"Save",
-    body:`<label class="lbl" for="ds-threshold">In ${esc(dsName(id))}, ask for a reason when a KPI is more than</label>
+    body:`<label class="lbl" for="ds-threshold">In ${esc(dsName(id))}, ask for a reason when a KPI, or any one part of it (a department, product or region), is more than</label>
       <div style="display:flex;align-items:center;gap:8px"><input class="modal-field" id="ds-threshold" type="number" min="1" max="100" step="0.5" value="${esc(String(cur))}" style="max-width:110px"><span>% from plan</span></div>
-      <p style="margin-top:10px;font-size:13px;color:var(--text-3)">Anomalies always need a reason. This only changes which variances the checklist asks you to explain; figures and approvals don't change.</p>`,
-    getValue:()=>{const n=+$("ds-threshold").value;if(Number.isFinite(n)&&n>=1&&n<=100)return n;toast("Enter a number from 1 to 100");return undefined;}});
-  if(v==null||v===cur)return;
-  try{await api(`/datasets/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({reason_threshold_pct:v})});
-    toast(`Variances over ${v}% from plan now need a reason`);
+      <label class="lbl" for="ds-threshold-abs" style="margin-top:12px">and at least (optional)</label>
+      <div style="display:flex;align-items:center;gap:8px"><input class="modal-field" id="ds-threshold-abs" type="number" min="0" step="1000" placeholder="no minimum" value="${curAbs==null?"":esc(String(curAbs))}" style="max-width:150px"><span>${esc(ds.currency||"USD")} from plan</span></div>
+      <p style="margin-top:10px;font-size:13px;color:var(--text-3)">With a minimum, a 12% miss on a small line doesn't ask for a reason, and a 4% miss on a big one doesn't either unless it's past the percentage too. Anomalies always need a reason. Figures and approvals don't change.</p>`,
+    getValue:()=>{const n=+$("ds-threshold").value,raw=$("ds-threshold-abs").value.trim(),a=raw===""?null:+raw;
+      if(!(Number.isFinite(n)&&n>=1&&n<=100)){toast("Enter a percentage from 1 to 100");return undefined;}
+      if(a!==null&&!(Number.isFinite(a)&&a>=0)){toast("Enter a minimum of 0 or more, or leave it empty");return undefined;}
+      return {pct:n,abs:a&&a>0?a:null};}});
+  if(v==null||(v.pct===cur&&v.abs===curAbs))return;
+  try{await api(`/datasets/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({reason_threshold_pct:v.pct,reason_threshold_abs:v.abs})});
+    toast(`Variances over ${v.pct}%${v.abs?` and ${fmt(v.abs,"USD",ds.currency)}`:""} from plan now need a reason`);
     await loadDatasets();if(id===activeDatasetId){overviewFor=null;await loadPeriods();}}
   catch(e){toast(errMsg(e));}
 }
@@ -2751,7 +2756,11 @@ function renderWhyNone(f){
   const el=$("d-why");if(!el)return;
   const why=anomalyWhy(f);
   if(!needsReason(f)){el.innerHTML=why?`<p class="anom-why">${esc(why)}</p>`:"";return;}
-  el.innerHTML=(why?`<p class="anom-why">${esc(why)}</p>`:"")+`<div class="why-none" role="note"><span><b>No reason recorded.</b> ${canReview()
+  const t=f.reason_trigger,lim=reasonThreshold();
+  const what=t&&t.kind==="part"
+    ?`${esc(t.part)} is ${esc(pct(t.var_pct)||"")} vs plan (${esc((t.var_abs>0?"+":"")+fmt(t.var_abs,f.unit))}), past the ${esc(String(lim))}% threshold, even though the total is ${esc(deltaText(f,"budget")||"within it")}. `
+    :t&&t.kind==="total"?`It's ${esc(deltaText(f,"budget")||"")} vs plan, past the ${esc(String(lim))}% threshold. `:"";
+  el.innerHTML=(why?`<p class="anom-why">${esc(why)}</p>`:"")+`<div class="why-none" role="note"><span><b>No reason recorded.</b> ${what}${canReview()
     ?"Add a context note and the commentary will cite it next time it's drafted."
     :"An analyst can add the reason as a context note."}</span>${canReview()?`<button class="btn sm" data-act="reason" data-arg="${esc(f.metric)}">Add a reason</button>`:""}</div>`;
 }

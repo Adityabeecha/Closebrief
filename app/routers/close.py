@@ -18,6 +18,7 @@ from app.close_control import lock_status, serialize_writes
 from app.close_export import XLSX_TYPE, build_close_workbook, content_disposition
 from app.compute.aggregate import GRANULARITIES, months_in, period_key, sort_key
 from app.compute.availability import has_usable_value, needs_reason
+from app.compute.close_views import part_variances
 from app.context.store import _row_to_doc
 from app.datasets import _scope_pred, active_dataset_id, current_workspace, dataset_metadata, timestamp_text
 from app.db import get_connection
@@ -89,8 +90,9 @@ def _summaries(conn, ds, granularity="month"):
         return []
     meta = dataset_metadata(conn, ds)
     fiscal_start, threshold = meta["fiscal_year_start"], meta["reason_threshold_pct"]
+    floor, parts = meta["reason_threshold_abs"], part_variances(conn, ds)
     rows = conn.execute(
-        """SELECT cf.period, cf.metric_id, cf.value, m.name, cf.is_anomaly,
+        """SELECT cf.period, cf.metric_id, cf.value, m.name, cf.is_anomaly, cf.budget_var_abs,
         cf.budget_var_pct, gr.id AS report_id, gr.review_status, gr.faithfulness,
         COALESCE(k.unit, m.unit) AS unit, mv.source_rows
         FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
@@ -130,7 +132,9 @@ def _summaries(conn, ds, granularity="month"):
         group["approved"] += int(row["review_status"] == "approved")
         group["checked"] += int(row["faithfulness"] == "passed")
         group["exceptions"] += int(bool(row["is_anomaly"]))
-        flagged = needs_reason(row["is_anomaly"], row["budget_var_pct"], threshold)
+        flagged = needs_reason(row["is_anomaly"], row["budget_var_pct"], threshold,
+                               budget_var_abs=row["budget_var_abs"], floor=floor,
+                               parts=parts.get((row["metric_id"], period), ()))
         if flagged:
             group["flagged"] += 1
             if not any(reason_recorded(doc, row["name"], period) for doc in docs):
