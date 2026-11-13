@@ -2,9 +2,9 @@
 
 Given a metric + period, embed a query, search the vector store, then apply
 business filters. Notes that can be read as the cause of a move (event notes and
-historical commentary) must be tagged with this KPI, and a dated event note must be
-from this month or the two before it: an untagged "Q1 seasonality" note must never
-explain an October margin drop. Untagged notes are background only (definitions,
+historical commentary) must be tagged with this KPI, or be a company-wide event note
+with a date; a dated event note must be from this month or the two before it. An
+untagged, undated "Q1 seasonality" note must never explain an October margin drop. Untagged notes are background only (definitions,
 glossary, policy). Nothing dated after the period is used. Never returns more than
 k chunks (token/cost control).
 """
@@ -52,6 +52,10 @@ def _tagged_for(doc: ContextDoc, metric: str) -> bool:
 
 def _metric_ok(doc: ContextDoc, metric: str) -> bool:
     if doc.type in CAUSAL_TYPES:
+        if not doc.metric_tags:
+            # A company-wide event dated this month or just before ("March pricing change")
+            # may explain any KPI; an undated or historical untagged note never does.
+            return doc.type == "event_note" and bool(doc.effective_date)
         return _tagged_for(doc, metric)
     if not doc.metric_tags:
         return True  # an untagged definition or policy is background for every KPI

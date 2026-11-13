@@ -131,9 +131,12 @@ def test_an_untagged_note_never_explains_a_move(store):
     untagged_event = add_doc(ctx_store, "Price change", "Prices rose in October")
     definition = add_doc(ctx_store, "Gross margin definition", "Gross margin is revenue less cost of revenue",
                          type="definition")
+    company_event = add_doc(ctx_store, "October price rise", "Enterprise prices rose 15% on 1 October",
+                            effective_date="2026-10")
     ids = [c.id for c in retrieve("Gross Margin %", "2026-10", ctx_store, embedder, vs, k=5)]
     assert seasonal not in ids and untagged_event not in ids
     assert definition in ids   # background still reaches the draft
+    assert company_event in ids   # a dated company-wide event may explain any KPI
 
 
 def test_an_event_note_is_used_for_its_month_and_the_two_after(store):

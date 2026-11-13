@@ -182,11 +182,16 @@ def sync_connector(conn, connector_id: int, workspace_id: int | None, *, fetch=f
     ds_name = row["dataset_name"] or row["name"]
 
     def _finish(status: str, error: str | None):
-        conn.execute(
-            "UPDATE connectors SET last_status = ?, last_error = ?, "
-            "last_sync_at = CASE WHEN ? = 'ok' THEN CURRENT_TIMESTAMP ELSE last_sync_at END WHERE id = ?",
-            (status, error, status, connector_id),
-        )
+        # last_sync_at is the last sync that worked: a failure leaves it alone. (Two
+        # statements, not CASE: the column is text on Postgres and CURRENT_TIMESTAMP isn't.)
+        if status == "ok":
+            conn.execute(
+                "UPDATE connectors SET last_status = ?, last_error = ?, last_sync_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (status, error, connector_id),
+            )
+        else:
+            conn.execute("UPDATE connectors SET last_status = ?, last_error = ? WHERE id = ?",
+                         (status, error, connector_id))
         conn.commit()
 
     prior_scope = current_workspace()   # restore afterwards so a scheduled tick
