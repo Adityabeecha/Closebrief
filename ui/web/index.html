@@ -1311,6 +1311,7 @@
       <div class="bp-bar">
         <p id="bp-note">The board pack is built from the same computed figures and approved commentary as the KPIs tab.</p>
         <div class="bp-actions">
+          <button class="btn" onclick="exportExcel(this)">Excel (.xlsx)</button>
           <button class="btn" onclick="exportPPTX()">PowerPoint</button>
           <button class="btn" onclick="exportPDF()">KPI report (PDF)</button>
           <button class="btn primary" onclick="printBoardPack()">Print board pack</button>
@@ -1341,6 +1342,7 @@
             <div class="export-menu" id="export-menu">
               <button id="export-pack-btn" onclick="exportBoardPack()"><b>Board pack</b><span>Print-ready pack for the board</span></button>
               <button onclick="exportPDF()"><b>PDF report</b><span>Every KPI with its commentary</span></button>
+              <button onclick="exportExcel()"><b>Excel</b><span>Every KPI, variance and approved commentary</span></button>
               <button onclick="exportPPTX()"><b>PowerPoint</b><span>Editable .pptx deck</span></button>
             </div>
           </div>

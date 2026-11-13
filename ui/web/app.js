@@ -118,6 +118,23 @@ function exportPDF(){
   // Give the window a beat to lay out fonts/sparklines before invoking print.
   setTimeout(()=>{try{w.focus();w.print();}catch(e){}},450);
 }
+// The close as an Excel workbook, built on the server from the same figures as the screen.
+async function exportExcel(btn){
+  const menu=$("export-menu");if(menu)menu.classList.remove("open");
+  if(!currentPeriod){toast("Pick a close first");return;}
+  if(btn)btn.disabled=true;
+  try{
+    const r=await api(`/close/export.xlsx?period=${encodeURIComponent(currentPeriod)}&granularity=${granularity}`,{raw:true});
+    const cd=r.headers.get("Content-Disposition")||"";
+    const star=/filename\*=UTF-8''([^;]+)/i.exec(cd),plain=/filename="([^"]+)"/i.exec(cd);
+    const name=star?decodeURIComponent(star[1]):plain?plain[1]:`CloseBrief - ${fmtPeriod(currentPeriod,"long")} close.xlsx`;
+    const url=URL.createObjectURL(await r.blob()),a=document.createElement("a");
+    a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+    toast("Excel file downloaded");
+  }catch(e){toast("Couldn't export: "+errMsg(e));}
+  finally{if(btn)btn.disabled=false;}
+}
 let _pptxLoading=null;
 function loadPptx(){
   if(window.PptxGenJS)return Promise.resolve();
@@ -394,6 +411,7 @@ async function api(path,opts,_retried){
       typeof data.period==="string"&&Number.isFinite(data.value)&&data.narrative===null&&data.faithfulness==="unchecked")return data;
     const err=new Error((data&&data.detail)||r.statusText||"Request failed");err.status=r.status;throw err;
   }
+  if(opts.raw)return r;
   if(r.status===204)return null; return r.json();
 }
 // unit "USD" means "an amount of money" (the KPI unit predates currencies);
@@ -2926,13 +2944,21 @@ async function loadDigestHistory(){
       <small>${esc((r.items||[]).slice(0,3).map(it=>it.metric).join(", "))}</small></button>`).join(""):"";
   }catch(e){if(done()&&revision===digestRevision)$("digest-list").innerHTML=screenError(e,"loadDigest()");}
 }
+// Who a send reaches, in words. Webhook addresses never come back from the server.
+function recipientsText(list){
+  if(list==null)return "It goes to every channel set up in Settings → Notifications.";
+  if(!list.length)return "No channel is set up for digests in Settings → Notifications, so nothing is delivered: this only marks the close as sent.";
+  const CH={email:"Email",slack:"Slack",teams:"Teams",webhook:"Webhook"};
+  return "It goes to: "+list.map(r=>r.channel==="email"?`${CH.email}: ${r.label}`:r.label||CH[r.channel]||r.channel).join("; ")+".";
+}
 // Sending is the one step that reaches leadership; the server refuses it until every KPI is approved.
 async function sendDigest(){
   if(!canReview()||digestGenerating||!digestNow||!digestNow.ready)return;
   const n=digestNow.items.length;
+  let to=null;try{to=await api("/digest/recipients");}catch{to=null;}
   if(!await modalConfirm(`Send the ${fmtPeriod(currentPeriod,"long")} digest?`,
-    `${plural(n,"item","items")} of approved commentary go to every channel set up in Settings (Slack, email, webhook).`,
-    {okLabel:"Send digest",danger:false}))return;
+    `${plural(n,"item","items")} of approved commentary. ${recipientsText(to)}`,
+    {okLabel:to&&!to.length?"Mark as sent":"Send digest",danger:false}))return;
   digestGenerating=true;const btn=$("digest-generate");btn.disabled=true;
   try{
     await api(`/digest/send?period=${encodeURIComponent(currentPeriod)}&top_n=5`,{method:"POST"});

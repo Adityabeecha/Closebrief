@@ -44,3 +44,20 @@ def test_quarter_and_year_views_carry_a_rollup_note():
     assert '<p class="rollup-note" id="rollup-note" hidden></p>' in HTML
     assert "Commentary is written per month; this ${granularity===\"year\"?\"year\":\"quarter\"} view adds the months up" in JS
     assert 'note.hidden=granularity==="month"' in JS
+
+
+def test_digest_send_names_its_recipients():
+    s = JS.index("// Who a send reaches, in words.")
+    e = JS.index("// Sending is the one step", s)
+    out = _node(JS[s:e] + """
+console.log(JSON.stringify([recipientsText(null),recipientsText([]),
+  recipientsText([{channel:'email',label:'cfo@x.co, ceo@x.co'},{channel:'slack',label:'Slack webhook (…9876)'}])]));""")
+    assert "every channel" in out[0]
+    assert "nothing is delivered" in out[1] and "only marks the close as sent" in out[1]
+    assert out[2] == "It goes to: Email: cfo@x.co, ceo@x.co; Slack webhook (…9876)."
+    assert 'okLabel:to&&!to.length?"Mark as sent":"Send digest"' in JS
+
+
+def test_excel_download_is_offered_where_the_other_exports_are():
+    assert HTML.count("exportExcel(") == 2
+    assert "/close/export.xlsx?period=" in JS and "{raw:true}" in JS and "if(opts.raw)return r;" in JS

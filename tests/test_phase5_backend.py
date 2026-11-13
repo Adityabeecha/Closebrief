@@ -380,3 +380,12 @@ def test_rollup_prior_period_comes_from_shared_facts(client, granularity, period
     assert row["Prior period"].value == 100
     assert row["Prior period"].value == fact["prior_value"]
     assert row["Plan"].value == 110
+
+
+def test_export_names_the_dataset_as_the_app_shows_it():
+    from app.close_export import content_disposition, display_name
+
+    assert display_name("Opex_by-department.CSV") == "Opex by department"
+    assert display_name("Q1 Actuals") == "Q1 Actuals"
+    assert 'filename="CloseBrief - Opex by department - March 2026 close.xlsx"' in content_disposition(
+        "Opex by department.csv", "2026-03")
