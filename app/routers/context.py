@@ -6,6 +6,7 @@ from app import audit
 from app.api import require_read, require_write  # noqa: E402
 from app.auth import CurrentUser
 from app.context.conflicts import find_conflicts
+from app.datasets import active_dataset_id
 from app.db import get_connection
 from app.deps import shared_cache
 from app.routes_common import _context_store
@@ -24,9 +25,17 @@ def context_conflicts(_: CurrentUser = Depends(require_read)) -> list[dict]:
     conn = get_connection()
     try:
         docs = _context_store(conn).list()
+        ds = active_dataset_id(conn)
+        names = {str(r["name"]).strip().lower() for r in conn.execute(
+            "SELECT name FROM metrics WHERE dataset_id = ?", (ds,)).fetchall()} if ds is not None else set()
+        names |= {str(r["display_name"]).strip().lower() for r in conn.execute(
+            "SELECT display_name FROM kpi_configs WHERE dataset_id = ? AND display_name IS NOT NULL", (ds,)).fetchall()} if ds is not None else set()
     finally:
         conn.close()
-    return find_conflicts(docs)
+    # Only notes about this dataset's KPIs: a churn memo's conflict means nothing on a P&L.
+    relevant = [d for d in docs if not d.metric_tags
+                or {str(t).strip().lower() for t in d.metric_tags} & names]
+    return find_conflicts(relevant)
 
 
 @router.post("/context", response_model=ContextDoc, status_code=201)

@@ -409,3 +409,14 @@ def faithfulness_messages(narrative: str, fact: ComputedFact,
     if not messages:
         messages.append("The claimed change doesn't match the computed figures. Review the change against the source data.")
     return list(dict.fromkeys(messages))
+
+
+def figures_not_in(text: str, references: list[str], tolerance_pct: float = 1.0) -> list[float]:
+    """Figures in an analyst's edit that appear in none of `references` (the checked
+    draft and the notes it cited). A rewording keeps the check; a new number doesn't."""
+    known = [v for ref in references if ref for v, _pct in extract_numbers(ref)]
+    out = []
+    for value, _pct in extract_numbers(text):
+        if not any(abs(value - k) <= abs(k) * tolerance_pct / 100 + 1e-9 for k in known):
+            out.append(value)
+    return out

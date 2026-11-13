@@ -183,6 +183,7 @@ CREATE TABLE IF NOT EXISTS context_documents (
     effective_date TEXT,
     is_demo INTEGER NOT NULL DEFAULT 0,
     workspace_id INTEGER,
+    dataset_id INTEGER,
     created_by TEXT,
     updated_by TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -419,6 +420,8 @@ def _migrate_close_control(conn: sqlite3.Connection) -> None:
 _SQLITE_MIGRATIONS = [
     "ALTER TABLE datasets ADD COLUMN reason_threshold_abs REAL "
     "CHECK (reason_threshold_abs IS NULL OR reason_threshold_abs >= 0)",
+    # A note belongs to one dataset (NULL = applies to every dataset in the workspace).
+    "ALTER TABLE context_documents ADD COLUMN dataset_id INTEGER",
     "ALTER TABLE computed_facts ADD COLUMN anomaly_basis TEXT CHECK (anomaly_basis IN ('seasonal', 'month_on_month'))",
     "ALTER TABLE computed_facts ADD COLUMN anomaly_z REAL",
     "ALTER TABLE datasets ADD COLUMN reason_threshold_pct REAL NOT NULL DEFAULT 10 "

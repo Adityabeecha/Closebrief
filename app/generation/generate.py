@@ -26,9 +26,7 @@ class GenerationFailedFactsOnly(Exception):
         self.facts_only = facts_only
 
 
-def _confidence_from_context(
-    context: list[ContextSnippet], scores: list[float] | None = None
-) -> str:
+def _confidence_from_context(context: list[ContextSnippet], scores: list[float] | None = None) -> str:
     """US-C1: Low when fewer than 2 relevant context chunks were retrieved;
     otherwise Medium/High per retrieval score."""
     if len(context) < 2:
@@ -77,7 +75,9 @@ def _without_context_closing(narrative: str, fact: ComputedFact, streak: TrendSt
     if streak:
         word = "grown" if streak.direction == "growing" else "declined"
         observation = f"It has {word} for {_fmt(streak.months, 'count')} consecutive months."
-        present = r"\b(?:consecutive|straight|successive) months\b|\b\d+ months\b"
+        present = (r"\bstreak\b|\b(?:consecutive|straight|successive) months?\b|\b(?:\d+|third|three|four|five|six|seven|eight|nine|ten"
+                   r"|eleven|twelve|thirteen|fourteen|fifteen|sixteen"
+                   r"|seventeen|eighteen|nineteen|twenty(?:[- ](?:one|two|three|four))?)[- ]months?\b")
     elif fact.deltas.yoy_pct is not None:
         if (fact.unit or "").lower() in ("%", "percent", "days"):
             # A rate or a day count changes by points or days, never by a percent of itself.
@@ -86,8 +86,9 @@ def _without_context_closing(narrative: str, fact: ComputedFact, streak: TrendSt
                 return text
             unit = "days" if (fact.unit or "").lower() == "days" else "points"
             size = f"{abs(change):.1f}".removesuffix(".0")
-            observation = (f"It is {size} {unit} {'higher' if change > 0 else 'lower'} than a year ago."
-                           if round(change, 1) else "It is level with a year ago.")
+            observation = (
+                f"It is {size} {unit} {'higher' if change > 0 else 'lower'} than a year ago." if round(change, 1) else "It is level with a year ago."
+            )
         else:
             observation = f"It is {_fmt(fact.deltas.yoy_pct, '%')} year over year."
         present = r"\byear[- ]over[- ]year\b|\byoy\b|\b(?:last|previous) year\b|\byear ago\b"
@@ -129,9 +130,8 @@ def generate_insight(
     if not passed:
         # Regenerate once with a stricter reminder before giving up (PRD 6.4).
         stricter_user_prompt = (
-            user_prompt
-            + "\n\nYour previous attempt used an unverifiable figure. Rewrite using ONLY "
-              "the numbers listed in Computed facts above, copying each figure exactly as given."
+            user_prompt + "\n\nYour previous attempt used an unverifiable figure. Rewrite using ONLY "
+            "the numbers listed in Computed facts above, copying each figure exactly as given."
         )
         try:
             result, usage = llm_client.generate_narrative(system_prompt, stricter_user_prompt)
@@ -139,25 +139,18 @@ def generate_insight(
             raise GenerationFailedFactsOnly(_facts_only_output(fact))
         prompt_tokens += usage.prompt_tokens
         completion_tokens += usage.completion_tokens
-        cost_usd = (cost_usd + usage.cost_usd
-                    if cost_usd is not None and usage.cost_usd is not None else None)
+        cost_usd = cost_usd + usage.cost_usd if cost_usd is not None and usage.cost_usd is not None else None
         passed, unverified = check_faithfulness(result.narrative, fact, context)
 
     context_by_id = {c.id: c for c in context}
-    sources = [
-        SourceRef(id=cid, type=context_by_id[cid].type, title=context_by_id[cid].title)
-        for cid in result.sources_used
-        if cid in context_by_id
-    ]
+    sources = [SourceRef(id=cid, type=context_by_id[cid].type, title=context_by_id[cid].title) for cid in result.sources_used if cid in context_by_id]
 
-    narrative = result.narrative
+    narrative = _unsigned_levels(result.narrative)
     if not sources:
         narrative = _without_context_closing(narrative, fact, trend_streak)
     passed, unverified = check_faithfulness(narrative, fact, context)
 
-    confidence = (
-        "Low" if not passed else _confidence_from_context(context, retrieval_scores)
-    )
+    confidence = "Low" if not passed else _confidence_from_context(context, retrieval_scores)
     # Non-semantic embedder (offline hashing fallback): its similarity scores
     # are noise, so they must not earn High confidence.
     if not embedder_semantic and confidence == "High":
@@ -190,3 +183,12 @@ def generate_insight(
         correlations=correlations or [],
         trend_streak=trend_streak,
     )
+
+
+def _unsigned_levels(text: str) -> str:
+    def unsigned(match):
+        tail = text[match.end():]
+        if re.match(r"\s*(?:year|month|quarter|higher|lower|versus|vs\b)", tail, re.I):
+            return match.group(0)
+        return match.group(1) + match.group(2)
+    return re.sub(r"(\b(?:was|is|at)\s+)\+(\d+(?:\.\d+)?%?)", unsigned, text, flags=re.I)

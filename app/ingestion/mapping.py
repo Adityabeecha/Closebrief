@@ -517,6 +517,9 @@ def match_budget_to_dataset(
     written_pairs = set()
     pending = {}
 
+    existing_values = {(r["metric_id"], r["period"]): r for r in conn.execute(
+        "SELECT mv.id, mv.metric_id, mv.period FROM metric_values mv JOIN metrics m ON m.id=mv.metric_id WHERE m.dataset_id=?",
+        (dataset_id,)).fetchall()}
     group_cols = ["metric", "period", "id"] if has_id_col else ["metric", "period"]
     for key, group in canonical.groupby(group_cols, dropna=False):
         metric, period = key[0], key[1]
@@ -549,10 +552,7 @@ def match_budget_to_dataset(
             near_misses.append({"upload_label": metric, "matched_metric": matched_name})
             seen_near_miss.add(metric)
 
-        existing = conn.execute(
-            "SELECT id FROM metric_values WHERE metric_id = ? AND period = ?",
-            (metric_id, period),
-        ).fetchone()
+        existing = existing_values.get((metric_id, period))
         if existing is None:
             # No actuals row for this metric+period -> nowhere to attach a
             # budget value. Reported, never inserted as a value-less row
@@ -570,12 +570,14 @@ def match_budget_to_dataset(
         written_pairs.add((matched_name, period))
 
     from app.ingestion.breakdowns import join_members
+    updates = []
     for (metric_id, period), item in pending.items():
         combined = pd.concat(item["groups"], ignore_index=True)
         amount = sum(float(v) for v in combined["value"] if pd.notna(v))
-        conn.execute(f"UPDATE metric_values SET {field}=? WHERE id=?", (amount, item["id"]))
+        updates.append((amount, item["id"]))
         join_members(conn, metric_id, period, combined, field)
 
+    conn.executemany(f"UPDATE metric_values SET {field}=? WHERE id=?", updates)
     record_changes(conn, dataset_id, before, f"{field}_join", actor_id=actor_id, actor_email=actor_email)
     if matched:
         mark_data_changed(conn, dataset_id)

@@ -108,3 +108,78 @@ def test_connector_endpoints(client):
     assert client.post("/connectors", json={"kind": "sap", "name": "x"}).status_code == 422
     assert client.delete(f"/connectors/{cid}").status_code == 204
     assert client.delete(f"/connectors/{cid}").status_code == 404
+
+
+def test_sync_defaults_and_success_timestamp(client):
+    from app import connectors
+    conn = _conn()
+    try:
+        cid = connectors.create_connector(conn, 'csv_url', 'Defaults', {'url': 'https://example.com/a.csv'}, 'Defaults', None)
+        raw = b'period,metric,value\n2026-01,Operating Expenses,100\n2026-01,Gross Margin %,70.2\n2026-01,Headcount,123\n2026-01,DSO (days),45\n'
+        result = connectors.sync_connector(conn, cid, None, fetch=lambda _: raw)
+        assert result['status'] == 'ok'
+        rows = conn.execute('SELECT source_metric, unit, direction_good, aggregation_type FROM kpi_configs WHERE dataset_id=?',
+                            (result['dataset_id'],)).fetchall()
+        actual = {r['source_metric']: (r['unit'], r['direction_good'], r['aggregation_type']) for r in rows}
+        assert actual == {'Operating Expenses': ('USD', 'down', 'flow'), 'Gross Margin %': ('%', 'up', 'ratio'),
+                          'Headcount': ('count', 'up', 'balance'), 'DSO (days)': ('days', 'down', 'ratio')}
+        stamp = conn.execute('SELECT last_sync_at FROM connectors WHERE id=?', (cid,)).fetchone()['last_sync_at']
+        assert stamp is not None
+        conn.execute("UPDATE kpi_configs SET display_name='Edited', direction_good='down' WHERE dataset_id=?", (result['dataset_id'],))
+        conn.commit()
+        assert connectors.sync_connector(conn, cid, None, fetch=lambda _: raw)['status'] == 'ok'
+        assert all(r['display_name'] == 'Edited' for r in conn.execute('SELECT display_name FROM kpi_configs WHERE dataset_id=?',
+                                                                    (result['dataset_id'],)).fetchall())
+        assert connectors.sync_connector(conn, cid, None, fetch=lambda _: b'<html>bad')['status'] == 'error'
+        assert conn.execute('SELECT last_sync_at FROM connectors WHERE id=?', (cid,)).fetchone()['last_sync_at'] is not None
+    finally:
+        conn.close()
+
+
+def test_failed_sync_has_no_success_timestamp(client):
+    from app import connectors
+    conn = _conn()
+    try:
+        cid = connectors.create_connector(conn, 'csv_url', 'Fail', {'url': 'https://example.com/f.csv'}, 'Fail', None)
+        assert connectors.sync_connector(conn, cid, None, fetch=lambda _: b'<html>bad')['status'] == 'error'
+        row = conn.execute('SELECT last_sync_at, last_status, last_error FROM connectors WHERE id=?', (cid,)).fetchone()
+        assert row['last_sync_at'] is None and row['last_status'] == 'error' and row['last_error']
+    finally:
+        conn.close()
+
+
+@pytest.mark.parametrize('field', ['budget', 'forecast'])
+def test_join_batches_fifty_values(client, field):
+    import pandas as pd
+
+    from app import connectors
+    from app.ingestion.mapping import match_budget_to_dataset
+    conn = _conn()
+    try:
+        cid = connectors.create_connector(conn, 'csv_url', 'Batch', {'url': 'https://example.com/b.csv'}, 'Batch', None)
+        raw = ('period,metric,value\n' + ''.join(f'2026-01,KPI {i},{i + 1}\n' for i in range(50))).encode()
+        result = connectors.sync_connector(conn, cid, None, fetch=lambda _: raw)
+        assert result['status'] == 'ok'
+
+        class TrackedConnection:
+            def __init__(self):
+                self.batches = []
+
+            def __getattr__(self, name):
+                return getattr(conn, name)
+
+            def executemany(self, sql, params):
+                params = list(params)
+                self.batches.append((sql, len(params)))
+                return conn.executemany(sql, params)
+
+        tracked = TrackedConnection()
+        canonical = pd.DataFrame([{'metric': f'KPI {i}', 'period': '2026-01', 'value': i + 2} for i in range(50)])
+        report = match_budget_to_dataset(tracked, canonical, result['dataset_id'], field=field)
+        assert report['matched'] == 50
+        assert any(f'UPDATE metric_values SET {field}' in sql and count == 50 for sql, count in tracked.batches)
+        rows = conn.execute(f'SELECT {field} FROM metric_values WHERE metric_id IN (SELECT id FROM metrics WHERE dataset_id=?)',
+                            (result['dataset_id'],)).fetchall()
+        assert sorted(r[field] for r in rows) == list(range(2, 52))
+    finally:
+        conn.close()

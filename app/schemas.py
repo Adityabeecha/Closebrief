@@ -102,10 +102,14 @@ class ContextDocIn(BaseModel):
     body: str = Field(max_length=10_000)  # hardening: cap context size
     metric_tags: list[str] = Field(default_factory=list, max_length=50)
     effective_date: Optional[str] = None  # "YYYY-MM" or "YYYY-MM-DD"
+    # "dataset": the note belongs to the dataset open when it was written (the default);
+    # "workspace": it applies to every dataset (a definition or policy, say).
+    scope: Literal["dataset", "workspace"] = "dataset"
 
 
 class ContextDoc(ContextDocIn):
     id: int
+    dataset_id: Optional[int] = None
     created_at: Optional[str] = None
 
 

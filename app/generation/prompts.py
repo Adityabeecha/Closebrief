@@ -14,7 +14,7 @@ from app.schemas import (
     TrendStreak,
 )
 
-PROMPT_VERSION = "v5-close-commentary"
+PROMPT_VERSION = "v6-close-commentary"
 
 FIGURE_RULES = """Copy figures exactly as supplied, including currency symbols, signs, suffixes and precision. Never calculate or introduce numbers, \
 including numbers from context notes that are absent from Computed facts."""
@@ -27,6 +27,8 @@ When contributors are supplied, say which part drove the variance, using its sup
 Then give the reason ONLY when a relevant analyst context note supports it. State the reason itself in plain words, as a finance \
 analyst would; never mention notes, note titles, "context" or sources in the prose. Return the note's id in sources_used. If no \
 note explains the move, say nothing about a reason. Never invent a cause.
+For down-is-good KPIs a rise is unfavourable; never call a rising cost strong or positive.
+Never use generic "watch for continued growth" filler; ground watch items in a note or the trend.
 End with what to watch next month ONLY when an available trend, anomaly or recorded context supports a specific observation. Do not \
 forecast or invent a target; omit this sentence when unsupported.
 Every number must come from Computed facts. Return the narrative and only the context ids actually used.""" \
@@ -50,10 +52,11 @@ Hard rules, no exceptions:
 1. Use ONLY the numbers in the "Computed facts" block. Never invent, estimate, or \
 extrapolate a number.
 2. Ground causes ONLY in the provided context snippets. When a snippet is about \
-this metric and period, answer from it directly: name the event, cite its id, and \
+this metric and period, answer from it directly: name the event, and \
 you may repeat figures written in that snippet. Say plainly "The data available \
 doesn't answer that" ONLY when neither the facts nor any snippet relate to the \
 question; never add it as a hedge to an answer you have given. Do not guess.
+Never mention snippet ids or internal ctx_ identifiers in the answer; use sources_used for ids.
 3. Answer in 1-3 sentences of plain prose, directly addressing the question.
 4. Return the answer plus the ids of any context snippets you relied on (empty \
 list if none)."""

@@ -165,7 +165,7 @@ def test_fallback_checklist_matches_server_actions(seeded):
     run_js(
         "function overviewSteps(",
         "let overviewStatus=",
-        "let currentPeriod='2026-06',closeMonths={},currentFacts=[];"
+        "let currentPeriod='2026-06',closeMonths={},currentFacts=[],granularity='month';"
         + "const plural=(n,one,many)=>`${n} ${n===1?one:many||one+'s'}`;"
         + "const routeHash=({tab,period})=>`#month=${period}&tab=${tab}`;",
         f"assert.deepEqual(overviewSteps({json.dumps(state)},null),{json.dumps(expected)});",

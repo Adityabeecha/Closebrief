@@ -136,7 +136,9 @@ def test_close_progress_and_next_step():
       assert.deepEqual(steps.map(x=>x.state),['done','todo','done','blocked','blocked']);
       assert.equal(steps[2].target,'#month=2026-06&tab=context');
       // The server's checklist wins when it has one.
-      assert.deepEqual(overviewSteps(s,{steps:[{id:'x'}]}),[{id:'x'}]);
+      assert.deepEqual(overviewSteps(s,{period:'2026-06',steps:[{id:'x'}]}),[{id:'x'}]);
+      // ...but never another close's checklist (a status that arrived after a switch).
+      assert.notDeepEqual(overviewSteps(s,{period:'2026-05',steps:[{id:'x'}]}),[{id:'x'}]);
     """)
 
 
@@ -224,7 +226,8 @@ def test_queue_groups_kpis_in_review_order():
     # then KPIs with no data for the period.
     run_js("const QUEUE_GROUPS=", "function renderStatrow(", "", """
       assert.equal(queueGroup({has_data:false}),'nodata');
-      assert.equal(queueGroup({has_data:true,is_anomaly:true,review_status:'approved'}),'exception');
+      assert.equal(queueGroup({has_data:true,is_anomaly:true,review_status:'approved'}),'approved');
+      assert.equal(queueGroup({has_data:true,is_anomaly:true}),'exception');
       assert.equal(queueGroup({has_data:true,faithfulness:'failed'}),'exception');
       assert.equal(queueGroup({has_data:true,review_status:'approved'}),'approved');
       assert.equal(queueGroup({has_data:true,narrative:null}),'review');

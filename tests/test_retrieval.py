@@ -18,6 +18,7 @@ CREATE TABLE context_documents (
     effective_date TEXT,
     is_demo INTEGER NOT NULL DEFAULT 0,
     workspace_id INTEGER,
+    dataset_id INTEGER,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 """
@@ -106,7 +107,7 @@ def test_never_more_than_k(store):
 
 def test_delete_removes_from_retrieval(store):
     ctx_store, embedder, vs = store
-    doc_id = add_doc(ctx_store, "Churn note", "Net Revenue churn analysis")
+    doc_id = add_doc(ctx_store, "Churn note", "Net Revenue churn analysis", metric_tags=["Net Revenue"])
     assert doc_id in [c.id for c in retrieve("Net Revenue", "2025-03", ctx_store, embedder, vs)]
     ctx_store.delete(doc_id)
     assert doc_id not in [c.id for c in retrieve("Net Revenue", "2025-03", ctx_store, embedder, vs)]
@@ -114,9 +115,34 @@ def test_delete_removes_from_retrieval(store):
 
 def test_index_persists_across_restart(store, tmp_path):
     ctx_store, embedder, vs = store
-    add_doc(ctx_store, "Persistent note", "Net Revenue seasonal pattern")
+    add_doc(ctx_store, "Persistent note", "Net Revenue seasonal pattern", metric_tags=["Net Revenue"])
     # simulate restart: new FaissVectorStore instance from the same path
     vs2 = FaissVectorStore(dim=embedder.dim, index_path=vs._index_path.as_posix())
     assert vs2.size == vs.size
     chunks = retrieve("Net Revenue", "2025-03", ctx_store, embedder, vs2)
     assert len(chunks) == 1
+
+
+def test_an_untagged_note_never_explains_a_move(store):
+    """Live test: an untagged, undated "Q1 seasonality" note explained an October margin drop."""
+    ctx_store, embedder, vs = store
+    seasonal = add_doc(ctx_store, "Q1 seasonality", "Q1 bookings are soft as enterprise budgets reset",
+                       type="historical_commentary")
+    untagged_event = add_doc(ctx_store, "Price change", "Prices rose in October")
+    definition = add_doc(ctx_store, "Gross margin definition", "Gross margin is revenue less cost of revenue",
+                         type="definition")
+    company_event = add_doc(ctx_store, "October price rise", "Enterprise prices rose 15% on 1 October",
+                            effective_date="2026-10")
+    ids = [c.id for c in retrieve("Gross Margin %", "2026-10", ctx_store, embedder, vs, k=5)]
+    assert seasonal not in ids and untagged_event not in ids
+    assert definition in ids   # background still reaches the draft
+    assert company_event in ids   # a dated company-wide event may explain any KPI
+
+
+def test_an_event_note_is_used_for_its_month_and_the_two_after(store):
+    ctx_store, embedder, vs = store
+    note = add_doc(ctx_store, "Dreamforce", "Sales & Marketing booth and travel",
+                   metric_tags=["sales & marketing"], effective_date="2026-10")
+    for month, expected in (("2026-09", False), ("2026-10", True), ("2026-12", True), ("2027-01", False)):
+        ids = [c.id for c in retrieve("Sales & Marketing", month, ctx_store, embedder, vs, k=5)]
+        assert (note in ids) is expected, month

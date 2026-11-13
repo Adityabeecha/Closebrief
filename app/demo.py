@@ -90,7 +90,7 @@ def _seed_context(conn, context_store, docs: list) -> list:
         return added
     for doc in docs:
         try:
-            d = context_store.add(ContextDocIn(**doc))
+            d = context_store.add(ContextDocIn(**{"scope": "workspace", **doc}))
             conn.execute(
                 "UPDATE context_documents SET is_demo = true WHERE id = ?", (d.id,)
             )
