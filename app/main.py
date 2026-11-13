@@ -61,24 +61,31 @@ async def lifespan(_app: "FastAPI"):
     except Exception:  # noqa: BLE001 - index is an optimization, never block boot
         logger.warning("could not create idx_feedback_report", exc_info=True)
     # Facts computed before the seasonal anomaly rule get recomputed once, so old
-    # every-December flags clear and each flag can say how it was judged.
-    try:
-        from app.compute.kpis import refresh_stale_anomalies
+    # every-December flags clear and each flag can say how it was judged. This runs
+    # off-thread: on a remote database it takes minutes, and the server must bind
+    # its port first (Render fails a deploy that doesn't). A restart mid-way simply
+    # picks up the datasets still left.
+    import threading
 
-        conn = get_connection()
+    def _refresh_anomalies():
         try:
-            n = refresh_stale_anomalies(conn)
-            if n:
-                logger.info("recomputed %d dataset(s) for the seasonal anomaly rule", n)
-        finally:
-            conn.close()
-    except Exception:  # noqa: BLE001 - a backfill must never block boot
-        logger.warning("could not refresh anomalies computed under the old rule", exc_info=True)
+            from app.compute.kpis import refresh_stale_anomalies
+
+            conn = get_connection()
+            try:
+                n = refresh_stale_anomalies(conn)
+                if n:
+                    logger.info("recomputed %d dataset(s) for the seasonal anomaly rule", n)
+            finally:
+                conn.close()
+        except Exception:  # noqa: BLE001 - a backfill must never take the app down
+            logger.warning("could not refresh anomalies computed under the old rule", exc_info=True)
+
+    threading.Thread(target=_refresh_anomalies, name="anomaly-backfill", daemon=True).start()
     if settings.demo_mode:
         # Seed the sample dataset on a background thread — embedding the demo
         # context docs takes a few seconds and must not delay boot / the health
         # check (idempotent, so a restart mid-seed is safe).
-        import threading
 
         def _seed():
             try:
