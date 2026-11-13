@@ -168,7 +168,7 @@ def build_close_workbook(conn, ds, name, period, granularity, covered, facts, su
     if status != "Shared" and summary.get("kpis") and summary["approved"] == summary["kpis"]:
         status = "Ready"
     rows = [
-        ("Close", f"{_period_title(period)} close"), ("Dataset", name), ("Currency", meta["currency"]),
+        ("Close", f"{_period_title(period)} close"), ("Dataset", display_name(name)), ("Currency", meta["currency"]),
         ("Fiscal year start month", meta["fiscal_year_start"]), ("Data as of", meta["data_changed_at"]),
         ("Close status", status),
     ]
@@ -197,8 +197,17 @@ def build_close_workbook(conn, ds, name, period, granularity, covered, facts, su
     return output.getvalue()
 
 
+def display_name(name):
+    """The dataset name as the app shows it: an uploaded file's name without its extension."""
+    stored = str(name or "")
+    if not re.search(r"\.(csv|xlsx)$", stored, re.I):
+        return stored
+    words = re.sub(r"[_-]+", " ", re.sub(r"\.(csv|xlsx)$", "", stored, flags=re.I)).strip().lower()
+    return words[:1].upper() + words[1:]
+
+
 def content_disposition(name, period):
-    filename = f"CloseBrief - {name} - {_period_title(period)} close.xlsx"
+    filename = f"CloseBrief - {display_name(name)} - {_period_title(period)} close.xlsx"
     filename = re.sub(r'[<>:"/\\|?*\x00-\x1f\x7f]', "", filename)
     fallback = filename.encode("ascii", "ignore").decode("ascii")
     header = f'attachment; filename="{fallback}"'

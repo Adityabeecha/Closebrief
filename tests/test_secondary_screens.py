@@ -219,7 +219,9 @@ def test_sending_needs_confirmation_and_cancel_sends_nothing():
     ready = {**_DIGEST, "approved_kpis": 3, "pending": [], "ready": True}
     run_screen(L["loadDigest"], _digest_response(ready) + r"""
       await loadDigest();calls.length=0;
-      modalAnswer=false;await sendDigest();assert.equal(modalCalls.length,1);assert.equal(calls.length,0);
+      modalAnswer=false;await sendDigest();assert.equal(modalCalls.length,1);
+      // Only the read-only recipients lookup; cancelling sends nothing.
+      assert.deepEqual(calls.map(([p])=>p),['/digest/recipients']);assert.ok(!calls.some(([,o])=>o&&o.method==='POST'));
       modalAnswer=true;await sendDigest();
       assert.ok(calls.some(([p,o])=>p==='/digest/send?period=2026-06&top_n=5'&&o.method==='POST'));
       assert.equal($('digest-generate').disabled,false);
