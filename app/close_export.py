@@ -12,7 +12,6 @@ from openpyxl.utils import get_column_letter
 
 from app.board_pack import _period_title
 from app.compute.close_views import contributors
-from app.currency import symbol
 from app.datasets import dataset_metadata
 from app.digest.digest import last_sent_at
 from app.import_receipts import list_receipts
@@ -22,6 +21,8 @@ XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 def _text(cell, value):
     """Every text cell is an explicit string, including formula-like imported text."""
+    if isinstance(value, str) and re.match(r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}", value):
+        value = _timestamp(value)
     cell.value = value
     cell.data_type = "s"
 
@@ -61,13 +62,13 @@ def _format(unit, currency, variance=False):
         return "#,##0"
     if unit == "number":
         return "#,##0.##"
-    return f'"{symbol(currency)}"#,##0' + ("" if currency == "JPY" else ".00")
+    return "#,##0.00"
 
 
 def _number(value, unit=None, relative=False):
     if value is None or not math.isfinite(float(value)):
         return None
-    return value / 100 if relative or unit == "%" else value
+    return round(value / 100, 4) if relative or unit == "%" else round(value, 2)
 
 
 def _review(fact):
@@ -96,14 +97,24 @@ def _kpis(book, facts, granularity, currency):
         unit, delta, annual = fact["unit"], fact["deltas"], fact["ytd"] or {}
         status, check = _review(fact)
         values = {
-            "Category": fact["category"], "KPI": fact["metric"], "Unit": unit,
-            "Actual": fact["value"], "Plan": fact["budget"], "Variance": delta["budget_var_abs"],
-            "Variance %": delta["budget_var_pct"], "Forecast": fact["forecast"],
-            "Vs forecast %": delta["forecast_var_pct"], "Prior period": fact["prior_value"],
-            "Vs prior %": delta["mom_pct"], "Vs last year %": delta["yoy_pct"],
-            "YTD actual": annual.get("value"), "YTD plan": annual.get("budget"),
-            "YTD vs plan %": annual.get("var_pct"), "YTD vs last year %": annual.get("yoy_pct"),
-            "Status": status, "Figures check": check,
+            "Category": fact["category"],
+            "KPI": fact["metric"],
+            "Unit": unit,
+            "Actual": fact["value"],
+            "Plan": fact["budget"],
+            "Variance": delta["budget_var_abs"],
+            "Variance %": delta["budget_var_pct"],
+            "Forecast": fact["forecast"],
+            "Vs forecast %": delta["forecast_var_pct"],
+            "Prior period": fact["prior_value"],
+            "Vs prior %": delta["mom_pct"],
+            "Vs last year %": delta["yoy_pct"],
+            "YTD actual": annual.get("value"),
+            "YTD plan": annual.get("budget"),
+            "YTD vs plan %": annual.get("var_pct"),
+            "YTD vs last year %": annual.get("yoy_pct"),
+            "Status": status,
+            "Figures check": check,
             "Commentary": fact["narrative"] if status == "Approved" else None,
         }
         formats = {}
@@ -133,8 +144,17 @@ def _contributors(book, conn, facts, period, covered, currency):
         metric = {"id": fact["metric_id"], "name": fact["metric"]}
         result = contributors(conn, metric, period, covered, fact["aggregation_type"], fact["unit"])
         for member in result["members"]:
-            cells = _row(sheet, [fact["metric"], result["dimension"], member["member"],
-                                 member["value"], member["budget"], member["var_abs"]])
+            cells = _row(
+                sheet,
+                [
+                    fact["metric"],
+                    result["dimension"],
+                    member["member"],
+                    _number(member["value"], fact["unit"]),
+                    _number(member["budget"], fact["unit"]),
+                    _number(member["var_abs"]),
+                ],
+            )
             for cell in cells[3:]:
                 cell.number_format = _format(fact["unit"], currency, variance=cell.column == 6)
     sheet.auto_filter.ref = sheet.dimensions
@@ -145,14 +165,13 @@ def _receipts(book, conn, ds):
     sheet = _sheet(book, "Receipt", ["When", "Kind", "File", "Rows read", "Rows kept"])
     for receipt in receipts:
         report = receipt["report"]
-        _row(sheet, [receipt["created_at"], receipt["kind"], receipt["filename"],
-                     report.get("rows_read"), report.get("rows_kept")])
+        _row(sheet, [receipt["created_at"], receipt["kind"], receipt["filename"], report.get("rows_read"), report.get("rows_kept")])
     if receipts:
         _row(sheet, [None])
         for cell in _row(sheet, ["KPI", "Months", "Actual total", "Budget total", "Rows"]):
             cell.font = Font(bold=True)
         for total in receipts[0]["kpi_totals"]:
-            _row(sheet, [total["metric"], total["periods"], total["value_total"], total["budget_total"], total["rows"]])
+            _row(sheet, [total["metric"], total["periods"], _number(total["value_total"]), _number(total["budget_total"]), total["rows"]])
     sheet.column_dimensions["A"].width = 30
     sheet.column_dimensions["C"].width = 45
 
@@ -163,21 +182,30 @@ def build_close_workbook(conn, ds, name, period, granularity, covered, facts, su
     book.remove(book.active)
     sheet = book.create_sheet("Summary")
     summary = summary or {}
-    status = {"not_started": "Not started", "in_progress": "In progress", "shared": "Shared"}.get(
-        summary.get("status"), "Not started")
+    status = {"not_started": "Not started", "in_progress": "In progress", "shared": "Shared"}.get(summary.get("status"), "Not started")
     if status != "Shared" and summary.get("kpis") and summary["approved"] == summary["kpis"]:
         status = "Ready"
     rows = [
-        ("Close", f"{_period_title(period)} close"), ("Dataset", display_name(name)), ("Currency", meta["currency"]),
-        ("Fiscal year start month", meta["fiscal_year_start"]), ("Data as of", meta["data_changed_at"]),
+        ("Close", f"{_period_title(period)} close"),
+        ("Dataset", display_name(name)),
+        ("Currency", meta["currency"]),
+        ("Fiscal year start month", meta["fiscal_year_start"]),
+        ("Data as of", meta["data_changed_at"]),
         ("Close status", status),
     ]
     if summary.get("locked"):
-        rows.append(("Lock", f"Locked on {summary['locked_at']} by {summary['locked_by']}"))
+        rows.append(("Lock", f"Locked on {_timestamp(summary['locked_at'])} by {summary['locked_by']}"))
     rows += [("Digest sent date", last_sent_at(conn, ds, period) or summary.get("shared_at"))]
-    rows += [(label, summary.get(key, 0)) for label, key in [
-        ("KPIs", "kpis"), ("Drafted", "drafted"), ("Approved", "approved"),
-        ("Figures checked", "checked"), ("Needs a reason", "needs_reason")]]
+    rows += [
+        (label, summary.get(key, 0))
+        for label, key in [
+            ("KPIs", "kpis"),
+            ("Drafted", "drafted"),
+            ("Approved", "approved"),
+            ("Figures checked", "checked"),
+            ("Needs a reason", "needs_reason"),
+        ]
+    ]
     rows += [("Generated at (UTC)", datetime.now(timezone.utc).isoformat())]
     for row in rows:
         _row(sheet, row)[0].font = Font(bold=True)
@@ -189,7 +217,13 @@ def build_close_workbook(conn, ds, name, period, granularity, covered, facts, su
     if changes:
         sheet = _sheet(book, "Changes", ["When", "KPI", "Month", "Field", "Old", "New", "Source", "Who"])
         for change in changes:
-            _row(sheet, [change[k] for k in ("at", "metric", "period", "field", "old_value", "new_value", "source", "actor")])
+            _row(
+                sheet,
+                [
+                    (_number(change[k]) if isinstance(change[k], (int, float)) else change[k])
+                    for k in ("at", "metric", "period", "field", "old_value", "new_value", "source", "actor")
+                ],
+            )
         sheet.auto_filter.ref = sheet.dimensions
     _receipts(book, conn, ds)
     output = BytesIO()
@@ -214,3 +248,12 @@ def content_disposition(name, period):
     if filename != fallback:
         header += "; filename*=UTF-8''" + quote(filename, safe="")
     return header
+
+
+def _timestamp(value):
+    if not value:
+        return value
+    dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc).strftime("%d %b %Y %H:%M UTC")

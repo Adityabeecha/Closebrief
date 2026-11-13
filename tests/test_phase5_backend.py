@@ -11,6 +11,7 @@ from openpyxl import load_workbook
 from test_datasets import client  # noqa: F401
 from test_import_honesty import LONG, _import
 
+from app.close_export import _timestamp
 from app.db import get_connection
 
 INJECTION = '=HYPERLINK("http://x")'
@@ -98,8 +99,8 @@ def test_export_contract_figures_formats_and_audit(seeded):
             assert row["Actual"].data_type == "n"
     by_name = {r["KPI"].value: r for r in rows}
     assert by_name["Revenue"]["Actual"].value == 1000
-    assert '€' in by_name["Revenue"]["Actual"].number_format
-    assert by_name["Revenue"]["Variance %"].value == pytest.approx(100 / 900)
+    assert by_name["Revenue"]["Actual"].number_format == "#,##0.00"
+    assert by_name["Revenue"]["Variance %"].value == pytest.approx(round(100 / 900, 4))
     assert by_name["Margin"]["Actual"].number_format == "0.0%"
     assert by_name["Margin"]["Variance"].number_format == '0.0" pts"'
     assert by_name["Margin"]["Variance"].value == -2
@@ -145,12 +146,12 @@ def test_summary_receipt_and_contributors(seeded):
     assert summary["Dataset"] == "Café:/Close?"
     assert summary["Currency"] == "EUR"
     assert summary["Fiscal year start month"] == 1
-    assert summary["Data as of"] == "2025-12-31T12:00:00Z"
+    assert summary["Data as of"] == "31 Dec 2025 12:00 UTC"
     assert summary["Close status"] == "In progress"
     assert summary["KPIs"] == 5
     assert (summary["Drafted"], summary["Approved"], summary["Figures checked"]) == (3, 1, 1)
     assert summary["Needs a reason"] == 4
-    assert datetime.fromisoformat(summary["Generated at (UTC)"]).utcoffset().total_seconds() == 0
+    assert datetime.strptime(summary["Generated at (UTC)"], "%d %b %Y %H:%M UTC")
     assert any(c.value == "Figures are computed in code. Commentary is included only once approved."
                for row in book["Summary"] for c in row)
     rows = _table(book["Contributors"])
@@ -208,7 +209,7 @@ def test_changes_match_close_changes(seeded):
     book = _book(api)
     assert book.sheetnames == ["Summary", "KPIs", "Contributors", "Changes", "Receipt"]
     change = api.get("/close/changes", params=PARAMS).json()["changes"][0]
-    assert list(book["Changes"].values)[1] == tuple(change[k] for k in
+    assert list(book["Changes"].values)[1] == tuple((_timestamp(change[k]) if k == "at" else change[k]) for k in
         ("at", "metric", "period", "field", "old_value", "new_value", "source", "actor"))
     assert all(c.data_type != "f" for row in book["Changes"] for c in row)
 
@@ -298,7 +299,7 @@ def test_summary_statuses_and_locked_attribution(client):  # noqa: F811
     response = client.post("/close/lock", json=PARAMS)
     assert response.status_code == 200, response.text
     lock = response.json()
-    assert summary()["Lock"] == f"Locked on {lock['locked_at']} by {lock['locked_by']}"
+    assert summary()["Lock"] == f"Locked on {_timestamp(lock['locked_at'])} by {lock['locked_by']}"
 
 
 def test_text_prefixes_across_all_sheets_stay_strings(seeded):
