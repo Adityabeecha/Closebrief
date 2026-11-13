@@ -786,6 +786,8 @@
   .stmt tbody tr.kpi:hover td{background:var(--surface-2,rgba(127,127,127,.06))}
   .stmt tr.cat td{font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--text-3);padding-top:16px;background:none}
   .stmt td.muted{color:var(--text-3)}
+  .contrib{min-width:0;font-size:13px}
+  .contrib th,.contrib td{padding:6px 8px}
   .stmt-note{font-size:13px;color:var(--text-3);margin:10px 2px 0}
   .ws-split{display:grid;grid-template-columns:340px minmax(0,1fr);gap:22px;align-items:start;margin-top:4px}
   .q-col{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 12px 12px;scrollbar-width:thin}
@@ -1412,6 +1414,10 @@
           <h3>Figures</h3>
           <dl class="figs" id="d-figs"></dl>
         </div>
+        <div class="panel insp" id="d-contrib-panel" style="display:none">
+          <h3 id="d-contrib-title">Contributors</h3><div class="psub" id="d-contrib-sub"></div>
+          <div id="d-contrib" class="stmt-wrap"></div>
+        </div>
         <div class="panel insp">
           <h3 id="d-trend-title">Trend</h3><div class="psub">Actual vs budget, by month</div>
           <div class="legend">
@@ -1581,6 +1587,7 @@
             <select id="imp-mode" class="pill-btn" onchange="onImportModeChange()">
               <option value="new">New dataset</option>
               <option value="join">Add budget to an existing dataset</option>
+              <option value="forecast">Add a forecast to an existing dataset</option>
             </select></div>
           <div id="imp-target-wrap" style="display:none">
             <label class="lbl" for="imp-target">Target dataset</label>
