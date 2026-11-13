@@ -112,6 +112,7 @@ def materialize(conn: sqlite3.Connection, dataset_id: int, *, actor_id=None, act
                 continue
             conn.execute("DELETE FROM metric_values WHERE metric_id=? AND period=?", (metric_id, period))
             conn.execute("DELETE FROM computed_facts WHERE metric_id=? AND period=?", (metric_id, period))
+            conn.execute("DELETE FROM metric_breakdowns WHERE metric_id=? AND period=?", (metric_id, period))
         by_metric[d["name"]] = {p: r["value"] for p, r in old.items() if p in locked}
         refs = referenced_metrics(d["formula"])
         if not refs:
@@ -140,10 +141,10 @@ def materialize(conn: sqlite3.Connection, dataset_id: int, *, actor_id=None, act
                 continue
             by_metric[d["name"]][period] = round(float(v), 4)
             conn.execute(
-                """INSERT INTO metric_values (metric_id, period, value)
-                   VALUES (?, ?, ?)
+                """INSERT INTO metric_values (metric_id, period, value, budget, forecast)
+                   VALUES (?, ?, ?, ?, ?)
                    ON CONFLICT(metric_id, period) DO UPDATE SET value = excluded.value""",
-                (metric_id, period, round(float(v), 4)),
+                (metric_id, period, round(float(v), 4), old.get(period, {}).get("budget"), old.get(period, {}).get("forecast")),
             )
             written += 1
     record_changes(conn, dataset_id, before, "custom_kpi", actor_id=actor_id, actor_email=actor_email)

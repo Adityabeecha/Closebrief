@@ -11,12 +11,14 @@ from app.compute.aggregate import (
     GRANULARITIES,
     aggregate_series,
     infer_aggregation_type,
+    months_in,
     period_key,
     prior_key,
     sort_key,
     year_ago_key,
 )
 from app.compute.availability import combined_percentage_reason, has_usable_value
+from app.compute.close_views import breakdown_available, breakdown_coverage, contributors, load_values, variance, ytd
 from app.compute.correlations import (
     compute_correlations,
     correlations_for_metric,
@@ -161,7 +163,7 @@ def _prefetch_cards(conn, names_by_id: dict[int, str], period: str,
     ph = ",".join("?" * len(ids))
     history: dict[int, list] = {}
     for r in conn.execute(
-        f"""SELECT metric_id, period, value, budget, quantity, budget_quantity, price, budget_price, source_rows
+        f"""SELECT metric_id, period, value, budget, forecast, quantity, budget_quantity, price, budget_price, source_rows
             FROM metric_values WHERE metric_id IN ({ph}) AND period <= ?
             ORDER BY metric_id, period DESC""",
         (*ids, period),
@@ -191,7 +193,7 @@ def _prefetch_cards(conn, names_by_id: dict[int, str], period: str,
             # comparisons using usable history so an invalid prior percentage
             # cannot leak into a valid month's delta, trend, or anomaly.
             clean = compute_kpis(pd.DataFrame([
-                {"metric": name, "period": r["period"], "value": r["value"], "budget": r["budget"]}
+                {"metric": name, "period": r["period"], "value": r["value"], "budget": r["budget"], "forecast": r["forecast"]}
                 for r in usable
             ]))
             corrected = clean[clean["period"] == period].iloc[0].to_dict()
@@ -229,20 +231,14 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
 
     metadata = dataset_metadata(conn, ds)
     fiscal_start = metadata["fiscal_year_start"]
+    all_values = load_values(conn, ds)
+    breakdowns = breakdown_coverage(conn, ds, months_in(period, granularity, fiscal_start))
     out = []
     prior = prior_key(period, granularity, fiscal_start)
     yago = year_ago_key(period, granularity, fiscal_start)
     for k in kpis:
         agg = k["aggregation_type"] or infer_aggregation_type(k["display_name"] or k["metric"], k["unit"])
-        rows = []
-        if k["metric_id"] is not None:
-            rows = [
-                {"period": r["period"], "value": r["value"], "budget": r["budget"], "source_rows": r["source_rows"]}
-                for r in conn.execute(
-                    "SELECT period, value, budget, source_rows FROM metric_values WHERE metric_id = ?",
-                    (k["metric_id"],),
-                ).fetchall()
-            ]
+        rows = all_values.get(k["metric_id"], [])
         series = aggregate_series(rows, granularity, agg, fiscal_start)
         blocked = {}
         for row in rows:
@@ -254,7 +250,8 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
         cur = series.get(period)
         reason = combined_percentage_reason(k["unit"], blocked.get(period, 1))
         has_data = cur is not None and not cur.get("unavailable") and cur.get("value") is not None
-        deltas = {"mom_pct": None, "yoy_pct": None, "budget_var_abs": None, "budget_var_pct": None}
+        deltas = {"mom_pct": None, "yoy_pct": None, "budget_var_abs": None, "budget_var_pct": None,
+                  "forecast_var_abs": None, "forecast_var_pct": None}
         trend = None
         if has_data:
             v = cur["value"]
@@ -268,6 +265,7 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
                 deltas["budget_var_abs"] = round(v - cur["budget"], 2)
                 if cur["budget"]:
                     deltas["budget_var_pct"] = round((v - cur["budget"]) / abs(cur["budget"]) * 100, 2)
+            deltas["forecast_var_abs"], deltas["forecast_var_pct"] = variance(v, cur.get("forecast"))
             trend = [
                 {"period": pk, "value": series[pk]["value"], "budget": series[pk]["budget"]}
                 for pk in sorted(series, key=lambda key: sort_key(key, fiscal_start)) if not series[pk].get("unavailable")
@@ -279,6 +277,10 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
             "has_data": has_data, "deltas": deltas, "trend": None,
             "is_anomaly": False, "aggregated": True, "granularity": granularity,
             "aggregation_type": agg,
+            "forecast": cur.get("forecast") if has_data else None,
+            "has_breakdown": agg != "ratio" and k["unit"] != "%" and breakdown_available(
+                rows, breakdowns.get(k["metric_id"], []), months_in(period, granularity, fiscal_start), agg),
+            "ytd": None,
             "unavailable": bool(cur and cur.get("unavailable")),
             "unavailable_reason": reason,
             "report_id": None, "review_status": None, "assigned_email": None,
@@ -330,9 +332,10 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
             rows = conn.execute(
                 """
                 SELECT m.id AS metric_id, k.source_metric AS metric,
-                       k.category, k.unit, k.direction_good,
+                       k.category, k.unit, k.direction_good, k.aggregation_type,
                        cf.value, cf.prior_value, cf.mom_pct, cf.yoy_pct,
-                       cf.budget_var_abs, cf.budget_var_pct, cf.trend, cf.is_anomaly, mv.source_rows
+                       cf.budget_var_abs, cf.budget_var_pct, cf.forecast_var_abs, cf.forecast_var_pct, mv.forecast,
+                       cf.trend, cf.is_anomaly, mv.source_rows
                 FROM kpi_configs k
                 LEFT JOIN metrics m ON m.dataset_id = k.dataset_id AND m.name = k.source_metric
                 LEFT JOIN computed_facts cf ON cf.metric_id = m.id AND cf.period = ?
@@ -346,8 +349,9 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
             rows = conn.execute(
                 """
                 SELECT m.id AS metric_id, m.name AS metric, m.category, m.unit,
-                       m.direction_good, cf.value, cf.prior_value, cf.mom_pct,
-                       cf.yoy_pct, cf.budget_var_abs, cf.budget_var_pct, cf.trend, cf.is_anomaly, mv.source_rows
+                       m.direction_good, NULL AS aggregation_type, cf.value, cf.prior_value, cf.mom_pct,
+                       cf.yoy_pct, cf.budget_var_abs, cf.budget_var_pct, cf.forecast_var_abs, cf.forecast_var_pct, mv.forecast,
+                       cf.trend, cf.is_anomaly, mv.source_rows
                 FROM metrics m
                 LEFT JOIN computed_facts cf ON cf.metric_id = m.id AND cf.period = ?
                 LEFT JOIN metric_values mv ON mv.metric_id = m.id AND mv.period = cf.period
@@ -357,6 +361,8 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
                 (period, ds),
             ).fetchall()
 
+        all_values = load_values(conn, ds)
+        breakdowns = breakdown_coverage(conn, ds, [period])
         sensitive = user.role == "admin"   # gate cost/latency/emails to admins
         # Batch the per-card report + feedback lookups into two queries instead of
         # ~3 per card (was an N+1 over the dashboard's hot path).
@@ -402,6 +408,7 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
                 r = {**dict(r), **card[2]}
             has_data = has_usable_value(r["metric_id"], r["value"], r["unit"], r["source_rows"])
             reason = combined_percentage_reason(r["unit"], r["source_rows"])
+            agg = r["aggregation_type"] or infer_aggregation_type(r["metric"], r["unit"])
             report = reports_by_metric.get(r["metric_id"]) if has_data else None
             edited = edited_by_report.get(report["id"]) if report else None
             reviewer = reviewer_by_report.get(report["id"]) if report else None
@@ -414,11 +421,17 @@ def list_facts(period: str, granularity: str = "month", include_charts: bool = T
                 "direction_good": r["direction_good"],
                 "prior_value": r["prior_value"] if has_data else None,
                 "has_data": has_data,
+                "forecast": r["forecast"] if has_data else None,
+                "has_breakdown": has_data and agg != "ratio" and r["unit"] != "%" and r["metric_id"] in breakdowns,
+                "ytd": ytd(all_values.get(r["metric_id"], []), period, metadata["fiscal_year_start"], agg, r["unit"])
+                       if has_data else None,
                 "unavailable_reason": reason,
                 "deltas": {
                     "mom_pct": r["mom_pct"] if has_data else None, "yoy_pct": r["yoy_pct"] if has_data else None,
                     "budget_var_abs": r["budget_var_abs"] if has_data else None,
                     "budget_var_pct": r["budget_var_pct"] if has_data else None,
+                    "forecast_var_abs": r["forecast_var_abs"] if has_data else None,
+                    "forecast_var_pct": r["forecast_var_pct"] if has_data else None,
                 },
                 "trend": r["trend"] if has_data and r["trend"] in ("up", "down", "flat") else None,
                 "is_anomaly": bool(r["is_anomaly"]) if has_data else False,
@@ -496,9 +509,11 @@ def _fact_by_metric_id(conn, metric_id: int, period: str) -> ComputedFact | None
     row = conn.execute(
         """
         SELECT m.name AS metric, m.category, m.unit, d.currency, d.fiscal_year_start, d.data_changed_at, cf.period, cf.value, cf.prior_value,
-               cf.mom_pct, cf.yoy_pct, cf.budget_var_abs, cf.budget_var_pct, cf.trend, cf.is_anomaly
+               cf.mom_pct, cf.yoy_pct, cf.budget_var_abs, cf.budget_var_pct,
+               cf.forecast_var_abs, cf.forecast_var_pct, mv.forecast, cf.trend, cf.is_anomaly
         FROM computed_facts cf JOIN metrics m ON m.id = cf.metric_id
         LEFT JOIN datasets d ON d.id = m.dataset_id
+        LEFT JOIN metric_values mv ON mv.metric_id=cf.metric_id AND mv.period=cf.period
         WHERE cf.metric_id = ? AND cf.period = ?
         """,
         (metric_id, period),
@@ -507,12 +522,13 @@ def _fact_by_metric_id(conn, metric_id: int, period: str) -> ComputedFact | None
         return None
     return ComputedFact(
         metric=row["metric"], category=row["category"], period=row["period"],
-        value=row["value"], unit=row["unit"], currency=row["currency"] or "USD", prior_value=row["prior_value"],
+        value=row["value"], forecast=row["forecast"], unit=row["unit"], currency=row["currency"] or "USD", prior_value=row["prior_value"],
         fiscal_year_start=row["fiscal_year_start"] or 1,
         data_changed_at=timestamp_text(row["data_changed_at"]),
         deltas=Deltas(
             mom_pct=row["mom_pct"], yoy_pct=row["yoy_pct"],
             budget_var_abs=row["budget_var_abs"], budget_var_pct=row["budget_var_pct"],
+            forecast_var_abs=row["forecast_var_abs"], forecast_var_pct=row["forecast_var_pct"],
         ),
         # Older Postgres rows can hold the text "NaN" for a missing trend.
         trend=row["trend"] if row["trend"] in ("up", "down", "flat") else None, is_anomaly=bool(row["is_anomaly"]),
@@ -568,5 +584,29 @@ def report_grounding(report_id: int, _: CurrentUser = Depends(require_read)) -> 
             ctx.append(ContextSnippet(id=sid, type=s.get("type", "note"),
                                       title=s.get("title", ""), body=body))
         return attribute(row["narrative"], fact, ctx)
+    finally:
+        conn.close()
+
+
+
+@router.get("/kpis/contributors")
+def kpi_contributors(metric: str, period: str, granularity: str = "month",
+                     _: CurrentUser = Depends(require_read)) -> dict:
+    from app.routers.close import _granularity_of
+
+    if granularity not in GRANULARITIES or _granularity_of(period) != granularity:
+        raise HTTPException(status_code=422, detail="Period does not match granularity")
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        row = conn.execute("""SELECT m.id, m.name, COALESCE(k.unit, m.unit) AS unit,
+            k.aggregation_type, k.display_name FROM metrics m LEFT JOIN kpi_configs k
+            ON k.dataset_id=m.dataset_id AND k.source_metric=m.name WHERE m.dataset_id=? AND m.name=?""",
+                           (ds, metric)).fetchone()
+        if row is None:
+            raise HTTPException(status_code=404, detail="Metric not found")
+        agg = row["aggregation_type"] or infer_aggregation_type(row["display_name"] or metric, row["unit"])
+        covered = months_in(period, granularity, dataset_metadata(conn, ds)["fiscal_year_start"])
+        return contributors(conn, row, period, covered, agg, row["unit"])
     finally:
         conn.close()

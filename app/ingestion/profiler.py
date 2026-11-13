@@ -56,7 +56,8 @@ def mapping_warnings(df: pd.DataFrame, mapping: MappingSpec) -> list[str]:
     ]
 
 # Column-name patterns (case-insensitive)
-_BUDGET_NAME = re.compile(r"budget|plan|forecast|target|\bbud\b|\bfcst\b", re.I)
+_BUDGET_NAME = re.compile(r"budget|plan|target|\bbud\b", re.I)
+_FORECAST_NAME = re.compile(r"forecast|fcst|outlook|latest[ _]+estimate|\ble\b", re.I)
 _ID_NAME = re.compile(r"[\s_]code\b|^code\b|[\s_]id\b|^id\b|\bsku\b", re.I)
 _METRIC_NAME = re.compile(r"metric|account|line ?item|kpi|\bgl\b|channel|vendor|category", re.I)
 _DIMENSION_NAME = re.compile(
@@ -176,6 +177,8 @@ def profile_columns(df: pd.DataFrame) -> dict:
             role = "period"
         elif dtype in ("numeric", "text") and _ID_NAME.search(name):
             role = "id"
+        elif dtype == "numeric" and _FORECAST_NAME.search(name):
+            role = "forecast"
         elif dtype == "numeric" and _BUDGET_NAME.search(name):
             role = "budget"
         elif dtype == "numeric" and _QTY_NAME.search(name):
@@ -372,6 +375,7 @@ def suggest_mapping(profile: dict, sheet_period: str | None = None) -> dict:
             "period_literal": sheet_period if snapshot else None,
             "metric_col": metric_candidates[0] if metric_candidates else None,
             "budget_col": (cols("budget") or [None])[0],
+            "forecast_col": (cols("forecast") or [None])[0],
             "id_col": id_candidates[0] if id_candidates else None,
             "dimension_cols": cols("dimension") + dropped_dupes + (period_candidates if snapshot else []),
         }

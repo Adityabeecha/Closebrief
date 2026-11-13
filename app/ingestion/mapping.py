@@ -31,6 +31,7 @@ class MappingSpec(BaseModel):
     # 10 channels x [Spend, Clicks] -> "<channel> Spend", "<channel> Clicks".
     value_cols: list[str] = Field(default_factory=list)
     budget_col: Optional[str] = None
+    forecast_col: Optional[str] = None
     quantity_col: Optional[str] = None
     price_col: Optional[str] = None
     budget_quantity_col: Optional[str] = None
@@ -245,12 +246,12 @@ def _duplicate_source_rows(df: pd.DataFrame, mapping: MappingSpec) -> set[int]:
     columns = [mapping.id_col, *mapping.dimension_cols]
     if mapping.layout == "long":
         columns += [mapping.metric_col, mapping.value_col, *mapping.value_cols,
-                    mapping.budget_col, mapping.quantity_col, mapping.price_col,
+                    mapping.budget_col, mapping.forecast_col, mapping.quantity_col, mapping.price_col,
                     mapping.budget_quantity_col, mapping.budget_price_col]
         if not mapping.period_literal:
             columns.append(mapping.period_col)
     else:
-        columns += [mapping.wide_metric_col, *mapping.wide_period_cols, *mapping.wide_budget_cols]
+        columns += [mapping.wide_metric_col, mapping.forecast_col, *mapping.wide_period_cols, *mapping.wide_budget_cols]
     columns = list(dict.fromkeys(c for c in columns if c and c in df.columns))
     return set(df.index[df.duplicated(subset=columns)]) if columns else set()
 
@@ -259,6 +260,9 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
     """Return the canonical long-format DataFrame."""
     df = df.copy()  # Upload cleanup may have removed blank rows; retain source positions.
     rows_read = len(df)
+    if mapping.forecast_col:
+        _check_col(df, mapping.forecast_col, "Forecast")
+        _check_numeric(df, mapping.forecast_col, "Forecast")
     period_warnings = import_period_warnings(df, mapping)
     if period_warnings:
         raise MappingError(period_warnings[0])
@@ -307,6 +311,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
                 part["metric"] = (base_label + " " + suffix).str.strip() if mapping.metric_col else suffix
                 part["value"] = df[vcol].map(coerce_value)
                 part["budget"] = df[mapping.budget_col].map(coerce_value) if mapping.budget_col else None
+                part["forecast"] = df[mapping.forecast_col].map(coerce_value) if mapping.forecast_col else None
                 part["quantity"] = None
                 part["price"] = None
                 part["budget_quantity"] = None
@@ -314,7 +319,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
                 part["id"] = None
                 if mapping.dimension_cols:
                     dims = [c for c in mapping.dimension_cols if c in df.columns]
-                    part["dimensions"] = df[dims].astype(str).apply(
+                    part["dimensions"] = df[dims].fillna("").astype(str).apply(
                         lambda r: json.dumps(dict(zip(dims, r))), axis=1
                     ) if dims else None
                 else:
@@ -335,6 +340,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
                 out["metric"] = sanitize_label(mapping.wide_value_label or value_col)
             out["value"] = df[value_col].map(coerce_value)
             out["budget"] = df[mapping.budget_col].map(coerce_value) if mapping.budget_col else None
+            out["forecast"] = df[mapping.forecast_col].map(coerce_value) if mapping.forecast_col else None
             out["quantity"] = df[mapping.quantity_col].map(coerce_value) if mapping.quantity_col else None
             out["price"] = df[mapping.price_col].map(coerce_value) if mapping.price_col else None
             out["budget_quantity"] = (
@@ -347,7 +353,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
             if mapping.dimension_cols:
                 for c in mapping.dimension_cols:
                     _check_col(df, c, "Dimension")
-                out["dimensions"] = df[mapping.dimension_cols].astype(str).apply(
+                out["dimensions"] = df[mapping.dimension_cols].fillna("").astype(str).apply(
                     lambda r: json.dumps(dict(zip(mapping.dimension_cols, r))), axis=1
                 )
             else:
@@ -402,6 +408,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
             out["budget"] = budget_melt["_budget_raw"].map(coerce_value).values
         else:
             out["budget"] = None
+        out["forecast"] = df[mapping.forecast_col].map(coerce_value).tolist() * len(mapping.wide_period_cols) if mapping.forecast_col else None
         out["quantity"] = None
         out["price"] = None
         out["budget_quantity"] = None
@@ -440,6 +447,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
     out = out[out["value"].notna()].reset_index(drop=True)
     if out.empty:
         raise MappingError("Mapping produced no valid rows — check the value column and layout")
+    out.attrs["dimension_column"] = mapping.dimension_cols[0] if mapping.dimension_cols else None
     out.attrs["all_metrics"] = all_metrics
     out.attrs["import_report"] = {
         "rows_read": rows_read, "rows_kept": int(out["_source_row"].nunique()),
@@ -463,7 +471,7 @@ def _normalize_label(s: str) -> str:
 
 def match_budget_to_dataset(
     conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_id: int,
-    *, actor_id=None, actor_email=None,
+    *, field="budget", actor_id=None, actor_email=None,
 ) -> dict:
     """Join a budget-only canonical frame onto an EXISTING dataset's metrics,
     by (metric identity, period) — never creates a new metric or a new
@@ -484,6 +492,8 @@ def match_budget_to_dataset(
     from app.close_control import locked_months, record_changes, skipped_report, snapshot
     from app.datasets import mark_data_changed
 
+    if field not in ("budget", "forecast"):
+        raise ValueError("field must be budget or forecast")
     before = snapshot(conn, dataset_id)
     locked = locked_months(conn, dataset_id)
     skipped = {}
@@ -505,6 +515,7 @@ def match_budget_to_dataset(
     unmatched_period: list[dict] = []
     seen_near_miss: set[str] = set()
     written_pairs = set()
+    pending = {}
 
     group_cols = ["metric", "period", "id"] if has_id_col else ["metric", "period"]
     for key, group in canonical.groupby(group_cols, dropna=False):
@@ -554,13 +565,18 @@ def match_budget_to_dataset(
             skipped[period] = skipped.get(period, 0) + len(group)
             continue
 
-        conn.execute(
-            "UPDATE metric_values SET budget = ? WHERE id = ?", (budget, existing["id"])
-        )
+        pending.setdefault((metric_id, period), {"id": existing["id"], "groups": []})["groups"].append(group)
         matched += 1
         written_pairs.add((matched_name, period))
 
-    record_changes(conn, dataset_id, before, "budget_join", actor_id=actor_id, actor_email=actor_email)
+    from app.ingestion.breakdowns import join_members
+    for (metric_id, period), item in pending.items():
+        combined = pd.concat(item["groups"], ignore_index=True)
+        amount = sum(float(v) for v in combined["value"] if pd.notna(v))
+        conn.execute(f"UPDATE metric_values SET {field}=? WHERE id=?", (amount, item["id"]))
+        join_members(conn, metric_id, period, combined, field)
+
+    record_changes(conn, dataset_id, before, f"{field}_join", actor_id=actor_id, actor_email=actor_email)
     if matched:
         mark_data_changed(conn, dataset_id)
     conn.commit()
@@ -607,7 +623,7 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
                 skipped[period] = skipped.get(period, 0) + row["source_rows"]
                 continue
             removed += 1
-            for table in ("metric_values", "computed_facts", "pvm_bridges"):
+            for table in ("metric_values", "computed_facts", "pvm_bridges", "metric_breakdowns"):
                 conn.execute(f"DELETE FROM {table} WHERE metric_id=? AND period=?", (mid, period))
     cur = conn.cursor()
     # canonical["metric"].unique() only has metrics that survived the null-value
@@ -643,6 +659,7 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
         written_pairs.add((metric, period))
         value = _sum(group["value"])
         budget = _sum(group["budget"])
+        forecast = _sum(group["forecast"]) if "forecast" in group else None
         quantity = _sum(group["quantity"])
         budget_quantity = _sum(group["budget_quantity"])
 
@@ -663,19 +680,21 @@ def store_normalized(conn: sqlite3.Connection, canonical: pd.DataFrame, dataset_
 
         cur.execute(
             """
-            INSERT INTO metric_values (metric_id, period, value, budget, quantity, price,
+            INSERT INTO metric_values (metric_id, period, value, budget, forecast, quantity, price,
                                        budget_quantity, budget_price, dimensions, source_rows)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(metric_id, period) DO UPDATE SET
-                value=excluded.value, budget=excluded.budget,
+                value=excluded.value, budget=excluded.budget, forecast=excluded.forecast,
                 quantity=excluded.quantity, price=excluded.price,
                 budget_quantity=excluded.budget_quantity, budget_price=excluded.budget_price,
                 dimensions=excluded.dimensions, source_rows=excluded.source_rows
             """,
-            (metric_id, period, float(value), budget, quantity, price,
+            (metric_id, period, float(value), budget, forecast, quantity, price,
              budget_quantity, budget_price, dims if isinstance(dims, str) else None, len(group)),
         )
 
+        from app.ingestion.breakdowns import replace_members
+        replace_members(conn, metric_id, period, group, canonical.attrs.get("dimension_column"))
         if bridge is not None:
             cur.execute(
                 """
