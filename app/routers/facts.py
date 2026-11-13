@@ -11,6 +11,7 @@ from app.compute.aggregate import (
     GRANULARITIES,
     aggregate_series,
     infer_aggregation_type,
+    like_for_like,
     months_in,
     period_key,
     prior_key,
@@ -238,6 +239,7 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
     out = []
     prior = prior_key(period, granularity, fiscal_start)
     yago = year_ago_key(period, granularity, fiscal_start)
+    total_months = len(months_in(period, granularity, fiscal_start))
     for k in kpis:
         agg = k["aggregation_type"] or infer_aggregation_type(k["display_name"] or k["metric"], k["unit"])
         rows = all_values.get(k["metric_id"], [])
@@ -259,6 +261,10 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
             v = cur["value"]
             pv = (series.get(prior) or {}).get("value")
             yv = (series.get(yago) or {}).get("value")
+            if cur.get("months", 0) < total_months:
+                # An incomplete quarter or year: compare the same months, not a whole period.
+                pv = like_for_like(rows, period, prior, granularity, agg, fiscal_start)
+                yv = like_for_like(rows, period, yago, granularity, agg, fiscal_start)
             if pv:
                 deltas["mom_pct"] = round((v - pv) / abs(pv) * 100, 2)
             if yv:
@@ -278,6 +284,7 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
             "direction_good": k["direction_good"], "prior_value": pv if has_data else None,
             "has_data": has_data, "deltas": deltas, "trend": None,
             "is_anomaly": False, "anomaly": None, "aggregated": True, "granularity": granularity,
+            "period_months": (cur or {}).get("months", 0), "period_months_total": total_months,
             "needs_reason_flag": has_data and needs_reason(False, deltas["budget_var_pct"], metadata["reason_threshold_pct"]),
             "aggregation_type": agg,
             "forecast": cur.get("forecast") if has_data else None,

@@ -21,7 +21,6 @@ from app.compute.availability import has_usable_value, needs_reason
 from app.context.store import _row_to_doc
 from app.datasets import _scope_pred, active_dataset_id, current_workspace, dataset_metadata, timestamp_text
 from app.db import get_connection
-from app.retrieval.retrieve import _effective_ok, _metric_ok
 
 router = APIRouter(prefix="/close", tags=["close"])
 
@@ -47,6 +46,18 @@ def _label(period):
 
 
 _COUNTS = ("kpis", "drafted", "approved", "checked", "needs_reason", "exceptions", "flagged")
+
+
+def reason_recorded(doc, metric: str, month: str) -> bool:
+    """A note explains this KPI's month only when it names the KPI and is either dated
+    in that month or an undated event note. An untagged note ("Q1 seasonality"), a
+    definition, or last year's note no longer counts as this month's reason."""
+    tags = {str(t).strip().lower() for t in (doc.metric_tags or [])}
+    if str(metric).strip().lower() not in tags:
+        return False
+    if doc.effective_date:
+        return str(doc.effective_date)[:7] == month
+    return doc.type == "event_note"
 
 
 def _finish(period, g, months, shared_months, shared_at):
@@ -122,7 +133,7 @@ def _summaries(conn, ds, granularity="month"):
         flagged = needs_reason(row["is_anomaly"], row["budget_var_pct"], threshold)
         if flagged:
             group["flagged"] += 1
-            if not any(_metric_ok(doc, row["name"]) and _effective_ok(doc, period) for doc in docs):
+            if not any(reason_recorded(doc, row["name"], period) for doc in docs):
                 group["needs_reason"] += 1
     # Roll months up into the requested closes. For months this is one-to-one.
     buckets = {}
