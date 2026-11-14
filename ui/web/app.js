@@ -2841,7 +2841,7 @@ function needsReason(f){
 // Why a month was flagged, in words: the rule, the comparison and how far out it is.
 function anomalyWhy(f){
   const a=f&&f.anomaly;if(!f||!f.is_anomaly||!a)return "";
-  const z=Math.abs(a.z).toFixed(1),t=a.threshold,u=cadenceUnit();
+  const z=Math.abs(a.z).toFixed(1),t=a.threshold,u=typeof cadenceUnit==="function"?cadenceUnit():"month";
   return a.basis==="seasonal"
     ?`Anomaly: this ${u}'s change differs from the same ${u} last year by ${z}× the usual spread (flagged above ${t}×), so a normal seasonal swing isn't flagged.`
     :`Anomaly: this ${u}'s change is ${z}× the usual ${u}-to-${u} spread (flagged above ${t}×). Once a few ${u}s each have a year-earlier comparison, it is judged against the same ${u} last year instead.`;

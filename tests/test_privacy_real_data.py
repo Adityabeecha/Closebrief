@@ -26,8 +26,8 @@ def test_terms_are_cleaned():
 
 
 def test_export_has_everything_and_delete_clears_the_workspace(client):  # noqa: F811
-    ds = client.post(f"/ingest/{_upload(client, 'period,metric,value\n2026-08,Revenue,100\n2026-09,Revenue,110\n')}/mapping",
-                     json=LONG).json()["dataset_id"]
+    uid = _upload(client, "period,metric,value\n2026-08,Revenue,100\n2026-09,Revenue,110\n")
+    ds = client.post(f"/ingest/{uid}/mapping", json=LONG).json()["dataset_id"]
     client.post("/context", json={"title": "Why", "body": "Because", "metric_tags": ["Revenue"], "effective_date": "2026-09"})
     r = client.get("/workspace/export")
     assert r.status_code == 200 and "attachment" in r.headers["content-disposition"]
