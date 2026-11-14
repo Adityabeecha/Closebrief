@@ -61,6 +61,31 @@ def rescale_metric(conn, metric_id: int, factor: float) -> None:
                  (factor, factor, factor, metric_id))
 
 
+def rescale_dataset(conn, dataset_id: int, scale: int) -> int:
+    """Set an existing dataset's amounts to units, thousands or millions after import
+    (a file 'in thousands' imported before the option existed). Every currency KPI is
+    rescaled; drafts written with the old figures are sent back for review, because
+    their numbers no longer match. Returns the KPIs rescaled."""
+    if scale not in SCALES:
+        raise ValueError("amount_scale must be 1, 1000 or 1000000")
+    conn.execute("UPDATE datasets SET amount_scale = ? WHERE id = ?", (scale, dataset_id))
+    rows = conn.execute(
+        """SELECT m.name, k.unit FROM metrics m
+           LEFT JOIN kpi_configs k ON k.dataset_id = m.dataset_id AND k.source_metric = m.name
+           WHERE m.dataset_id = ?""", (dataset_id,)).fetchall()
+    # A saved KPI unit wins; without one, the library's guess (Customers is a count).
+    guessed = metric_units(conn, None, [r["name"] for r in rows if not r["unit"]])
+    changed = [r["name"] for r in rows
+               if align_metric_scale(conn, dataset_id, r["name"], r["unit"] or guessed.get(r["name"]))]
+    if changed:
+        marks = ",".join("?" * len(changed))
+        conn.execute(
+            f"""UPDATE generated_reports SET faithfulness = 'failed', review_status = NULL
+                WHERE metric_id IN (SELECT id FROM metrics WHERE dataset_id = ? AND name IN ({marks}))""",
+            (dataset_id, *changed))
+    return len(changed)
+
+
 def align_metric_scale(conn, dataset_id: int, source_metric: str, unit: str | None) -> bool:
     """After a unit change: a currency KPI carries the dataset's scale, anything else 1.
     Returns True when stored amounts changed (facts need recomputing)."""

@@ -378,6 +378,11 @@ def digest_send(period: str, top_n: int = 5, user: CurrentUser = Depends(require
     return digest
 
 
+def _month_title(month: str) -> str:
+    import calendar
+    return f"{calendar.month_name[int(month[5:7])]} {month[:4]}"
+
+
 @router.get("/board-pack")
 def board_pack(period: str, user: CurrentUser = Depends(require_read)) -> HTMLResponse:
     """A self-contained, print-ready HTML board pack for the active dataset and
@@ -386,8 +391,11 @@ def board_pack(period: str, user: CurrentUser = Depends(require_read)) -> HTMLRe
     period = (period or "").strip()
     if not period:
         raise HTTPException(status_code=422, detail="period is required")
-    # Reuse the dashboard's exact facts (respects workspace/demo scope + charts).
-    facts = list_facts(period=period, granularity="month", include_charts=True, user=user)
+    # Reuse the dashboard's exact facts (respects workspace/demo scope + charts), at the
+    # period's own granularity: a quarter or year pack was empty when asked for months.
+    from app.routers.close import _granularity_of
+    granularity = _granularity_of(period) or "month"
+    facts = list_facts(period=period, granularity=granularity, include_charts=True, user=user)
     conn = get_connection()
     try:
         ds = active_dataset_id(conn)
@@ -400,12 +408,39 @@ def board_pack(period: str, user: CurrentUser = Depends(require_read)) -> HTMLRe
     from app.board_pack import collect_facts
     conn = get_connection()
     try:
-        approved = {f["metric"]: f["narrative"] for f in collect_facts(conn, ds, period)} if ds else {}
+        approved, checks = {}, {}
+        if ds and granularity == "month":
+            approved = {f["metric"]: f["narrative"] for f in collect_facts(conn, ds, period)}
+        elif ds:
+            # Commentary is written per month: a quarter or year pack carries the latest
+            # month's approved commentary in the period, saying which close it's from.
+            from app.compute.aggregate import months_in
+            from app.datasets import dataset_metadata
+            fiscal = dataset_metadata(conn, ds)["fiscal_year_start"]
+            for month in sorted(months_in(period, granularity, fiscal), reverse=True):
+                for f in collect_facts(conn, ds, month):
+                    if f.get("narrative") and f["metric"] not in approved:
+                        approved[f["metric"]] = f"From the {_month_title(month)} close: {f['narrative']}"
+                        checks[f["metric"]] = f.get("faithfulness")
         for fact in facts:
             fact["narrative"] = approved.get(fact["metric"])
+            if fact["metric"] in checks:
+                fact["faithfulness"] = checks[fact["metric"]]
     finally:
         conn.close()
-    doc = build_board_pack_html(facts, period, {"dataset_name": ds_name})
+    meta = {"dataset_name": ds_name}
+    if ds is not None:
+        conn = get_connection()
+        try:
+            scale = conn.execute("SELECT amount_scale FROM datasets WHERE id = ?", (ds,)).fetchone()
+        finally:
+            conn.close()
+        if re.search(r"thousand|\$ ?000|\(000s?\)|million", ds_name or "", re.I) and int((scale and scale["amount_scale"]) or 1) == 1:
+            # The pack never goes out clean with figures that may read 1,000x too small.
+            meta["warning"] = ("Check the units before sharing: this dataset says it's in thousands or millions, but its "
+                               "amounts are stored as entered, so figures may read 1,000x too small. Set 'Amounts are in' "
+                               "from the dataset menu.")
+    doc = build_board_pack_html(facts, period, meta)
     return HTMLResponse(doc)
 
 

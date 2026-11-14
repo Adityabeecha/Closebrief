@@ -856,7 +856,7 @@ function renderMonthHead(){
   const ds=activeDatasetObj&&datasetDisplayName(activeDatasetObj.name);
   const roll=granularity!=="month"&&closeMonths[currentPeriod];
   $("mh-sub").textContent=(roll
-    ?[ds,`${plural(roll.distinct_kpis??s.n,"KPI","KPIs")} across ${plural(roll.month_count||1,"month")}`,s.n?`${s.approved} of ${plural(s.n,"monthly commentary","monthly commentaries")} approved`:null]
+    ?[ds,`${plural(roll.distinct_kpis??s.n,"KPI","KPIs")} across ${plural(roll.month_count||1,datasetCadence==="quarter"?"quarter":"month")}`,s.n?`${s.approved} of ${plural(s.n,datasetCadence==="quarter"?"quarterly commentary":"monthly commentary",datasetCadence==="quarter"?"quarterly commentaries":"monthly commentaries")} approved`:null]
     :s.loading?[ds,"Loading this close…"]
     :[ds,s.n?`${plural(s.n,"KPI","KPIs")} computed in code`:null,s.n?`${s.approved} of ${s.n} approved`:null]).concat(dataAsOf()).filter(Boolean).join(" · ");
   const locked=closeLocked();
@@ -1057,10 +1057,13 @@ async function loadBoardPack(){
   if(!currentPeriod){frame.style.display="none";$("bp-state").innerHTML=screenState("No close to pack yet","Import data to build a board pack.","nav('datahub')","Import data","empty",{writeOnly:true});return;}
   if(boardPackFor===currentPeriod+"|"+activeDatasetId&&frame.srcdoc)return;
   const done=screenLoading("bp-state","Building the board pack…");frame.style.display="none";
+  // Say how long it's been: the build takes ~10s and the export buttons wait for it.
+  const t0=Date.now(),tick=setInterval(()=>{const el=$("bp-state")&&$("bp-state").querySelector(".loading,.screen-loading,[role=status]")||$("bp-state");
+    if(el&&el.textContent.includes("Building"))el.textContent=`Building the board pack… ${Math.round((Date.now()-t0)/1000)}s (usually about 10s; exports are ready when it shows)`;},1000);
   try{
-    const html=await fetchBoardPack();if(!done())return;
+    const html=await fetchBoardPack();clearInterval(tick);if(!done())return;
     frame.srcdoc=html;frame.style.display="";$("bp-state").innerHTML="";boardPackFor=currentPeriod+"|"+activeDatasetId;
-  }catch(e){if(done())$("bp-state").innerHTML=screenError(e,"loadBoardPack()");}
+  }catch(e){clearInterval(tick);if(done())$("bp-state").innerHTML=screenError(e,"loadBoardPack()");}
 }
 function printBoardPack(){
   const frame=$("bp-frame");
@@ -1673,6 +1676,13 @@ async function toggleVersions(){
   }catch(e){box.innerHTML=`<div class="an-empty">${esc(errMsg(e))}</div>`;}
 }
 
+function paintScaleBanner(id){
+    {const sb=$(id),ds=activeDatasetObj;
+      if(sb){const bad=scaleMismatch(ds);sb.style.display=bad?"":"none";
+        if(bad){const to=/million|\$m/i.test(ds.name)?1000000:1000;
+          sb.innerHTML=`${warnIcon()}<span><b>These amounts may be ${to===1000?"1,000":"1,000,000"}× too small.</b> The dataset says "${esc(to===1000?"thousands":"millions")}" but its amounts are stored as entered, so $947,565 thousand reads as $948K.</span>`
+            +(canReview()?` <button class="btn sm" onclick="setAmountScale(${ds.id},${to})">Set to ${to===1000?"thousands":"millions"}</button>`:"");}}}
+}
 // A manager approves from a link (no account): it opens this close's drafts only, for 7 days.
 async function approvalLink(){
   if(!currentPeriod||granularity!=="month"){toast("Open a month's close to share it for approval");return;}
@@ -1866,6 +1876,7 @@ async function loadDatasets(){
         <div class="ws-kmenu" id="kmenu-${ds.id}">
           <button class="write-only" onclick="event.stopPropagation();renameDataset(${ds.id})">Rename</button>
           <button class="write-only" onclick="event.stopPropagation();setDatasetCurrency(${ds.id})">Currency (${esc(ds.currency||"USD")})</button>
+          <button class="write-only" onclick="event.stopPropagation();setAmountScale(${ds.id})">Amounts are in (${esc(SCALE_NAMES[ds.amount_scale||1]||"units")})</button>
           <button class="write-only" onclick="event.stopPropagation();setFiscalYear(${ds.id})">Fiscal year starts (${esc(MONTHS[(ds.fiscal_year_start||1)-1].slice(0,3))})</button>
           <button class="write-only" onclick="event.stopPropagation();setReasonThreshold(${ds.id})">Needs a reason above (${esc(String(ds.reason_threshold_pct??10))}%${ds.reason_threshold_abs?` and ${esc(fmt(ds.reason_threshold_abs,"USD",ds.currency))}`:""})</button>
           <button class="write-only danger" onclick="event.stopPropagation();deleteDataset(${ds.id})">Delete</button>
@@ -1880,6 +1891,20 @@ function toggleKebab(e,id){e.stopPropagation();
   const open=$("kmenu-"+id).classList.toggle("open");
   document.querySelectorAll(".ws-kebab>button").forEach(b=>b.setAttribute("aria-expanded",String(open&&b.getAttribute("aria-controls")==="kmenu-"+id)));
   if(open)$("kmenu-"+id).querySelector("button")?.focus();
+}
+const SCALE_NAMES={1:"units",1000:"thousands",1000000:"millions"};
+// "$ thousands" in the name but amounts stored as entered: the figures read 1,000x too small.
+function scaleMismatch(ds){return !!ds&&(ds.amount_scale||1)===1&&/thousand|\$ ?000|\(000s?\)|\bmillion|\$m\b/i.test(ds.name||"");}
+async function setAmountScale(id,preset){
+  const ds=(datasetsCache||[]).find(x=>x.id===id)||{};
+  const pick=preset||await _openModalRaw({title:"Amounts are in",okLabel:"Apply",
+    body:`<p style="margin:0 0 10px;font-size:14px">If the file reported "$ in thousands", choose Thousands: every currency KPI is multiplied so it reads $947.6M, not $948K. Percentages and counts are left alone. Drafts written with the old figures are sent back for review.</p>
+      <select class="modal-field">${[1,1000,1000000].map(v=>`<option value="${v}"${(ds.amount_scale||1)===v?" selected":""}>${SCALE_NAMES[v][0].toUpperCase()+SCALE_NAMES[v].slice(1)}</option>`).join("")}</select>`,
+    getValue:()=>+$("modal-body").querySelector("select").value});
+  if(!pick||pick===(ds.amount_scale||1))return;
+  try{await api(`/datasets/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({amount_scale:pick})});
+    toast(`Amounts now in ${SCALE_NAMES[pick]}. Redraft the commentary to use the new figures.`);await loadDatasets();await loadPeriods();}
+  catch(e){toast("Couldn't change it: "+errMsg(e));}
 }
 async function renameDataset(id){
   const cur=(datasetsCache.find(d=>d.id===id)||{}).name||"";
@@ -1953,7 +1978,9 @@ function fmtWhen(iso){
   if(!iso)return "—";
   const s=String(iso),t=/[T ](\d{2}:\d{2})/.exec(s);if(!t)return fmtDate(s);
   const d=new Date(/Z|[+-]\d{2}:?\d{2}$/.test(s)?s.replace(" ","T"):s.replace(" ","T")+"Z");
-  return isNaN(d)?fmtDate(s):`${fmtDate(s)} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
+  // Local time with its zone ("12:21 GMT+5:30"), so it reads against exports in UTC.
+  let tz="";try{tz=" "+new Intl.DateTimeFormat(undefined,{timeZoneName:"short"}).formatToParts(d).find(p=>p.type==="timeZoneName").value;}catch{}
+  return isNaN(d)?fmtDate(s):`${fmtDate(s)} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}${tz}`;
 }
 async function loadActivity(){
   const done=screenLoading("act-rows","Loading activity…",3);$("act-check").innerHTML="";
@@ -2179,6 +2206,9 @@ async function loadFacts(){
     if($("v-dashboard").style.display!=="none")setDocTitle(fmtPeriodTitle(currentPeriod));
     const aggNote=granularity==="month"?"":" · commentary is drafted monthly";
     $("dash-sub").innerHTML=`${currentFacts.length} ${currentFacts.length===1?"KPI":"KPIs"} · <b>${anom.length?plural(anom.length,"anomaly","anomalies"):"no anomalies"}</b>${aggNote}`;
+    // A "$ thousands" dataset whose amounts were stored as entered reads 1,000x too small:
+    // say so above the figures, with the one-click fix.
+    paintScaleBanner("scale-banner");paintScaleBanner("ov-scale-banner");
     const anomKey=`anomaly:${currentPeriod}`;
     if(anom.length&&!bannerDismissed(anomKey)){
       $("anomaly-banner").style.display="";
@@ -2783,10 +2813,10 @@ async function renderGroundedNarrative(reportId){
   const traced=s=>[...(s.facts||[]).map(f=>`${G_FIELD[f.field]||f.field} = ${gFmtVal(f.value,f.is_percent)} (computed)`),
     ...(s.context_ids||[]).map(id=>`cited note ${id}`),...(s.kind==="numeric-unverified"?["a figure not traced to the computed facts: check it"]:[])];
   el.innerHTML=sents.map(s=>{const t=traced(s);return `<span class="gsent ${s.kind}" data-i="${s.idx}" role="button" tabindex="0" title="${esc(t.length?"From: "+t.join("; "):"A general statement, no figure to trace")}" onclick="showSentenceGrounding(${s.idx})">${esc(s.text)}</span>`;}).join(" ")
-    +`<div class="g-legend">
-        <span><i style="border-color:var(--green2)"></i>traces to a figure</span>
-        <span><i style="border-color:var(--accent)"></i>cites a source</span>
-        <span><i style="border-color:var(--amber);border-top-style:dashed"></i>unverified number</span>
+    +`<div class="g-legend"><span style="color:var(--mut2)">Underlines:</span>
+        ${sents.some(x=>x.kind==="verified")?'<span><i style="border-color:var(--green2)"></i>traces to a figure</span>':""}
+        ${sents.some(x=>x.kind==="context")?'<span><i style="border-color:var(--accent)"></i>cites a source</span>':""}
+        ${sents.some(x=>x.kind==="numeric-unverified")?'<span><i style="border-color:var(--amber);border-top-style:dashed"></i>unverified number</span>':""}
         <span style="color:var(--mut2)">Hover a sentence to see where its numbers come from</span>
       </div>`;
 }
