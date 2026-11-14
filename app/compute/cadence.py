@@ -43,3 +43,14 @@ def shift_period(period: str, months: int) -> str:
     """'2026-09' shifted by -3 -> '2026-06'."""
     idx = month_index(period) + months
     return f"{idx // 12:04d}-{idx % 12 + 1:02d}"
+
+
+def steps_from_values(values_by_metric: dict) -> int:
+    """dataset_step for values already loaded ({metric_id: [rows with 'period']})."""
+    steps = []
+    for rows in values_by_metric.values():
+        months = [month_index(str(r["period"])) for r in rows
+                  if len(str(r["period"])) >= 7 and str(r["period"])[4] == "-"]
+        if len(months) >= 3:
+            steps.append(step_of(months))
+    return min(steps) if steps else 1

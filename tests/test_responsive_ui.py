@@ -364,6 +364,7 @@ frame.onload=async()=>{
     await importFile();
     check($('st-3').getAttribute('aria-current')==='step','Current step missing');
     check($('st-1').textContent.includes('done')&&$('st-1').querySelector('.step-tick'),'Completed step missing');
+    if($('kpi-detail'))$('kpi-detail').hidden=false;   // all recognised: open 'Review them'
     const rows=[...d.querySelectorAll('.kpi-grid[data-src]')];check(rows.length>2,'Sample KPI rows missing');
     check(rows.every(r=>r.querySelector('.k-include').checked),'Include default');
     check(rows.every(r=>[...r.querySelectorAll('input,select')].every(el=>el.getAttribute('aria-label')?.includes(r.dataset.src))),
@@ -387,9 +388,9 @@ frame.onload=async()=>{
     await w.api('/datasets/'+pending,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:'Sample finance'})});
     await w.loadDatasets();$('imp-mode').value='join';await w.onImportModeChange();
     const options=[...$('imp-target').options];check(options.length===2,'Duplicate datasets missing');
-    check(options.every(o=>/KPIs? · imported/.test(o.textContent)),'Target metadata missing');
+    check(options.every(o=>/KPIs? · imported|Import not finished/.test(o.textContent)),'Target metadata missing');
     const choices=[...d.querySelectorAll('#ws-menu .ws-choice')];
-    check(choices.every(el=>/KPIs? · imported/.test(el.textContent)),'Picker metadata missing');
+    check(choices.every(el=>/KPIs? · imported|Import not finished/.test(el.textContent)),'Picker metadata missing');
     $('imp-mode').value='new';await w.onImportModeChange();
     const leave=()=>w.requestImportView('dashboard');
     let leaving=leave();await wait(()=>$('modal-back').classList.contains('open'));w.closeModal();await leaving;

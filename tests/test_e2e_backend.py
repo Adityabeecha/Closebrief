@@ -77,7 +77,7 @@ def test_prompt_rules_and_identifier_cleanup():
     from app.generation.prompts import PROMPT_VERSION, QA_SYSTEM_PROMPT, SYSTEM_PROMPT
     from app.generation.qa import clean_answer
 
-    assert PROMPT_VERSION == "v7-close-commentary"
+    assert PROMPT_VERSION == "v8-close-commentary"
     assert "rise is unfavourable" in SYSTEM_PROMPT
     assert "continued growth" in SYSTEM_PROMPT
     assert "Never mention snippet ids" in QA_SYSTEM_PROMPT

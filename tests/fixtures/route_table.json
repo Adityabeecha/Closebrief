@@ -44,6 +44,22 @@
     []
   ],
   [
+    "/approve",
+    [
+      "GET"
+    ],
+    true,
+    []
+  ],
+  [
+    "/approve",
+    [
+      "POST"
+    ],
+    true,
+    []
+  ],
+  [
     "/ask",
     [
       "POST"
@@ -121,6 +137,16 @@
     true,
     [
       "require_read"
+    ]
+  ],
+  [
+    "/close/approval-link",
+    [
+      "POST"
+    ],
+    true,
+    [
+      "require_write"
     ]
   ],
   [
@@ -251,6 +277,16 @@
     true,
     [
       "require_read"
+    ]
+  ],
+  [
+    "/context/extract",
+    [
+      "POST"
+    ],
+    true,
+    [
+      "require_write"
     ]
   ],
   [
@@ -882,6 +918,66 @@
     ],
     false,
     []
+  ],
+  [
+    "/workspace/data",
+    [
+      "DELETE"
+    ],
+    true,
+    [
+      "require_write"
+    ]
+  ],
+  [
+    "/workspace/export",
+    [
+      "GET"
+    ],
+    true,
+    [
+      "require_read"
+    ]
+  ],
+  [
+    "/workspace/privacy",
+    [
+      "GET"
+    ],
+    true,
+    [
+      "require_read"
+    ]
+  ],
+  [
+    "/workspace/privacy",
+    [
+      "PUT"
+    ],
+    true,
+    [
+      "require_write"
+    ]
+  ],
+  [
+    "/workspace/style",
+    [
+      "GET"
+    ],
+    true,
+    [
+      "require_read"
+    ]
+  ],
+  [
+    "/workspace/style",
+    [
+      "PUT"
+    ],
+    true,
+    [
+      "require_write"
+    ]
   ],
   [
     "/workspaces",

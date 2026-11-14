@@ -54,7 +54,7 @@ function buildReportHTML(facts){
       <div class="rc-top"><span class="rc-dot" style="background:${col}"></span><span class="rc-name">${esc(f.metric)}</span>
         <span class="rc-cat">${esc(f.category||"")}</span></div>
       <div class="rc-vrow"><span class="rc-val">${fmt(f.value,f.unit)}</span>${spark}</div>
-      <div class="rc-deltas">${reportDelta(priorPeriodLabel(),f.deltas.mom_pct,dg,deltaText(f,"mom"))}${reportDelta(vsPlan(),f.deltas.budget_var_pct,dg,deltaText(f,"budget"))}${f.is_anomaly?'<span class="rd" style="color:#b42e2c;background:#faeeed">ANOMALY</span>':""}</div>
+      <div class="rc-deltas">${reportDelta(priorPeriodLabel(),f.deltas.mom_pct,dg,deltaText(f,"mom"))}${reportDelta((globalThis.vsPlan?vsPlan():"vs plan"),f.deltas.budget_var_pct,dg,deltaText(f,"budget"))}${f.is_anomaly?'<span class="rd" style="color:#b42e2c;background:#faeeed">ANOMALY</span>':""}</div>
       <div class="rc-narr">${f.narrative?esc(f.narrative):"<i>No narrative generated for this metric.</i>"}</div>
       ${f.faithfulness==="failed"?'<div class="rd" style="color:#b42e2c">Numbers need review — unverified narrative</div>':""}
       ${src?`<div class="rc-src">${src}</div>`:""}
@@ -931,7 +931,7 @@ function paintOverview(){
   $("ov-glance-title").textContent=`${fmtPeriod(currentPeriod,"long")} at a glance`;
   $("ov-glance").innerHTML=movers.length?`<div class="glance">${movers.map(({f,v,plan})=>{
     const good=v===0?null:(f.direction_good==="down"?v<0:v>0);
-    return `<button data-act="metric" data-arg="${esc(f.metric)}"><span>${esc(f.metric)}</span><b>${fmt(f.value,f.unit)} <span class="${good===null?"":good?"c-ok":"c-exc"}">${deltaText(f,plan?"budget":"mom")||pct(v)}</span><span class="visually-hidden"> ${plan?vsPlan():"vs prior period"}</span></b></button>`;}).join("")}</div>`
+    return `<button data-act="metric" data-arg="${esc(f.metric)}"><span>${esc(f.metric)}</span><b>${fmt(f.value,f.unit)} <span class="${good===null?"":good?"c-ok":"c-exc"}">${deltaText(f,plan?"budget":"mom")||pct(v)}</span><span class="visually-hidden"> ${plan?(globalThis.vsPlan?vsPlan():"vs plan"):"vs prior period"}</span></b></button>`;}).join("")}</div>`
     :`<p class="mh-sub">No movements to show for this close.</p>`;
   if(allMovers>4)$("ov-glance").innerHTML+=`<button class="linkbtn glance-more" onclick="glanceAll=!glanceAll;paintOverview()">${glanceAll?"Show the top 4":`Show all ${allMovers}`}</button>`;
   if(movers.length&&movers.every(x=>!x.plan)){
@@ -2480,7 +2480,7 @@ function statementHtml(facts){
         ${delta(f,"budget",d.budget_var_pct)}${delta(f,"mom",d.mom_pct)}${extra(f)}</tr>`;
     });
   });
-  return `<div class="stmt-wrap"><table class="stmt"><thead><tr><th>KPI</th><th>Actual</th><th>${esc(capFirst(planName()))}</th><th>${esc(vsPlan())}</th><th>${esc(priorPeriodLabel())}</th>${hasFc?"<th>vs forecast</th>":""}${hasYtd?`<th>${esc(ytdLabel())}</th><th>YTD ${esc(vsPlan())}</th>`:""}</tr></thead><tbody>${body}</tbody></table></div>
+  return `<div class="stmt-wrap"><table class="stmt"><thead><tr><th>KPI</th><th>Actual</th><th>${esc((globalThis.planName?planName():"plan").replace(/^./,c=>c.toUpperCase()))}</th><th>${esc((globalThis.vsPlan?vsPlan():"vs plan"))}</th><th>${esc(priorPeriodLabel())}</th>${hasFc?"<th>vs forecast</th>":""}${hasYtd?`<th>${esc(ytdLabel())}</th><th>YTD ${esc((globalThis.vsPlan?vsPlan():"vs plan"))}</th>`:""}</tr></thead><tbody>${body}</tbody></table></div>
     <p class="stmt-note">Grouped by category in report order. Categories aren't added up: a category can mix amounts, counts and rates. Pick a KPI to read its commentary.</p>`;
 }
 function openFromStatement(i){
@@ -2518,7 +2518,7 @@ function queueRow(f,i,q){
   const g=queueGroup(f);
   if(!f.has_data)return `<div class="qi nodata"><i class="dot" aria-hidden="true"></i><span class="qn">${hl(f.metric,q)}</span><span class="qsub">${f.unavailable_reason?esc(f.unavailable_reason):`No data for ${esc(fmtPeriod(currentPeriod))}`}</span></div>`;
   const plan=f.deltas.budget_var_pct,v=plan!=null?plan:f.deltas.mom_pct;
-  const vLabel=plan!=null?vsPlan():priorPeriodLabel();
+  const vLabel=plan!=null?(globalThis.vsPlan?vsPlan():"vs plan"):priorPeriodLabel();
   const good=v==null||v===0?null:(f.direction_good==="down"?v<0:v>0);
   const tone=good===null?"":good?"c-ok":"c-exc";
   const state=generatingSet.has(f.metric)?"Drafting…"
@@ -2676,7 +2676,7 @@ function ytdFigs(f){
     ?(y.budget_months?`— (budget for ${y.budget_months} of ${plural(y.months,ytdUnit(y))})`:"—")
     :fmt(y.budget,f.unit);
   return [[`${ytdLabel()} (${plural(y.months,ytdUnit(y))})`,fmt(y.value,f.unit)],["YTD plan",plan],
-    [`YTD ${vsPlan()}`,y.var_pct==null?"—":pct(y.var_pct)],["YTD vs last year",y.yoy_pct==null?"—":pct(y.yoy_pct)]];
+    [`YTD ${(globalThis.vsPlan?vsPlan():"vs plan")}`,y.var_pct==null?"—":pct(y.var_pct)],["YTD vs last year",y.yoy_pct==null?"—":pct(y.yoy_pct)]];
 }
 /* ---- Contributors: one breakdown level under a KPI (F5) ---- */
 let contribFor=null;
@@ -2723,13 +2723,13 @@ function openDetail(i,{fromRoute=false}={}){
   markQueueSelection();
   $("d-title").textContent=f.metric;const dg=f.direction_good==="down";
   $("d-sub").innerHTML=`<span class="cat-dot" style="${catStyle(f.category)}"></span>${esc(f.category||"")} · ${esc(fmtPeriod(currentPeriod,"long"))} · <span class="nbi-num">${fmt(f.value,f.unit)}</span> `
-    +deltaChip(priorPeriodLabel(),f.deltas.mom_pct,dg,deltaText(f,"mom"))+" "+deltaChip(vsPlan(),f.deltas.budget_var_pct,dg,deltaText(f,"budget"))
+    +deltaChip(priorPeriodLabel(),f.deltas.mom_pct,dg,deltaText(f,"mom"))+" "+deltaChip((globalThis.vsPlan?vsPlan():"vs plan"),f.deltas.budget_var_pct,dg,deltaText(f,"budget"))
     +` <span class="dir-note">${dg?"Lower is better":"Higher is better"}</span>`
     +(f.is_anomaly?' <span class="anom">Anomaly</span>':"");
   const cd=f.chart_data||{};
   const bva=cd.budget_vs_actual||{};
-  $("d-figs").innerHTML=[["Actual",f.unavailable?"—":fmt(f.value,f.unit)],[capFirst(planName()),bva.budget!=null?fmt(bva.budget,f.unit):"—"],
-    [capFirst(vsPlan()),deltaText(f,"budget")||"—"],
+  $("d-figs").innerHTML=[["Actual",f.unavailable?"—":fmt(f.value,f.unit)],[capFirst((globalThis.planName?planName():"plan")),bva.budget!=null?fmt(bva.budget,f.unit):"—"],
+    [capFirst((globalThis.vsPlan?vsPlan():"vs plan")),deltaText(f,"budget")||"—"],
     ...(f.forecast!=null?[["Forecast",fmt(f.forecast,f.unit)],["Vs forecast",deltaText(f,"forecast")||"—"]]:[]),
     [capFirst(priorPeriodLabel()),deltaText(f,"mom")||"—"],["Vs last year",deltaText(f,"yoy")||"—"],...ytdFigs(f)]
     .map(([k,val])=>`<div><dt>${k}</dt><dd class="nbi-num">${esc(val)}</dd></div>`).join("");
@@ -2929,8 +2929,8 @@ function renderWhyNone(f){
   const what=t&&t.kind==="part"&&t.unplanned
     ?`${esc(t.part)} had no plan and came in at ${esc(fmt(t.var_abs,f.unit))}, ${esc(pct(t.var_pct)||"")} of the plan for ${esc(f.metric)}, past the ${esc(String(lim))}% threshold. `
     :t&&t.kind==="part"
-    ?`${esc(t.part)} is ${esc(pct(t.var_pct)||"")} ${esc(vsPlan())} (${esc((t.var_abs>0?"+":"")+fmt(t.var_abs,f.unit))}), past the ${esc(String(lim))}% threshold, even though the total is ${esc(deltaText(f,"budget")||"within it")}. `
-    :t&&t.kind==="total"?`It's ${esc(deltaText(f,"budget")||"")} ${esc(vsPlan())}, past the ${esc(String(lim))}% threshold. `:"";
+    ?`${esc(t.part)} is ${esc(pct(t.var_pct)||"")} ${esc((globalThis.vsPlan?vsPlan():"vs plan"))} (${esc((t.var_abs>0?"+":"")+fmt(t.var_abs,f.unit))}), past the ${esc(String(lim))}% threshold, even though the total is ${esc(deltaText(f,"budget")||"within it")}. `
+    :t&&t.kind==="total"?`It's ${esc(deltaText(f,"budget")||"")} ${esc((globalThis.vsPlan?vsPlan():"vs plan"))}, past the ${esc(String(lim))}% threshold. `:"";
   const box=canReview()&&granularity==="month"
     ?`<div class="reason-box"><label class="lbl" for="rb-text">Why did ${esc(f.metric)} move?</label>
         <textarea id="rb-text" rows="2" placeholder="e.g. Two EMEA renewals slipped to November after procurement delays"></textarea>
@@ -2946,7 +2946,7 @@ function reasonStarter(f){
   if(!f||!f.has_data||f.unavailable)return "";
   const d=f.deltas||{},when=fmtPeriod(currentPeriod,"long");
   const vs=d.budget_var_abs!=null
-    ?`${deltaText(f,"budget")||"–"} ${vsPlan()} (${d.budget_var_abs>0?"+":""}${fmt(d.budget_var_abs,f.unit)})`
+    ?`${deltaText(f,"budget")||"–"} ${(globalThis.vsPlan?vsPlan():"vs plan")} (${d.budget_var_abs>0?"+":""}${fmt(d.budget_var_abs,f.unit)})`
     :d.mom_pct!=null?`${deltaText(f,"mom")||"–"} ${priorPeriodLabel()}`:"";
   return `${f.metric} was ${fmt(f.value,f.unit)} in ${when}${vs?`, ${vs}`:""}. Reason: `;
 }
@@ -3119,8 +3119,8 @@ function renderDigest(d){
       <p class="dg-metric">${esc(it.metric)}</p><h3>${esc(it.headline)}</h3>
       ${it.detail?`<p class="dg-body">${esc(it.detail)}</p>`:""}
       <div class="dg-figs">
-        ${v!=null?`<span class="nbi-num ${good===null?"":good?"c-ok":"c-exc"}">${isPctKpi(f)?esc(deltaText(f,"budget")||"–")+" "+esc(vsPlan())
-          :`${esc(fmt(v,it.unit||"USD"))} ${esc(vsPlan())} (${esc(pct(it.budget_var_pct)||"–")})`}</span>`:""}
+        ${v!=null?`<span class="nbi-num ${good===null?"":good?"c-ok":"c-exc"}">${isPctKpi(f)?esc(deltaText(f,"budget")||"–")+" "+esc((globalThis.vsPlan?vsPlan():"vs plan"))
+          :`${esc(fmt(v,it.unit||"USD"))} ${esc((globalThis.vsPlan?vsPlan():"vs plan"))} (${esc(pct(it.budget_var_pct)||"–")})`}</span>`:""}
         ${it.faithfulness==="passed"?seal(true):it.faithfulness==="failed"?seal(false):""}
       </div></div></section>`;}).join(""));
 }
@@ -3441,10 +3441,9 @@ function keptTotalLabels(){return [...document.querySelectorAll(".keep-total:che
 // same figure as another (amount_local vs amount_usd) starts as "ignore" —
 // the mapping warning already says only one is kept, and keeping both
 // doubles every metric and sums mixed currencies.
-// A text column of reasons ("Comment", "Variance explanation") becomes context notes.
-const COMMENT_COL=/\b(comments?|commentary|reasons?|explanations?|notes?|remarks?|why)\b/i;
 function roleFor(c){
-  if(c.dtype!=="numeric"&&COMMENT_COL.test(String(c.column_name).replace(/[_\-]+/g," ")))return "comment";
+  // A text column of reasons ("Comment", "Variance explanation") becomes context notes.
+  if(c.dtype&&c.dtype!=="numeric"&&/\b(comments?|commentary|reasons?|explanations?|notes?|remarks?|why)\b/i.test(String(c.column_name||"").replace(/[_\-]+/g," ")))return "comment";
   return c.redundant_with&&c.guessed_role==="measure"?"ignore":c.guessed_role;
 }
 const ROLES=["period","metric_label","measure","budget","forecast","id","quantity","price","dimension","comment","ignore"];
@@ -3632,12 +3631,14 @@ async function loadKpiPicker(){
         <label class="kpi-field"><span class="kpi-field-label">Over a quarter</span><select class="k-agg" aria-label="How ${row} adds up over a quarter" data-suggested="${esc(s.aggregation_type||"flow")}" onchange="this.dataset.touched='1'">${rollupOptions(rollupForUnit(s.unit||"USD",s.aggregation_type))}</select></label></div>`;}).join(""):
       '<div class="banner info">No KPIs were found. Leave this import to delete the unfinished dataset, then upload a file with metric values.</div>';
     // Everything recognised: one line and Finish, with the table a click away.
-    const unsure=metrics.filter(m=>(m.suggestion||{}).direction_known===false).length;
-    const auto=$("kpi-auto"),detail=$("kpi-detail");
-    if(auto&&detail){
-      auto.hidden=!(metrics.length&&!unsure);detail.hidden=!auto.hidden;
-      auto.innerHTML=`All ${plural(metrics.length,"KPI")} recognised: units, which way is good, and how each adds up over a quarter. <button class="linkbtn" onclick="$('kpi-detail').hidden=false;$('kpi-auto').hidden=true">Review them</button>`;
-    }
+    try{
+      const unsure=metrics.filter(m=>(m.suggestion||{}).direction_known===false).length;
+      const auto=$("kpi-auto"),detail=$("kpi-detail");
+      if(auto&&detail){
+        auto.hidden=!(metrics.length&&!unsure);detail.hidden=!auto.hidden;
+        auto.innerHTML=`All ${plural(metrics.length,"KPI")} recognised: units, which way is good, and how each adds up over a quarter. <button class="linkbtn" onclick="$('kpi-detail').hidden=false;$('kpi-auto').hidden=true">Review them</button>`;
+      }
+    }catch{}   // a summary line must never turn the picker into an error
   }catch(e){if(lastImport===current)$("kpi-rows").innerHTML=`<div class="banner err">${esc(e.message)} <button class="btn sm" onclick="loadKpiPicker()">Retry</button></div>`;}
   finally{clearTimeout(slow);if(lastImport===current){kpiLoading=false;updateKpiSelection();}}
 }
@@ -3743,6 +3744,3 @@ document.addEventListener("click",e=>{
   const fn=DATA_ACTIONS[el.dataset.act];if(fn){e.preventDefault();fn(el.dataset.arg||"",el,e);}
 });
 /* ---------- end delegated actions ---------- */
-  if(/\bin millions\b|\bmillions\b|\(\$?m\)|\$ ?m\b|\(\$?mm\)|\busd ?mm?\b/.test(text))return 1000000;
-  if(/\bin thousands\b|\bthousands\b|\$ ?000s?\b|\(000s?\)|\b000s\b|\(\$?k\)|\busd ?k\b/.test(text))return 1000;
-

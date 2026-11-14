@@ -21,7 +21,7 @@ from app.compute.aggregate import (
 )
 from app.compute.availability import combined_percentage_reason, has_usable_value, needs_reason, reason_trigger
 from app.compute.cadence import LABELS as CADENCE_LABELS
-from app.compute.cadence import dataset_step, shift_period
+from app.compute.cadence import dataset_step, shift_period, steps_from_values
 from app.compute.close_views import (
     breakdown_available,
     breakdown_coverage,
@@ -394,7 +394,8 @@ def build_facts(conn, ds, period, granularity, user, include_charts=True):
     breakdowns = breakdown_coverage(conn, ds, [period])
     month_parts = part_variances(conn, ds, [period])
     notes = dataset_notes(conn, ds)
-    step = dataset_step(conn, ds)   # a quarterly file's close compares with the last quarter
+    # A quarterly file's close compares with the last quarter (from the values already loaded).
+    step = steps_from_values(all_values)
     sensitive = user.role == "admin"   # gate cost/latency/emails to admins
     # Batch the per-card report + feedback lookups into two queries instead of
     # ~3 per card (was an N+1 over the dashboard's hot path).
@@ -403,26 +404,22 @@ def build_facts(conn, ds, period, granularity, user, include_charts=True):
     # Last period's approved commentary, so month two starts from what was said last time.
     previous_by_metric = {}
     prev_period = shift_period(period, -step) if re.fullmatch(r"\d{4}-\d{2}", period or "") else None
-    if metric_ids and prev_period:
-        ph0 = ",".join("?" * len(metric_ids))
-        for pr in conn.execute(
-            f"""SELECT gr.metric_id, gr.narrative FROM generated_reports gr
-                WHERE gr.metric_id IN ({ph0}) AND gr.period = ? AND gr.review_status = 'approved'
-                  AND (gr.prompt_version IS NULL OR gr.prompt_version NOT LIKE '%-digest')
-                ORDER BY gr.id ASC""", (*metric_ids, prev_period)).fetchall():
-            previous_by_metric[pr["metric_id"]] = {"period": prev_period, "narrative": pr["narrative"]}
     if metric_ids:
         ph = ",".join("?" * len(metric_ids))
         for rr in conn.execute(
             f"""SELECT gr.id, gr.metric_id, gr.narrative, gr.sources, gr.confidence,
                        gr.faithfulness, gr.cost_usd, gr.latency_ms, gr.user_email,
-                       gr.review_status, gr.assigned_email
+                       gr.review_status, gr.assigned_email, gr.period
                 FROM generated_reports gr
-                WHERE gr.metric_id IN ({ph}) AND gr.period = ?
+                WHERE gr.metric_id IN ({ph}) AND gr.period IN (?, ?)
                   AND (gr.prompt_version IS NULL OR gr.prompt_version NOT LIKE '%-digest')
                 ORDER BY gr.id ASC""",
-            (*metric_ids, period),
+            (*metric_ids, period, prev_period or period),
         ).fetchall():
+            if rr["period"] != period:   # last period's: keep only its approved commentary
+                if rr["review_status"] == "approved":
+                    previous_by_metric[rr["metric_id"]] = {"period": prev_period, "narrative": rr["narrative"]}
+                continue
             reports_by_metric[rr["metric_id"]] = rr   # ASC → latest id wins
         report_ids = [rr["id"] for rr in reports_by_metric.values()]
         if report_ids:
