@@ -9,7 +9,10 @@ def reason_recorded(doc, metric: str, month: str) -> bool:
     if str(metric).strip().lower() not in tags:
         return False
     if doc.effective_date:
-        return str(doc.effective_date)[:7] == month
+        start, until = str(doc.effective_date)[:7], getattr(doc, "effective_until", None)
+        if until:   # covers a range, or recurs until turned off
+            return start <= month and (until == "ongoing" or month <= str(until)[:7])
+        return start == month
     return doc.type == "event_note"
 
 

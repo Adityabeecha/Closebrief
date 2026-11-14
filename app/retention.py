@@ -85,31 +85,13 @@ def purge_inactive_sandboxes(conn, days: int = 30, keep_user_ids=()) -> dict:
                    or (member["email"] or "").strip().casefold() in keep_emails for member in members):
                 continue
             datasets.set_workspace_scope(ws)
-            owned = conn.execute("SELECT id FROM datasets WHERE workspace_id = ? AND COALESCE(is_demo, false) = false",
-                                 (ws,)).fetchall()
-            for dataset in owned:
-                ds = int(dataset["id"])
-                if not datasets.delete_dataset(conn, ds):
-                    raise RuntimeError(f"Sandbox dataset {ds} could not be deleted in workspace {ws}")
-                result["datasets_purged"] += 1
-            documents = conn.execute("SELECT id FROM context_documents WHERE workspace_id = ?", (ws,)).fetchall()
-            uploads = conn.execute("SELECT file_path FROM uploads WHERE workspace_id = ?", (ws,)).fetchall()
-            for upload in uploads:
-                if upload["file_path"]:
-                    Path(upload["file_path"]).unlink(missing_ok=True)
-            for table in ("context_documents", "connectors", "notification_configs", "uploads",
-                          "workspace_invites", "workspace_members", "llm_calls"):
+            result["datasets_purged"] += clear_workspace_data(conn, ws, commit=False)
+            for table in ("workspace_invites", "workspace_members", "llm_calls"):
                 conn.execute(f"DELETE FROM {table} WHERE workspace_id = ?", (ws,))
             conn.execute("DELETE FROM workspaces WHERE id = ?", (ws,))
             conn.commit()
             for member in members:
                 invalidate_membership_cache(str(member["user_id"]))
-            # pgvector rows cascade with context_documents; FAISS needs removal.
-            if documents and resolved_vector_backend() == "faiss":
-                from app.deps import shared_vector_store
-                vectors = shared_vector_store()
-                vectors.remove([int(doc["id"]) for doc in documents])
-                vectors.persist()
             result["workspaces_purged"] += 1
     except Exception:
         conn.rollback()
@@ -118,6 +100,37 @@ def purge_inactive_sandboxes(conn, days: int = 30, keep_user_ids=()) -> dict:
         datasets.set_workspace_scope(previous_workspace)
         datasets.set_demo_scope(previous_demo)
     return result
+
+
+def clear_workspace_data(conn, ws: int, commit: bool = True) -> int:
+    """Delete everything a workspace holds (datasets with their figures, commentary and
+    history, notes, linked sources, notification channels, uploads) but keep the
+    workspace, its members and the activity log. Returns the datasets deleted."""
+    from app import datasets
+
+    deleted = 0
+    owned = conn.execute("SELECT id FROM datasets WHERE workspace_id = ? AND COALESCE(is_demo, false) = false",
+                         (ws,)).fetchall()
+    for dataset in owned:
+        ds = int(dataset["id"])
+        if not datasets.delete_dataset(conn, ds):
+            raise RuntimeError(f"Dataset {ds} could not be deleted in workspace {ws}")
+        deleted += 1
+    documents = conn.execute("SELECT id FROM context_documents WHERE workspace_id = ?", (ws,)).fetchall()
+    for upload in conn.execute("SELECT file_path FROM uploads WHERE workspace_id = ?", (ws,)).fetchall():
+        if upload["file_path"]:
+            Path(upload["file_path"]).unlink(missing_ok=True)
+    for table in ("context_documents", "connectors", "notification_configs", "uploads"):
+        conn.execute(f"DELETE FROM {table} WHERE workspace_id = ?", (ws,))
+    if commit:
+        conn.commit()
+    # pgvector rows cascade with context_documents; FAISS needs removal.
+    if documents and resolved_vector_backend() == "faiss":
+        from app.deps import shared_vector_store
+        vectors = shared_vector_store()
+        vectors.remove([int(doc["id"]) for doc in documents])
+        vectors.persist()
+    return deleted
 
 
 def run_retention(conn) -> dict:
@@ -135,5 +148,22 @@ def run_retention(conn) -> dict:
             continue
         total += purge_workspace(conn, int(r["id"]), days)["llm_calls_purged"]
     uploads_purged = purge_old_uploads(conn)
+    abandoned = purge_abandoned_imports(conn)
     return {"workspaces": len(rows), "llm_calls_purged": total, "uploads_purged": uploads_purged,
-            "sandboxes_purged": sandboxes["workspaces_purged"], "datasets_purged": sandboxes["datasets_purged"]}
+            "sandboxes_purged": sandboxes["workspaces_purged"], "datasets_purged": sandboxes["datasets_purged"],
+            "abandoned_imports_purged": abandoned}
+
+
+def purge_abandoned_imports(conn, days: int = 2) -> int:
+    """Datasets whose import stopped before Finish and was never picked up again."""
+    from app import datasets
+
+    rows = conn.execute("SELECT id, workspace_id FROM datasets WHERE import_pending = ? AND created_at < ?",
+                        (True, _cutoff(days))).fetchall()
+    purged = 0
+    for r in rows:
+        datasets.set_demo_scope(False)
+        datasets.set_workspace_scope(r["workspace_id"])
+        if datasets.delete_dataset(conn, int(r["id"])):
+            purged += 1
+    return purged

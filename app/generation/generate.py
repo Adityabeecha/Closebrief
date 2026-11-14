@@ -4,6 +4,10 @@ faithfulness guard. Never lets an unverified number leave the system."""
 import re
 import time
 
+from app.compute.availability import DEFAULT_REASON_THRESHOLD, needs_reason
+from app.context.reasons import dataset_notes, reason_recorded
+from app.datasets import active_dataset_id
+from app.db import get_connection
 from app.generation.guard import check_faithfulness, faithfulness_messages
 from app.generation.llm_client import LLMClient, LLMGenerationError
 from app.generation.prompts import (
@@ -26,19 +30,24 @@ class GenerationFailedFactsOnly(Exception):
         self.facts_only = facts_only
 
 
-def _confidence_from_context(context: list[ContextSnippet], scores: list[float] | None = None) -> str:
-    """US-C1: Low when fewer than 2 relevant context chunks were retrieved;
-    otherwise Medium/High per retrieval score."""
-    if len(context) < 2:
-        return "Low"
-    if scores:
-        top = max(scores)
-        if len(context) >= 3 and top >= 0.35:
-            return "High"
-        if top >= 0.25:
-            return "High" if len(context) >= 3 else "Medium"
+def _confidence_from_context(context: list[ContextSnippet], fact: ComputedFact, sources_used: list[str]) -> str:
+    """Confidence in the cited explanation, independent of retrieval volume/score."""
+    cited = {c.id for c in context} & set(sources_used)
+    # Snippets omit tags/dates. Resolve stored IDs within the active dataset and
+    # workspace before applying the same recorded-reason rule as the close view.
+    doc_ids = {int(s[4:]) for s in cited if re.fullmatch(r"ctx_\d+", s)}
+    if doc_ids:
+        conn = get_connection()
+        try:
+            notes = dataset_notes(conn, active_dataset_id(conn))
+            if any(d.id in doc_ids and reason_recorded(d, fact.metric, fact.period) for d in notes):
+                return "High"
+        finally:
+            conn.close()
+    if cited:
         return "Medium"
-    return "High" if len(context) >= 3 else "Medium"
+    threshold = getattr(fact, "reason_threshold_pct", DEFAULT_REASON_THRESHOLD)
+    return "Low" if needs_reason(fact.is_anomaly, fact.deltas.budget_var_pct, threshold) else "Medium"
 
 
 def _facts_only_output(fact: ComputedFact) -> InsightOutput:
@@ -147,18 +156,14 @@ def generate_insight(
 
     narrative = _unsigned_levels(result.narrative)
     if not sources:
+        sentences = re.split(r"(?<=[.!?])\s+", narrative.strip())
+        while sentences and re.match(r"^(?:Watch for\b|Monitor\b|Next month,)", sentences[-1], re.I):
+            sentences.pop()
+        narrative = " ".join(sentences)
         narrative = _without_context_closing(narrative, fact, trend_streak)
     passed, unverified = check_faithfulness(narrative, fact, context)
 
-    confidence = "Low" if not passed else _confidence_from_context(context, retrieval_scores)
-    # Non-semantic embedder (offline hashing fallback): its similarity scores
-    # are noise, so they must not earn High confidence.
-    if not embedder_semantic and confidence == "High":
-        confidence = "Medium"
-    # Context was provided but the narrative cites none of it: the causes are
-    # not attributable, so knock confidence down one notch.
-    if passed and context and not sources:
-        confidence = {"High": "Medium", "Medium": "Low", "Low": "Low"}[confidence]
+    confidence = "Low" if not passed else _confidence_from_context(context, fact, result.sources_used)
 
     latency_ms = round((time.perf_counter() - t0) * 1000, 1)
     return InsightOutput(

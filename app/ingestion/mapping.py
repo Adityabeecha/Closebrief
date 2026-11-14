@@ -16,7 +16,7 @@ import sqlite3
 from typing import Optional
 
 import pandas as pd
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class MappingSpec(BaseModel):
@@ -53,6 +53,18 @@ class MappingSpec(BaseModel):
     # Optional budget columns parallel to wide_period_cols, same order, so a
     # wide layout can carry budget instead of nulling the variance story.
     wide_budget_cols: list[str] = Field(default_factory=list)
+    # The file's amounts are in units, thousands or millions ("$ in thousands").
+    # Currency KPIs are stored as real amounts; percentages and counts are left alone.
+    amount_scale: int = Field(default=1)
+    # A column of reasons/comments next to each line: becomes context notes.
+    comment_col: Optional[str] = None
+
+    @field_validator("amount_scale")
+    @classmethod
+    def _scale_ok(cls, v: int) -> int:
+        if v not in (1, 1000, 1_000_000):
+            raise ValueError("amount_scale must be 1, 1000 or 1000000")
+        return v
 
 
 class MappingError(Exception):

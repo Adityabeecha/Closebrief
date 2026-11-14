@@ -54,7 +54,7 @@ function buildReportHTML(facts){
       <div class="rc-top"><span class="rc-dot" style="background:${col}"></span><span class="rc-name">${esc(f.metric)}</span>
         <span class="rc-cat">${esc(f.category||"")}</span></div>
       <div class="rc-vrow"><span class="rc-val">${fmt(f.value,f.unit)}</span>${spark}</div>
-      <div class="rc-deltas">${reportDelta(priorPeriodLabel(),f.deltas.mom_pct,dg,deltaText(f,"mom"))}${reportDelta("vs plan",f.deltas.budget_var_pct,dg,deltaText(f,"budget"))}${f.is_anomaly?'<span class="rd" style="color:#b42e2c;background:#faeeed">ANOMALY</span>':""}</div>
+      <div class="rc-deltas">${reportDelta(priorPeriodLabel(),f.deltas.mom_pct,dg,deltaText(f,"mom"))}${reportDelta((globalThis.vsPlan?vsPlan():"vs plan"),f.deltas.budget_var_pct,dg,deltaText(f,"budget"))}${f.is_anomaly?'<span class="rd" style="color:#b42e2c;background:#faeeed">ANOMALY</span>':""}</div>
       <div class="rc-narr">${f.narrative?esc(f.narrative):"<i>No narrative generated for this metric.</i>"}</div>
       ${f.faithfulness==="failed"?'<div class="rd" style="color:#b42e2c">Numbers need review — unverified narrative</div>':""}
       ${src?`<div class="rc-src">${src}</div>`:""}
@@ -117,6 +117,45 @@ function exportPDF(){
   w.document.open();w.document.write(buildReportHTML(facts));w.document.close();
   // Give the window a beat to lay out fonts/sparklines before invoking print.
   setTimeout(()=>{try{w.focus();w.print();}catch(e){}},450);
+}
+/* ---- Commentary where analysts actually send it: a pasteable table and a Word memo ---- */
+// Approved commentary first; drafts only when nothing is approved yet (and they're marked).
+function commentaryRows(){
+  const withText=(currentFacts||[]).filter(f=>f.has_data&&f.narrative);
+  const approved=withText.filter(f=>f.review_status==="approved");
+  const rows=(approved.length?approved:withText).map(f=>({metric:f.metric,actual:fmt(f.value,f.unit),
+    plan:f.deltas&&f.deltas.budget_var_pct!=null?deltaText(f,"budget"):"",prior:f.deltas&&f.deltas.mom_pct!=null?deltaText(f,"mom"):"",
+    text:f.narrative,draft:f.review_status!=="approved"}));
+  return {rows,approved:approved.length>0};
+}
+function commentaryHtml(){
+  const {rows,approved}=commentaryRows(),title=fmtPeriodTitle(currentPeriod);
+  const cell="border:1px solid #bbb;padding:6px 8px;vertical-align:top;font-family:Calibri,Arial,sans-serif;font-size:11pt";
+  return `<h2 style="font-family:Calibri,Arial,sans-serif">${esc(title)}: commentary</h2>`
+    +(approved?"":`<p style="font-family:Calibri,Arial,sans-serif;color:#a15c00">Drafts, not yet approved.</p>`)
+    +`<table style="border-collapse:collapse"><tr>${["KPI","Actual","Vs plan",capFirst(priorPeriodLabel()),"Commentary"].map(h=>`<th style="${cell};background:#eef3ef;text-align:left">${esc(h)}</th>`).join("")}</tr>`
+    +rows.map(r=>`<tr><td style="${cell}"><b>${esc(r.metric)}</b></td><td style="${cell}">${esc(r.actual)}</td><td style="${cell}">${esc(r.plan)}</td><td style="${cell}">${esc(r.prior)}</td><td style="${cell}">${esc(r.text)}</td></tr>`).join("")+`</table>`;
+}
+async function copyCommentary(){
+  const menu=$("export-menu");if(menu)menu.classList.remove("open");
+  const {rows}=commentaryRows();if(!rows.length){toast("No commentary to copy yet");return;}
+  const text=rows.map(r=>`${r.metric}\t${r.actual}\t${r.plan}\t${r.prior}\t${r.text}`).join("\n");
+  try{
+    if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){
+      await navigator.clipboard.write([new ClipboardItem({"text/html":new Blob([commentaryHtml()],{type:"text/html"}),"text/plain":new Blob([text],{type:"text/plain"})})]);
+    }else await navigator.clipboard.writeText(text);
+    toast(`Copied ${plural(rows.length,"KPI")}: paste into PowerPoint, Word or an email`);
+  }catch{toast("Couldn't copy: your browser blocked the clipboard");}
+}
+// A .doc Word opens and edits (Word reads this HTML natively), named after the close.
+function exportWord(){
+  const menu=$("export-menu");if(menu)menu.classList.remove("open");
+  const {rows}=commentaryRows();if(!rows.length){toast("No commentary to export yet");return;}
+  const doc=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${esc(fmtPeriodTitle(currentPeriod))}</title></head><body>${commentaryHtml()}</body></html>`;
+  const name=`Closebrief - ${(activeDatasetObj&&datasetDisplayName(activeDatasetObj.name))||"Dataset"} - ${fmtPeriodTitle(currentPeriod)}.doc`.replace(/[\\/:*?"<>|]+/g," ");
+  const url=URL.createObjectURL(new Blob(["\ufeff",doc],{type:"application/msword"})),a=document.createElement("a");
+  a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  toast("Word file downloaded");
 }
 // The close as an Excel workbook, built on the server from the same figures as the screen.
 async function exportExcel(btn){
@@ -427,7 +466,7 @@ const fmt=(v,unit,cur)=>{
   // Whole thousands only from 100K up: "$1K" for $1,450 hid a third of the figure.
   const code=cur||displayCurrency,m=CURRENCY_MARK[code]||"$";
   const a=Math.abs(v),sign=v<0?"−":"";let mag;
-  if(a>=1e6)mag=m+(a/1e6).toFixed(2)+"M"; else if(a>=1e5)mag=m+(a/1e3).toFixed(0)+"K";
+  if(a>=1e9)mag=m+(a/1e9).toFixed(2)+"B"; else if(a>=1e6)mag=m+(a/1e6).toFixed(2)+"M"; else if(a>=1e5)mag=m+(a/1e3).toFixed(0)+"K";
   else if(a>=1e3)mag=m+Math.round(a).toLocaleString();
   else mag=m+(+a.toFixed(code==="JPY"?0:2)).toLocaleString();
   return sign+mag;
@@ -481,7 +520,15 @@ function datasetDisplayName(name){
   return words.charAt(0).toUpperCase()+words.slice(1);
 }
 const capFirst=s=>s.charAt(0).toUpperCase()+s.slice(1);
-function priorPeriodLabel(){return granularity==="year"?"vs last year":granularity==="quarter"?"vs last quarter":"vs last month";}
+// How often this dataset reports. A file of quarter-end rows is a quarterly close: its
+// "previous period" is the last quarter and year to date counts quarters.
+let datasetCadence="month";
+function cadenceUnit(){return granularity==="month"?datasetCadence:granularity;}
+// What the dataset's comparison column is called ("plan", "prior year", "non-GAAP"),
+// so a file whose "budget" is last year's actuals never reads as a budget.
+function planName(){return (typeof activeDatasetObj!=="undefined"&&activeDatasetObj&&activeDatasetObj.budget_label)||"plan";}
+function vsPlan(){return "vs "+planName();}
+function priorPeriodLabel(){const u=cadenceUnit();return u==="year"?"vs last year":u==="quarter"?"vs last quarter":"vs last month";}
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const plural=(n,one,many)=>`${n} ${n===1?one:(many||one+"s")}`;
 const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -491,7 +538,8 @@ function fiscalStart(){return (typeof activeDatasetObj!=="undefined"&&activeData
 function fyLabel(y){return fiscalStart()===1?y:`FY${y}`;}
 function fmtPeriodTitle(p){
   if(!p)return"Dashboard";
-  if(/^\d{4}-\d{2}$/.test(p))return `${MONTHS[+p.slice(5,7)-1]} ${p.slice(0,4)} close`;
+  if(/^\d{4}-\d{2}$/.test(p))return datasetCadence==="quarter"?`Quarter ended ${MONTHS[+p.slice(5,7)-1]} ${p.slice(0,4)}`
+    :datasetCadence==="year"?`Year ended ${MONTHS[+p.slice(5,7)-1]} ${p.slice(0,4)}`:`${MONTHS[+p.slice(5,7)-1]} ${p.slice(0,4)} close`;
   if(/^\d{4}-Q\d$/.test(p))return `Q${p.slice(6)} ${fyLabel(p.slice(0,4))} overview`;
   return `${/^\d{4}$/.test(p)?fyLabel(p):p} overview`;
 }
@@ -592,14 +640,14 @@ function toggleCollapse(){
 }
 // Restore collapsed state on load.
 try{if(localStorage.getItem("cb-side-collapsed")==="1")document.body.classList.add("side-collapsed");}catch{}
-const VIEWS=["overview","dashboard","digest","context","boardpack","analytics","import","costs","notifications","admin","activity"];
+const VIEWS=["overview","dashboard","digest","context","boardpack","analytics","import","costs","notifications","privacy","admin","activity"];
 // Each close (a month, quarter or year) is a workspace with tabs: [URL key, label, the view that renders it].
 const MONTH_TABS=[["overview","Overview","overview"],["kpis","KPIs","dashboard"],["context","Context","context"],
   ["digest","Digest","digest"],["boardpack","Board pack","boardpack"],["data","Data","import"]];
 // Places that span closes: [place, view, hash, title].
 const PLACES=[["analyze","analytics","#analyze","Analyze"],["library","context","#library","Context library"],
   ["datahub","import","#data","Data and imports"],["costs","costs","#settings=costs","Cost and usage"],
-  ["notifications","notifications","#settings=notifications","Notifications"],["admin","admin","#settings=users","Users"],
+  ["notifications","notifications","#settings=notifications","Notifications"],["privacy","privacy","#settings=privacy","Workspace and data"],["admin","admin","#settings=users","Users"],
   ["activity","activity","#settings=activity","Activity"]];
 // Hashes from before the month workspace (bookmarks, sent emails) and where they live now.
 const LEGACY_HASH={dashboard:{tab:"kpis"},digest:{tab:"digest"},context:{tab:"context"},review:{tab:"overview"},
@@ -669,7 +717,7 @@ function nav(t,{fromRoute=false}={}){
   const inMonth=!r.place;
   document.body.classList.toggle("in-month",inMonth);
   $("month-head").style.display=inMonth&&currentPeriod?"":"none";
-  const inSettings=["costs","notifications","admin","activity"].includes(r.place);
+  const inSettings=["costs","notifications","privacy","admin","activity"].includes(r.place);
   document.body.classList.toggle("in-settings",inSettings);
   $("settings-head").style.display=inSettings?"":"none";
   document.querySelectorAll("#settings-head .mtabs a").forEach(a=>{
@@ -702,6 +750,7 @@ function nav(t,{fromRoute=false}={}){
   if(v==="activity")loadActivity();
   if(v==="costs")loadCosts();
   if(v==="notifications")loadNotifications();
+  if(v==="privacy")loadPrivacy();
   if(v==="admin")loadAdmin();
 }
 
@@ -736,7 +785,7 @@ function renderCloses(){
     const s=closeStateFor(p),[word,cls]=CLOSE_STATUS[s?s.status:"not_started"]||CLOSE_STATUS.not_started;
     const sub=s&&s.n?`${s.approved} of ${s.n}${granularity==="month"?"":" commentaries"} approved`:"";
     return `<button class="ci" data-p="${esc(p)}" data-act="close" data-arg="${esc(p)}">
-      <b>${esc(fmtPeriod(p,"long"))}</b>${s?`<span class="cs ${cls}">${word}</span>`:""}
+      <b>${esc((granularity==="month"&&datasetCadence!=="month"?(datasetCadence==="quarter"?"Q/e ":"Y/e "):"")+fmtPeriod(p,"long"))}</b>${s?`<span class="cs ${cls}">${word}</span>`:""}
       ${sub?`<small>${sub}</small>`:""}${s&&s.n&&!["not_started","empty"].includes(s.status)?`<span class="cbar" aria-hidden="true"><i style="width:${Math.round(s.progress*100)}%"></i></span>`:""}</button>`;
   }).join("")+(newest.length>6?`<button class="more" onclick="showAllCloses=!showAllCloses;renderCloses()">${showAllCloses?"Show fewer":`Show all ${newest.length}`}</button>`:"");
   markCloses();
@@ -882,7 +931,7 @@ function paintOverview(){
   $("ov-glance-title").textContent=`${fmtPeriod(currentPeriod,"long")} at a glance`;
   $("ov-glance").innerHTML=movers.length?`<div class="glance">${movers.map(({f,v,plan})=>{
     const good=v===0?null:(f.direction_good==="down"?v<0:v>0);
-    return `<button data-act="metric" data-arg="${esc(f.metric)}"><span>${esc(f.metric)}</span><b>${fmt(f.value,f.unit)} <span class="${good===null?"":good?"c-ok":"c-exc"}">${deltaText(f,plan?"budget":"mom")||pct(v)}</span><span class="visually-hidden"> ${plan?"vs plan":"vs prior period"}</span></b></button>`;}).join("")}</div>`
+    return `<button data-act="metric" data-arg="${esc(f.metric)}"><span>${esc(f.metric)}</span><b>${fmt(f.value,f.unit)} <span class="${good===null?"":good?"c-ok":"c-exc"}">${deltaText(f,plan?"budget":"mom")||pct(v)}</span><span class="visually-hidden"> ${plan?(globalThis.vsPlan?vsPlan():"vs plan"):"vs prior period"}</span></b></button>`;}).join("")}</div>`
     :`<p class="mh-sub">No movements to show for this close.</p>`;
   if(allMovers>4)$("ov-glance").innerHTML+=`<button class="linkbtn glance-more" onclick="glanceAll=!glanceAll;paintOverview()">${glanceAll?"Show the top 4":`Show all ${allMovers}`}</button>`;
   if(movers.length&&movers.every(x=>!x.plan)){
@@ -1624,6 +1673,59 @@ async function toggleVersions(){
   }catch(e){box.innerHTML=`<div class="an-empty">${esc(errMsg(e))}</div>`;}
 }
 
+// A manager approves from a link (no account): it opens this close's drafts only, for 7 days.
+async function approvalLink(){
+  if(!currentPeriod||granularity!=="month"){toast("Open a month's close to share it for approval");return;}
+  try{
+    const r=await api("/close/approval-link",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({period:currentPeriod})});
+    try{await navigator.clipboard.writeText(r.url);}catch{}
+    await _openModalRaw({title:"Approval link",okLabel:"Done",getValue:()=>true,
+      body:`<p style="margin:0 0 8px;font-size:14px">Send this to whoever approves ${esc(fmtPeriodTitle(currentPeriod))}. They can read the drafts and approve or request changes, for ${r.days} days, without an account. It's copied to your clipboard.</p><input class="modal-field" readonly value="${esc(r.url)}" onclick="this.select()">`});
+  }catch(e){toast("Couldn't make the link: "+errMsg(e));}
+}
+// Advanced tools (Analyze, correlations) are hidden until the analyst asks for them.
+function setAdvanced(on){
+  document.body.classList.toggle("advanced",!!on);
+  try{localStorage.setItem("cb_advanced",on?"1":"0");}catch{}
+  const t=$("adv-toggle");if(t)t.checked=!!on;
+}
+(function(){let on=false;try{on=localStorage.getItem("cb_advanced")==="1";}catch{}
+  if(document.body)setAdvanced(on);else document.addEventListener("DOMContentLoaded",()=>setAdvanced(on));})();
+/* ---------- privacy and data: hidden words, export, delete ---------- */
+async function loadPrivacy(){
+  try{const r=await api("/workspace/privacy");$("pv-terms").value=(r.hidden_terms||[]).join("\n");}
+  catch(e){$("pv-terms").value="";}
+  try{const st=await api("/workspace/style");$("hs-fav").checked=!!st.favourable_wording;$("hs-fwd").checked=st.forward_looking!==false;
+    $("hs-max").value=String(st.max_sentences||3);$("hs-instr").value=st.instruction||"";}catch{}
+}
+async function saveStyle(){
+  try{await api("/workspace/style",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+    favourable_wording:$("hs-fav").checked,forward_looking:$("hs-fwd").checked,max_sentences:+$("hs-max").value,instruction:$("hs-instr").value})});
+    toast("House style saved. It applies to the next drafts.");}
+  catch(e){toast("Couldn't save: "+errMsg(e));}
+}
+async function savePrivacy(){
+  const terms=$("pv-terms").value.split(/[\n,]/).map(s=>s.trim()).filter(Boolean);
+  try{const r=await api("/workspace/privacy",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({hidden_terms:terms})});
+    $("pv-terms").value=r.hidden_terms.join("\n");toast(r.hidden_terms.length?`${plural(r.hidden_terms.length,"word")} hidden from the AI`:"No words hidden");}
+  catch(e){toast("Couldn't save: "+errMsg(e));}
+}
+async function exportWorkspace(){
+  try{
+    const r=await api("/workspace/export",{raw:true});
+    const cd=r.headers.get("Content-Disposition")||"",m=/filename="([^"]+)"/.exec(cd);
+    const url=URL.createObjectURL(await r.blob()),a=document.createElement("a");
+    a.href=url;a.download=m?m[1]:"closebrief-export.json";document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);toast("Export downloaded");
+  }catch(e){toast("Couldn't export: "+errMsg(e));}
+}
+async function deleteAllData(){
+  const typed=await modalInput("Delete all data in this workspace",{label:"Every dataset, figure, commentary, note, linked source and upload is deleted. This can't be undone. Export first if you want a copy. Type DELETE to confirm.",okLabel:"Delete everything",required:true});
+  if(typed!=="DELETE"){if(typed!=null)toast("Not deleted: type DELETE in capitals");return;}
+  try{const r=await api("/workspace/data",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({confirm:"DELETE"})});
+    toast(`Deleted ${plural(r.datasets_deleted,"dataset")}`);await loadDatasets();await loadPeriods();nav("datahub");}
+  catch(e){toast("Couldn't delete: "+errMsg(e));}
+}
 async function loadNotifications(){
   const done=screenLoading("nt-list","Loading notification channels…");const schedules=loadSchedules();
   try{
@@ -1742,7 +1844,7 @@ async function setUserRole(uid,role){
 /* ---------- datasets ---------- */
 const DOMAIN_LABEL={fpa:"FP&A",marketing:"Marketing",ops:"Ops"};
 let activeDatasetObj=null, activeDomain=null;
-function datasetCaption(ds){return plural(ds.metric_count||0,"KPI")+" · imported "+fmtDate(ds.created_at);}
+function datasetCaption(ds){return ds.import_pending?"Import not finished · open Data and imports or delete it":plural(ds.metric_count||0,"KPI")+" · imported "+fmtDate(ds.created_at);}
 async function loadDatasets(){
   const d=await api("/datasets");
   activeDatasetId=d.active_id;
@@ -2067,6 +2169,7 @@ async function loadFacts(){
   try{
     currentFacts=await api(`/facts?period=${encodeURIComponent(currentPeriod)}&granularity=${granularity}`);
     clearTimeout(_factsSlowT);
+    if(granularity==="month"){const c=(currentFacts.find(f=>f.cadence)||{}).cadence||"month";if(c!==datasetCadence){datasetCadence=c;renderCloses();}}
     const cats=[...new Set(currentFacts.map(f=>f.category||"Uncategorized"))].sort();
     assignCatSlots(cats);
     renderCatPills(cats);
@@ -2377,7 +2480,7 @@ function statementHtml(facts){
         ${delta(f,"budget",d.budget_var_pct)}${delta(f,"mom",d.mom_pct)}${extra(f)}</tr>`;
     });
   });
-  return `<div class="stmt-wrap"><table class="stmt"><thead><tr><th>KPI</th><th>Actual</th><th>Plan</th><th>vs plan</th><th>${esc(priorPeriodLabel())}</th>${hasFc?"<th>vs forecast</th>":""}${hasYtd?`<th>${esc(ytdLabel())}</th><th>YTD vs plan</th>`:""}</tr></thead><tbody>${body}</tbody></table></div>
+  return `<div class="stmt-wrap"><table class="stmt"><thead><tr><th>KPI</th><th>Actual</th><th>${esc((globalThis.planName?planName():"plan").replace(/^./,c=>c.toUpperCase()))}</th><th>${esc((globalThis.vsPlan?vsPlan():"vs plan"))}</th><th>${esc(priorPeriodLabel())}</th>${hasFc?"<th>vs forecast</th>":""}${hasYtd?`<th>${esc(ytdLabel())}</th><th>YTD ${esc((globalThis.vsPlan?vsPlan():"vs plan"))}</th>`:""}</tr></thead><tbody>${body}</tbody></table></div>
     <p class="stmt-note">Grouped by category in report order. Categories aren't added up: a category can mix amounts, counts and rates. Pick a KPI to read its commentary.</p>`;
 }
 function openFromStatement(i){
@@ -2415,7 +2518,7 @@ function queueRow(f,i,q){
   const g=queueGroup(f);
   if(!f.has_data)return `<div class="qi nodata"><i class="dot" aria-hidden="true"></i><span class="qn">${hl(f.metric,q)}</span><span class="qsub">${f.unavailable_reason?esc(f.unavailable_reason):`No data for ${esc(fmtPeriod(currentPeriod))}`}</span></div>`;
   const plan=f.deltas.budget_var_pct,v=plan!=null?plan:f.deltas.mom_pct;
-  const vLabel=plan!=null?"vs plan":priorPeriodLabel();
+  const vLabel=plan!=null?(globalThis.vsPlan?vsPlan():"vs plan"):priorPeriodLabel();
   const good=v==null||v===0?null:(f.direction_good==="down"?v<0:v>0);
   const tone=good===null?"":good?"c-ok":"c-exc";
   const state=generatingSet.has(f.metric)?"Drafting…"
@@ -2506,7 +2609,8 @@ function renderTrendChart(trend,unit){
   ensureCanvas("c-trend");const box=$("box-c-trend"),note=$("d-trend-axis");if(note)note.textContent="";
   const has=trend.some(t=>t.value!=null||t.budget!=null);
   const months=trend.filter(t=>t.value!=null).length;
-  $("d-trend-title").textContent=months>1?`${months}-month trend`:"Trend";
+  const per=cadenceUnit();$("d-trend-title").textContent=months>1?`${months}-${per} trend`:"Trend";
+  {const sub=$("d-trend-title").nextElementSibling;if(sub)sub.textContent=`Actual ${(globalThis.vsPlan?vsPlan():"vs plan")}, by ${per}`;}
   if(!has){if(chartReg["c-trend"]){chartReg["c-trend"].destroy();delete chartReg["c-trend"];}box.innerHTML='<div class="loading">No trend data.</div>';return;}
   const th=chartTheme();
   // Straight segments, no area fill: smoothing invents values between months and
@@ -2565,13 +2669,14 @@ function trendTable(trend,unit){if(!trend.length)return"";return`<details class=
 /* ---------- metric detail ---------- */
 /* ---- Year to date (F8) ---- */
 function ytdLabel(){return fiscalStart()!==1?"Fiscal year to date":"Year to date";}
+function ytdUnit(y){return y&&y.step===3?"quarter":y&&y.step===12?"year":"month";}
 function ytdFigs(f){
   const y=f.ytd;if(!y||y.value==null)return [];
   const plan=y.budget==null
-    ?(y.budget_months?`— (budget for ${y.budget_months} of ${plural(y.months,"month")})`:"—")
+    ?(y.budget_months?`— (budget for ${y.budget_months} of ${plural(y.months,ytdUnit(y))})`:"—")
     :fmt(y.budget,f.unit);
-  return [[`${ytdLabel()} (${plural(y.months,"month")})`,fmt(y.value,f.unit)],["YTD plan",plan],
-    ["YTD vs plan",y.var_pct==null?"—":pct(y.var_pct)],["YTD vs last year",y.yoy_pct==null?"—":pct(y.yoy_pct)]];
+  return [[`${ytdLabel()} (${plural(y.months,ytdUnit(y))})`,fmt(y.value,f.unit)],[`YTD ${(globalThis.planName?planName():"plan")}`,plan],
+    [`YTD ${(globalThis.vsPlan?vsPlan():"vs plan")}`,y.var_pct==null?"—":pct(y.var_pct)],["YTD vs last year",y.yoy_pct==null?"—":pct(y.yoy_pct)]];
 }
 /* ---- Contributors: one breakdown level under a KPI (F5) ---- */
 let contribFor=null;
@@ -2588,7 +2693,7 @@ async function loadContributors(f){
   $("d-contrib").innerHTML=contributorsHtml(r,f);
   if(r.available){
     $("d-contrib-title").textContent=`By ${String(r.dimension).toLowerCase()}`;
-    $("d-contrib-sub").textContent=r.total.var_abs!=null?"Which parts drove the variance to plan, biggest first.":"Each part of this KPI, biggest first.";
+    $("d-contrib-sub").textContent=r.total.var_abs!=null?`Which parts drove the variance ${(globalThis.vsPlan?vsPlan():"vs plan").replace(/^vs /,"to ")}, biggest first.`:"Each part of this KPI, biggest first.";
   }
 }
 function contributorsHtml(r,f){
@@ -2618,13 +2723,13 @@ function openDetail(i,{fromRoute=false}={}){
   markQueueSelection();
   $("d-title").textContent=f.metric;const dg=f.direction_good==="down";
   $("d-sub").innerHTML=`<span class="cat-dot" style="${catStyle(f.category)}"></span>${esc(f.category||"")} · ${esc(fmtPeriod(currentPeriod,"long"))} · <span class="nbi-num">${fmt(f.value,f.unit)}</span> `
-    +deltaChip(priorPeriodLabel(),f.deltas.mom_pct,dg,deltaText(f,"mom"))+" "+deltaChip("vs plan",f.deltas.budget_var_pct,dg,deltaText(f,"budget"))
+    +deltaChip(priorPeriodLabel(),f.deltas.mom_pct,dg,deltaText(f,"mom"))+" "+deltaChip((globalThis.vsPlan?vsPlan():"vs plan"),f.deltas.budget_var_pct,dg,deltaText(f,"budget"))
     +` <span class="dir-note">${dg?"Lower is better":"Higher is better"}</span>`
     +(f.is_anomaly?' <span class="anom">Anomaly</span>':"");
   const cd=f.chart_data||{};
   const bva=cd.budget_vs_actual||{};
-  $("d-figs").innerHTML=[["Actual",f.unavailable?"—":fmt(f.value,f.unit)],["Budget",bva.budget!=null?fmt(bva.budget,f.unit):"—"],
-    ["Vs plan",deltaText(f,"budget")||"—"],
+  $("d-figs").innerHTML=[["Actual",f.unavailable?"—":fmt(f.value,f.unit)],[capFirst((globalThis.planName?planName():"plan")),bva.budget!=null?fmt(bva.budget,f.unit):"—"],
+    [capFirst((globalThis.vsPlan?vsPlan():"vs plan")),deltaText(f,"budget")||"—"],
     ...(f.forecast!=null?[["Forecast",fmt(f.forecast,f.unit)],["Vs forecast",deltaText(f,"forecast")||"—"]]:[]),
     [capFirst(priorPeriodLabel()),deltaText(f,"mom")||"—"],["Vs last year",deltaText(f,"yoy")||"—"],...ytdFigs(f)]
     .map(([k,val])=>`<div><dt>${k}</dt><dd class="nbi-num">${esc(val)}</dd></div>`).join("");
@@ -2634,8 +2739,8 @@ function openDetail(i,{fromRoute=false}={}){
   ensureCanvas("c-trend");ensureCanvas("c-bva");ensureCanvas("c-bridge");
   renderTrendChart(cd.trend||[],f.unit);
   $("d-bva-sub").textContent=f.deltas.budget_var_abs==null?""
-    :isPctKpi(f)?`${deltaText(f,"budget")||"–"} vs budget`
-    :`${fmt(f.deltas.budget_var_abs,f.unit)} vs budget (${pct(f.deltas.budget_var_pct)||"–"})`;
+    :isPctKpi(f)?`${deltaText(f,"budget")||"–"} ${(globalThis.vsPlan?vsPlan():"vs plan")}`
+    :`${fmt(f.deltas.budget_var_abs,f.unit)} ${(globalThis.vsPlan?vsPlan():"vs plan")} (${pct(f.deltas.budget_var_pct)||"–"})`;
   renderBvaChart(cd.budget_vs_actual,f.unit);
   renderBridgeChart(cd.variance_bridge,f.deltas.budget_var_abs,f.unit);
   $("d-narr").className="narr"+(f.narrative?"":" muted");
@@ -2652,6 +2757,9 @@ function openDetail(i,{fromRoute=false}={}){
   $("d-narr-meta").textContent=narrMeta(f);
   $("d-chips").innerHTML=(f.sources||[]).map(s=>`<span class="chip" role="button" tabindex="0" title="Open source note" data-act="source" data-arg="${esc(s.id)}">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
   renderWhyNone(f);
+  // Month two: what last period's approved commentary said, to update rather than rewrite.
+  {const pv=$("d-prev"),pc=f.previous_commentary;
+    if(pv){pv.style.display=pc?"":"none";if(pc){pv.querySelector("summary").textContent=`What ${fmtPeriod(pc.period,"long")}'s approved commentary said`;pv.querySelector("p").textContent=pc.narrative||"";}}}
   $("d-qa-answer").innerHTML="";$("d-qa").value="";qaThread=[];   // fresh conversation per metric
   loadCorrelations(f.metric);
 }
@@ -2671,12 +2779,15 @@ async function renderGroundedNarrative(reportId){
   groundingData=g;
   const sents=(groundingData.sentences||[]);
   if(!sents.length){el.textContent=(detailFact&&detailFact.narrative)||"";return;}
-  el.innerHTML=sents.map(s=>`<span class="gsent ${s.kind}" data-i="${s.idx}" role="button" tabindex="0" title="Show what supports this sentence" onclick="showSentenceGrounding(${s.idx})">${esc(s.text)}</span>`).join(" ")
+  // Hover shows where each number comes from without a click; a click opens the full panel.
+  const traced=s=>[...(s.facts||[]).map(f=>`${G_FIELD[f.field]||f.field} = ${gFmtVal(f.value,f.is_percent)} (computed)`),
+    ...(s.context_ids||[]).map(id=>`cited note ${id}`),...(s.kind==="numeric-unverified"?["a figure not traced to the computed facts: check it"]:[])];
+  el.innerHTML=sents.map(s=>{const t=traced(s);return `<span class="gsent ${s.kind}" data-i="${s.idx}" role="button" tabindex="0" title="${esc(t.length?"From: "+t.join("; "):"A general statement, no figure to trace")}" onclick="showSentenceGrounding(${s.idx})">${esc(s.text)}</span>`;}).join(" ")
     +`<div class="g-legend">
         <span><i style="border-color:var(--green2)"></i>traces to a figure</span>
         <span><i style="border-color:var(--accent)"></i>cites a source</span>
         <span><i style="border-color:var(--amber);border-top-style:dashed"></i>unverified number</span>
-        <span style="color:var(--mut2)">Click any sentence →</span>
+        <span style="color:var(--mut2)">Hover a sentence to see where its numbers come from</span>
       </div>`;
 }
 function gFmtVal(v,isPct){return isPct?((v>0?"+":"")+v+"%"):fmt(v,"USD");}
@@ -2773,6 +2884,20 @@ const EST_COST_PER_NARR=0.006;
 let generatingSet=new Set(), skipRise=false;
 // Simple concurrency pool: run `worker` over `items`, at most `n` in flight.
 /* ---------- a big movement with no recorded reason asks for one, right where it's read ---------- */
+// One sentence is enough: the KPI, month and note type are filled in for the analyst.
+async function saveQuickReason(){
+  const f=detailFact,body=($("rb-text")&&$("rb-text").value||"").trim();
+  if(!f||!body){toast("Write the reason first");return;}
+  try{
+    await api("/context",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      type:"event_note",title:`Why ${f.metric} moved in ${fmtPeriod(currentPeriod,"long")}`,body,metric_tags:[f.metric],
+      effective_date:currentPeriod,scope:"dataset",effective_until:$("rb-rec")&&$("rb-rec").checked?"ongoing":null})});
+    const metric=f.metric,had=!!f.narrative;
+    await loadFacts();
+    const i=shownFacts.findIndex(x=>x.metric===metric);if(i>=0)openDetail(i,{fromRoute:true});
+    toast(had?"Reason saved. Regenerate to use it in the commentary.":"Reason saved. Draft the commentary to use it.");
+  }catch(e){toast("Couldn't save the reason: "+errMsg(e));}
+}
 // "Big" is the same rule the close checklist uses: an anomaly, or further from plan than
 // the dataset's threshold (10% unless changed in the dataset menu).
 function reasonThreshold(){return (typeof activeDatasetObj!=="undefined"&&activeDatasetObj&&activeDatasetObj.reason_threshold_pct)||10;}
@@ -2791,29 +2916,37 @@ function needsReason(f){
 // Why a month was flagged, in words: the rule, the comparison and how far out it is.
 function anomalyWhy(f){
   const a=f&&f.anomaly;if(!f||!f.is_anomaly||!a)return "";
-  const z=Math.abs(a.z).toFixed(1),t=a.threshold;
+  const z=Math.abs(a.z).toFixed(1),t=a.threshold,u=typeof cadenceUnit==="function"?cadenceUnit():"month";
   return a.basis==="seasonal"
-    ?`Anomaly: this month's change differs from the same month last year by ${z}× the usual spread (flagged above ${t}×), so a normal seasonal swing isn't flagged.`
-    :`Anomaly: this month's change is ${z}× the usual month-to-month spread (flagged above ${t}×). Once a few months each have a year-earlier comparison, it is judged against the same month last year instead.`;
+    ?`Anomaly: this ${u}'s change differs from the same ${u} last year by ${z}× the usual spread (flagged above ${t}×), so a normal seasonal swing isn't flagged.`
+    :`Anomaly: this ${u}'s change is ${z}× the usual ${u}-to-${u} spread (flagged above ${t}×). Once a few ${u}s each have a year-earlier comparison, it is judged against the same ${u} last year instead.`;
 }
 function renderWhyNone(f){
   const el=$("d-why");if(!el)return;
   const why=anomalyWhy(f);
   if(!needsReason(f)){el.innerHTML=why?`<p class="anom-why">${esc(why)}</p>`:"";return;}
   const t=f.reason_trigger,lim=reasonThreshold();
-  const what=t&&t.kind==="part"
-    ?`${esc(t.part)} is ${esc(pct(t.var_pct)||"")} vs plan (${esc((t.var_abs>0?"+":"")+fmt(t.var_abs,f.unit))}), past the ${esc(String(lim))}% threshold, even though the total is ${esc(deltaText(f,"budget")||"within it")}. `
-    :t&&t.kind==="total"?`It's ${esc(deltaText(f,"budget")||"")} vs plan, past the ${esc(String(lim))}% threshold. `:"";
+  const what=t&&t.kind==="part"&&t.unplanned
+    ?`${esc(t.part)} had no plan and came in at ${esc(fmt(t.var_abs,f.unit))}, ${esc(pct(t.var_pct)||"")} of the plan for ${esc(f.metric)}, past the ${esc(String(lim))}% threshold. `
+    :t&&t.kind==="part"
+    ?`${esc(t.part)} is ${esc(pct(t.var_pct)||"")} ${esc((globalThis.vsPlan?vsPlan():"vs plan"))} (${esc((t.var_abs>0?"+":"")+fmt(t.var_abs,f.unit))}), past the ${esc(String(lim))}% threshold, even though the total is ${esc(deltaText(f,"budget")||"within it")}. `
+    :t&&t.kind==="total"?`It's ${esc(deltaText(f,"budget")||"")} ${esc((globalThis.vsPlan?vsPlan():"vs plan"))}, past the ${esc(String(lim))}% threshold. `:"";
+  const box=canReview()&&granularity==="month"
+    ?`<div class="reason-box"><label class="lbl" for="rb-text">Why did ${esc(f.metric)} move?</label>
+        <textarea id="rb-text" rows="2" placeholder="e.g. Two EMEA renewals slipped to November after procurement delays"></textarea>
+        <div class="reason-row"><label class="rb-rec"><input type="checkbox" id="rb-rec"> Applies every period until I turn it off</label>
+          <span style="flex:1"></span><button class="linkbtn" data-act="reason" data-arg="${esc(f.metric)}">More options</button>
+          <button class="btn sm primary" onclick="saveQuickReason()">Save reason</button></div></div>`:"";
   el.innerHTML=(why?`<p class="anom-why">${esc(why)}</p>`:"")+`<div class="why-none" role="note"><span><b>No reason recorded.</b> ${what}${canReview()
-    ?"Add a context note and the commentary will cite it next time it's drafted."
-    :"An analyst can add the reason as a context note."}</span>${canReview()?`<button class="btn sm" data-act="reason" data-arg="${esc(f.metric)}">Add a reason</button>`:""}</div>`;
+    ?(granularity==="month"?"Write it below; the commentary will use it when it's drafted.":"Open a month to add its reason.")
+    :"An analyst can add the reason as a context note."}</span></div>${box}`;
 }
 // The note's first line: the movement it explains, so the reason is written against the numbers.
 function reasonStarter(f){
   if(!f||!f.has_data||f.unavailable)return "";
   const d=f.deltas||{},when=fmtPeriod(currentPeriod,"long");
   const vs=d.budget_var_abs!=null
-    ?`${deltaText(f,"budget")||"–"} vs plan (${d.budget_var_abs>0?"+":""}${fmt(d.budget_var_abs,f.unit)})`
+    ?`${deltaText(f,"budget")||"–"} ${(globalThis.vsPlan?vsPlan():"vs plan")} (${d.budget_var_abs>0?"+":""}${fmt(d.budget_var_abs,f.unit)})`
     :d.mom_pct!=null?`${deltaText(f,"mom")||"–"} ${priorPeriodLabel()}`:"";
   return `${f.metric} was ${fmt(f.value,f.unit)} in ${when}${vs?`, ${vs}`:""}. Reason: `;
 }
@@ -2986,8 +3119,8 @@ function renderDigest(d){
       <p class="dg-metric">${esc(it.metric)}</p><h3>${esc(it.headline)}</h3>
       ${it.detail?`<p class="dg-body">${esc(it.detail)}</p>`:""}
       <div class="dg-figs">
-        ${v!=null?`<span class="nbi-num ${good===null?"":good?"c-ok":"c-exc"}">${isPctKpi(f)?esc(deltaText(f,"budget")||"–")+" vs plan"
-          :`${esc(fmt(v,it.unit||"USD"))} vs plan (${esc(pct(it.budget_var_pct)||"–")})`}</span>`:""}
+        ${v!=null?`<span class="nbi-num ${good===null?"":good?"c-ok":"c-exc"}">${isPctKpi(f)?esc(deltaText(f,"budget")||"–")+" "+esc((globalThis.vsPlan?vsPlan():"vs plan"))
+          :`${esc(fmt(v,it.unit||"USD"))} ${esc((globalThis.vsPlan?vsPlan():"vs plan"))} (${esc(pct(it.budget_var_pct)||"–")})`}</span>`:""}
         ${it.faithfulness==="passed"?seal(true):it.faithfulness==="failed"?seal(false):""}
       </div></div></section>`;}).join(""));
 }
@@ -3085,7 +3218,7 @@ function renderContextList(){
   $("ctx-rows").innerHTML=docs.map(d=>{
     const on=d.id===ctxSel;
     return `<div class="ctx-item${on?" on":""}">
-      <button class="ctx-open" onclick="ctxOpen(${esc(d.id)})"${on?' aria-current="true"':""}><b>${esc(d.title)}</b><small>${esc(d.type.replace("_"," "))} · ${esc(ctxWhen(d))}${d.dataset_id==null?" · every dataset":""}</small></button>
+      <button class="ctx-open" onclick="ctxOpen(${esc(d.id)})"${on?' aria-current="true"':""}><b>${esc(d.title)}</b><small>${esc(d.type.replace("_"," "))} · ${esc(ctxWhen(d))}${d.effective_until==="ongoing"?" onwards":d.effective_until?` to ${esc(fmtPeriod(d.effective_until))}`:""}${d.dataset_id==null?" · every dataset":""}</small></button>
       <button class="row-del write-only" aria-label="Delete ${esc(d.title)}" onclick="delContext(${esc(d.id)})">${XICON}</button></div>`;
   }).join("")||`<p class="ctx-none">No notes dated in ${esc(fmtPeriod(currentPeriod))}. <button class="linkbtn" onclick="ctxScope='all';renderContextList()">Show all notes</button></p>`;
   paintContextDetail();
@@ -3109,8 +3242,31 @@ async function addContext(e){
   e.preventDefault();
   const tags=$("c-tags").value.split(",").map(s=>s.trim()).filter(Boolean);
   await api("/context",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({type:$("c-type").value,title:$("c-title").value,body:$("c-body").value,metric_tags:tags,effective_date:$("c-date").value||null,scope:($("c-scope")&&$("c-scope").value)||"dataset"})});
-  toast("Added to the context library");["c-title","c-body","c-tags","c-date"].forEach(id=>$(id).value="");ctxComposing=false;ctxSel=null;loadContext();
+    body:JSON.stringify({type:$("c-type").value,title:$("c-title").value,body:$("c-body").value,metric_tags:tags,effective_date:$("c-date").value||null,scope:($("c-scope")&&$("c-scope").value)||"dataset",effective_until:($("c-until")&&$("c-until").value)||null})});
+  toast("Added to the context library");["c-title","c-body","c-tags","c-date","c-until"].forEach(id=>{if($(id))$(id).value="";});ctxComposing=false;ctxSel=null;loadContext();
+}
+// Paste an earnings release, MD&A or variance memo: the app proposes one note per KPI it
+// explains (tagged and dated), and the analyst keeps the ones they want.
+async function pasteSource(){
+  const text=await modalInput("Paste a document",{label:"Earnings release, MD&A, variance memo or an email: the notes are taken from this text, never invented.",textarea:true,required:true,okLabel:"Find reasons",placeholder:"Paste the text here"});
+  if(!text)return;
+  toast("Reading the document…");
+  let res;
+  try{res=await api("/context/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text,period:granularity==="month"?currentPeriod:null})});}
+  catch(e){toast(errMsg(e));return;}
+  const props=res.proposals||[];
+  if(!props.length){toast("No reasons for this dataset's KPIs were found in that text.");return;}
+  const body=`<p class="mh-sub" style="margin:0 0 10px">${plural(props.length,"note")} found. Untick any you don't want.</p>`+props.map((p,i)=>
+    `<label class="extract-item"><input type="checkbox" data-i="${i}" checked><span><b>${esc(p.kpi)}</b> · ${esc(fmtPeriod(p.period))}${p.recurring?" · every period":""}<br><small>${esc(p.title)}</small><br>${esc(p.body.slice(0,280))}${p.body.length>280?"…":""}</span></label>`).join("");
+  const keep=await _openModalRaw({title:"Add these notes?",body:`<div class="extract-list">${body}</div>`,okLabel:"Add notes",
+    getValue:()=>[...$("modal-body").querySelectorAll("input[type=checkbox]:checked")].map(x=>props[+x.dataset.i])});
+  if(!keep||!keep.length)return;
+  let added=0;
+  for(const p of keep){
+    try{await api("/context",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"event_note",title:p.title,body:p.body,
+      metric_tags:[p.kpi],effective_date:p.period,scope:"dataset",effective_until:p.recurring?"ongoing":null})});added++;}catch{}
+  }
+  toast(`${plural(added,"note")} added.`);loadContext();if(currentPeriod)loadFacts();
 }
 async function delContext(id){
   if(!await modalConfirm("Delete context note","Delete this context note? Commentary will no longer cite it.",{okLabel:"Delete"}))return;
@@ -3242,8 +3398,12 @@ async function uploadFile(file){
 }
 async function loadSchema(){
   const sheet=$("sheet-pick").style.display!=="none"?$("sheet-sel").value:null;
-  profile=await api(`/ingest/${upload.upload_id}/schema${sheet?`?sheet=${encodeURIComponent(sheet)}`:""}`);
+  // Confirm waits for the columns: a quick click before they were drawn read "no date column".
+  const cb=$("imp-confirm-btn");if(cb){cb.disabled=true;cb.dataset.label=cb.dataset.label||cb.textContent;cb.textContent="Reading columns…";}
+  try{profile=await api(`/ingest/${upload.upload_id}/schema${sheet?`?sheet=${encodeURIComponent(sheet)}`:""}`);}
+  finally{if(cb){cb.disabled=false;cb.textContent=isJoinMode()?`Match & attach ${joinWord()}`:"Confirm columns";}}
   $("layout-sel").value=profile.layout_guess;
+  if($("amount-scale"))$("amount-scale").value=String(detectAmountScale());
   renderMapWarnings();
   renderTotalRows();
   renderMap();
@@ -3282,12 +3442,14 @@ function keptTotalLabels(){return [...document.querySelectorAll(".keep-total:che
 // the mapping warning already says only one is kept, and keeping both
 // doubles every metric and sums mixed currencies.
 function roleFor(c){
+  // A text column of reasons ("Comment", "Variance explanation") becomes context notes.
+  if(c.dtype&&c.dtype!=="numeric"&&/\b(comments?|commentary|reasons?|explanations?|notes?|remarks?|why)\b/i.test(String(c.column_name||"").replace(/[_\-]+/g," ")))return "comment";
   return c.redundant_with&&c.guessed_role==="measure"?"ignore":c.guessed_role;
 }
-const ROLES=["period","metric_label","measure","budget","forecast","id","quantity","price","dimension","ignore"];
+const ROLES=["period","metric_label","measure","budget","forecast","id","quantity","price","dimension","comment","ignore"];
 // What each role means to someone closing the books; the internal names stay in the API.
 const ROLE_LABELS={period:"Month or date",metric_label:"KPI name",measure:"Actual amount",budget:"Budget or plan",forecast:"Latest forecast",
-  id:"Row ID (not imported)",quantity:"Units sold",price:"Unit price",dimension:"Breakdown (region, product…)",ignore:"Don't import"};
+  id:"Row ID (not imported)",quantity:"Units sold",price:"Unit price",dimension:"Breakdown (region, product…)",comment:"Reason / comment (becomes a note)",ignore:"Don't import"};
 function renderMap(){
   if(!profile)return;const layout=$("layout-sel").value;
   $("map-holder").innerHTML=`<table class="map"><thead><tr><th>Column</th><th>Type</th><th>Sample</th><th>What it holds</th></tr></thead><tbody>`+
@@ -3335,7 +3497,19 @@ function updateMapHint(){
   if(parts.length){el.style.display="";el.innerHTML=parts.join("<br>");}
   else{el.style.display="none";}
 }
+// "$ in thousands": the file says so in its name or headers, or the analyst picks it.
+function detectAmountScale(){
+  const text=" "+[(upload&&upload.filename)||"",...((profile&&profile.columns)||[]).map(c=>c.column_name||"")].join(" ").toLowerCase().replace(/[_\-.]+/g," ")+" ";
+  if(/\bin millions\b|\bmillions\b|\(\$?m\)|\$ ?m\b|\(\$?mm\)|\busd ?mm?\b/.test(text))return 1000000;
+  if(/\bin thousands\b|\bthousands\b|\$ ?000s?\b|\(000s?\)|\b000s\b|\(\$?k\)|\busd ?k\b/.test(text))return 1000;
+  return 1;
+}
 function buildMapping(){
+  const m=buildMappingCore(),sel=$("amount-scale");
+  if(m&&sel)m.amount_scale=Number(sel.value)||1;
+  return m;
+}
+function buildMappingCore(){
   const layout=$("layout-sel").value,roleOf={};
   document.querySelectorAll(".role").forEach(s=>roleOf[s.dataset.col]=s.value);
   const by=r=>Object.keys(roleOf).filter(c=>roleOf[c]===r);
@@ -3343,7 +3517,7 @@ function buildMapping(){
   if(layout==="wide")return{layout:"wide",wide_period_cols:profile.wide_period_cols,wide_metric_col:by("metric_label")[0]||null,wide_value_label:by("metric_label").length?null:"Value",id_col:by("id")[0]||null,dimension_cols:by("dimension"),keep_labels};
   const measures=by("measure");
   const periodLiteral=sheetPeriod()||(needsMonthPick()&&$("map-month").value)||null;
-  const base={layout:"long",period_col:periodLiteral?null:(by("period")[0]||null),period_literal:periodLiteral,metric_col:by("metric_label")[0]||null,budget_col:by("budget")[0]||null,forecast_col:by("forecast")[0]||null,id_col:by("id")[0]||null,dimension_cols:by("dimension"),keep_labels};
+  const base={layout:"long",period_col:periodLiteral?null:(by("period")[0]||null),period_literal:periodLiteral,metric_col:by("metric_label")[0]||null,budget_col:by("budget")[0]||null,forecast_col:by("forecast")[0]||null,id_col:by("id")[0]||null,dimension_cols:by("dimension"),comment_col:by("comment")[0]||null,keep_labels};
   if(isJoinMode()&&!measures.length){
     // Adding a budget or forecast to a dataset: that column is the amount being attached.
     const amount=by(joinWord())[0]||by("budget")[0]||by("forecast")[0];
@@ -3354,6 +3528,7 @@ function buildMapping(){
 }
 async function confirmMapping(m){
   if(isJoinMode())return confirmJoinBudget();
+  if(!m&&(!profile||!document.querySelector(".role")))return;   // columns not drawn yet
   const problem=m?null:mappingProblem();
   if(problem){$("imp-result").innerHTML=`<div class="banner err">${warnIcon()}${esc(problem)}</div>`;updateMapHint();return;}
   const mapping=m||buildMapping();
@@ -3363,7 +3538,7 @@ async function confirmMapping(m){
     $("imp-result").innerHTML="";
     const rep=importReportHtml(res.import_report,{breakdown:(mapping.dimension_cols||[])[0]||null});
     $("norm-summary").className="banner imp-report "+(rep.attention?"warn":"ok");
-    $("norm-summary").innerHTML=`Imported ${plural(res.metrics.length,"KPI","KPIs")} across ${plural(res.periods.length,"period")}.${res.template_id?" The column mapping is saved for next month's file.":""}${rep.html}`;
+    $("norm-summary").innerHTML=`Imported ${plural(res.metrics.length,"KPI","KPIs")} across ${plural(res.periods.length,"period")}.${res.template_id?" The column mapping is saved for next month's file.":""}${res.notes_added?` ${plural(res.notes_added,"reason")} from the comment column saved as notes.`:""}${rep.html}`;
     // dataset_id is the dataset THIS import created; activeDatasetId is still
     // whatever was selected before (or null) until loadDatasets() runs.
     lastImport={rows:res.rows_normalized,metrics:res.metrics.length,periods:res.periods.length,datasetId:res.dataset_id??null};
@@ -3455,6 +3630,15 @@ async function loadKpiPicker(){
         <label class="kpi-field"><span class="kpi-field-label">Good direction</span><select class="k-dir${s.direction_known===false?" ask":""}" aria-label="Direction for ${row}" onchange="this.classList.remove('ask');updateKpiSelection()">${s.direction_known===false?'<option value="" selected disabled>Which way is good?</option>':""}<option value="up" ${s.direction_known!==false&&(s.direction_good||"up")==="up"?"selected":""}>Up is good</option><option value="down" ${s.direction_known!==false&&s.direction_good==="down"?"selected":""}>Down is good</option></select></label>
         <label class="kpi-field"><span class="kpi-field-label">Over a quarter</span><select class="k-agg" aria-label="How ${row} adds up over a quarter" data-suggested="${esc(s.aggregation_type||"flow")}" onchange="this.dataset.touched='1'">${rollupOptions(rollupForUnit(s.unit||"USD",s.aggregation_type))}</select></label></div>`;}).join(""):
       '<div class="banner info">No KPIs were found. Leave this import to delete the unfinished dataset, then upload a file with metric values.</div>';
+    // Everything recognised: one line and Finish, with the table a click away.
+    try{
+      const unsure=metrics.filter(m=>(m.suggestion||{}).direction_known===false).length;
+      const auto=$("kpi-auto"),detail=$("kpi-detail");
+      if(auto&&detail){
+        auto.hidden=!(metrics.length&&!unsure);detail.hidden=!auto.hidden;
+        auto.innerHTML=`All ${plural(metrics.length,"KPI")} recognised: units, which way is good, and how each adds up over a quarter. <button class="linkbtn" onclick="$('kpi-detail').hidden=false;$('kpi-auto').hidden=true">Review them</button>`;
+      }
+    }catch{}   // a summary line must never turn the picker into an error
   }catch(e){if(lastImport===current)$("kpi-rows").innerHTML=`<div class="banner err">${esc(e.message)} <button class="btn sm" onclick="loadKpiPicker()">Retry</button></div>`;}
   finally{clearTimeout(slow);if(lastImport===current){kpiLoading=false;updateKpiSelection();}}
 }
@@ -3474,7 +3658,20 @@ async function confirmKpis(){
     try{await api(`/datasets/${newId}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name||undefined,domain,currency:$("imp-currency")?.value||undefined})});}
     catch(e){toast("Imported, but couldn't save the dataset name: "+e.message);}
   }
-  const li=lastImport||{};resetImport();await loadPeriods();nav("dashboard");
+  // Variance threshold and dollar floor, asked here instead of hidden in the dataset menu.
+  const thr=parseFloat($("imp-threshold")&&$("imp-threshold").value),floor=parseFloat($("imp-floor")&&$("imp-floor").value);
+  const planLabel=(($("imp-plan-label")&&$("imp-plan-label").value)||"").trim();
+  if(newId!=null&&planLabel&&planLabel!=="plan"){
+    try{await api(`/datasets/${newId}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({budget_label:planLabel.slice(0,40)})});}catch{}
+  }
+  if(newId!=null&&(Number.isFinite(thr)||Number.isFinite(floor))){
+    try{await api(`/datasets/${newId}`,{method:"PATCH",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({...(Number.isFinite(thr)&&thr>0?{reason_threshold_pct:thr}:{}),...(Number.isFinite(floor)&&floor>0?{reason_threshold_abs:floor}:{})})});}catch{}
+  }
+  const draft=$("auto-draft")&&$("auto-draft").checked;
+  const li=lastImport||{};resetImport();await loadPeriods();nav(draft?"kpis":"dashboard");
+  // Straight to commentary: the latest close drafts itself, and the analyst reviews.
+  if(draft&&currentPeriod&&granularity==="month"&&canReview())generateAll();
   // Show a success banner on the dashboard with a one-click Generate action.
   const el=$("import-banner");
   if(el){el.style.display="";el.className="banner ok";

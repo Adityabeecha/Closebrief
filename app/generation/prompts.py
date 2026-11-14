@@ -14,7 +14,7 @@ from app.schemas import (
     TrendStreak,
 )
 
-PROMPT_VERSION = "v6-close-commentary"
+PROMPT_VERSION = "v8-close-commentary"
 
 FIGURE_RULES = """Copy figures exactly as supplied, including currency symbols, signs, suffixes and precision. Never calculate or introduce numbers, \
 including numbers from context notes that are absent from Computed facts."""
@@ -27,10 +27,13 @@ When contributors are supplied, say which part drove the variance, using its sup
 Then give the reason ONLY when a relevant analyst context note supports it. State the reason itself in plain words, as a finance \
 analyst would; never mention notes, note titles, "context" or sources in the prose. Return the note's id in sources_used. If no \
 note explains the move, say nothing about a reason. Never invent a cause.
+State a cause only when the note itself explicitly says X caused, drove, or was due to Y for this KPI. \
+Two facts in the same note are not cause and effect; listing NRR and million-dollar customers together does not link them causally.
 For down-is-good KPIs a rise is unfavourable; never call a rising cost strong or positive.
-Never use generic "watch for continued growth" filler; ground watch items in a note or the trend.
-End with what to watch next month ONLY when an available trend, anomaly or recorded context supports a specific observation. Do not \
-forecast or invent a target; omit this sentence when unsupported.
+Never use generic "watch for continued growth", "watch for further impacts", or "no significant changes are expected" filler.
+Include a what-to-watch sentence ONLY when a cited note names a specific upcoming event, such as renewals expected to sign in \
+November or Q4 restructuring charges. Otherwise omit the sentence entirely; a trend or anomaly alone does not justify it.
+Never say "next month"; say "next period". Do not forecast or invent a target.
 Every number must come from Computed facts. Return the narrative and only the context ids actually used.""" \
     + "\n\n" + FIGURE_RULES
 
@@ -236,6 +239,8 @@ def _fmt(value: float | None, unit: str = "USD", currency: str = "USD") -> str:
         suffix = "pp" if unit.lower() == "pp" else "%"
         return (sign or ("+" if value > 0 else "")) + _fixed(amount, 1) + suffix
     mark = symbol(currency)
+    if amount >= 1e9:   # real filings: $5.84B, not $5840.00M
+        return sign + mark + _fixed(amount / 1e9, 2) + "B"
     if amount >= 1e6:
         return sign + mark + _fixed(amount / 1e6, 2) + "M"
     if amount >= 1e5:
@@ -327,6 +332,23 @@ def _point_changes(fact: ComputedFact) -> list[str]:
     ]
 
 
+def _wording_rules(fact: ComputedFact) -> list[str]:
+    """How to name things for this dataset and team. Words only; figures are unchanged."""
+    from app.style import style_rules
+
+    label = (getattr(fact, "budget_label", None) or "plan").strip()
+    cadence = getattr(fact, "cadence", None) or "month"
+    out = [f"Comparison: the budget_* figures compare with the analyst's '{label}'. Call it '{label}' "
+           f"(for example 'vs {label}'), not 'budget' or 'plan' unless that is its name."]
+    if cadence != "month":
+        out.append(f"Cadence: this data is reported each {cadence}. 'month_over_month_change' and the prior period "
+                   f"mean the previous {cadence}; say 'last {cadence}' and 'next {cadence}', never 'month'.")
+    rules = style_rules(getattr(fact, "house_style", None))
+    if rules:
+        out.append("House style: " + " ".join(rules))
+    return out
+
+
 def build_user_prompt(
     fact: ComputedFact,
     context: list[ContextSnippet],
@@ -337,6 +359,7 @@ def build_user_prompt(
     lines = [
         f"Metric: {fact.metric}",
         f"Period: {fact.period}",
+        *_wording_rules(fact),
         "Computed facts (the ONLY numbers you may use):",
         f"  - value: {_fmt(fact.value, fact.unit, fact.currency)}",
         f"  - prior_period_value: {_fmt(fact.prior_value, fact.unit, fact.currency)}",

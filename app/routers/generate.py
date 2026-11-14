@@ -20,6 +20,7 @@ from app.compute.funnel import compute_funnel
 from app.config import auth_active, settings
 from app.datasets import (
     active_dataset_id,
+    current_workspace,
     is_demo_scope,
 )
 from app.db import get_connection
@@ -34,6 +35,7 @@ from app.generation.prompts import (
     build_funnel_prompt,
 )
 from app.generation.qa import answer_question
+from app.privacy import Redactor, load_terms
 from app.retrieval.retrieve import retrieve
 from app.routers.facts import _active_metric_id, _load_computed_fact, list_facts
 from app.routes_common import _active_domain_slug, _context_store, _notify_async
@@ -174,6 +176,7 @@ def generate_insight_endpoint(req: GenerateInsightRequest, user: CurrentUser = D
                     {"context": [c.model_dump() for c in context], "scores": retrieval_scores},
                     settings.cache_ttl_seconds,
                 )
+        redactor = Redactor(load_terms(conn, current_workspace()))
     finally:
         conn.close()
 
@@ -199,8 +202,15 @@ def generate_insight_endpoint(req: GenerateInsightRequest, user: CurrentUser = D
 
     try:
         llm_client = get_llm_client()
+        # Hidden words (company, customers, people) never reach the AI provider.
+        sent_context = [c.model_copy(update={"title": redactor.hide(c.title), "body": redactor.hide(c.body)})
+                        for c in context] if redactor.terms else context
+        sent_fact = fact
+        if redactor.terms and getattr(fact, "contributors", None):
+            sent_fact = fact.model_copy(update={"contributors": [
+                {**m, "member": redactor.hide(m.get("member"))} for m in fact.contributors]})
         insight = generate_insight(
-            fact, context, llm_client, retrieval_scores,
+            sent_fact, sent_context, llm_client, retrieval_scores,
             embedder_semantic=getattr(shared_embedder(), "semantic", True),
             correlations=correlations, trend_streak=trend_streak,
             system_prompt=get_domain(domain_slug).system_prompt,
@@ -210,6 +220,10 @@ def generate_insight_endpoint(req: GenerateInsightRequest, user: CurrentUser = D
     except LLMGenerationError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
+    if redactor.terms:
+        insight.narrative = redactor.show(insight.narrative)
+        titles = {c.id: c.title for c in context}
+        insight.sources = [s.model_copy(update={"title": titles.get(s.id, s.title)}) for s in insight.sources]
     insight.generated_by = user.email
     insight.report_id = _persist_report(insight, user)
     _log_llm_call(
@@ -289,11 +303,16 @@ def ask_endpoint(payload: dict, user: CurrentUser = Depends(require_member)) -> 
                           shared_embedder(), shared_vector_store(), k=settings.retrieval_k)
         context = [ContextSnippet(id=f"ctx_{c.id:03d}", type=c.type, title=c.title, body=c.body)
                    for c in chunks]
+        redactor = Redactor(load_terms(conn, current_workspace()))
     finally:
         conn.close()
 
     try:
-        qa = answer_question(get_llm_client(), fact, context, question, history)
+        sent = [c.model_copy(update={"title": redactor.hide(c.title), "body": redactor.hide(c.body)}) for c in context]
+        sent_history = [{k: redactor.hide(v) for k, v in turn.items()} for turn in history
+                        if isinstance(turn, dict)] if history else history
+        qa = answer_question(get_llm_client(), fact, sent, redactor.hide(question), sent_history)
+        qa.answer = redactor.show(qa.answer)
     except LLMGenerationError as exc:
         raise HTTPException(status_code=503, detail=f"Q&A unavailable: {exc}") from exc
 

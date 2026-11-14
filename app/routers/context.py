@@ -93,3 +93,56 @@ def delete_context(doc_id: int, _: CurrentUser = Depends(require_write)) -> None
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Context document {doc_id} not found")
     shared_cache().bump_namespace()
+
+
+@router.post("/context/extract")
+def extract_context(payload: dict, user: CurrentUser = Depends(require_write)) -> dict:
+    """Propose notes from pasted text (earnings release, MD&A, variance memo): one per KPI
+    it explains, tagged with this dataset's KPI names. Nothing is saved; the analyst keeps
+    the ones they want with POST /context."""
+    import time
+
+    from app.config import settings
+    from app.context.extract import EXTRACT_SYSTEM_PROMPT, build_prompt, parse_proposals
+    from app.generation.llm_client import LLMGenerationError, get_llm_client
+    from app.services import enforce_budget, log_llm_call
+
+    text = str(payload.get("text") or "").strip()
+    period = payload.get("period")
+    if len(text) < 20:
+        raise HTTPException(status_code=422, detail="Paste the text to read: an earnings release, MD&A or variance memo.")
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        if ds is None:
+            raise HTTPException(status_code=409, detail="Import data first, so notes can be tagged with your KPIs.")
+        kpis = sorted({r["name"] for r in conn.execute(
+            """SELECT COALESCE(k.display_name, m.name) AS name FROM metrics m
+               LEFT JOIN kpi_configs k ON k.dataset_id = m.dataset_id AND k.source_metric = m.name
+               WHERE m.dataset_id = ?""", (ds,)).fetchall()} | {r["name"] for r in conn.execute(
+            "SELECT name FROM metrics WHERE dataset_id = ?", (ds,)).fetchall()})
+    finally:
+        conn.close()
+    from app.datasets import current_workspace
+    from app.privacy import Redactor, load_terms
+
+    conn = get_connection()
+    try:
+        redactor = Redactor(load_terms(conn, current_workspace()))
+    finally:
+        conn.close()
+    enforce_budget(user)
+    t0 = time.monotonic()
+    try:
+        result, usage = get_llm_client().generate_narrative(EXTRACT_SYSTEM_PROMPT,
+                                                            build_prompt(redactor.hide(text), kpis, period))
+    except LLMGenerationError as exc:
+        raise HTTPException(status_code=503, detail=f"Couldn't read the text right now: {exc}") from exc
+    log_llm_call("/context/extract",
+                 settings.openai_model if settings.llm_provider == "openai" else settings.anthropic_model,
+                 usage.prompt_tokens, usage.completion_tokens, usage.cost_usd,
+                 int((time.monotonic() - t0) * 1000), user.id)
+    proposals = parse_proposals(result.narrative, kpis, period)
+    for p in proposals:
+        p["title"], p["body"] = redactor.show(p["title"]), redactor.show(p["body"])
+    return {"proposals": proposals, "kpis": kpis}

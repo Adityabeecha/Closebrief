@@ -4,6 +4,7 @@ import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from app import audit, workspaces
+from app.api import require_read, require_write  # noqa: E402
 from app.auth import (
     CurrentUser,
     _decode_token,
@@ -148,3 +149,124 @@ def list_ws_members(ws_id: int, user: CurrentUser = Depends(get_current_user)) -
         return workspaces.list_members(conn, ws_id)
     finally:
         conn.close()
+
+
+# ---- Real data: hidden words, export, delete ----
+
+@router.get("/workspace/privacy")
+def get_privacy(_: CurrentUser = Depends(require_read)) -> dict:
+    from app.datasets import current_workspace
+    from app.privacy import load_terms
+
+    conn = get_connection()
+    try:
+        return {"hidden_terms": load_terms(conn, current_workspace())}
+    finally:
+        conn.close()
+
+
+@router.put("/workspace/privacy")
+def put_privacy(payload: dict, user: CurrentUser = Depends(require_write)) -> dict:
+    """Words hidden from the AI provider (company, customer and people names)."""
+    import json as _json
+
+    from app.datasets import current_workspace
+    from app.privacy import clean_terms
+
+    terms = clean_terms(payload.get("hidden_terms") or [])
+    ws = current_workspace()
+    if ws is None:
+        raise HTTPException(status_code=409, detail="Sign in to a workspace to hide words from the AI.")
+    conn = get_connection()
+    try:
+        conn.execute("UPDATE workspaces SET hidden_terms = ? WHERE id = ?", (_json.dumps(terms), ws))
+        conn.commit()
+        audit.record(conn, "privacy", "workspace", ws, actor_id=user.id, actor_email=user.email,
+                     summary={"hidden_terms": len(terms)})
+    finally:
+        conn.close()
+    from app.deps import shared_cache
+    shared_cache().bump_namespace()   # cached drafts may contain the words
+    return {"hidden_terms": terms}
+
+
+@router.get("/workspace/export")
+def export_workspace_data(user: CurrentUser = Depends(require_read)) -> Response:
+    """Everything this workspace holds, as one JSON file."""
+    import json as _json
+    from datetime import datetime, timezone
+
+    from app.datasets import current_workspace
+    from app.privacy import export_workspace
+
+    conn = get_connection()
+    try:
+        ws = current_workspace()
+        data = export_workspace(conn, ws)
+        audit.record(conn, "export", "workspace", ws or 0, actor_id=user.id, actor_email=user.email,
+                     summary={"datasets": len(data["datasets"])})
+    finally:
+        conn.close()
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    body = _json.dumps({"exported_at": stamp, "workspace_id": ws, **data}, default=str, indent=1)
+    return Response(body, media_type="application/json",
+                    headers={"Content-Disposition": f'attachment; filename="closebrief-export-{stamp}.json"'})
+
+
+@router.delete("/workspace/data")
+def delete_workspace_data(payload: dict, user: CurrentUser = Depends(require_write)) -> dict:
+    """Delete everything in this workspace: datasets, figures, commentary, notes, linked
+    sources and uploads. The account, its members and the activity log stay. Requires
+    {"confirm": "DELETE"}."""
+    from app.datasets import current_workspace
+    from app.retention import clear_workspace_data
+
+    if (payload or {}).get("confirm") != "DELETE":
+        raise HTTPException(status_code=422, detail='Type DELETE to confirm.')
+    conn = get_connection()
+    try:
+        ws = current_workspace()
+        deleted = clear_workspace_data(conn, ws) if ws is not None else 0
+        audit.record(conn, "delete_all", "workspace", ws or 0, actor_id=user.id, actor_email=user.email,
+                     summary={"datasets": deleted})
+    finally:
+        conn.close()
+    from app.deps import shared_cache
+    shared_cache().bump_namespace()
+    return {"datasets_deleted": deleted}
+
+
+@router.get("/workspace/style")
+def get_style(_: CurrentUser = Depends(require_read)) -> dict:
+    from app.datasets import current_workspace
+    from app.style import DEFAULT_STYLE, load_style
+
+    conn = get_connection()
+    try:
+        return load_style(conn, current_workspace()) or dict(DEFAULT_STYLE)
+    finally:
+        conn.close()
+
+
+@router.put("/workspace/style")
+def put_style(payload: dict, user: CurrentUser = Depends(require_write)) -> dict:
+    """The team's house style for commentary (wording, length, forward-looking lines)."""
+    import json as _json
+
+    from app.datasets import current_workspace
+    from app.style import clean_style
+
+    ws = current_workspace()
+    if ws is None:
+        raise HTTPException(status_code=409, detail="Sign in to a workspace to set a house style.")
+    style = clean_style(payload)
+    conn = get_connection()
+    try:
+        conn.execute("UPDATE workspaces SET house_style = ? WHERE id = ?", (_json.dumps(style), ws))
+        conn.commit()
+        audit.record(conn, "style", "workspace", ws, actor_id=user.id, actor_email=user.email, summary=style)
+    finally:
+        conn.close()
+    from app.deps import shared_cache
+    shared_cache().bump_namespace()
+    return style

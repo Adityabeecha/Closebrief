@@ -263,8 +263,12 @@ def build_board_pack_html(facts: list[dict], period: str, meta: dict | None = No
             chips += f'<span class="chip {_delta_class(d.get("yoy_pct"), dg)}"><span class="lbl">YoY</span>{_delta(f, "yoy")}</span>'
         spark = _sparkline((f.get("chart_data") or {}).get("trend", []))
         narrative = f.get("narrative")
-        checked_text, checked, total = _checked_narrative(narrative or '', f)
-        pill = f'<span class="pill">{checked} of {total} figures checked</span>' if narrative else ''
+        checked_text, _checked, _total = _checked_narrative(narrative or "", f)
+        # One verdict everywhere: the same figure check as the KPI page and the digest (it
+        # also accepts figures from the cited notes and the department breakdown).
+        verdict = "Figures checked" if f.get("faithfulness") == "passed" else (
+            "Figures need review" if f.get("faithfulness") == "failed" else "Not checked")
+        pill = f'<span class="pill">{verdict}</span>' if narrative else ''
         narr = (f'<div class="narr">{checked_text}</div>{pill}' if narrative
                 else '<div class="narr muted">No narrative generated for this metric.</div>')
         anom = '<span class="anom">Anomaly</span>' if f.get("is_anomaly") else ""

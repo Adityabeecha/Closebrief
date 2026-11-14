@@ -1,6 +1,7 @@
 """HTTP routes moved from app.main: facts."""
 
 import json
+import re
 
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
@@ -19,6 +20,8 @@ from app.compute.aggregate import (
     year_ago_key,
 )
 from app.compute.availability import combined_percentage_reason, has_usable_value, needs_reason, reason_trigger
+from app.compute.cadence import LABELS as CADENCE_LABELS
+from app.compute.cadence import dataset_step, shift_period, steps_from_values
 from app.compute.close_views import (
     breakdown_available,
     breakdown_coverage,
@@ -223,8 +226,8 @@ def _prefetch_cards(conn, names_by_id: dict[int, str], period: str,
 
 def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_charts: bool = True) -> list[dict]:
     """Cards for a quarter/year period, aggregated from monthly metric_values
-    per each KPI's aggregation rule (flow=SUM, balance=LAST, ratio=unavailable).
-    Deltas are QoQ/YoY-equivalent; budget variance uses summed budgets."""
+    per each KPI's aggregation rule (flow=SUM, balance=LAST, ratio=AVERAGE).
+    Deltas use the same fields as monthly facts, including absolute rate points."""
     kpis = conn.execute(
         """SELECT k.source_metric AS metric, k.display_name, k.category, k.unit,
                   k.direction_good, k.aggregation_type, m.id AS metric_id
@@ -249,6 +252,8 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
     prior = prior_key(period, granularity, fiscal_start)
     yago = year_ago_key(period, granularity, fiscal_start)
     total_months = len(months_in(period, granularity, fiscal_start))
+    notes = dataset_notes(conn, ds)
+    covered = months_in(period, granularity, fiscal_start)
     for k in kpis:
         agg = k["aggregation_type"] or infer_aggregation_type(k["display_name"] or k["metric"], k["unit"])
         rows = all_values.get(k["metric_id"], [])
@@ -287,6 +292,8 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
                 {"period": pk, "value": series[pk]["value"], "budget": series[pk]["budget"]}
                 for pk in sorted(series, key=lambda key: sort_key(key, fiscal_start)) if not series[pk].get("unavailable")
             ]
+        period_notes = [note for month in covered if (note := reason_note(notes, k["metric"], month)) is not None]
+        note = max(period_notes, key=lambda n: n.id) if period_notes else None
         out.append({
             "metric": k["display_name"] or k["metric"], "metric_id": k["metric_id"], "category": k["category"],
             "period": period, "value": cur["value"] if cur else None, "unit": k["unit"], **metadata,
@@ -298,6 +305,8 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
                                                            budget_var_abs=deltas["budget_var_abs"],
                                                            floor=metadata["reason_threshold_abs"]),
             "aggregation_type": agg,
+            "aggregation": {"ratio": "average", "balance": "last"}.get(agg, "sum"),
+            "reason_note": {"id": note.id, "title": note.title} if note and has_data else None,
             "forecast": cur.get("forecast") if has_data else None,
             "budget": cur.get("budget") if has_data else None,
             "has_breakdown": agg != "ratio" and k["unit"] != "%" and breakdown_available(
@@ -308,7 +317,8 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
             "report_id": None, "review_status": None, "assigned_email": None,
             "narrative": None, "sources": [],
             "confidence": None, "faithfulness": None,
-            "chart_data": {"trend": trend} if (include_charts and trend) else None,
+            "chart_data": {"trend": trend, "budget_vs_actual": {"actual": cur["value"], "budget": cur.get("budget")},
+                           "variance_bridge": None} if (include_charts and has_data) else None,
             "trend_streak": None,
         })
     # Movers first (largest absolute budget variance).
@@ -384,23 +394,32 @@ def build_facts(conn, ds, period, granularity, user, include_charts=True):
     breakdowns = breakdown_coverage(conn, ds, [period])
     month_parts = part_variances(conn, ds, [period])
     notes = dataset_notes(conn, ds)
+    # A quarterly file's close compares with the last quarter (from the values already loaded).
+    step = steps_from_values(all_values)
     sensitive = user.role == "admin"   # gate cost/latency/emails to admins
     # Batch the per-card report + feedback lookups into two queries instead of
     # ~3 per card (was an N+1 over the dashboard's hot path).
     metric_ids = [r["metric_id"] for r in rows if r["metric_id"] is not None]
     reports_by_metric, edited_by_report, reviewer_by_report, change_note_by_report = {}, {}, {}, {}
+    # Last period's approved commentary, so month two starts from what was said last time.
+    previous_by_metric = {}
+    prev_period = shift_period(period, -step) if re.fullmatch(r"\d{4}-\d{2}", period or "") else None
     if metric_ids:
         ph = ",".join("?" * len(metric_ids))
         for rr in conn.execute(
             f"""SELECT gr.id, gr.metric_id, gr.narrative, gr.sources, gr.confidence,
                        gr.faithfulness, gr.cost_usd, gr.latency_ms, gr.user_email,
-                       gr.review_status, gr.assigned_email
+                       gr.review_status, gr.assigned_email, gr.period
                 FROM generated_reports gr
-                WHERE gr.metric_id IN ({ph}) AND gr.period = ?
+                WHERE gr.metric_id IN ({ph}) AND gr.period IN (?, ?)
                   AND (gr.prompt_version IS NULL OR gr.prompt_version NOT LIKE '%-digest')
                 ORDER BY gr.id ASC""",
-            (*metric_ids, period),
+            (*metric_ids, period, prev_period or period),
         ).fetchall():
+            if rr["period"] != period:   # last period's: keep only its approved commentary
+                if rr["review_status"] == "approved":
+                    previous_by_metric[rr["metric_id"]] = {"period": prev_period, "narrative": rr["narrative"]}
+                continue
             reports_by_metric[rr["metric_id"]] = rr   # ASC → latest id wins
         report_ids = [rr["id"] for rr in reports_by_metric.values()]
         if report_ids:
@@ -445,14 +464,14 @@ def build_facts(conn, ds, period, granularity, user, include_charts=True):
             "category": r["category"],
             "period": period,
             "value": r["value"] if has_data else None,
-            "unit": r["unit"], **metadata,
+            "unit": r["unit"], **metadata, "cadence": CADENCE_LABELS[step],
             "direction_good": r["direction_good"],
             "prior_value": r["prior_value"] if has_data else None,
             "has_data": has_data,
             "forecast": r["forecast"] if has_data else None,
             "budget": r["budget"] if has_data else None,
             "has_breakdown": has_data and agg != "ratio" and r["unit"] != "%" and r["metric_id"] in breakdowns,
-            "ytd": ytd(all_values.get(r["metric_id"], []), period, metadata["fiscal_year_start"], agg, r["unit"])
+            "ytd": ytd(all_values.get(r["metric_id"], []), period, metadata["fiscal_year_start"], agg, r["unit"], step)
                    if has_data else None,
             "unavailable_reason": reason,
             "deltas": {
@@ -475,6 +494,7 @@ def build_facts(conn, ds, period, granularity, user, include_charts=True):
             "report_id": report["id"] if report else None,
             "review_status": report["review_status"] if report else None,
             "change_note": change_note_by_report.get(report["id"]) if report else None,
+            "previous_commentary": previous_by_metric.get(r["metric_id"]) if has_data else None,
             "assigned_email": report["assigned_email"] if report else None,
             "narrative": (edited or report["narrative"]) if report else None,
             "original_narrative": report["narrative"] if (report and edited) else None,
@@ -580,7 +600,19 @@ def _load_computed_fact(conn, metric: str, period: str) -> ComputedFact:
             status_code=404,
             detail=f"No computed facts for metric='{metric}' period='{period}'. Run /compute first.",
         )
-    return fact
+    # Wording context for the draft: what the comparison is called, the cadence and
+    # the team's house style. Figures are unchanged.
+    ds = active_dataset_id(conn)
+    meta = dataset_metadata(conn, ds) if ds is not None else {}
+    from app.compute.cadence import LABELS as _CADENCE
+    from app.datasets import current_workspace
+    from app.style import load_style
+    return fact.model_copy(update={
+        "budget_label": meta.get("budget_label") or "plan",
+        "forecast_label": meta.get("forecast_label") or "forecast",
+        "cadence": _CADENCE[dataset_step(conn, ds)] if ds is not None else "month",
+        "house_style": load_style(conn, current_workspace()),
+    })
 
 
 @router.get("/reports/{report_id}/grounding")

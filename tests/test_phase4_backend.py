@@ -166,7 +166,7 @@ def test_ytd_flow_fiscal_span_budgets_and_prior(client, fiscal_start, period, pr
     finally:
         conn.close()
     ytd = _facts(client, period)["Revenue"]["ytd"]
-    assert ytd == {"months": 3, "value": 330, "budget": 300, "forecast": 315, "budget_months": 3,
+    assert ytd == {"months": 3, "step": 1, "value": 330, "budget": 300, "forecast": 315, "budget_months": 3,
                    "var_abs": 30, "var_pct": 10, "prior_value": 180, "yoy_pct": pytest.approx(150 / 180 * 100)}
     # A missing prior observation makes the whole comparison unavailable.
     conn = get_connection()

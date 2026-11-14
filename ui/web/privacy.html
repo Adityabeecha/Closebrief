@@ -30,8 +30,8 @@
 <main class="wrap">
   <a class="back" href="/">← Closebrief</a>
   <h1>Privacy</h1>
-  <p class="updated">Last updated 12 November 2026</p>
-  <p class="lede">Closebrief is a portfolio project that anyone can sign in to and try. This page says plainly what it collects, where that goes, how long it's kept, and how to have it removed.</p>
+  <p class="updated">Last updated 14 November 2026</p>
+  <p class="lede">Closebrief is built for real month-end data. This page says plainly what it collects, where that goes, how long it's kept, and how you take it out or delete it yourself.</p>
 
   <h2>What's collected</h2>
   <ul>
@@ -40,12 +40,13 @@
     <li><b>An activity log:</b> who approved, edited, imported, synced or sent what, and when. It's kept so changes can be traced.</li>
     <li><b>Usage:</b> each AI request's size and cost, used to enforce the daily allowance.</li>
   </ul>
-  <p>Please use sample or anonymised figures. Closebrief isn't built or audited to hold confidential financial data.</p>
+  <p>Your workspace is private to your account and the people you invite. Closebrief is a small independent project and hasn't had an independent security audit (such as SOC 2); decide whether that's acceptable for the data you bring.</p>
 
   <h2>Where it goes</h2>
   <ul>
     <li><b>Hosting and storage:</b> the app runs on Render and keeps its data in a Supabase Postgres database.</li>
-    <li><b>AI drafting:</b> when you draft commentary or ask a question, the KPI's computed figures, the relevant notes and your question (if you asked one) are sent to the AI provider (OpenAI) to write the text. Your files themselves aren't sent.</li>
+    <li><b>AI drafting:</b> when you draft commentary, ask a question or paste a document to turn into notes, the KPI's computed figures, the relevant notes, the pasted text and your question are sent to the AI provider (OpenAI, through its API) to write the text. Your files themselves aren't sent. OpenAI doesn't use API data to train its models, and keeps it for up to 30 days for abuse monitoring.</li>
+    <li><b>Hiding names from the AI:</b> in Settings → Workspace and data you can list words (your company, customers, people) that are replaced with placeholders like [Name 1] before anything is sent, and put back in what comes back.</li>
     <li><b>Error reports:</b> if error monitoring (Sentry) is switched on, crash reports may include the page or request where the error happened.</li>
     <li><b>Linked sources:</b> if you connect a Google Sheet or CSV link, Closebrief fetches that link to sync it.</li>
   </ul>
@@ -61,12 +62,14 @@
   <h2>How long it's kept</h2>
   <ul>
     <li><b>Uploaded files</b> are deleted 7 days after upload. The figures imported from them stay with your dataset.</li>
-    <li><b>Workspaces with no activity for 30 days</b> are deleted along with their datasets, notes, commentary and linked sources.</li>
+    <li><b>Your datasets, notes and commentary</b> are kept until you delete them.</li>
+    <li><b>A workspace unused for 12 months</b> is deleted along with its datasets, notes, commentary and linked sources.</li>
+    <li><b>An import you started but didn't finish</b> is deleted after two days.</li>
     <li><b>The activity log and your sign-in record</b> are kept after a workspace is deleted, so the history can't quietly disappear.</li>
   </ul>
 
   <h2>Removing your data</h2>
-  <p>You can delete datasets yourself at any time from the dataset menu. To have your account and everything linked to it removed, open a request on the <a href="https://github.com/Adityabeecha/Closebrief/issues" rel="noopener">project's GitHub issues</a> from an account that lets you be identified. It will be handled by hand.</p>
+  <p>In <b>Settings → Workspace and data</b> you can download everything in your workspace as one file, and delete all of it in one step. You can also delete single datasets from the dataset menu. To have your account itself removed as well, open a request on the <a href="https://github.com/Adityabeecha/Closebrief/issues" rel="noopener">project's GitHub issues</a> from an account that lets you be identified.</p>
 
   <h2>Changes</h2>
   <p>If this page changes, the date at the top changes with it.</p>

@@ -4,9 +4,8 @@ years with per-KPI rules, deterministically.
 Aggregation types:
   - flow    : additive over time (Revenue, COGS, OpEx, EBITDA, Bookings) -> SUM
   - balance : a point-in-time stock (Cash Balance) -> LAST month in the period
-  - ratio   : a percentage/ratio (Gross Margin %, Churn %) -> cannot be summed or
-              averaged; recompute from components if available, else UNAVAILABLE
-              at coarser granularity (never average percentages).
+  - ratio   : a percentage/ratio (Gross Margin %, Churn %) -> AVERAGE of the
+              available monthly observations (not a weighted period rate).
 
 A period key is "YYYY-MM" (month), "YYYY-Qn" (quarter), or "YYYY" (year).
 """
@@ -97,9 +96,9 @@ def aggregate_series(rows: list[dict], granularity: str, agg_type: str, fiscal_s
         out[pk]["months"] = len(items)
         if any("forecast" in i for i in items):
             forecasts = [i["forecast"] for i in items if i.get("forecast") is not None]
-            out[pk]["forecast"] = (None if out[pk]["unavailable"] else items[-1].get("forecast")
-                                   if agg_type == "balance" or agg_type == "ratio"
-                                   else sum(forecasts) if forecasts else None)
+            out[pk]["forecast"] = (items[-1].get("forecast") if agg_type == "balance"
+                                   else (sum(forecasts) / len(forecasts) if agg_type == "ratio" else sum(forecasts))
+                                   if forecasts else None)
     return out
 
 
@@ -121,13 +120,10 @@ def like_for_like(rows: list[dict], period: str, other: str, granularity: str, a
 
 def _reduce(items: list[dict], agg_type: str) -> dict:
     if agg_type == "ratio":
-        # A percentage cannot be summed or averaged into a meaningful period
-        # figure without its numerator/denominator, which we don't store
-        # generically — so it is honestly unavailable at coarser granularity.
-        if len(items) == 1:
-            it = items[0]
-            return {"value": it["value"], "budget": it.get("budget"), "unavailable": False}
-        return {"value": None, "budget": None, "unavailable": True}
+        vals = [i["value"] for i in items if i["value"] is not None]
+        buds = [i["budget"] for i in items if i.get("budget") is not None]
+        return {"value": sum(vals) / len(vals) if vals else None,
+                "budget": sum(buds) / len(buds) if buds else None, "unavailable": False}
 
     if agg_type == "balance":
         last = items[-1]  # already sorted ascending by period

@@ -255,6 +255,18 @@
   #d-narr{font-size:17px;line-height:1.6;margin-top:10px}
   #d-rev-strip{margin-top:14px}
   .ctx-hint{margin:0;font-size:12px;color:var(--mut)}
+  /* The close path first: forecasts, what-ifs, custom KPIs and correlations are opt-in. */
+  body:not(.advanced) .adv{display:none!important}
+  .adv-toggle{display:flex;gap:6px;align-items:center;margin:4px 22px;font-size:12px;color:var(--mut);cursor:pointer}
+  .prev-comm{margin-top:10px;font-size:13px;color:var(--ink2,inherit)}
+  .prev-comm summary{cursor:pointer;color:var(--mut);font-weight:600}
+  .prev-comm p{margin:6px 0 0;padding-left:10px;border-left:3px solid var(--b08)}
+  .reason-box{margin-top:10px;padding:12px;border:1px solid var(--b08);border-radius:10px}
+  .reason-box textarea{width:100%;margin-top:6px;font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line,var(--b08));background:var(--card);color:inherit}
+  .reason-row{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap}
+  .rb-rec{font-size:13px;color:var(--mut);display:flex;gap:6px;align-items:center}
+  .extract-list{max-height:55vh;overflow:auto;display:flex;flex-direction:column;gap:10px}
+  .extract-item{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.45}
   .change-note{margin:8px 0 0;padding:8px 12px;border-left:3px solid var(--amber);background:var(--b04,rgba(0,0,0,.03));font-size:13px;color:var(--ink2,inherit)}
   .panel{background:var(--card);border:1px solid var(--b08);border-radius:16px;padding:20px}
   .panel h2,.panel h3{font-size:13px;font-weight:700}
@@ -1147,7 +1159,7 @@
         Google sign-in couldn’t load (an ad blocker may be blocking it). Use your email and password above.
       </div>
     </div>
-    <p class="lg-sandbox" id="lg-sandbox">Each account gets its own private workspace. Use sample or anonymised figures, not confidential data. Workspaces with no activity for 30 days are deleted. By signing in you agree to the <a href="/terms" target="_blank" rel="noopener">terms</a> and <a href="/privacy" target="_blank" rel="noopener">privacy</a> notes.</p>
+    <p class="lg-sandbox" id="lg-sandbox">Each account gets its own private workspace. Your data is kept until you delete it (or after 12 months without use), you can export it any time, and you can hide company and customer names from the AI. By signing in you agree to the <a href="/terms" target="_blank" rel="noopener">terms</a> and <a href="/privacy" target="_blank" rel="noopener">privacy</a> notes.</p>
     <div class="lg-toggle" id="lg-toggle">Need an account? <button type="button" onclick="toggleAuthMode()">Sign up</button></div>
     <button id="lg-demo" style="display:none;margin-top:14px;width:100%;padding:11px;border-radius:8px;border:1.5px dashed var(--accent);background:var(--accent-bg);color:var(--accent);font-weight:700;font-size:14px" onclick="enterDemo()">Demo</button>
     <button type="button" class="lg-guest" id="lg-guest" style="display:none" onclick="enterGuest()">Continue as guest</button>
@@ -1206,7 +1218,7 @@
       </div>
       <div class="closes" id="close-list" aria-labelledby="closes-label"><div class="close-skel"></div><div class="close-skel"></div></div>
       <div class="nav-label">Across months</div>
-      <button class="nav-item" data-view="analytics" onclick="requestImportView('analytics')">
+      <button class="nav-item adv" data-view="analytics" onclick="requestImportView('analytics')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>Analyze</button>
       <button class="nav-item" data-view="library" onclick="requestImportView('library')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Context library</button>
@@ -1216,6 +1228,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
       <span id="nav-admin" hidden></span>
     </nav>
+    <label class="adv-toggle"><input type="checkbox" id="adv-toggle" onchange="setAdvanced(this.checked)"> Show advanced tools</label>
     <button class="nav-item" onclick="$('help-back').classList.add('open')" style="margin:2px 12px">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>How Closebrief works</button>
     <div class="side-foot">
@@ -1266,6 +1279,7 @@
       <nav class="mtabs" aria-label="Settings">
         <a href="#settings=costs" data-place="costs">Cost and usage</a>
         <a href="#settings=notifications" data-place="notifications">Notifications</a>
+        <a href="#settings=privacy" data-place="privacy">Workspace and data</a>
         <a href="#settings=users" data-place="admin" id="st-users">Users</a>
         <a href="#settings=activity" data-place="activity">Activity</a>
       </nav>
@@ -1306,6 +1320,8 @@
       <div class="bp-bar">
         <p id="bp-note">The board pack is built from the same computed figures and approved commentary as the KPIs tab.</p>
         <div class="bp-actions">
+          <button class="btn" onclick="copyCommentary()">Copy commentary</button>
+          <button class="btn" onclick="exportWord()">Word</button>
           <button class="btn" onclick="exportExcel(this)">Excel (.xlsx)</button>
           <button class="btn" onclick="exportPPTX()">PowerPoint</button>
           <button class="btn" onclick="exportPDF()">KPI report (PDF)</button>
@@ -1337,6 +1353,8 @@
             <div class="export-menu" id="export-menu">
               <button id="export-pack-btn" onclick="exportBoardPack()"><b>Board pack</b><span>Print-ready pack for the board</span></button>
               <button onclick="exportPDF()"><b>PDF report</b><span>Every KPI with its commentary</span></button>
+              <button onclick="copyCommentary()"><b>Copy commentary</b><span>A table to paste into your deck or memo</span></button>
+              <button onclick="exportWord()"><b>Word</b><span>An editable memo of the commentary</span></button>
               <button onclick="exportExcel()"><b>Excel</b><span>Every KPI, variance and approved commentary</span></button>
               <button onclick="exportPPTX()"><b>PowerPoint</b><span>Editable .pptx deck</span></button>
             </div>
@@ -1392,6 +1410,7 @@
           <h2 class="panel-h">Commentary</h2><div class="psub" id="d-narr-meta"></div>
           <div class="narr" id="d-narr"></div>
           <div id="d-why"></div>
+          <details id="d-prev" class="prev-comm" style="display:none"><summary></summary><p></p></details>
           <div id="d-grounding" class="grounding" style="display:none"></div>
           <div class="chips" id="d-chips" style="margin-top:12px"></div>
           <div class="rev-strip" id="d-rev-strip" style="display:none">
@@ -1410,7 +1429,7 @@
           </div>
           <div id="d-qa-answer" style="margin-top:10px" aria-live="polite"></div>
           <div id="d-rootcause" style="display:none;margin-top:14px"></div>
-          <div id="d-correlations" style="margin-top:12px"></div>
+          <div id="d-correlations" class="adv" style="margin-top:12px"></div>
         </div>
         <div class="panel insp">
           <h3>Figures</h3>
@@ -1527,7 +1546,7 @@
     <section id="v-digest" class="wrap" style="display:none">
       <div class="head">
         <div><h1>Executive digest</h1><div class="sub">Built only from approved commentary, biggest movements first</div></div>
-        <div class="head-actions"><button class="write-only btn primary" id="digest-generate" style="display:none" onclick="sendDigest()">Send to leadership</button></div>
+        <div class="head-actions"><button class="write-only btn" onclick="approvalLink()" title="A link your manager can open to approve this close's commentary, no account needed">Get approval link</button><button class="write-only btn primary" id="digest-generate" style="display:none" onclick="sendDigest()">Send to leadership</button></div>
       </div>
       <div id="digest-status"></div>
       <div class="dg-grid">
@@ -1539,7 +1558,7 @@
     <!-- ---------- CONTEXT ---------- -->
     <section id="v-context" class="wrap" style="display:none">
       <div class="head"><div><h1>Context library</h1><div class="sub">Notes the commentary cites to explain why a number moved</div></div>
-        <div class="head-actions"><button class="btn primary write-only" onclick="ctxNew()">New note</button></div></div>
+        <div class="head-actions"><button class="btn write-only" onclick="pasteSource()">Paste a document</button><button class="btn primary write-only" onclick="ctxNew()">New note</button></div></div>
       <div class="ctx-split">
         <div class="ctx-listcol">
           <div class="ctx-scope" id="ctx-scope" role="group" aria-label="Which notes"></div>
@@ -1559,6 +1578,8 @@
             <div class="ctx-full"><label for="c-body" class="lbl">Body</label><textarea id="c-body" required placeholder="What happened, when, and which metrics it affects…"></textarea></div>
             <div><label for="c-tags" class="lbl">KPI tags (comma-separated; empty = background for every KPI)</label><input id="c-tags" placeholder="Net Revenue, Churned ARR"></div>
             <div><label for="c-date" class="lbl">Effective date (YYYY-MM)</label><input id="c-date" placeholder="2025-03"></div>
+            <div><label for="c-until" class="lbl">Covers</label>
+              <select id="c-until"><option value="">This period (an event note also counts for the two after)</option><option value="ongoing">Every period until turned off</option></select></div>
             <div><label for="c-scope" class="lbl">Applies to</label>
               <select id="c-scope"><option value="dataset">This dataset only</option><option value="workspace">Every dataset</option></select></div>
             <p class="ctx-full ctx-hint">A note explains a variance only when it is tagged with that KPI and dated in that month (an event note counts for up to two months after).</p>
@@ -1609,6 +1630,8 @@
           <div id="sheet-pick" style="display:none"><label for="sheet-sel" class="lbl">Sheet</label><select class="pill-btn" id="sheet-sel" onchange="loadSchema()"></select></div>
           <div><label for="layout-sel" class="lbl">Layout</label><select class="pill-btn" id="layout-sel" onchange="renderMap()">
             <option value="long">One row per month</option><option value="wide">Months across the top</option></select></div>
+          <div><label for="amount-scale" class="lbl">Amounts are in</label><select class="pill-btn" id="amount-scale" title="Filings and management packs often report '$ in thousands'. Currency KPIs are stored as real amounts; percentages and counts are left alone.">
+            <option value="1">Units</option><option value="1000">Thousands ($000)</option><option value="1000000">Millions ($M)</option></select></div>
           <div id="map-month-wrap" hidden><label for="map-month" class="lbl">Month these figures are for</label>
             <input class="pill-btn" type="month" id="map-month" oninput="updateMapHint()"></div>
           <div id="imp-suffix-wrap" style="display:none"><label for="imp-suffix" class="lbl" title="If the target dataset's metrics are named '<name> spend_usd' rather than just '<name>', enter the suffix here so budgets attach to the right one.">Metric name suffix (optional)</label>
@@ -1636,7 +1659,15 @@
               <option value="marketing">Marketing &amp; Growth: acquisition funnel</option>
               <option value="ops" disabled>Operations (coming soon)</option>
             </select></div>
+          <div><label class="lbl" for="imp-plan-label">The budget column is</label>
+            <input id="imp-plan-label" list="plan-labels" value="plan" style="width:150px" title="What the comparison column really is, so commentary doesn't call last year's actuals a budget">
+            <datalist id="plan-labels"><option value="plan"><option value="budget"><option value="prior year"><option value="non-GAAP"><option value="guidance"><option value="forecast"></datalist></div>
+          <div><label class="lbl" for="imp-threshold">Explain variances over</label>
+            <div style="display:flex;gap:6px;align-items:center"><input id="imp-threshold" type="number" min="0" step="0.5" value="10" style="width:70px" aria-label="Percent threshold"> %
+              <span>and</span><input id="imp-floor" type="number" min="0" step="1000" placeholder="any amount" style="width:120px" aria-label="Dollar floor"></div></div>
         </div>
+        <div class="banner ok" id="kpi-auto" hidden></div>
+        <div id="kpi-detail">
         <p class="imp-say">Pick the KPIs to track and check how each one is named. <b>Good direction</b> decides whether a fall shows as good (costs) or bad (revenue).</p>
         <div class="kpi-toolbar">
           <div class="kpi-actions"><span>Track</span><button class="linkbtn" onclick="selectKpis(true)">All</button><button class="linkbtn" onclick="selectKpis(false)">None</button>
@@ -1650,8 +1681,10 @@
           <small id="kpi-bulk-selection" role="status"></small>
         </div>
         <div id="kpi-rows"></div>
+        </div>
         <p id="kpi-selection" role="status">Loading KPI choices…</p>
         <div class="kpi-finish">
+          <label style="font-size:13px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px"><input type="checkbox" id="auto-draft" checked> Draft the latest close's commentary</label>
           <label style="font-size:13px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px"><input type="checkbox" id="save-tpl" checked> Save as template</label>
           <button class="write-only btn primary" id="imp-finish" disabled aria-describedby="kpi-selection" onclick="confirmKpis()">Finish import</button>
         </div>
@@ -1696,6 +1729,36 @@
     </section>
 
     <!-- ---------- NOTIFICATIONS ---------- -->
+    <section id="v-privacy" class="wrap" style="display:none">
+      <div class="head"><div><h1>Workspace and data</h1><div class="sub">How commentary is written, what the AI never sees, and your data: take a full copy or delete everything.</div></div></div>
+      <div class="panel" style="margin-bottom:16px">
+        <h2>House style for commentary</h2>
+        <p class="psub">How drafts are worded for everyone in this workspace. Figures are never changed.</p>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+          <label class="lbl" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="hs-fav"> Say favourable / unfavourable</label>
+          <label class="lbl" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="hs-fwd" checked> Allow a what-to-watch sentence</label>
+          <label class="lbl">At most <select id="hs-max"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select> sentences</label>
+        </div>
+        <input id="hs-instr" maxlength="300" placeholder="Anything else, e.g. Use $M with one decimal; name the department first" style="width:100%;margin-top:10px;font:inherit;padding:8px;border-radius:8px;border:1px solid var(--b08);background:var(--card);color:inherit">
+        <div style="text-align:right;margin-top:8px"><button class="btn primary write-only" onclick="saveStyle()">Save style</button></div>
+      </div>
+      <div class="panel" style="margin-bottom:16px">
+        <h2>Words hidden from the AI</h2>
+        <p class="psub">Company, customer or people names. Before anything is sent to the AI provider they're swapped for placeholders like [Name 1], and swapped back in what it writes. Figures are never changed.</p>
+        <textarea id="pv-terms" rows="5" style="width:100%;font:inherit;padding:8px;border-radius:8px;border:1px solid var(--b08);background:var(--card);color:inherit" placeholder="One per line, e.g.&#10;Northwind&#10;Globex&#10;Initech"></textarea>
+        <div style="text-align:right;margin-top:8px"><button class="btn primary write-only" onclick="savePrivacy()">Save</button></div>
+      </div>
+      <div class="panel" style="margin-bottom:16px">
+        <h2>Export everything</h2>
+        <p class="psub">One JSON file with every dataset, figure, KPI setting, note, commentary version and review decision in this workspace.</p>
+        <button class="btn" onclick="exportWorkspace()">Download export</button>
+      </div>
+      <div class="panel">
+        <h2>Delete all data</h2>
+        <p class="psub">Deletes every dataset, figure, commentary, note, linked source and upload in this workspace. Your account and the activity log stay. This can't be undone.</p>
+        <button class="btn danger write-only" onclick="deleteAllData()">Delete all data</button>
+      </div>
+    </section>
     <section id="v-notifications" class="wrap" style="display:none">
       <div class="head"><div><h1>Notifications</h1><div class="sub">Deliver digests and anomaly alerts to email, Slack, or a webhook</div></div></div>
       <div class="ctx-form three-col-form write-only">

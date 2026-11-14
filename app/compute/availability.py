@@ -26,7 +26,8 @@ def reason_trigger(is_anomaly, budget_var_pct, threshold=DEFAULT_REASON_THRESHOL
                 worst is None or abs(p["var_abs"] or 0) > abs(worst["var_abs"] or 0)):
             worst = p
     if worst:
-        return {"kind": "part", "part": worst["member"], "var_pct": worst["var_pct"], "var_abs": worst["var_abs"]}
+        return {"kind": "part", "part": worst["member"], "var_pct": worst["var_pct"], "var_abs": worst["var_abs"],
+                **({"unplanned": True} if worst.get("unplanned") else {})}
     return None
 
 

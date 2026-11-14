@@ -130,7 +130,8 @@ app.add_middleware(
 # attach a bearer token to <script src>, so gating it 401s the entire frontend.
 _OPEN_PATHS = {"/", "/app", "/theme.css", "/app.js", "/health", "/auth/config", "/auth/google",
                "/auth/session", "/auth/logout", "/privacy", "/terms", "/openapi.json", "/docs", "/redoc",
-               "/samples/fpa.csv", "/og.png"}
+               "/samples/fpa.csv", "/og.png",
+               "/approve"}   # a signed link for one close; the token is the permission
 
 
 # ---- request telemetry: latency ring buffer + naive per-IP rate limit ----
@@ -288,6 +289,7 @@ async def _telemetry_middleware(request, call_next):
 
 # ---- Feature routers split out of this module (app/routers/*) ----
 from app.routers import admin as _admin_router  # noqa: E402
+from app.routers import approval as _approval_router  # noqa: E402
 from app.routers import close as _close_router  # noqa: E402
 from app.routers import context as _context_router
 from app.routers import datasets as _datasets_router
@@ -313,4 +315,5 @@ app.include_router(_admin_router.router)
 app.include_router(_notif_router.router)
 app.include_router(_review_router.router)
 app.include_router(_close_router.router)
+app.include_router(_approval_router.router)
 app.include_router(_insights_router.router)

@@ -40,6 +40,12 @@ class ComputedFact(BaseModel):
     deltas: Deltas
     trend: Optional[Trend] = None
     is_anomaly: bool = False
+    # What the comparison is called ("prior year", "non-GAAP"), how often the data
+    # comes (month/quarter/year) and the team's house style, for the wording only.
+    budget_label: str = "plan"
+    forecast_label: str = "forecast"
+    cadence: str = "month"
+    house_style: Optional[dict] = None
     # P/V/M decomposition components (deterministic, Addendum v1.1 Section 5).
     # None when the data lacks qty/price detail — the narrative must then not
     # claim price/volume/mix causes.
@@ -105,6 +111,9 @@ class ContextDocIn(BaseModel):
     # "dataset": the note belongs to the dataset open when it was written (the default);
     # "workspace": it applies to every dataset (a definition or policy, say).
     scope: Literal["dataset", "workspace"] = "dataset"
+    # None: the note's usual window. "YYYY-MM": it covers every period through that month.
+    # "ongoing": it applies from effective_date until it's turned off (recurring reasons).
+    effective_until: Optional[str] = Field(default=None, pattern=r"^(ongoing|\d{4}-\d{2})$")
 
 
 class ContextDoc(ContextDocIn):

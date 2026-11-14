@@ -85,6 +85,8 @@ CREATE TABLE IF NOT EXISTS workspaces (
     plan TEXT NOT NULL DEFAULT 'free',
     monthly_budget_usd REAL,
     retention_days INTEGER,
+    hidden_terms TEXT,
+    house_style TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -115,6 +117,10 @@ CREATE TABLE IF NOT EXISTS datasets (
     fiscal_year_start INTEGER NOT NULL DEFAULT 1 CHECK (fiscal_year_start BETWEEN 1 AND 12),
     reason_threshold_pct REAL NOT NULL DEFAULT 10 CHECK (reason_threshold_pct >= 1 AND reason_threshold_pct <= 100),
     reason_threshold_abs REAL CHECK (reason_threshold_abs IS NULL OR reason_threshold_abs >= 0),
+    amount_scale INTEGER NOT NULL DEFAULT 1,
+    import_pending INTEGER NOT NULL DEFAULT 0,
+    budget_label TEXT,
+    forecast_label TEXT,
     is_active INTEGER NOT NULL DEFAULT 0,
     domain TEXT NOT NULL DEFAULT 'fpa',
     is_demo INTEGER NOT NULL DEFAULT 0,
@@ -131,6 +137,8 @@ CREATE TABLE IF NOT EXISTS metrics (
     category TEXT NOT NULL DEFAULT 'Uncategorized',
     unit TEXT NOT NULL DEFAULT 'USD',
     direction_good TEXT NOT NULL DEFAULT 'up',
+    -- Factor applied to stored amounts at import (1000 for a file "in thousands").
+    value_scale REAL NOT NULL DEFAULT 1,
     -- A stable code from the source system (GL account code, SKU, ...),
     -- captured from the mapping's id_col at ingest. Lets a later budget-only
     -- upload join onto this metric by code, which doesn't drift the way a
@@ -184,6 +192,7 @@ CREATE TABLE IF NOT EXISTS context_documents (
     is_demo INTEGER NOT NULL DEFAULT 0,
     workspace_id INTEGER,
     dataset_id INTEGER,
+    effective_until TEXT,
     created_by TEXT,
     updated_by TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -422,6 +431,16 @@ _SQLITE_MIGRATIONS = [
     "CHECK (reason_threshold_abs IS NULL OR reason_threshold_abs >= 0)",
     # A note belongs to one dataset (NULL = applies to every dataset in the workspace).
     "ALTER TABLE context_documents ADD COLUMN dataset_id INTEGER",
+    # Files reported in thousands/millions: stored amounts are real amounts.
+    "ALTER TABLE datasets ADD COLUMN amount_scale INTEGER NOT NULL DEFAULT 1",
+    "ALTER TABLE datasets ADD COLUMN import_pending INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE workspaces ADD COLUMN hidden_terms TEXT",
+    "ALTER TABLE datasets ADD COLUMN budget_label TEXT",
+    "ALTER TABLE datasets ADD COLUMN forecast_label TEXT",
+    "ALTER TABLE workspaces ADD COLUMN house_style TEXT",
+    "ALTER TABLE metrics ADD COLUMN value_scale REAL NOT NULL DEFAULT 1",
+    # A note covering several periods: through a month, or 'ongoing' until turned off.
+    "ALTER TABLE context_documents ADD COLUMN effective_until TEXT",
     "ALTER TABLE computed_facts ADD COLUMN anomaly_basis TEXT CHECK (anomaly_basis IN ('seasonal', 'month_on_month'))",
     "ALTER TABLE computed_facts ADD COLUMN anomaly_z REAL",
     "ALTER TABLE datasets ADD COLUMN reason_threshold_pct REAL NOT NULL DEFAULT 10 "

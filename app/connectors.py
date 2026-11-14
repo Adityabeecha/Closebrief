@@ -215,8 +215,12 @@ def sync_connector(conn, connector_id: int, workspace_id: int | None, *, fetch=f
         ).fetchone()
         ds_id = ds["id"] if ds else create_dataset(
             conn, ds_name, activate=False, workspace_id=row["workspace_id"])
+        from app.ingestion.scale import mark_scaled, metric_units, scale_frame
+        scale = int(cfg.get("amount_scale") or mapping.get("amount_scale") or 1)
+        scaled = scale_frame(canonical, scale, metric_units(conn, ds_id, canonical["metric"].unique()))
         summary = store_normalized(conn, canonical, ds_id, replace=ds is not None, source="sync",
                                    actor_id=actor_id, actor_email=actor_email)
+        mark_scaled(conn, ds_id, scaled, scale)
         from app.kpis.library import suggest_import_defaults, words
         configs = []
         for metric in conn.execute("SELECT name FROM metrics WHERE dataset_id = ?", (ds_id,)).fetchall():

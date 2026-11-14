@@ -11,6 +11,8 @@ import sqlite3
 import numpy as np
 import pandas as pd
 
+from app.compute.cadence import step_of
+
 REQUIRED_COLUMNS = ["metric", "period", "value", "budget"]
 
 
@@ -34,6 +36,8 @@ def compute_kpis(df: pd.DataFrame, anomaly_z_threshold: float = 2.0) -> pd.DataF
     for metric, g in work.groupby("metric"):
         g = g.sort_values("_month").reset_index(drop=True)
         value_by_month = dict(zip(g["_month"], g["value"]))
+        # A quarterly file compares with the previous quarter, not a month that isn't there.
+        step = step_of(p.year * 12 + p.month - 1 for p in g["_month"])
 
         mom_series: list[float | None] = []
         for i, row in g.iterrows():
@@ -41,7 +45,7 @@ def compute_kpis(df: pd.DataFrame, anomaly_z_threshold: float = 2.0) -> pd.DataF
             value = row["value"]
             budget = row["budget"]
 
-            prior_month_value = value_by_month.get(month - 1)
+            prior_month_value = value_by_month.get(month - step)
             prior_year_value = value_by_month.get(month - 12)
 
             mom_pct = (
@@ -95,7 +99,7 @@ def compute_kpis(df: pd.DataFrame, anomaly_z_threshold: float = 2.0) -> pd.DataF
                 }
             )
 
-        judged = judge_anomalies(list(g["_month"]), mom_series, anomaly_z_threshold)
+        judged = judge_anomalies(list(g["_month"]), mom_series, anomaly_z_threshold, step=step)
         start = len(results) - len(judged)
         for i, (flag, basis, z) in enumerate(judged):
             results[start + i].update(is_anomaly=flag, anomaly_basis=basis, anomaly_z=z)
@@ -133,7 +137,7 @@ _SEASONAL_MIN_STD = 1.0
 
 
 def judge_anomalies(months: list[int], mom_series: list[float | None],
-                    z_threshold: float) -> list[tuple[bool, str | None, float | None]]:
+                    z_threshold: float, step: int = 1) -> list[tuple[bool, str | None, float | None]]:
     """(is_anomaly, basis, z) per month, in order.
 
     'seasonal': when the same month a year earlier has its own month-on-month change,
@@ -146,13 +150,15 @@ def judge_anomalies(months: list[int], mom_series: list[float | None],
     out: list[tuple[bool, str | None, float | None]] = []
     moms: list[float] = []
     diffs: list[float] = []
+    # Quarterly data has a quarter of the points: judge from 2 earlier changes, not 3.
+    need = 3 if step == 1 else 2
     for month, mom in zip(months, mom_series):
         last_year = mom_by_month.get(month - 12)
         diff = None if mom is None or last_year is None else mom - last_year
-        if diff is not None and len(diffs) >= 3:
+        if diff is not None and len(diffs) >= need:
             z = _z(diff, diffs, _SEASONAL_MIN_STD)
             out.append((abs(z) > z_threshold, "seasonal", round(z, 2)))
-        elif mom is not None and len(moms) >= 3:
+        elif mom is not None and len(moms) >= need:
             z = _z(mom, moms)
             out.append((abs(z) > z_threshold, "month_on_month", round(z, 2)))
         else:

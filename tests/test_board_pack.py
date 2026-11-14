@@ -109,7 +109,9 @@ def test_pack_uses_closing_ring_fonts_and_checked_figures():
     doc = build_board_pack_html([_fact('Revenue', 1420000, narrative='Revenue was $1.42M.')], '2025-03')
     assert 'Schibsted Grotesk' in doc and 'Red Hat Mono' in doc
     assert 'Every figure computed in code and checked' in doc
-    assert '1 of 1 figures checked' in doc and '<mark' in doc
+    assert '<mark' in doc and ('Figures checked' in doc or 'Not checked' in doc)
+    passed = build_board_pack_html([{**_fact('Revenue', 1420000, narrative='Revenue was $1.42M.'), 'faithfulness': 'passed'}], '2025-03')
+    assert 'Figures checked' in passed and 'of 1 figures' not in passed
     assert 'size:A4 portrait' in doc
 
 
