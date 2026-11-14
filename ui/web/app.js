@@ -2781,6 +2781,20 @@ const EST_COST_PER_NARR=0.006;
 let generatingSet=new Set(), skipRise=false;
 // Simple concurrency pool: run `worker` over `items`, at most `n` in flight.
 /* ---------- a big movement with no recorded reason asks for one, right where it's read ---------- */
+// One sentence is enough: the KPI, month and note type are filled in for the analyst.
+async function saveQuickReason(){
+  const f=detailFact,body=($("rb-text")&&$("rb-text").value||"").trim();
+  if(!f||!body){toast("Write the reason first");return;}
+  try{
+    await api("/context",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+      type:"event_note",title:`Why ${f.metric} moved in ${fmtPeriod(currentPeriod,"long")}`,body,metric_tags:[f.metric],
+      effective_date:currentPeriod,scope:"dataset",effective_until:$("rb-rec")&&$("rb-rec").checked?"ongoing":null})});
+    const metric=f.metric,had=!!f.narrative;
+    await loadFacts();
+    const i=shownFacts.findIndex(x=>x.metric===metric);if(i>=0)openDetail(i,{fromRoute:true});
+    toast(had?"Reason saved. Regenerate to use it in the commentary.":"Reason saved. Draft the commentary to use it.");
+  }catch(e){toast("Couldn't save the reason: "+errMsg(e));}
+}
 // "Big" is the same rule the close checklist uses: an anomaly, or further from plan than
 // the dataset's threshold (10% unless changed in the dataset menu).
 function reasonThreshold(){return (typeof activeDatasetObj!=="undefined"&&activeDatasetObj&&activeDatasetObj.reason_threshold_pct)||10;}
@@ -2814,9 +2828,15 @@ function renderWhyNone(f){
     :t&&t.kind==="part"
     ?`${esc(t.part)} is ${esc(pct(t.var_pct)||"")} vs plan (${esc((t.var_abs>0?"+":"")+fmt(t.var_abs,f.unit))}), past the ${esc(String(lim))}% threshold, even though the total is ${esc(deltaText(f,"budget")||"within it")}. `
     :t&&t.kind==="total"?`It's ${esc(deltaText(f,"budget")||"")} vs plan, past the ${esc(String(lim))}% threshold. `:"";
+  const box=canReview()&&granularity==="month"
+    ?`<div class="reason-box"><label class="lbl" for="rb-text">Why did ${esc(f.metric)} move?</label>
+        <textarea id="rb-text" rows="2" placeholder="e.g. Two EMEA renewals slipped to November after procurement delays"></textarea>
+        <div class="reason-row"><label class="rb-rec"><input type="checkbox" id="rb-rec"> Applies every period until I turn it off</label>
+          <span style="flex:1"></span><button class="linkbtn" data-act="reason" data-arg="${esc(f.metric)}">More options</button>
+          <button class="btn sm primary" onclick="saveQuickReason()">Save reason</button></div></div>`:"";
   el.innerHTML=(why?`<p class="anom-why">${esc(why)}</p>`:"")+`<div class="why-none" role="note"><span><b>No reason recorded.</b> ${what}${canReview()
-    ?"Add a context note and the commentary will cite it next time it's drafted."
-    :"An analyst can add the reason as a context note."}</span>${canReview()?`<button class="btn sm" data-act="reason" data-arg="${esc(f.metric)}">Add a reason</button>`:""}</div>`;
+    ?(granularity==="month"?"Write it below; the commentary will use it when it's drafted.":"Open a month to add its reason.")
+    :"An analyst can add the reason as a context note."}</span></div>${box}`;
 }
 // The note's first line: the movement it explains, so the reason is written against the numbers.
 function reasonStarter(f){
@@ -3095,7 +3115,7 @@ function renderContextList(){
   $("ctx-rows").innerHTML=docs.map(d=>{
     const on=d.id===ctxSel;
     return `<div class="ctx-item${on?" on":""}">
-      <button class="ctx-open" onclick="ctxOpen(${esc(d.id)})"${on?' aria-current="true"':""}><b>${esc(d.title)}</b><small>${esc(d.type.replace("_"," "))} · ${esc(ctxWhen(d))}${d.dataset_id==null?" · every dataset":""}</small></button>
+      <button class="ctx-open" onclick="ctxOpen(${esc(d.id)})"${on?' aria-current="true"':""}><b>${esc(d.title)}</b><small>${esc(d.type.replace("_"," "))} · ${esc(ctxWhen(d))}${d.effective_until==="ongoing"?" onwards":d.effective_until?` to ${esc(fmtPeriod(d.effective_until))}`:""}${d.dataset_id==null?" · every dataset":""}</small></button>
       <button class="row-del write-only" aria-label="Delete ${esc(d.title)}" onclick="delContext(${esc(d.id)})">${XICON}</button></div>`;
   }).join("")||`<p class="ctx-none">No notes dated in ${esc(fmtPeriod(currentPeriod))}. <button class="linkbtn" onclick="ctxScope='all';renderContextList()">Show all notes</button></p>`;
   paintContextDetail();
@@ -3119,8 +3139,31 @@ async function addContext(e){
   e.preventDefault();
   const tags=$("c-tags").value.split(",").map(s=>s.trim()).filter(Boolean);
   await api("/context",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({type:$("c-type").value,title:$("c-title").value,body:$("c-body").value,metric_tags:tags,effective_date:$("c-date").value||null,scope:($("c-scope")&&$("c-scope").value)||"dataset"})});
-  toast("Added to the context library");["c-title","c-body","c-tags","c-date"].forEach(id=>$(id).value="");ctxComposing=false;ctxSel=null;loadContext();
+    body:JSON.stringify({type:$("c-type").value,title:$("c-title").value,body:$("c-body").value,metric_tags:tags,effective_date:$("c-date").value||null,scope:($("c-scope")&&$("c-scope").value)||"dataset",effective_until:($("c-until")&&$("c-until").value)||null})});
+  toast("Added to the context library");["c-title","c-body","c-tags","c-date","c-until"].forEach(id=>{if($(id))$(id).value="";});ctxComposing=false;ctxSel=null;loadContext();
+}
+// Paste an earnings release, MD&A or variance memo: the app proposes one note per KPI it
+// explains (tagged and dated), and the analyst keeps the ones they want.
+async function pasteSource(){
+  const text=await modalInput("Paste a document",{label:"Earnings release, MD&A, variance memo or an email: the notes are taken from this text, never invented.",textarea:true,required:true,okLabel:"Find reasons",placeholder:"Paste the text here"});
+  if(!text)return;
+  toast("Reading the document…");
+  let res;
+  try{res=await api("/context/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text,period:granularity==="month"?currentPeriod:null})});}
+  catch(e){toast(errMsg(e));return;}
+  const props=res.proposals||[];
+  if(!props.length){toast("No reasons for this dataset's KPIs were found in that text.");return;}
+  const body=`<p class="mh-sub" style="margin:0 0 10px">${plural(props.length,"note")} found. Untick any you don't want.</p>`+props.map((p,i)=>
+    `<label class="extract-item"><input type="checkbox" data-i="${i}" checked><span><b>${esc(p.kpi)}</b> · ${esc(fmtPeriod(p.period))}${p.recurring?" · every period":""}<br><small>${esc(p.title)}</small><br>${esc(p.body.slice(0,280))}${p.body.length>280?"…":""}</span></label>`).join("");
+  const keep=await _openModalRaw({title:"Add these notes?",body:`<div class="extract-list">${body}</div>`,okLabel:"Add notes",
+    getValue:()=>[...$("modal-body").querySelectorAll("input[type=checkbox]:checked")].map(x=>props[+x.dataset.i])});
+  if(!keep||!keep.length)return;
+  let added=0;
+  for(const p of keep){
+    try{await api("/context",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({type:"event_note",title:p.title,body:p.body,
+      metric_tags:[p.kpi],effective_date:p.period,scope:"dataset",effective_until:p.recurring?"ongoing":null})});added++;}catch{}
+  }
+  toast(`${plural(added,"note")} added.`);loadContext();if(currentPeriod)loadFacts();
 }
 async function delContext(id){
   if(!await modalConfirm("Delete context note","Delete this context note? Commentary will no longer cite it.",{okLabel:"Delete"}))return;
@@ -3292,13 +3335,16 @@ function keptTotalLabels(){return [...document.querySelectorAll(".keep-total:che
 // same figure as another (amount_local vs amount_usd) starts as "ignore" —
 // the mapping warning already says only one is kept, and keeping both
 // doubles every metric and sums mixed currencies.
+// A text column of reasons ("Comment", "Variance explanation") becomes context notes.
+const COMMENT_COL=/\b(comments?|commentary|reasons?|explanations?|notes?|remarks?|why)\b/i;
 function roleFor(c){
+  if(c.dtype!=="numeric"&&COMMENT_COL.test(String(c.column_name).replace(/[_\-]+/g," ")))return "comment";
   return c.redundant_with&&c.guessed_role==="measure"?"ignore":c.guessed_role;
 }
-const ROLES=["period","metric_label","measure","budget","forecast","id","quantity","price","dimension","ignore"];
+const ROLES=["period","metric_label","measure","budget","forecast","id","quantity","price","dimension","comment","ignore"];
 // What each role means to someone closing the books; the internal names stay in the API.
 const ROLE_LABELS={period:"Month or date",metric_label:"KPI name",measure:"Actual amount",budget:"Budget or plan",forecast:"Latest forecast",
-  id:"Row ID (not imported)",quantity:"Units sold",price:"Unit price",dimension:"Breakdown (region, product…)",ignore:"Don't import"};
+  id:"Row ID (not imported)",quantity:"Units sold",price:"Unit price",dimension:"Breakdown (region, product…)",comment:"Reason / comment (becomes a note)",ignore:"Don't import"};
 function renderMap(){
   if(!profile)return;const layout=$("layout-sel").value;
   $("map-holder").innerHTML=`<table class="map"><thead><tr><th>Column</th><th>Type</th><th>Sample</th><th>What it holds</th></tr></thead><tbody>`+
@@ -3366,7 +3412,7 @@ function buildMappingCore(){
   if(layout==="wide")return{layout:"wide",wide_period_cols:profile.wide_period_cols,wide_metric_col:by("metric_label")[0]||null,wide_value_label:by("metric_label").length?null:"Value",id_col:by("id")[0]||null,dimension_cols:by("dimension"),keep_labels};
   const measures=by("measure");
   const periodLiteral=sheetPeriod()||(needsMonthPick()&&$("map-month").value)||null;
-  const base={layout:"long",period_col:periodLiteral?null:(by("period")[0]||null),period_literal:periodLiteral,metric_col:by("metric_label")[0]||null,budget_col:by("budget")[0]||null,forecast_col:by("forecast")[0]||null,id_col:by("id")[0]||null,dimension_cols:by("dimension"),keep_labels};
+  const base={layout:"long",period_col:periodLiteral?null:(by("period")[0]||null),period_literal:periodLiteral,metric_col:by("metric_label")[0]||null,budget_col:by("budget")[0]||null,forecast_col:by("forecast")[0]||null,id_col:by("id")[0]||null,dimension_cols:by("dimension"),comment_col:by("comment")[0]||null,keep_labels};
   if(isJoinMode()&&!measures.length){
     // Adding a budget or forecast to a dataset: that column is the amount being attached.
     const amount=by(joinWord())[0]||by("budget")[0]||by("forecast")[0];
@@ -3386,7 +3432,7 @@ async function confirmMapping(m){
     $("imp-result").innerHTML="";
     const rep=importReportHtml(res.import_report,{breakdown:(mapping.dimension_cols||[])[0]||null});
     $("norm-summary").className="banner imp-report "+(rep.attention?"warn":"ok");
-    $("norm-summary").innerHTML=`Imported ${plural(res.metrics.length,"KPI","KPIs")} across ${plural(res.periods.length,"period")}.${res.template_id?" The column mapping is saved for next month's file.":""}${rep.html}`;
+    $("norm-summary").innerHTML=`Imported ${plural(res.metrics.length,"KPI","KPIs")} across ${plural(res.periods.length,"period")}.${res.template_id?" The column mapping is saved for next month's file.":""}${res.notes_added?` ${plural(res.notes_added,"reason")} from the comment column saved as notes.`:""}${rep.html}`;
     // dataset_id is the dataset THIS import created; activeDatasetId is still
     // whatever was selected before (or null) until loadDatasets() runs.
     lastImport={rows:res.rows_normalized,metrics:res.metrics.length,periods:res.periods.length,datasetId:res.dataset_id??null};

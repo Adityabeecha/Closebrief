@@ -38,6 +38,9 @@ def _effective_ok(doc: ContextDoc, period: str) -> bool:
     eff, per = _period_key(doc.effective_date), _period_key(period)
     if eff > per:
         return False
+    until = getattr(doc, "effective_until", None)
+    if until:   # a note that covers a range, or recurs until turned off
+        return until == "ongoing" or per <= _period_key(until)
     if doc.type == "event_note":
         e, p = _month_index(eff), _month_index(per)
         if e is not None and p is not None:

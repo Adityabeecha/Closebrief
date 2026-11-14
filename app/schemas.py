@@ -105,6 +105,9 @@ class ContextDocIn(BaseModel):
     # "dataset": the note belongs to the dataset open when it was written (the default);
     # "workspace": it applies to every dataset (a definition or policy, say).
     scope: Literal["dataset", "workspace"] = "dataset"
+    # None: the note's usual window. "YYYY-MM": it covers every period through that month.
+    # "ongoing": it applies from effective_date until it's turned off (recurring reasons).
+    effective_until: Optional[str] = Field(default=None, pattern=r"^(ongoing|\d{4}-\d{2})$")
 
 
 class ContextDoc(ContextDocIn):

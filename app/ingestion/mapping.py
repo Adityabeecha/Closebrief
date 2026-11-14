@@ -56,6 +56,8 @@ class MappingSpec(BaseModel):
     # The file's amounts are in units, thousands or millions ("$ in thousands").
     # Currency KPIs are stored as real amounts; percentages and counts are left alone.
     amount_scale: int = Field(default=1)
+    # A column of reasons/comments next to each line: becomes context notes.
+    comment_col: Optional[str] = None
 
     @field_validator("amount_scale")
     @classmethod

@@ -19,6 +19,7 @@ CREATE TABLE context_documents (
     is_demo INTEGER NOT NULL DEFAULT 0,
     workspace_id INTEGER,
     dataset_id INTEGER,
+    effective_until TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 """

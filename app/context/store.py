@@ -16,6 +16,13 @@ def _embed_text(doc: ContextDocIn) -> str:
     return f"{doc.title}\n{doc.body}".strip()
 
 
+def _row_get(row, key):
+    try:
+        return row[key]
+    except (IndexError, KeyError):
+        return None
+
+
 def _row_dataset(row) -> int | None:
     try:
         value = row["dataset_id"]
@@ -29,6 +36,7 @@ def _row_to_doc(row: sqlite3.Row) -> ContextDoc:
     return ContextDoc(
         dataset_id=dataset_id,
         scope="dataset" if dataset_id is not None else "workspace",
+        effective_until=_row_get(row, "effective_until"),
         id=row["id"],
         type=row["type"],
         title=row["title"],
@@ -65,13 +73,16 @@ class ContextStore:
         except Exception:  # noqa: BLE001 - a bare store (no datasets table) has no open dataset
             return None
 
-    def add(self, doc: ContextDocIn) -> ContextDoc:
+    def add(self, doc: ContextDocIn, dataset_id: int | None = None) -> ContextDoc:
+        """dataset_id: the dataset the note belongs to when it isn't the open one
+        (notes created by an import for the dataset it just made)."""
         from app.datasets import current_workspace
 
         cur = self._conn.execute(
             """
-            INSERT INTO context_documents (type, title, body, metric_tags, effective_date, workspace_id, dataset_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO context_documents (type, title, body, metric_tags, effective_date, workspace_id, dataset_id,
+                                           effective_until)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 doc.type,
@@ -80,7 +91,8 @@ class ContextStore:
                 json.dumps(doc.metric_tags),
                 doc.effective_date,
                 current_workspace(),
-                self._dataset_for(doc),
+                self._dataset_for(doc, dataset_id),
+                doc.effective_until,
             ),
         )
         self._conn.commit()
@@ -124,7 +136,7 @@ class ContextStore:
         self._conn.execute(
             """
             UPDATE context_documents
-            SET type=?, title=?, body=?, metric_tags=?, effective_date=?, dataset_id=?
+            SET type=?, title=?, body=?, metric_tags=?, effective_date=?, dataset_id=?, effective_until=?
             WHERE id=?
             """,
             (
@@ -134,6 +146,7 @@ class ContextStore:
                 json.dumps(doc.metric_tags),
                 doc.effective_date,
                 self._dataset_for(doc, existing.dataset_id),
+                doc.effective_until,
                 doc_id,
             ),
         )

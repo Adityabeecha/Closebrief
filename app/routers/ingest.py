@@ -24,6 +24,7 @@ from app.datasets import (
 from app.db import get_connection
 from app.deps import shared_cache
 from app.import_receipts import record_receipt
+from app.ingestion.comments import comments_from_frame, store_comment_notes
 from app.ingestion.ingest import IngestValidationError, ingest_dataframe, parse_csv
 from app.ingestion.mapping import MappingError, MappingSpec, match_budget_to_dataset, normalize, store_normalized
 from app.ingestion.profiler import mapping_preview, profile_columns, suggest_mapping
@@ -39,7 +40,7 @@ from app.ingestion.upload import (
     upload_sheet_period,
 )
 from app.kpis.library import suggest_import_defaults
-from app.routes_common import _notify_anomalies
+from app.routes_common import _context_store, _notify_anomalies
 from app.schemas import (
     IngestSummary,
     KPIConfigPayload,
@@ -154,6 +155,7 @@ def ingest_mapping(upload_id: str, mapping: MappingSpec, save_template: bool = F
         summary = store_normalized(conn, canonical, dataset_id, replace=bool(existing),
                                    actor_id=user.id, actor_email=user.email)
         mark_scaled(conn, dataset_id, scaled, mapping.amount_scale)
+        comments = comments_from_frame(df, mapping)
         conn.execute(
             "UPDATE uploads SET mapping = ? WHERE id = ?",
             (mapping.model_dump_json(), upload_id),
@@ -172,9 +174,11 @@ def ingest_mapping(upload_id: str, mapping: MappingSpec, save_template: bool = F
         record_receipt(conn, dataset_id, kind="import", filename=up["filename"] if up else upload_id,
                        mapping=mapping.model_dump(), report=summary["import_report"],
                        written_pairs=canonical.attrs["written_pairs"])
+        notes_added = store_comment_notes(conn, _context_store(conn), dataset_id, comments,
+                                          up["filename"] if up else upload_id) if comments else 0
         _notify_anomalies(conn, dataset_id)
         shared_cache().bump_namespace()
-        return {**summary, "dataset_id": dataset_id, **dataset_metadata(conn, dataset_id),
+        return {**summary, "dataset_id": dataset_id, **dataset_metadata(conn, dataset_id), "notes_added": notes_added,
                 "facts_computed": int(len(facts)), "template_id": template_id}
     except UploadError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

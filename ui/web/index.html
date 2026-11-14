@@ -255,6 +255,12 @@
   #d-narr{font-size:17px;line-height:1.6;margin-top:10px}
   #d-rev-strip{margin-top:14px}
   .ctx-hint{margin:0;font-size:12px;color:var(--mut)}
+  .reason-box{margin-top:10px;padding:12px;border:1px solid var(--b08);border-radius:10px}
+  .reason-box textarea{width:100%;margin-top:6px;font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line,var(--b08));background:var(--card);color:inherit}
+  .reason-row{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap}
+  .rb-rec{font-size:13px;color:var(--mut);display:flex;gap:6px;align-items:center}
+  .extract-list{max-height:55vh;overflow:auto;display:flex;flex-direction:column;gap:10px}
+  .extract-item{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.45}
   .change-note{margin:8px 0 0;padding:8px 12px;border-left:3px solid var(--amber);background:var(--b04,rgba(0,0,0,.03));font-size:13px;color:var(--ink2,inherit)}
   .panel{background:var(--card);border:1px solid var(--b08);border-radius:16px;padding:20px}
   .panel h2,.panel h3{font-size:13px;font-weight:700}
@@ -1539,7 +1545,7 @@
     <!-- ---------- CONTEXT ---------- -->
     <section id="v-context" class="wrap" style="display:none">
       <div class="head"><div><h1>Context library</h1><div class="sub">Notes the commentary cites to explain why a number moved</div></div>
-        <div class="head-actions"><button class="btn primary write-only" onclick="ctxNew()">New note</button></div></div>
+        <div class="head-actions"><button class="btn write-only" onclick="pasteSource()">Paste a document</button><button class="btn primary write-only" onclick="ctxNew()">New note</button></div></div>
       <div class="ctx-split">
         <div class="ctx-listcol">
           <div class="ctx-scope" id="ctx-scope" role="group" aria-label="Which notes"></div>
@@ -1559,6 +1565,8 @@
             <div class="ctx-full"><label for="c-body" class="lbl">Body</label><textarea id="c-body" required placeholder="What happened, when, and which metrics it affects…"></textarea></div>
             <div><label for="c-tags" class="lbl">KPI tags (comma-separated; empty = background for every KPI)</label><input id="c-tags" placeholder="Net Revenue, Churned ARR"></div>
             <div><label for="c-date" class="lbl">Effective date (YYYY-MM)</label><input id="c-date" placeholder="2025-03"></div>
+            <div><label for="c-until" class="lbl">Covers</label>
+              <select id="c-until"><option value="">This period (an event note also counts for the two after)</option><option value="ongoing">Every period until turned off</option></select></div>
             <div><label for="c-scope" class="lbl">Applies to</label>
               <select id="c-scope"><option value="dataset">This dataset only</option><option value="workspace">Every dataset</option></select></div>
             <p class="ctx-full ctx-hint">A note explains a variance only when it is tagged with that KPI and dated in that month (an event note counts for up to two months after).</p>

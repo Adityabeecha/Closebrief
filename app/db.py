@@ -187,6 +187,7 @@ CREATE TABLE IF NOT EXISTS context_documents (
     is_demo INTEGER NOT NULL DEFAULT 0,
     workspace_id INTEGER,
     dataset_id INTEGER,
+    effective_until TEXT,
     created_by TEXT,
     updated_by TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -428,6 +429,8 @@ _SQLITE_MIGRATIONS = [
     # Files reported in thousands/millions: stored amounts are real amounts.
     "ALTER TABLE datasets ADD COLUMN amount_scale INTEGER NOT NULL DEFAULT 1",
     "ALTER TABLE metrics ADD COLUMN value_scale REAL NOT NULL DEFAULT 1",
+    # A note covering several periods: through a month, or 'ongoing' until turned off.
+    "ALTER TABLE context_documents ADD COLUMN effective_until TEXT",
     "ALTER TABLE computed_facts ADD COLUMN anomaly_basis TEXT CHECK (anomaly_basis IN ('seasonal', 'month_on_month'))",
     "ALTER TABLE computed_facts ADD COLUMN anomaly_z REAL",
     "ALTER TABLE datasets ADD COLUMN reason_threshold_pct REAL NOT NULL DEFAULT 10 "
