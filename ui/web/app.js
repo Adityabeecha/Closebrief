@@ -455,7 +455,7 @@ async function api(path,opts,_retried){
 }
 // unit "USD" means "an amount of money" (the KPI unit predates currencies);
 // pass cur to force one, e.g. AI spend, which is always billed in US dollars.
-const fmt=(v,unit,cur)=>{
+const fmt=(v,unit,cur,compact=false)=>{
   if(v===null||v===undefined)return"–";
   if(unit==="%")return(v<0?"−":"")+Math.abs(v).toFixed(1)+"%";
   if(unit==="count"){const n=Math.round(v);return(n<0?"−":"")+Math.abs(n).toLocaleString();}
@@ -467,7 +467,7 @@ const fmt=(v,unit,cur)=>{
   const code=cur||displayCurrency,m=CURRENCY_MARK[code]||"$";
   const a=Math.abs(v),sign=v<0?"−":"";let mag;
   if(a>=1e9)mag=m+(a/1e9).toFixed(2)+"B"; else if(a>=1e6)mag=m+(a/1e6).toFixed(2)+"M"; else if(a>=1e5)mag=m+(a/1e3).toFixed(0)+"K";
-  else if(a>=1e3)mag=m+Math.round(a).toLocaleString();
+  else if(a>=1e3)mag=compact?m+(a/1e3).toFixed(1)+"K":m+Math.round(a).toLocaleString();
   else mag=m+(+a.toFixed(code==="JPY"?0:2)).toLocaleString();
   return sign+mag;
 };
@@ -892,7 +892,7 @@ function overviewSteps(s,server){
   const step=(id,title,detail,state,count,tab)=>({id,title,detail,state,count,target:routeHash({tab,period:P})});
   return [
     step("import","Import actuals and budget",s.n?`${plural(s.n,"KPI","KPIs")} imported · open Data to check coverage`:"Import actuals on the Data tab to start this close",s.n?"done":"todo",s.n,"data"),
-    step("review","Review the biggest movers",flagged?`${plural(flagged,"draft has","drafts have")} a figure to check · open KPIs`:undrafted?`${plural(undrafted,"KPI is","KPIs are")} not drafted yet · open KPIs`:"Figures checked · open KPIs to review movers",flagged||undrafted?"todo":"done",flagged+undrafted,"kpis"),
+    step("review","Review the biggest movers",flagged?`${plural(flagged,"draft has","drafts have")} a figure to check · open KPIs`:undrafted?`${plural(undrafted,"KPI is","KPIs are")} not drafted yet · open KPIs`:"Numbers match the data · open KPIs to review movers",flagged||undrafted?"todo":"done",flagged+undrafted,"kpis"),
     step("reasons",needs?`Add reasons for ${plural(needs,"variance")}`:"Every variance has a reason",needs?`${plural(needs,"variance needs","variances need")} a reason · open Context`:"Reasons recorded · open Context to review notes",needs?"todo":"done",needs,"context"),
     step("approve",pending?`Approve ${plural(pending,"draft")}`:"Approve the drafts",pending?`${plural(pending,"draft needs","drafts need")} approval · open KPIs`:remaining?"Draft commentary on KPIs before approving":"Drafts approved · open KPIs to read commentary",!remaining?"done":pending?"todo":"blocked",pending,"kpis"),
     step("share","Send the digest",s.shared?"Digest sent · open Digest to read it":!remaining?"Open Digest to prepare the leadership summary":"Approve the drafts on KPIs before sharing",s.shared?"done":!remaining?"todo":"blocked",+s.shared,"digest"),
@@ -1464,12 +1464,15 @@ function screenState(title,body,action,label,kind="empty",{writeOnly=false}={}){
   return `<div class="screen-state ${esc(kind)}" role="${kind==="error"?"alert":"status"}"><h2>${esc(title)}</h2><p>${esc(body)}</p>${action?`<button class="btn primary${writeOnly?" write-only":""}" onclick="${esc(action)}">${esc(label)}</button>`:""}</div>`;
 }
 function screenRow(html,cols){return cols?`<tr><td colspan="${esc(cols)}">${html}</td></tr>`:html;}
-function screenLoading(id,message,cols=0){
+function screenLoading(id,message,cols=0,retry=""){
   const el=$(id),previous=screenLoads.get(id);if(previous)clearTimeout(previous.timer);
   const state={};screenLoads.set(id,state);
   el.innerHTML=screenRow(`<div class="screen-state" role="status"><div class="sk sk-line" aria-hidden="true"></div><p>${esc(message)}</p><p class="screen-wait" hidden>Still working — this is taking longer than usual.</p></div>`,cols);
   el.setAttribute("aria-busy","true");
-  state.timer=setTimeout(()=>{if(screenLoads.get(id)===state){const line=el.querySelector(".screen-wait");if(line)line.hidden=false;}},4000);
+  state.timer=setTimeout(()=>{if(screenLoads.get(id)===state){
+    if(retry)el.innerHTML=screenRow(screenState("Still loading — the server may be waking up.","",retry,"Retry"),cols);
+    else{const line=el.querySelector(".screen-wait");if(line)line.hidden=false;}
+  }},retry?15000:4000);
   return ()=>{if(screenLoads.get(id)!==state)return false;clearTimeout(state.timer);el.removeAttribute("aria-busy");return true;};
 }
 function screenError(e,retry){
@@ -1624,10 +1627,10 @@ const REVIEW_LABELS={none:"Not approved yet",pending:"Not approved yet",approved
 // Figures check and explanation confidence, as two clearly separate statements.
 function narrMeta(f){
   const bits=[];
-  if(f.faithfulness==="passed")bits.push("Figures checked");
+  if(f.faithfulness==="passed")bits.push("Numbers match the data");
   else if(f.faithfulness==="unchecked"&&f.narrative)bits.push("Figures changed since this was written");
-  else if(f.faithfulness==="failed")bits.push("Figures need review");
-  if(f.confidence)bits.push(`Explanation: ${f.confidence} confidence`);
+  else if(f.faithfulness==="failed")bits.push("A number doesn't match the data");
+  if(f.confidence)bits.push(`Reason: ${{high:"strong",medium:"partial",low:"not given"}[String(f.confidence).toLowerCase()]||"not given"}`);
   if(f.edited)bits.push("edited by analyst");
   if(f.cost_usd!=null)bits.push(`≈ $${(+f.cost_usd).toFixed(4)}`);
   return bits.join(" · ");
@@ -2335,8 +2338,8 @@ const XICON='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke=
 // The pencil tick from the home page's legend: figures computed in code.
 const TICK='<svg viewBox="0 0 26 22" fill="none" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12.2c1.9 1.4 3.6 3.3 5.2 5.6C12.4 11 16.8 6.2 22.6 3.4"/></svg>';
 const seal=ok=>ok
-  ?`<span class="seal" title="Numbers verified: each matches a computed figure or a cited note, and every rise or fall matches the data. The reasons come from your context notes and are not verified.">${TICK}Figures checked</span>`
-  :`<span class="seal failed" title="A number doesn't match the computed figures, or calls a fall a rise. Review before sharing"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Needs review</span>`;
+  ?`<span class="seal" title="Numbers verified: each matches a computed figure or a cited note, and every rise or fall matches the data. The reasons come from your context notes and are not verified.">${TICK}Numbers match the data</span>`
+  :`<span class="seal failed" title="A number doesn't match the computed figures, or calls a fall a rise. Review before sharing"><svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>A number doesn't match the data</span>`;
 const DOCICON='<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
 /* Icon registry for JS-rendered markup. The bell mirrors the static sidebar-nav
    bell — change both together. */
@@ -2565,7 +2568,7 @@ function queueRow(f,i,q){
   const good=v==null||v===0?null:(f.direction_good==="down"?v<0:v>0);
   const tone=good===null?"":good?"c-ok":"c-exc";
   const state=generatingSet.has(f.metric)?"Drafting…"
-    :g==="exception"?(f.is_anomaly?"Anomaly":"Figures need review")
+    :g==="exception"?(f.is_anomaly?"Anomaly":"A number doesn't match the data")
     :g==="approved"?(f.is_anomaly?"Approved · anomaly":"Approved"):f.narrative?"Draft ready":"Not drafted";
   const sel=!!(detailFact&&detailFact.metric===f.metric);
   const tip=anomalyWhy(f);
@@ -2746,13 +2749,27 @@ function contributorsHtml(r,f){
   const gross=r.members.reduce((n,m)=>n+Math.abs(m.var_abs||0),0);
   const share=m=>m.var_abs==null||!gross?"–":Math.round(Math.abs(m.var_abs)/gross*100)+"%";
   const tone=v=>v==null||v===0?"":(f.direction_good==="down"?v<0:v>0)?"c-ok":"c-exc";
-  const rows=r.members.map(m=>`<tr><td>${esc(m.member)}</td><td class="nbi-num">${fmt(m.value,u)}</td>${hasPlan
-    ?`<td class="nbi-num">${m.budget==null?"–":fmt(m.budget,u)}</td><td class="nbi-num ${tone(m.var_abs)}">${m.var_abs==null?"–":(m.var_abs>0?"+":"")+fmt(m.var_abs,u)}</td>
+  const amount=v=>fmt(v,u,undefined,true);
+  // Compare the displayed parts in base units, including each amount's K/M/B precision.
+  const rounded=v=>{
+    if(u==="count")return Math.round(v)*100;
+    const a=Math.abs(v),money=!["number","days","%"].includes(u);
+    const scale=money?(a>=1e9?1e9:a>=1e6?1e6:a>=1e3?1e3:1):1;
+    const places=money?(scale>=1e6?2:scale===1e3?(a>=1e5?0:1):displayCurrency==="JPY"?0:2):u==="number"?2:1;
+    const n=money||u==="%"?Number((a/scale).toFixed(places))
+      :Number(new Intl.NumberFormat("en-US",{useGrouping:false,maximumFractionDigits:places}).format(a));
+    return Math.sign(v)*Math.round(n*scale*100);
+  };
+  const rounding=["value",...(hasPlan?["budget","var_abs"]:[])].some(key=>r.total[key]!=null
+    &&r.members.every(m=>m[key]!=null)&&r.members.reduce((sum,m)=>sum+rounded(m[key]),0)!==rounded(r.total[key]));
+  const rows=r.members.map(m=>`<tr><td>${esc(m.member)}</td><td class="nbi-num">${amount(m.value)}</td>${hasPlan
+    ?`<td class="nbi-num">${m.budget==null?"–":amount(m.budget)}</td><td class="nbi-num ${tone(m.var_abs)}">${m.var_abs==null?"–":(m.var_abs>0?"+":"")+amount(m.var_abs)}</td>
       <td class="nbi-num">${share(m)}</td>`:""}</tr>`).join("");
   const t=r.total;
   return `<table class="stmt contrib"><thead><tr><th>${esc(dim)}</th><th>Actual</th>${hasPlan?"<th>Plan</th><th>Variance</th><th>Share of movement</th>":""}</tr></thead>
-    <tbody>${rows}<tr class="cat"><td>Total</td><td class="nbi-num">${fmt(t.value,u)}</td>${hasPlan
-      ?`<td class="nbi-num">${t.budget==null?"–":fmt(t.budget,u)}</td><td class="nbi-num">${t.var_abs==null?"–":(t.var_abs>0?"+":"")+fmt(t.var_abs,u)}</td><td></td>`:""}</tr></tbody></table>`
+    <tbody>${rows}<tr class="cat"><td>Total</td><td class="nbi-num">${amount(t.value)}</td>${hasPlan
+      ?`<td class="nbi-num">${t.budget==null?"–":amount(t.budget)}</td><td class="nbi-num">${t.var_abs==null?"–":(t.var_abs>0?"+":"")+amount(t.var_abs)}</td><td></td>`:""}</tr></tbody></table>`
+    +(rounding?'<p class="stmt-note">Parts may not add to the total exactly because of rounding.</p>':"")
     +(hasPlan?`<p class="stmt-note">Share of movement is each part's slice of all the variance, whichever way it went; the variance column shows the direction.</p>`:"");
 }
 function metricHash(metric,period){return routeHash({tab:"kpis",period,metric});}
@@ -3179,7 +3196,7 @@ async function loadDigest(){return loadDigestHistory();}
 // In a close, the digest tab shows that close's digest; earlier sent ones sit beside it.
 async function loadDigestHistory(){
   const revision=++digestRevision;
-  const done=screenLoading("digest-list","Loading the digest…");
+  const done=screenLoading("digest-list","Loading the digest…",0,"loadDigest()");
   $("digest-history").innerHTML="";$("digest-status").innerHTML="";$("digest-generate").style.display="none";
   try{
     const monthly=granularity==="month"&&currentPeriod;
@@ -3233,7 +3250,7 @@ async function sendDigest(){
 
 /* ---------- context ---------- */
 async function loadContext(){
-  const done=screenLoading("ctx-rows","Loading the context library…");
+  const done=screenLoading("ctx-rows","Loading the context library…",0,"loadContext()");
   let docs;try{docs=await api("/context");}catch(e){if(done())$("ctx-rows").innerHTML=screenError(e,"loadContext()");return;}
   if(!done())return;
   ctxDocs=docs;

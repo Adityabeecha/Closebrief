@@ -84,12 +84,15 @@ def test_error_screen_explains_failure_and_retry_reloads(case, reason):
 @pytest.mark.parametrize("case", LOADERS, ids=lambda c:c[0])
 def test_loading_names_screen_and_reassures_after_four_seconds(case):
     loader, box, *_ = case
+    retryable = loader in ("loadContext", "loadDigest")
+    after_timeout = f'assert.match($("{box}").innerHTML,/Still loading.*server may be waking up/);' if retryable else (
+        f'assert.equal($("{box}").wait.hidden,false);assert.match($("{box}").innerHTML,/Still working/i);')
     run_screen(case, f"""
       let resolve;response=new Promise(r=>resolve=r);
       const pending={loader}();assert.match($('{box}').innerHTML,/Loading (the |saved |notification |cost |user |advanced |context |schedule)/i);
       assert.match($('{box}').innerHTML,/class="sk/);assert.equal($('{box}').wait.hidden,true);
-      for(const timer of timers.values()){{assert.equal(timer.ms,4000);timer.f();}}
-      assert.equal($('{box}').wait.hidden,false);assert.match($('{box}').innerHTML,/Still working/i);
+      for(const timer of timers.values()){{assert.equal(timer.ms,{15000 if retryable else 4000});timer.f();}}
+      {after_timeout}
       resolve([]);await pending;assert.equal(timers.size,0);
     """)
 
@@ -223,8 +226,8 @@ def test_read_only_people_cannot_send(  ):
 
 
 def test_digest_marks_each_items_figure_check():
-    for status, pattern, present in (("passed", "Figures checked", True), ("failed", "Needs review", True),
-                                     ("unchecked", "Figures checked|Needs review", False)):
+    for status, pattern, present in (("passed", "Numbers match the data", True), ("failed", "A number doesn.t match the data", True),
+                                     ("unchecked", "Numbers match the data|A number doesn.t match the data", False)):
         d = {**_DIGEST, "items": [{**_DIGEST["items"][0], "faithfulness": status}]}
         check = "assert.match" if present else "assert.doesNotMatch"
         run_screen(L["loadDigest"], _digest_response(d) + f"""
