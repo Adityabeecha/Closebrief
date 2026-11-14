@@ -19,6 +19,8 @@ from app.compute.aggregate import (
     year_ago_key,
 )
 from app.compute.availability import combined_percentage_reason, has_usable_value, needs_reason, reason_trigger
+from app.compute.cadence import LABELS as CADENCE_LABELS
+from app.compute.cadence import dataset_step
 from app.compute.close_views import (
     breakdown_available,
     breakdown_coverage,
@@ -384,6 +386,7 @@ def build_facts(conn, ds, period, granularity, user, include_charts=True):
     breakdowns = breakdown_coverage(conn, ds, [period])
     month_parts = part_variances(conn, ds, [period])
     notes = dataset_notes(conn, ds)
+    step = dataset_step(conn, ds)   # a quarterly file's close compares with the last quarter
     sensitive = user.role == "admin"   # gate cost/latency/emails to admins
     # Batch the per-card report + feedback lookups into two queries instead of
     # ~3 per card (was an N+1 over the dashboard's hot path).
@@ -445,14 +448,14 @@ def build_facts(conn, ds, period, granularity, user, include_charts=True):
             "category": r["category"],
             "period": period,
             "value": r["value"] if has_data else None,
-            "unit": r["unit"], **metadata,
+            "unit": r["unit"], **metadata, "cadence": CADENCE_LABELS[step],
             "direction_good": r["direction_good"],
             "prior_value": r["prior_value"] if has_data else None,
             "has_data": has_data,
             "forecast": r["forecast"] if has_data else None,
             "budget": r["budget"] if has_data else None,
             "has_breakdown": has_data and agg != "ratio" and r["unit"] != "%" and r["metric_id"] in breakdowns,
-            "ytd": ytd(all_values.get(r["metric_id"], []), period, metadata["fiscal_year_start"], agg, r["unit"])
+            "ytd": ytd(all_values.get(r["metric_id"], []), period, metadata["fiscal_year_start"], agg, r["unit"], step)
                    if has_data else None,
             "unavailable_reason": reason,
             "deltas": {

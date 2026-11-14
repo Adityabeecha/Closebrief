@@ -38,13 +38,21 @@ def part_variances(conn, dataset_id, months=None) -> dict:
     if months:
         sql += f" AND mb.period IN ({','.join('?' for _ in months)})"
         args += list(months)
-    out = {}
-    for r in conn.execute(sql, tuple(args)).fetchall():
-        if r["value"] is None:
-            continue
+    out, plan_total = {}, {}
+    rows = [r for r in conn.execute(sql, tuple(args)).fetchall() if r["value"] is not None]
+    for r in rows:
+        key = (r["metric_id"], r["period"])
+        plan_total[key] = plan_total.get(key, 0.0) + abs(float(r["budget"] or 0))
+    for r in rows:
+        key = (r["metric_id"], r["period"])
         absolute, pct = variance(r["value"], r["budget"])
-        out.setdefault((r["metric_id"], r["period"]), []).append(
-            {"member": r["member"], "var_abs": absolute, "var_pct": pct})
+        part = {"member": r["member"], "var_abs": absolute, "var_pct": pct}
+        if not r["budget"] and absolute and plan_total.get(key):
+            # Spending with no plan at all (a $150.7M restructuring against $0): judge it
+            # against the KPI's whole plan, so a material one asks for a reason and a
+            # $996 one inside $584M doesn't.
+            part.update(var_pct=absolute / plan_total[key] * 100.0, unplanned=True)
+        out.setdefault(key, []).append(part)
     return out
 
 
@@ -56,12 +64,16 @@ def breakdown_available(actuals, breakdowns, covered, agg_type):
     return bool(expected) and {r["period"] for r in included} == expected and len({r["dimension"] for r in included}) == 1
 
 
-def ytd(rows, period, fiscal_start, agg_type, unit):
+def ytd(rows, period, fiscal_start, agg_type, unit, step=1):
     if agg_type == "ratio" or unit == "%":
         return None
     fiscal_year = period_key(period, "year", fiscal_start)
     covered = [p for p in months_in(fiscal_year, "year", fiscal_start) if p <= period]
     by_period = {r["period"]: r for r in rows}
+    if step > 1:
+        # A quarterly file: year to date is the quarters reported so far, not 9 months
+        # of which 6 are missing.
+        covered = [p for p in covered if p in by_period]
     items = [by_period[p] for p in covered if p in by_period]
     if not items:
         return None
@@ -79,7 +91,7 @@ def ytd(rows, period, fiscal_start, agg_type, unit):
         prior_items = [by_period.get(year_ago_key(p, "month"), {}).get("value") for p in covered]
         prior = sum(prior_items) if all(v is not None for v in prior_items) else None
     absolute, pct = variance(value, budget)
-    return {"months": len(covered), "value": value, "budget": budget, "forecast": forecast,
+    return {"months": len(covered), "step": step, "value": value, "budget": budget, "forecast": forecast,
             "budget_months": len(budgets), "var_abs": absolute, "var_pct": pct,
             "prior_value": prior, "yoy_pct": variance(value, prior)[1]}
 

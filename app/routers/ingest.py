@@ -27,6 +27,7 @@ from app.import_receipts import record_receipt
 from app.ingestion.ingest import IngestValidationError, ingest_dataframe, parse_csv
 from app.ingestion.mapping import MappingError, MappingSpec, match_budget_to_dataset, normalize, store_normalized
 from app.ingestion.profiler import mapping_preview, profile_columns, suggest_mapping
+from app.ingestion.scale import align_metric_scale, mark_scaled, metric_units, scale_frame
 from app.ingestion.templates import get_template as load_template
 from app.ingestion.templates import save_template as save_mapping_template
 from app.ingestion.upload import (
@@ -148,8 +149,11 @@ def ingest_mapping(upload_id: str, mapping: MappingSpec, save_template: bool = F
         dataset_id = existing["id"] if existing else create_dataset(
             conn, name=up["filename"] if up else upload_id, source_upload_id=upload_id,
             uploaded_by=user.id, uploaded_by_email=user.email, currency=up["currency"] if up else "USD")
+        units = metric_units(conn, dataset_id, canonical["metric"].unique())
+        scaled = scale_frame(canonical, mapping.amount_scale, units)
         summary = store_normalized(conn, canonical, dataset_id, replace=bool(existing),
                                    actor_id=user.id, actor_email=user.email)
+        mark_scaled(conn, dataset_id, scaled, mapping.amount_scale)
         conn.execute(
             "UPDATE uploads SET mapping = ? WHERE id = ?",
             (mapping.model_dump_json(), upload_id),
@@ -223,6 +227,8 @@ def ingest_join_budget(upload_id: str, payload: dict,
         if suffix:
             canonical["metric"] = canonical["metric"].astype(str).str.strip() + " " + suffix
 
+        # A budget "in thousands" is scaled like the actuals: only currency KPIs.
+        scale_frame(canonical, mapping.amount_scale, metric_units(conn, target_dataset_id, canonical["metric"].unique()))
         report = match_budget_to_dataset(conn, canonical, target_dataset_id,
                                          field=field, actor_id=user.id, actor_email=user.email)
         derived_metrics.refresh(conn, target_dataset_id, actor_id=user.id, actor_email=user.email, report=report)
@@ -311,6 +317,7 @@ def configure_kpis(payload: KPIConfigPayload, _: CurrentUser = Depends(require_w
         ds = active_dataset_id(conn)
         if ds is None:
             raise HTTPException(status_code=409, detail="No active dataset — import data first")
+        rescaled = False
         for kpi in payload.kpis:
             agg = getattr(kpi, "aggregation_type", None) or infer_aggregation_type(
                 kpi.display_name or kpi.source_metric, kpi.unit
@@ -331,7 +338,10 @@ def configure_kpis(payload: KPIConfigPayload, _: CurrentUser = Depends(require_w
                 "UPDATE metrics SET category = ?, unit = ?, direction_good = ? WHERE name = ? AND dataset_id = ?",
                 (kpi.category, kpi.unit, kpi.direction_good, kpi.source_metric, ds),
             )
+            rescaled = align_metric_scale(conn, ds, kpi.source_metric, kpi.unit) or rescaled
         conn.commit()
+        if rescaled:   # a KPI moved to or from a currency unit in a scaled file
+            derived_metrics.refresh(conn, ds)
     finally:
         conn.close()
     shared_cache().bump_namespace()

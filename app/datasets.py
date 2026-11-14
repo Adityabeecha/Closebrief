@@ -120,7 +120,7 @@ def list_datasets(conn) -> list[dict]:
     rows = conn.execute(
         f"""
         SELECT d.id, d.name, d.source_upload_id, d.is_active, d.created_at, d.domain, d.currency, d.fiscal_year_start,
-               d.reason_threshold_pct, d.reason_threshold_abs, d.data_changed_at,
+               d.reason_threshold_pct, d.reason_threshold_abs, d.data_changed_at, d.amount_scale,
                (SELECT COUNT(*) FROM metrics m WHERE m.dataset_id = d.id) AS metric_count
         FROM datasets d WHERE {_scope_pred('d')} ORDER BY d.id DESC
         """
@@ -134,6 +134,7 @@ def list_datasets(conn) -> list[dict]:
             "fiscal_year_start": r["fiscal_year_start"],
             "reason_threshold_pct": float(r["reason_threshold_pct"]) if r["reason_threshold_pct"] is not None else 10.0,
             "reason_threshold_abs": float(r["reason_threshold_abs"]) if r["reason_threshold_abs"] is not None else None,
+            "amount_scale": int(r["amount_scale"] or 1),
             "data_changed_at": timestamp_text(r["data_changed_at"]),
             "metric_count": r["metric_count"],
         }
@@ -224,14 +225,15 @@ def dataset_currency(conn, dataset_id: int | None) -> str:
 def dataset_metadata(conn, dataset_id: int | None) -> dict:
     """Display metadata for an already scope-checked dataset."""
     row = conn.execute(
-        "SELECT currency, fiscal_year_start, reason_threshold_pct, reason_threshold_abs, data_changed_at "
+        "SELECT currency, fiscal_year_start, reason_threshold_pct, reason_threshold_abs, data_changed_at, amount_scale "
         "FROM datasets WHERE id = ?", (dataset_id,),
     ).fetchone() if dataset_id else None
     return {"currency": row["currency"] if row else "USD", "fiscal_year_start": row["fiscal_year_start"] if row else 1,
             "reason_threshold_pct": float(row["reason_threshold_pct"]) if row and row["reason_threshold_pct"] is not None else 10.0,
             "reason_threshold_abs": (float(row["reason_threshold_abs"])
                                      if row and row["reason_threshold_abs"] is not None else None),
-            "data_changed_at": timestamp_text(row["data_changed_at"]) if row else None}
+            "data_changed_at": timestamp_text(row["data_changed_at"]) if row else None,
+            "amount_scale": int(row["amount_scale"] or 1) if row else 1}
 
 
 def timestamp_text(value) -> str | None:

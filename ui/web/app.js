@@ -481,7 +481,11 @@ function datasetDisplayName(name){
   return words.charAt(0).toUpperCase()+words.slice(1);
 }
 const capFirst=s=>s.charAt(0).toUpperCase()+s.slice(1);
-function priorPeriodLabel(){return granularity==="year"?"vs last year":granularity==="quarter"?"vs last quarter":"vs last month";}
+// How often this dataset reports. A file of quarter-end rows is a quarterly close: its
+// "previous period" is the last quarter and year to date counts quarters.
+let datasetCadence="month";
+function cadenceUnit(){return granularity==="month"?datasetCadence:granularity;}
+function priorPeriodLabel(){const u=cadenceUnit();return u==="year"?"vs last year":u==="quarter"?"vs last quarter":"vs last month";}
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const plural=(n,one,many)=>`${n} ${n===1?one:(many||one+"s")}`;
 const MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -491,7 +495,8 @@ function fiscalStart(){return (typeof activeDatasetObj!=="undefined"&&activeData
 function fyLabel(y){return fiscalStart()===1?y:`FY${y}`;}
 function fmtPeriodTitle(p){
   if(!p)return"Dashboard";
-  if(/^\d{4}-\d{2}$/.test(p))return `${MONTHS[+p.slice(5,7)-1]} ${p.slice(0,4)} close`;
+  if(/^\d{4}-\d{2}$/.test(p))return datasetCadence==="quarter"?`Quarter ended ${MONTHS[+p.slice(5,7)-1]} ${p.slice(0,4)}`
+    :datasetCadence==="year"?`Year ended ${MONTHS[+p.slice(5,7)-1]} ${p.slice(0,4)}`:`${MONTHS[+p.slice(5,7)-1]} ${p.slice(0,4)} close`;
   if(/^\d{4}-Q\d$/.test(p))return `Q${p.slice(6)} ${fyLabel(p.slice(0,4))} overview`;
   return `${/^\d{4}$/.test(p)?fyLabel(p):p} overview`;
 }
@@ -736,7 +741,7 @@ function renderCloses(){
     const s=closeStateFor(p),[word,cls]=CLOSE_STATUS[s?s.status:"not_started"]||CLOSE_STATUS.not_started;
     const sub=s&&s.n?`${s.approved} of ${s.n}${granularity==="month"?"":" commentaries"} approved`:"";
     return `<button class="ci" data-p="${esc(p)}" data-act="close" data-arg="${esc(p)}">
-      <b>${esc(fmtPeriod(p,"long"))}</b>${s?`<span class="cs ${cls}">${word}</span>`:""}
+      <b>${esc((granularity==="month"&&datasetCadence!=="month"?(datasetCadence==="quarter"?"Q/e ":"Y/e "):"")+fmtPeriod(p,"long"))}</b>${s?`<span class="cs ${cls}">${word}</span>`:""}
       ${sub?`<small>${sub}</small>`:""}${s&&s.n&&!["not_started","empty"].includes(s.status)?`<span class="cbar" aria-hidden="true"><i style="width:${Math.round(s.progress*100)}%"></i></span>`:""}</button>`;
   }).join("")+(newest.length>6?`<button class="more" onclick="showAllCloses=!showAllCloses;renderCloses()">${showAllCloses?"Show fewer":`Show all ${newest.length}`}</button>`:"");
   markCloses();
@@ -2067,6 +2072,7 @@ async function loadFacts(){
   try{
     currentFacts=await api(`/facts?period=${encodeURIComponent(currentPeriod)}&granularity=${granularity}`);
     clearTimeout(_factsSlowT);
+    if(granularity==="month"){const c=(currentFacts.find(f=>f.cadence)||{}).cadence||"month";if(c!==datasetCadence){datasetCadence=c;renderCloses();}}
     const cats=[...new Set(currentFacts.map(f=>f.category||"Uncategorized"))].sort();
     assignCatSlots(cats);
     renderCatPills(cats);
@@ -2506,7 +2512,8 @@ function renderTrendChart(trend,unit){
   ensureCanvas("c-trend");const box=$("box-c-trend"),note=$("d-trend-axis");if(note)note.textContent="";
   const has=trend.some(t=>t.value!=null||t.budget!=null);
   const months=trend.filter(t=>t.value!=null).length;
-  $("d-trend-title").textContent=months>1?`${months}-month trend`:"Trend";
+  const per=cadenceUnit();$("d-trend-title").textContent=months>1?`${months}-${per} trend`:"Trend";
+  {const sub=$("d-trend-title").nextElementSibling;if(sub)sub.textContent=`Actual vs budget, by ${per}`;}
   if(!has){if(chartReg["c-trend"]){chartReg["c-trend"].destroy();delete chartReg["c-trend"];}box.innerHTML='<div class="loading">No trend data.</div>';return;}
   const th=chartTheme();
   // Straight segments, no area fill: smoothing invents values between months and
@@ -2565,12 +2572,13 @@ function trendTable(trend,unit){if(!trend.length)return"";return`<details class=
 /* ---------- metric detail ---------- */
 /* ---- Year to date (F8) ---- */
 function ytdLabel(){return fiscalStart()!==1?"Fiscal year to date":"Year to date";}
+function ytdUnit(y){return y&&y.step===3?"quarter":y&&y.step===12?"year":"month";}
 function ytdFigs(f){
   const y=f.ytd;if(!y||y.value==null)return [];
   const plan=y.budget==null
-    ?(y.budget_months?`— (budget for ${y.budget_months} of ${plural(y.months,"month")})`:"—")
+    ?(y.budget_months?`— (budget for ${y.budget_months} of ${plural(y.months,ytdUnit(y))})`:"—")
     :fmt(y.budget,f.unit);
-  return [[`${ytdLabel()} (${plural(y.months,"month")})`,fmt(y.value,f.unit)],["YTD plan",plan],
+  return [[`${ytdLabel()} (${plural(y.months,ytdUnit(y))})`,fmt(y.value,f.unit)],["YTD plan",plan],
     ["YTD vs plan",y.var_pct==null?"—":pct(y.var_pct)],["YTD vs last year",y.yoy_pct==null?"—":pct(y.yoy_pct)]];
 }
 /* ---- Contributors: one breakdown level under a KPI (F5) ---- */
@@ -2791,17 +2799,19 @@ function needsReason(f){
 // Why a month was flagged, in words: the rule, the comparison and how far out it is.
 function anomalyWhy(f){
   const a=f&&f.anomaly;if(!f||!f.is_anomaly||!a)return "";
-  const z=Math.abs(a.z).toFixed(1),t=a.threshold;
+  const z=Math.abs(a.z).toFixed(1),t=a.threshold,u=cadenceUnit();
   return a.basis==="seasonal"
-    ?`Anomaly: this month's change differs from the same month last year by ${z}× the usual spread (flagged above ${t}×), so a normal seasonal swing isn't flagged.`
-    :`Anomaly: this month's change is ${z}× the usual month-to-month spread (flagged above ${t}×). Once a few months each have a year-earlier comparison, it is judged against the same month last year instead.`;
+    ?`Anomaly: this ${u}'s change differs from the same ${u} last year by ${z}× the usual spread (flagged above ${t}×), so a normal seasonal swing isn't flagged.`
+    :`Anomaly: this ${u}'s change is ${z}× the usual ${u}-to-${u} spread (flagged above ${t}×). Once a few ${u}s each have a year-earlier comparison, it is judged against the same ${u} last year instead.`;
 }
 function renderWhyNone(f){
   const el=$("d-why");if(!el)return;
   const why=anomalyWhy(f);
   if(!needsReason(f)){el.innerHTML=why?`<p class="anom-why">${esc(why)}</p>`:"";return;}
   const t=f.reason_trigger,lim=reasonThreshold();
-  const what=t&&t.kind==="part"
+  const what=t&&t.kind==="part"&&t.unplanned
+    ?`${esc(t.part)} had no plan and came in at ${esc(fmt(t.var_abs,f.unit))}, ${esc(pct(t.var_pct)||"")} of the plan for ${esc(f.metric)}, past the ${esc(String(lim))}% threshold. `
+    :t&&t.kind==="part"
     ?`${esc(t.part)} is ${esc(pct(t.var_pct)||"")} vs plan (${esc((t.var_abs>0?"+":"")+fmt(t.var_abs,f.unit))}), past the ${esc(String(lim))}% threshold, even though the total is ${esc(deltaText(f,"budget")||"within it")}. `
     :t&&t.kind==="total"?`It's ${esc(deltaText(f,"budget")||"")} vs plan, past the ${esc(String(lim))}% threshold. `:"";
   el.innerHTML=(why?`<p class="anom-why">${esc(why)}</p>`:"")+`<div class="why-none" role="note"><span><b>No reason recorded.</b> ${what}${canReview()
@@ -3244,6 +3254,7 @@ async function loadSchema(){
   const sheet=$("sheet-pick").style.display!=="none"?$("sheet-sel").value:null;
   profile=await api(`/ingest/${upload.upload_id}/schema${sheet?`?sheet=${encodeURIComponent(sheet)}`:""}`);
   $("layout-sel").value=profile.layout_guess;
+  if($("amount-scale"))$("amount-scale").value=String(detectAmountScale());
   renderMapWarnings();
   renderTotalRows();
   renderMap();
@@ -3335,7 +3346,19 @@ function updateMapHint(){
   if(parts.length){el.style.display="";el.innerHTML=parts.join("<br>");}
   else{el.style.display="none";}
 }
+// "$ in thousands": the file says so in its name or headers, or the analyst picks it.
+function detectAmountScale(){
+  const text=" "+[(upload&&upload.filename)||"",...((profile&&profile.columns)||[]).map(c=>c.column_name||"")].join(" ").toLowerCase().replace(/[_\-.]+/g," ")+" ";
+  if(/\bin millions\b|\bmillions\b|\(\$?m\)|\$ ?m\b|\(\$?mm\)|\busd ?mm?\b/.test(text))return 1000000;
+  if(/\bin thousands\b|\bthousands\b|\$ ?000s?\b|\(000s?\)|\b000s\b|\(\$?k\)|\busd ?k\b/.test(text))return 1000;
+  return 1;
+}
 function buildMapping(){
+  const m=buildMappingCore(),sel=$("amount-scale");
+  if(m&&sel)m.amount_scale=Number(sel.value)||1;
+  return m;
+}
+function buildMappingCore(){
   const layout=$("layout-sel").value,roleOf={};
   document.querySelectorAll(".role").forEach(s=>roleOf[s.dataset.col]=s.value);
   const by=r=>Object.keys(roleOf).filter(c=>roleOf[c]===r);
@@ -3547,3 +3570,6 @@ document.addEventListener("click",e=>{
   const fn=DATA_ACTIONS[el.dataset.act];if(fn){e.preventDefault();fn(el.dataset.arg||"",el,e);}
 });
 /* ---------- end delegated actions ---------- */
+  if(/\bin millions\b|\bmillions\b|\(\$?m\)|\$ ?m\b|\(\$?mm\)|\busd ?mm?\b/.test(text))return 1000000;
+  if(/\bin thousands\b|\bthousands\b|\$ ?000s?\b|\(000s?\)|\b000s\b|\(\$?k\)|\busd ?k\b/.test(text))return 1000;
+

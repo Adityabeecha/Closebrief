@@ -115,6 +115,7 @@ CREATE TABLE IF NOT EXISTS datasets (
     fiscal_year_start INTEGER NOT NULL DEFAULT 1 CHECK (fiscal_year_start BETWEEN 1 AND 12),
     reason_threshold_pct REAL NOT NULL DEFAULT 10 CHECK (reason_threshold_pct >= 1 AND reason_threshold_pct <= 100),
     reason_threshold_abs REAL CHECK (reason_threshold_abs IS NULL OR reason_threshold_abs >= 0),
+    amount_scale INTEGER NOT NULL DEFAULT 1,
     is_active INTEGER NOT NULL DEFAULT 0,
     domain TEXT NOT NULL DEFAULT 'fpa',
     is_demo INTEGER NOT NULL DEFAULT 0,
@@ -131,6 +132,8 @@ CREATE TABLE IF NOT EXISTS metrics (
     category TEXT NOT NULL DEFAULT 'Uncategorized',
     unit TEXT NOT NULL DEFAULT 'USD',
     direction_good TEXT NOT NULL DEFAULT 'up',
+    -- Factor applied to stored amounts at import (1000 for a file "in thousands").
+    value_scale REAL NOT NULL DEFAULT 1,
     -- A stable code from the source system (GL account code, SKU, ...),
     -- captured from the mapping's id_col at ingest. Lets a later budget-only
     -- upload join onto this metric by code, which doesn't drift the way a
@@ -422,6 +425,9 @@ _SQLITE_MIGRATIONS = [
     "CHECK (reason_threshold_abs IS NULL OR reason_threshold_abs >= 0)",
     # A note belongs to one dataset (NULL = applies to every dataset in the workspace).
     "ALTER TABLE context_documents ADD COLUMN dataset_id INTEGER",
+    # Files reported in thousands/millions: stored amounts are real amounts.
+    "ALTER TABLE datasets ADD COLUMN amount_scale INTEGER NOT NULL DEFAULT 1",
+    "ALTER TABLE metrics ADD COLUMN value_scale REAL NOT NULL DEFAULT 1",
     "ALTER TABLE computed_facts ADD COLUMN anomaly_basis TEXT CHECK (anomaly_basis IN ('seasonal', 'month_on_month'))",
     "ALTER TABLE computed_facts ADD COLUMN anomaly_z REAL",
     "ALTER TABLE datasets ADD COLUMN reason_threshold_pct REAL NOT NULL DEFAULT 10 "
