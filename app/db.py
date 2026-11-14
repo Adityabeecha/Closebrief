@@ -85,6 +85,7 @@ CREATE TABLE IF NOT EXISTS workspaces (
     plan TEXT NOT NULL DEFAULT 'free',
     monthly_budget_usd REAL,
     retention_days INTEGER,
+    hidden_terms TEXT,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -430,6 +431,7 @@ _SQLITE_MIGRATIONS = [
     # Files reported in thousands/millions: stored amounts are real amounts.
     "ALTER TABLE datasets ADD COLUMN amount_scale INTEGER NOT NULL DEFAULT 1",
     "ALTER TABLE datasets ADD COLUMN import_pending INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE workspaces ADD COLUMN hidden_terms TEXT",
     "ALTER TABLE metrics ADD COLUMN value_scale REAL NOT NULL DEFAULT 1",
     # A note covering several periods: through a month, or 'ongoing' until turned off.
     "ALTER TABLE context_documents ADD COLUMN effective_until TEXT",

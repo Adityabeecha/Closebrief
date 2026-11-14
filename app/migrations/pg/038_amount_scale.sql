@@ -4,3 +4,5 @@ ALTER TABLE datasets ADD COLUMN IF NOT EXISTS amount_scale INTEGER NOT NULL DEFA
 ALTER TABLE metrics ADD COLUMN IF NOT EXISTS value_scale DOUBLE PRECISION NOT NULL DEFAULT 1;
 -- A dataset whose import stopped before "Finish" (cleaned up after two days).
 ALTER TABLE datasets ADD COLUMN IF NOT EXISTS import_pending BOOLEAN NOT NULL DEFAULT false;
+-- Words a workspace hides from the AI provider (company, customer, people names).
+ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS hidden_terms TEXT;

@@ -597,14 +597,14 @@ function toggleCollapse(){
 }
 // Restore collapsed state on load.
 try{if(localStorage.getItem("cb-side-collapsed")==="1")document.body.classList.add("side-collapsed");}catch{}
-const VIEWS=["overview","dashboard","digest","context","boardpack","analytics","import","costs","notifications","admin","activity"];
+const VIEWS=["overview","dashboard","digest","context","boardpack","analytics","import","costs","notifications","privacy","admin","activity"];
 // Each close (a month, quarter or year) is a workspace with tabs: [URL key, label, the view that renders it].
 const MONTH_TABS=[["overview","Overview","overview"],["kpis","KPIs","dashboard"],["context","Context","context"],
   ["digest","Digest","digest"],["boardpack","Board pack","boardpack"],["data","Data","import"]];
 // Places that span closes: [place, view, hash, title].
 const PLACES=[["analyze","analytics","#analyze","Analyze"],["library","context","#library","Context library"],
   ["datahub","import","#data","Data and imports"],["costs","costs","#settings=costs","Cost and usage"],
-  ["notifications","notifications","#settings=notifications","Notifications"],["admin","admin","#settings=users","Users"],
+  ["notifications","notifications","#settings=notifications","Notifications"],["privacy","privacy","#settings=privacy","Privacy and data"],["admin","admin","#settings=users","Users"],
   ["activity","activity","#settings=activity","Activity"]];
 // Hashes from before the month workspace (bookmarks, sent emails) and where they live now.
 const LEGACY_HASH={dashboard:{tab:"kpis"},digest:{tab:"digest"},context:{tab:"context"},review:{tab:"overview"},
@@ -674,7 +674,7 @@ function nav(t,{fromRoute=false}={}){
   const inMonth=!r.place;
   document.body.classList.toggle("in-month",inMonth);
   $("month-head").style.display=inMonth&&currentPeriod?"":"none";
-  const inSettings=["costs","notifications","admin","activity"].includes(r.place);
+  const inSettings=["costs","notifications","privacy","admin","activity"].includes(r.place);
   document.body.classList.toggle("in-settings",inSettings);
   $("settings-head").style.display=inSettings?"":"none";
   document.querySelectorAll("#settings-head .mtabs a").forEach(a=>{
@@ -707,6 +707,7 @@ function nav(t,{fromRoute=false}={}){
   if(v==="activity")loadActivity();
   if(v==="costs")loadCosts();
   if(v==="notifications")loadNotifications();
+  if(v==="privacy")loadPrivacy();
   if(v==="admin")loadAdmin();
 }
 
@@ -1629,6 +1630,33 @@ async function toggleVersions(){
   }catch(e){box.innerHTML=`<div class="an-empty">${esc(errMsg(e))}</div>`;}
 }
 
+/* ---------- privacy and data: hidden words, export, delete ---------- */
+async function loadPrivacy(){
+  try{const r=await api("/workspace/privacy");$("pv-terms").value=(r.hidden_terms||[]).join("\n");}
+  catch(e){$("pv-terms").value="";}
+}
+async function savePrivacy(){
+  const terms=$("pv-terms").value.split(/[\n,]/).map(s=>s.trim()).filter(Boolean);
+  try{const r=await api("/workspace/privacy",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({hidden_terms:terms})});
+    $("pv-terms").value=r.hidden_terms.join("\n");toast(r.hidden_terms.length?`${plural(r.hidden_terms.length,"word")} hidden from the AI`:"No words hidden");}
+  catch(e){toast("Couldn't save: "+errMsg(e));}
+}
+async function exportWorkspace(){
+  try{
+    const r=await api("/workspace/export",{raw:true});
+    const cd=r.headers.get("Content-Disposition")||"",m=/filename="([^"]+)"/.exec(cd);
+    const url=URL.createObjectURL(await r.blob()),a=document.createElement("a");
+    a.href=url;a.download=m?m[1]:"closebrief-export.json";document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);toast("Export downloaded");
+  }catch(e){toast("Couldn't export: "+errMsg(e));}
+}
+async function deleteAllData(){
+  const typed=await modalInput("Delete all data in this workspace",{label:"Every dataset, figure, commentary, note, linked source and upload is deleted. This can't be undone. Export first if you want a copy. Type DELETE to confirm.",okLabel:"Delete everything",required:true});
+  if(typed!=="DELETE"){if(typed!=null)toast("Not deleted: type DELETE in capitals");return;}
+  try{const r=await api("/workspace/data",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({confirm:"DELETE"})});
+    toast(`Deleted ${plural(r.datasets_deleted,"dataset")}`);await loadDatasets();await loadPeriods();nav("datahub");}
+  catch(e){toast("Couldn't delete: "+errMsg(e));}
+}
 async function loadNotifications(){
   const done=screenLoading("nt-list","Loading notification channels…");const schedules=loadSchedules();
   try{

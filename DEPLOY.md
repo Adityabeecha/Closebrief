@@ -122,7 +122,7 @@ when `SESSION_JWT_SECRET` is missing.
 ## Visitor sandbox retention
 
 The scheduled `retention_purge` job deletes inactive visitor workspaces after
-`SANDBOX_RETENTION_DAYS` (default 30); `0` disables workspace deletion. Ensure
+`SANDBOX_RETENTION_DAYS` (default 365); `0` disables workspace deletion. Ensure
 that job is enabled and the scheduler tick is called regularly.
 
 Activity is the latest `created_at` still stored in datasets, generated reports

@@ -123,14 +123,26 @@ def extract_context(payload: dict, user: CurrentUser = Depends(require_write)) -
             "SELECT name FROM metrics WHERE dataset_id = ?", (ds,)).fetchall()})
     finally:
         conn.close()
+    from app.datasets import current_workspace
+    from app.privacy import Redactor, load_terms
+
+    conn = get_connection()
+    try:
+        redactor = Redactor(load_terms(conn, current_workspace()))
+    finally:
+        conn.close()
     enforce_budget(user)
     t0 = time.monotonic()
     try:
-        result, usage = get_llm_client().generate_narrative(EXTRACT_SYSTEM_PROMPT, build_prompt(text, kpis, period))
+        result, usage = get_llm_client().generate_narrative(EXTRACT_SYSTEM_PROMPT,
+                                                            build_prompt(redactor.hide(text), kpis, period))
     except LLMGenerationError as exc:
         raise HTTPException(status_code=503, detail=f"Couldn't read the text right now: {exc}") from exc
     log_llm_call("/context/extract",
                  settings.openai_model if settings.llm_provider == "openai" else settings.anthropic_model,
                  usage.prompt_tokens, usage.completion_tokens, usage.cost_usd,
                  int((time.monotonic() - t0) * 1000), user.id)
-    return {"proposals": parse_proposals(result.narrative, kpis, period), "kpis": kpis}
+    proposals = parse_proposals(result.narrative, kpis, period)
+    for p in proposals:
+        p["title"], p["body"] = redactor.show(p["title"]), redactor.show(p["body"])
+    return {"proposals": proposals, "kpis": kpis}

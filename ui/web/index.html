@@ -1153,7 +1153,7 @@
         Google sign-in couldn’t load (an ad blocker may be blocking it). Use your email and password above.
       </div>
     </div>
-    <p class="lg-sandbox" id="lg-sandbox">Each account gets its own private workspace. Use sample or anonymised figures, not confidential data. Workspaces with no activity for 30 days are deleted. By signing in you agree to the <a href="/terms" target="_blank" rel="noopener">terms</a> and <a href="/privacy" target="_blank" rel="noopener">privacy</a> notes.</p>
+    <p class="lg-sandbox" id="lg-sandbox">Each account gets its own private workspace. Your data is kept until you delete it (or after 12 months without use), you can export it any time, and you can hide company and customer names from the AI. By signing in you agree to the <a href="/terms" target="_blank" rel="noopener">terms</a> and <a href="/privacy" target="_blank" rel="noopener">privacy</a> notes.</p>
     <div class="lg-toggle" id="lg-toggle">Need an account? <button type="button" onclick="toggleAuthMode()">Sign up</button></div>
     <button id="lg-demo" style="display:none;margin-top:14px;width:100%;padding:11px;border-radius:8px;border:1.5px dashed var(--accent);background:var(--accent-bg);color:var(--accent);font-weight:700;font-size:14px" onclick="enterDemo()">Demo</button>
     <button type="button" class="lg-guest" id="lg-guest" style="display:none" onclick="enterGuest()">Continue as guest</button>
@@ -1272,6 +1272,7 @@
       <nav class="mtabs" aria-label="Settings">
         <a href="#settings=costs" data-place="costs">Cost and usage</a>
         <a href="#settings=notifications" data-place="notifications">Notifications</a>
+        <a href="#settings=privacy" data-place="privacy">Privacy and data</a>
         <a href="#settings=users" data-place="admin" id="st-users">Users</a>
         <a href="#settings=activity" data-place="activity">Activity</a>
       </nav>
@@ -1713,6 +1714,25 @@
     </section>
 
     <!-- ---------- NOTIFICATIONS ---------- -->
+    <section id="v-privacy" class="wrap" style="display:none">
+      <div class="head"><div><h1>Privacy and data</h1><div class="sub">Your data stays yours: hide names from the AI, take a full copy, or delete everything.</div></div></div>
+      <div class="panel" style="margin-bottom:16px">
+        <h2>Words hidden from the AI</h2>
+        <p class="psub">Company, customer or people names. Before anything is sent to the AI provider they're swapped for placeholders like [Name 1], and swapped back in what it writes. Figures are never changed.</p>
+        <textarea id="pv-terms" rows="5" style="width:100%;font:inherit;padding:8px;border-radius:8px;border:1px solid var(--b08);background:var(--card);color:inherit" placeholder="One per line, e.g.&#10;Northwind&#10;Globex&#10;Initech"></textarea>
+        <div style="text-align:right;margin-top:8px"><button class="btn primary write-only" onclick="savePrivacy()">Save</button></div>
+      </div>
+      <div class="panel" style="margin-bottom:16px">
+        <h2>Export everything</h2>
+        <p class="psub">One JSON file with every dataset, figure, KPI setting, note, commentary version and review decision in this workspace.</p>
+        <button class="btn" onclick="exportWorkspace()">Download export</button>
+      </div>
+      <div class="panel">
+        <h2>Delete all data</h2>
+        <p class="psub">Deletes every dataset, figure, commentary, note, linked source and upload in this workspace. Your account and the activity log stay. This can't be undone.</p>
+        <button class="btn danger write-only" onclick="deleteAllData()">Delete all data</button>
+      </div>
+    </section>
     <section id="v-notifications" class="wrap" style="display:none">
       <div class="head"><div><h1>Notifications</h1><div class="sub">Deliver digests and anomaly alerts to email, Slack, or a webhook</div></div></div>
       <div class="ctx-form three-col-form write-only">
