@@ -135,5 +135,22 @@ def run_retention(conn) -> dict:
             continue
         total += purge_workspace(conn, int(r["id"]), days)["llm_calls_purged"]
     uploads_purged = purge_old_uploads(conn)
+    abandoned = purge_abandoned_imports(conn)
     return {"workspaces": len(rows), "llm_calls_purged": total, "uploads_purged": uploads_purged,
-            "sandboxes_purged": sandboxes["workspaces_purged"], "datasets_purged": sandboxes["datasets_purged"]}
+            "sandboxes_purged": sandboxes["workspaces_purged"], "datasets_purged": sandboxes["datasets_purged"],
+            "abandoned_imports_purged": abandoned}
+
+
+def purge_abandoned_imports(conn, days: int = 2) -> int:
+    """Datasets whose import stopped before Finish and was never picked up again."""
+    from app import datasets
+
+    rows = conn.execute("SELECT id, workspace_id FROM datasets WHERE import_pending = ? AND created_at < ?",
+                        (True, _cutoff(days))).fetchall()
+    purged = 0
+    for r in rows:
+        datasets.set_demo_scope(False)
+        datasets.set_workspace_scope(r["workspace_id"])
+        if datasets.delete_dataset(conn, int(r["id"])):
+            purged += 1
+    return purged

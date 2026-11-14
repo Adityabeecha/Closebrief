@@ -1747,7 +1747,7 @@ async function setUserRole(uid,role){
 /* ---------- datasets ---------- */
 const DOMAIN_LABEL={fpa:"FP&A",marketing:"Marketing",ops:"Ops"};
 let activeDatasetObj=null, activeDomain=null;
-function datasetCaption(ds){return plural(ds.metric_count||0,"KPI")+" · imported "+fmtDate(ds.created_at);}
+function datasetCaption(ds){return ds.import_pending?"Import not finished · open Data and imports or delete it":plural(ds.metric_count||0,"KPI")+" · imported "+fmtDate(ds.created_at);}
 async function loadDatasets(){
   const d=await api("/datasets");
   activeDatasetId=d.active_id;
@@ -3295,7 +3295,10 @@ async function uploadFile(file){
 }
 async function loadSchema(){
   const sheet=$("sheet-pick").style.display!=="none"?$("sheet-sel").value:null;
-  profile=await api(`/ingest/${upload.upload_id}/schema${sheet?`?sheet=${encodeURIComponent(sheet)}`:""}`);
+  // Confirm waits for the columns: a quick click before they were drawn read "no date column".
+  const cb=$("imp-confirm-btn");if(cb){cb.disabled=true;cb.dataset.label=cb.dataset.label||cb.textContent;cb.textContent="Reading columns…";}
+  try{profile=await api(`/ingest/${upload.upload_id}/schema${sheet?`?sheet=${encodeURIComponent(sheet)}`:""}`);}
+  finally{if(cb){cb.disabled=false;cb.textContent=isJoinMode()?`Match & attach ${joinWord()}`:"Confirm columns";}}
   $("layout-sel").value=profile.layout_guess;
   if($("amount-scale"))$("amount-scale").value=String(detectAmountScale());
   renderMapWarnings();
@@ -3423,6 +3426,7 @@ function buildMappingCore(){
 }
 async function confirmMapping(m){
   if(isJoinMode())return confirmJoinBudget();
+  if(!m&&(!profile||!document.querySelector(".role")))return;   // columns not drawn yet
   const problem=m?null:mappingProblem();
   if(problem){$("imp-result").innerHTML=`<div class="banner err">${warnIcon()}${esc(problem)}</div>`;updateMapHint();return;}
   const mapping=m||buildMapping();
@@ -3524,6 +3528,13 @@ async function loadKpiPicker(){
         <label class="kpi-field"><span class="kpi-field-label">Good direction</span><select class="k-dir${s.direction_known===false?" ask":""}" aria-label="Direction for ${row}" onchange="this.classList.remove('ask');updateKpiSelection()">${s.direction_known===false?'<option value="" selected disabled>Which way is good?</option>':""}<option value="up" ${s.direction_known!==false&&(s.direction_good||"up")==="up"?"selected":""}>Up is good</option><option value="down" ${s.direction_known!==false&&s.direction_good==="down"?"selected":""}>Down is good</option></select></label>
         <label class="kpi-field"><span class="kpi-field-label">Over a quarter</span><select class="k-agg" aria-label="How ${row} adds up over a quarter" data-suggested="${esc(s.aggregation_type||"flow")}" onchange="this.dataset.touched='1'">${rollupOptions(rollupForUnit(s.unit||"USD",s.aggregation_type))}</select></label></div>`;}).join(""):
       '<div class="banner info">No KPIs were found. Leave this import to delete the unfinished dataset, then upload a file with metric values.</div>';
+    // Everything recognised: one line and Finish, with the table a click away.
+    const unsure=metrics.filter(m=>(m.suggestion||{}).direction_known===false).length;
+    const auto=$("kpi-auto"),detail=$("kpi-detail");
+    if(auto&&detail){
+      auto.hidden=!(metrics.length&&!unsure);detail.hidden=!auto.hidden;
+      auto.innerHTML=`All ${plural(metrics.length,"KPI")} recognised: units, which way is good, and how each adds up over a quarter. <button class="linkbtn" onclick="$('kpi-detail').hidden=false;$('kpi-auto').hidden=true">Review them</button>`;
+    }
   }catch(e){if(lastImport===current)$("kpi-rows").innerHTML=`<div class="banner err">${esc(e.message)} <button class="btn sm" onclick="loadKpiPicker()">Retry</button></div>`;}
   finally{clearTimeout(slow);if(lastImport===current){kpiLoading=false;updateKpiSelection();}}
 }
@@ -3543,7 +3554,16 @@ async function confirmKpis(){
     try{await api(`/datasets/${newId}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:name||undefined,domain,currency:$("imp-currency")?.value||undefined})});}
     catch(e){toast("Imported, but couldn't save the dataset name: "+e.message);}
   }
-  const li=lastImport||{};resetImport();await loadPeriods();nav("dashboard");
+  // Variance threshold and dollar floor, asked here instead of hidden in the dataset menu.
+  const thr=parseFloat($("imp-threshold")&&$("imp-threshold").value),floor=parseFloat($("imp-floor")&&$("imp-floor").value);
+  if(newId!=null&&(Number.isFinite(thr)||Number.isFinite(floor))){
+    try{await api(`/datasets/${newId}`,{method:"PATCH",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({...(Number.isFinite(thr)&&thr>0?{reason_threshold_pct:thr}:{}),...(Number.isFinite(floor)&&floor>0?{reason_threshold_abs:floor}:{})})});}catch{}
+  }
+  const draft=$("auto-draft")&&$("auto-draft").checked;
+  const li=lastImport||{};resetImport();await loadPeriods();nav(draft?"kpis":"dashboard");
+  // Straight to commentary: the latest close drafts itself, and the analyst reviews.
+  if(draft&&currentPeriod&&granularity==="month"&&canReview())generateAll();
   // Show a success banner on the dashboard with a one-click Generate action.
   const el=$("import-banner");
   if(el){el.style.display="";el.className="banner ok";

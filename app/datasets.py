@@ -120,7 +120,7 @@ def list_datasets(conn) -> list[dict]:
     rows = conn.execute(
         f"""
         SELECT d.id, d.name, d.source_upload_id, d.is_active, d.created_at, d.domain, d.currency, d.fiscal_year_start,
-               d.reason_threshold_pct, d.reason_threshold_abs, d.data_changed_at, d.amount_scale,
+               d.reason_threshold_pct, d.reason_threshold_abs, d.data_changed_at, d.amount_scale, d.import_pending,
                (SELECT COUNT(*) FROM metrics m WHERE m.dataset_id = d.id) AS metric_count
         FROM datasets d WHERE {_scope_pred('d')} ORDER BY d.id DESC
         """
@@ -135,6 +135,7 @@ def list_datasets(conn) -> list[dict]:
             "reason_threshold_pct": float(r["reason_threshold_pct"]) if r["reason_threshold_pct"] is not None else 10.0,
             "reason_threshold_abs": float(r["reason_threshold_abs"]) if r["reason_threshold_abs"] is not None else None,
             "amount_scale": int(r["amount_scale"] or 1),
+            "import_pending": bool(r["import_pending"]),
             "data_changed_at": timestamp_text(r["data_changed_at"]),
             "metric_count": r["metric_count"],
         }

@@ -150,6 +150,8 @@ def ingest_mapping(upload_id: str, mapping: MappingSpec, save_template: bool = F
         dataset_id = existing["id"] if existing else create_dataset(
             conn, name=up["filename"] if up else upload_id, source_upload_id=upload_id,
             uploaded_by=user.id, uploaded_by_email=user.email, currency=up["currency"] if up else "USD")
+        if not existing:   # until the KPI step's Finish; an abandoned import is cleaned up
+            conn.execute("UPDATE datasets SET import_pending = ? WHERE id = ?", (True, dataset_id))
         units = metric_units(conn, dataset_id, canonical["metric"].unique())
         scaled = scale_frame(canonical, mapping.amount_scale, units)
         summary = store_normalized(conn, canonical, dataset_id, replace=bool(existing),
@@ -322,6 +324,7 @@ def configure_kpis(payload: KPIConfigPayload, _: CurrentUser = Depends(require_w
         if ds is None:
             raise HTTPException(status_code=409, detail="No active dataset — import data first")
         rescaled = False
+        conn.execute("UPDATE datasets SET import_pending = ? WHERE id = ?", (False, ds))
         for kpi in payload.kpis:
             agg = getattr(kpi, "aggregation_type", None) or infer_aggregation_type(
                 kpi.display_name or kpi.source_metric, kpi.unit

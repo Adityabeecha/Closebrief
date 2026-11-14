@@ -1646,7 +1646,12 @@
               <option value="marketing">Marketing &amp; Growth: acquisition funnel</option>
               <option value="ops" disabled>Operations (coming soon)</option>
             </select></div>
+          <div><label class="lbl" for="imp-threshold">Explain variances over</label>
+            <div style="display:flex;gap:6px;align-items:center"><input id="imp-threshold" type="number" min="0" step="0.5" value="10" style="width:70px" aria-label="Percent threshold"> %
+              <span>and</span><input id="imp-floor" type="number" min="0" step="1000" placeholder="any amount" style="width:120px" aria-label="Dollar floor"></div></div>
         </div>
+        <div class="banner ok" id="kpi-auto" hidden></div>
+        <div id="kpi-detail">
         <p class="imp-say">Pick the KPIs to track and check how each one is named. <b>Good direction</b> decides whether a fall shows as good (costs) or bad (revenue).</p>
         <div class="kpi-toolbar">
           <div class="kpi-actions"><span>Track</span><button class="linkbtn" onclick="selectKpis(true)">All</button><button class="linkbtn" onclick="selectKpis(false)">None</button>
@@ -1660,8 +1665,10 @@
           <small id="kpi-bulk-selection" role="status"></small>
         </div>
         <div id="kpi-rows"></div>
+        </div>
         <p id="kpi-selection" role="status">Loading KPI choices…</p>
         <div class="kpi-finish">
+          <label style="font-size:13px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px"><input type="checkbox" id="auto-draft" checked> Draft the latest close's commentary</label>
           <label style="font-size:13px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px"><input type="checkbox" id="save-tpl" checked> Save as template</label>
           <button class="write-only btn primary" id="imp-finish" disabled aria-describedby="kpi-selection" onclick="confirmKpis()">Finish import</button>
         </div>

@@ -116,6 +116,7 @@ CREATE TABLE IF NOT EXISTS datasets (
     reason_threshold_pct REAL NOT NULL DEFAULT 10 CHECK (reason_threshold_pct >= 1 AND reason_threshold_pct <= 100),
     reason_threshold_abs REAL CHECK (reason_threshold_abs IS NULL OR reason_threshold_abs >= 0),
     amount_scale INTEGER NOT NULL DEFAULT 1,
+    import_pending INTEGER NOT NULL DEFAULT 0,
     is_active INTEGER NOT NULL DEFAULT 0,
     domain TEXT NOT NULL DEFAULT 'fpa',
     is_demo INTEGER NOT NULL DEFAULT 0,
@@ -428,6 +429,7 @@ _SQLITE_MIGRATIONS = [
     "ALTER TABLE context_documents ADD COLUMN dataset_id INTEGER",
     # Files reported in thousands/millions: stored amounts are real amounts.
     "ALTER TABLE datasets ADD COLUMN amount_scale INTEGER NOT NULL DEFAULT 1",
+    "ALTER TABLE datasets ADD COLUMN import_pending INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE metrics ADD COLUMN value_scale REAL NOT NULL DEFAULT 1",
     # A note covering several periods: through a month, or 'ongoing' until turned off.
     "ALTER TABLE context_documents ADD COLUMN effective_until TEXT",
