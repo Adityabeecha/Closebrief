@@ -466,7 +466,7 @@ const fmt=(v,unit,cur)=>{
   // Whole thousands only from 100K up: "$1K" for $1,450 hid a third of the figure.
   const code=cur||displayCurrency,m=CURRENCY_MARK[code]||"$";
   const a=Math.abs(v),sign=v<0?"−":"";let mag;
-  if(a>=1e6)mag=m+(a/1e6).toFixed(2)+"M"; else if(a>=1e5)mag=m+(a/1e3).toFixed(0)+"K";
+  if(a>=1e9)mag=m+(a/1e9).toFixed(2)+"B"; else if(a>=1e6)mag=m+(a/1e6).toFixed(2)+"M"; else if(a>=1e5)mag=m+(a/1e3).toFixed(0)+"K";
   else if(a>=1e3)mag=m+Math.round(a).toLocaleString();
   else mag=m+(+a.toFixed(code==="JPY"?0:2)).toLocaleString();
   return sign+mag;
@@ -2610,7 +2610,7 @@ function renderTrendChart(trend,unit){
   const has=trend.some(t=>t.value!=null||t.budget!=null);
   const months=trend.filter(t=>t.value!=null).length;
   const per=cadenceUnit();$("d-trend-title").textContent=months>1?`${months}-${per} trend`:"Trend";
-  {const sub=$("d-trend-title").nextElementSibling;if(sub)sub.textContent=`Actual vs budget, by ${per}`;}
+  {const sub=$("d-trend-title").nextElementSibling;if(sub)sub.textContent=`Actual ${(globalThis.vsPlan?vsPlan():"vs plan")}, by ${per}`;}
   if(!has){if(chartReg["c-trend"]){chartReg["c-trend"].destroy();delete chartReg["c-trend"];}box.innerHTML='<div class="loading">No trend data.</div>';return;}
   const th=chartTheme();
   // Straight segments, no area fill: smoothing invents values between months and
@@ -2675,7 +2675,7 @@ function ytdFigs(f){
   const plan=y.budget==null
     ?(y.budget_months?`— (budget for ${y.budget_months} of ${plural(y.months,ytdUnit(y))})`:"—")
     :fmt(y.budget,f.unit);
-  return [[`${ytdLabel()} (${plural(y.months,ytdUnit(y))})`,fmt(y.value,f.unit)],["YTD plan",plan],
+  return [[`${ytdLabel()} (${plural(y.months,ytdUnit(y))})`,fmt(y.value,f.unit)],[`YTD ${(globalThis.planName?planName():"plan")}`,plan],
     [`YTD ${(globalThis.vsPlan?vsPlan():"vs plan")}`,y.var_pct==null?"—":pct(y.var_pct)],["YTD vs last year",y.yoy_pct==null?"—":pct(y.yoy_pct)]];
 }
 /* ---- Contributors: one breakdown level under a KPI (F5) ---- */
@@ -2693,7 +2693,7 @@ async function loadContributors(f){
   $("d-contrib").innerHTML=contributorsHtml(r,f);
   if(r.available){
     $("d-contrib-title").textContent=`By ${String(r.dimension).toLowerCase()}`;
-    $("d-contrib-sub").textContent=r.total.var_abs!=null?"Which parts drove the variance to plan, biggest first.":"Each part of this KPI, biggest first.";
+    $("d-contrib-sub").textContent=r.total.var_abs!=null?`Which parts drove the variance ${(globalThis.vsPlan?vsPlan():"vs plan").replace(/^vs /,"to ")}, biggest first.`:"Each part of this KPI, biggest first.";
   }
 }
 function contributorsHtml(r,f){
@@ -2739,8 +2739,8 @@ function openDetail(i,{fromRoute=false}={}){
   ensureCanvas("c-trend");ensureCanvas("c-bva");ensureCanvas("c-bridge");
   renderTrendChart(cd.trend||[],f.unit);
   $("d-bva-sub").textContent=f.deltas.budget_var_abs==null?""
-    :isPctKpi(f)?`${deltaText(f,"budget")||"–"} vs budget`
-    :`${fmt(f.deltas.budget_var_abs,f.unit)} vs budget (${pct(f.deltas.budget_var_pct)||"–"})`;
+    :isPctKpi(f)?`${deltaText(f,"budget")||"–"} ${(globalThis.vsPlan?vsPlan():"vs plan")}`
+    :`${fmt(f.deltas.budget_var_abs,f.unit)} ${(globalThis.vsPlan?vsPlan():"vs plan")} (${pct(f.deltas.budget_var_pct)||"–"})`;
   renderBvaChart(cd.budget_vs_actual,f.unit);
   renderBridgeChart(cd.variance_bridge,f.deltas.budget_var_abs,f.unit);
   $("d-narr").className="narr"+(f.narrative?"":" muted");

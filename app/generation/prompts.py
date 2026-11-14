@@ -239,6 +239,8 @@ def _fmt(value: float | None, unit: str = "USD", currency: str = "USD") -> str:
         suffix = "pp" if unit.lower() == "pp" else "%"
         return (sign or ("+" if value > 0 else "")) + _fixed(amount, 1) + suffix
     mark = symbol(currency)
+    if amount >= 1e9:   # real filings: $5.84B, not $5840.00M
+        return sign + mark + _fixed(amount / 1e9, 2) + "B"
     if amount >= 1e6:
         return sign + mark + _fixed(amount / 1e6, 2) + "M"
     if amount >= 1e5:
