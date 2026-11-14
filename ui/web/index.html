@@ -255,6 +255,12 @@
   #d-narr{font-size:17px;line-height:1.6;margin-top:10px}
   #d-rev-strip{margin-top:14px}
   .ctx-hint{margin:0;font-size:12px;color:var(--mut)}
+  /* The close path first: forecasts, what-ifs, custom KPIs and correlations are opt-in. */
+  body:not(.advanced) .adv{display:none!important}
+  .adv-toggle{display:flex;gap:6px;align-items:center;margin:4px 22px;font-size:12px;color:var(--mut);cursor:pointer}
+  .prev-comm{margin-top:10px;font-size:13px;color:var(--ink2,inherit)}
+  .prev-comm summary{cursor:pointer;color:var(--mut);font-weight:600}
+  .prev-comm p{margin:6px 0 0;padding-left:10px;border-left:3px solid var(--b08)}
   .reason-box{margin-top:10px;padding:12px;border:1px solid var(--b08);border-radius:10px}
   .reason-box textarea{width:100%;margin-top:6px;font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line,var(--b08));background:var(--card);color:inherit}
   .reason-row{display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap}
@@ -1212,7 +1218,7 @@
       </div>
       <div class="closes" id="close-list" aria-labelledby="closes-label"><div class="close-skel"></div><div class="close-skel"></div></div>
       <div class="nav-label">Across months</div>
-      <button class="nav-item" data-view="analytics" onclick="requestImportView('analytics')">
+      <button class="nav-item adv" data-view="analytics" onclick="requestImportView('analytics')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>Analyze</button>
       <button class="nav-item" data-view="library" onclick="requestImportView('library')">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>Context library</button>
@@ -1222,6 +1228,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Settings</button>
       <span id="nav-admin" hidden></span>
     </nav>
+    <label class="adv-toggle"><input type="checkbox" id="adv-toggle" onchange="setAdvanced(this.checked)"> Show advanced tools</label>
     <button class="nav-item" onclick="$('help-back').classList.add('open')" style="margin:2px 12px">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>How Closebrief works</button>
     <div class="side-foot">
@@ -1313,6 +1320,8 @@
       <div class="bp-bar">
         <p id="bp-note">The board pack is built from the same computed figures and approved commentary as the KPIs tab.</p>
         <div class="bp-actions">
+          <button class="btn" onclick="copyCommentary()">Copy commentary</button>
+          <button class="btn" onclick="exportWord()">Word</button>
           <button class="btn" onclick="exportExcel(this)">Excel (.xlsx)</button>
           <button class="btn" onclick="exportPPTX()">PowerPoint</button>
           <button class="btn" onclick="exportPDF()">KPI report (PDF)</button>
@@ -1344,6 +1353,8 @@
             <div class="export-menu" id="export-menu">
               <button id="export-pack-btn" onclick="exportBoardPack()"><b>Board pack</b><span>Print-ready pack for the board</span></button>
               <button onclick="exportPDF()"><b>PDF report</b><span>Every KPI with its commentary</span></button>
+              <button onclick="copyCommentary()"><b>Copy commentary</b><span>A table to paste into your deck or memo</span></button>
+              <button onclick="exportWord()"><b>Word</b><span>An editable memo of the commentary</span></button>
               <button onclick="exportExcel()"><b>Excel</b><span>Every KPI, variance and approved commentary</span></button>
               <button onclick="exportPPTX()"><b>PowerPoint</b><span>Editable .pptx deck</span></button>
             </div>
@@ -1399,6 +1410,7 @@
           <h2 class="panel-h">Commentary</h2><div class="psub" id="d-narr-meta"></div>
           <div class="narr" id="d-narr"></div>
           <div id="d-why"></div>
+          <details id="d-prev" class="prev-comm" style="display:none"><summary></summary><p></p></details>
           <div id="d-grounding" class="grounding" style="display:none"></div>
           <div class="chips" id="d-chips" style="margin-top:12px"></div>
           <div class="rev-strip" id="d-rev-strip" style="display:none">
@@ -1417,7 +1429,7 @@
           </div>
           <div id="d-qa-answer" style="margin-top:10px" aria-live="polite"></div>
           <div id="d-rootcause" style="display:none;margin-top:14px"></div>
-          <div id="d-correlations" style="margin-top:12px"></div>
+          <div id="d-correlations" class="adv" style="margin-top:12px"></div>
         </div>
         <div class="panel insp">
           <h3>Figures</h3>
@@ -1534,7 +1546,7 @@
     <section id="v-digest" class="wrap" style="display:none">
       <div class="head">
         <div><h1>Executive digest</h1><div class="sub">Built only from approved commentary, biggest movements first</div></div>
-        <div class="head-actions"><button class="write-only btn primary" id="digest-generate" style="display:none" onclick="sendDigest()">Send to leadership</button></div>
+        <div class="head-actions"><button class="write-only btn" onclick="approvalLink()" title="A link your manager can open to approve this close's commentary, no account needed">Get approval link</button><button class="write-only btn primary" id="digest-generate" style="display:none" onclick="sendDigest()">Send to leadership</button></div>
       </div>
       <div id="digest-status"></div>
       <div class="dg-grid">

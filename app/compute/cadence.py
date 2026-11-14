@@ -37,3 +37,9 @@ def dataset_step(conn, dataset_id) -> int:
             by_metric.setdefault(r["id"], []).append(month_index(p))
     steps = [step_of(v) for v in by_metric.values() if len(v) >= 3]
     return min(steps) if steps else 1
+
+
+def shift_period(period: str, months: int) -> str:
+    """'2026-09' shifted by -3 -> '2026-06'."""
+    idx = month_index(period) + months
+    return f"{idx // 12:04d}-{idx % 12 + 1:02d}"

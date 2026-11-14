@@ -1,6 +1,7 @@
 """HTTP routes moved from app.main: facts."""
 
 import json
+import re
 
 import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
@@ -20,7 +21,7 @@ from app.compute.aggregate import (
 )
 from app.compute.availability import combined_percentage_reason, has_usable_value, needs_reason, reason_trigger
 from app.compute.cadence import LABELS as CADENCE_LABELS
-from app.compute.cadence import dataset_step
+from app.compute.cadence import dataset_step, shift_period
 from app.compute.close_views import (
     breakdown_available,
     breakdown_coverage,
@@ -392,6 +393,17 @@ def build_facts(conn, ds, period, granularity, user, include_charts=True):
     # ~3 per card (was an N+1 over the dashboard's hot path).
     metric_ids = [r["metric_id"] for r in rows if r["metric_id"] is not None]
     reports_by_metric, edited_by_report, reviewer_by_report, change_note_by_report = {}, {}, {}, {}
+    # Last period's approved commentary, so month two starts from what was said last time.
+    previous_by_metric = {}
+    prev_period = shift_period(period, -step) if re.fullmatch(r"\d{4}-\d{2}", period or "") else None
+    if metric_ids and prev_period:
+        ph0 = ",".join("?" * len(metric_ids))
+        for pr in conn.execute(
+            f"""SELECT gr.metric_id, gr.narrative FROM generated_reports gr
+                WHERE gr.metric_id IN ({ph0}) AND gr.period = ? AND gr.review_status = 'approved'
+                  AND (gr.prompt_version IS NULL OR gr.prompt_version NOT LIKE '%-digest')
+                ORDER BY gr.id ASC""", (*metric_ids, prev_period)).fetchall():
+            previous_by_metric[pr["metric_id"]] = {"period": prev_period, "narrative": pr["narrative"]}
     if metric_ids:
         ph = ",".join("?" * len(metric_ids))
         for rr in conn.execute(
@@ -478,6 +490,7 @@ def build_facts(conn, ds, period, granularity, user, include_charts=True):
             "report_id": report["id"] if report else None,
             "review_status": report["review_status"] if report else None,
             "change_note": change_note_by_report.get(report["id"]) if report else None,
+            "previous_commentary": previous_by_metric.get(r["metric_id"]) if has_data else None,
             "assigned_email": report["assigned_email"] if report else None,
             "narrative": (edited or report["narrative"]) if report else None,
             "original_narrative": report["narrative"] if (report and edited) else None,

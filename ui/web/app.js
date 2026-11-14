@@ -118,6 +118,45 @@ function exportPDF(){
   // Give the window a beat to lay out fonts/sparklines before invoking print.
   setTimeout(()=>{try{w.focus();w.print();}catch(e){}},450);
 }
+/* ---- Commentary where analysts actually send it: a pasteable table and a Word memo ---- */
+// Approved commentary first; drafts only when nothing is approved yet (and they're marked).
+function commentaryRows(){
+  const withText=(currentFacts||[]).filter(f=>f.has_data&&f.narrative);
+  const approved=withText.filter(f=>f.review_status==="approved");
+  const rows=(approved.length?approved:withText).map(f=>({metric:f.metric,actual:fmt(f.value,f.unit),
+    plan:f.deltas&&f.deltas.budget_var_pct!=null?deltaText(f,"budget"):"",prior:f.deltas&&f.deltas.mom_pct!=null?deltaText(f,"mom"):"",
+    text:f.narrative,draft:f.review_status!=="approved"}));
+  return {rows,approved:approved.length>0};
+}
+function commentaryHtml(){
+  const {rows,approved}=commentaryRows(),title=fmtPeriodTitle(currentPeriod);
+  const cell="border:1px solid #bbb;padding:6px 8px;vertical-align:top;font-family:Calibri,Arial,sans-serif;font-size:11pt";
+  return `<h2 style="font-family:Calibri,Arial,sans-serif">${esc(title)}: commentary</h2>`
+    +(approved?"":`<p style="font-family:Calibri,Arial,sans-serif;color:#a15c00">Drafts, not yet approved.</p>`)
+    +`<table style="border-collapse:collapse"><tr>${["KPI","Actual","Vs plan",capFirst(priorPeriodLabel()),"Commentary"].map(h=>`<th style="${cell};background:#eef3ef;text-align:left">${esc(h)}</th>`).join("")}</tr>`
+    +rows.map(r=>`<tr><td style="${cell}"><b>${esc(r.metric)}</b></td><td style="${cell}">${esc(r.actual)}</td><td style="${cell}">${esc(r.plan)}</td><td style="${cell}">${esc(r.prior)}</td><td style="${cell}">${esc(r.text)}</td></tr>`).join("")+`</table>`;
+}
+async function copyCommentary(){
+  const menu=$("export-menu");if(menu)menu.classList.remove("open");
+  const {rows}=commentaryRows();if(!rows.length){toast("No commentary to copy yet");return;}
+  const text=rows.map(r=>`${r.metric}\t${r.actual}\t${r.plan}\t${r.prior}\t${r.text}`).join("\n");
+  try{
+    if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){
+      await navigator.clipboard.write([new ClipboardItem({"text/html":new Blob([commentaryHtml()],{type:"text/html"}),"text/plain":new Blob([text],{type:"text/plain"})})]);
+    }else await navigator.clipboard.writeText(text);
+    toast(`Copied ${plural(rows.length,"KPI")}: paste into PowerPoint, Word or an email`);
+  }catch{toast("Couldn't copy: your browser blocked the clipboard");}
+}
+// A .doc Word opens and edits (Word reads this HTML natively), named after the close.
+function exportWord(){
+  const menu=$("export-menu");if(menu)menu.classList.remove("open");
+  const {rows}=commentaryRows();if(!rows.length){toast("No commentary to export yet");return;}
+  const doc=`<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>${esc(fmtPeriodTitle(currentPeriod))}</title></head><body>${commentaryHtml()}</body></html>`;
+  const name=`Closebrief - ${(activeDatasetObj&&datasetDisplayName(activeDatasetObj.name))||"Dataset"} - ${fmtPeriodTitle(currentPeriod)}.doc`.replace(/[\\/:*?"<>|]+/g," ");
+  const url=URL.createObjectURL(new Blob(["\ufeff",doc],{type:"application/msword"})),a=document.createElement("a");
+  a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  toast("Word file downloaded");
+}
 // The close as an Excel workbook, built on the server from the same figures as the screen.
 async function exportExcel(btn){
   const menu=$("export-menu");if(menu)menu.classList.remove("open");
@@ -1630,6 +1669,24 @@ async function toggleVersions(){
   }catch(e){box.innerHTML=`<div class="an-empty">${esc(errMsg(e))}</div>`;}
 }
 
+// A manager approves from a link (no account): it opens this close's drafts only, for 7 days.
+async function approvalLink(){
+  if(!currentPeriod||granularity!=="month"){toast("Open a month's close to share it for approval");return;}
+  try{
+    const r=await api("/close/approval-link",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({period:currentPeriod})});
+    try{await navigator.clipboard.writeText(r.url);}catch{}
+    await _openModalRaw({title:"Approval link",okLabel:"Done",getValue:()=>true,
+      body:`<p style="margin:0 0 8px;font-size:14px">Send this to whoever approves ${esc(fmtPeriodTitle(currentPeriod))}. They can read the drafts and approve or request changes, for ${r.days} days, without an account. It's copied to your clipboard.</p><input class="modal-field" readonly value="${esc(r.url)}" onclick="this.select()">`});
+  }catch(e){toast("Couldn't make the link: "+errMsg(e));}
+}
+// Advanced tools (Analyze, correlations) are hidden until the analyst asks for them.
+function setAdvanced(on){
+  document.body.classList.toggle("advanced",!!on);
+  try{localStorage.setItem("cb_advanced",on?"1":"0");}catch{}
+  const t=$("adv-toggle");if(t)t.checked=!!on;
+}
+(function(){let on=false;try{on=localStorage.getItem("cb_advanced")==="1";}catch{}
+  if(document.body)setAdvanced(on);else document.addEventListener("DOMContentLoaded",()=>setAdvanced(on));})();
 /* ---------- privacy and data: hidden words, export, delete ---------- */
 async function loadPrivacy(){
   try{const r=await api("/workspace/privacy");$("pv-terms").value=(r.hidden_terms||[]).join("\n");}
@@ -2688,6 +2745,9 @@ function openDetail(i,{fromRoute=false}={}){
   $("d-narr-meta").textContent=narrMeta(f);
   $("d-chips").innerHTML=(f.sources||[]).map(s=>`<span class="chip" role="button" tabindex="0" title="Open source note" data-act="source" data-arg="${esc(s.id)}">${DOCICON}${esc(s.title||s.id)}</span>`).join("");
   renderWhyNone(f);
+  // Month two: what last period's approved commentary said, to update rather than rewrite.
+  {const pv=$("d-prev"),pc=f.previous_commentary;
+    if(pv){pv.style.display=pc?"":"none";if(pc){pv.querySelector("summary").textContent=`What ${fmtPeriod(pc.period,"long")}'s approved commentary said`;pv.querySelector("p").textContent=pc.narrative||"";}}}
   $("d-qa-answer").innerHTML="";$("d-qa").value="";qaThread=[];   // fresh conversation per metric
   loadCorrelations(f.metric);
 }
@@ -2707,12 +2767,15 @@ async function renderGroundedNarrative(reportId){
   groundingData=g;
   const sents=(groundingData.sentences||[]);
   if(!sents.length){el.textContent=(detailFact&&detailFact.narrative)||"";return;}
-  el.innerHTML=sents.map(s=>`<span class="gsent ${s.kind}" data-i="${s.idx}" role="button" tabindex="0" title="Show what supports this sentence" onclick="showSentenceGrounding(${s.idx})">${esc(s.text)}</span>`).join(" ")
+  // Hover shows where each number comes from without a click; a click opens the full panel.
+  const traced=s=>[...(s.facts||[]).map(f=>`${G_FIELD[f.field]||f.field} = ${gFmtVal(f.value,f.is_percent)} (computed)`),
+    ...(s.context_ids||[]).map(id=>`cited note ${id}`),...(s.kind==="numeric-unverified"?["a figure not traced to the computed facts: check it"]:[])];
+  el.innerHTML=sents.map(s=>{const t=traced(s);return `<span class="gsent ${s.kind}" data-i="${s.idx}" role="button" tabindex="0" title="${esc(t.length?"From: "+t.join("; "):"A general statement, no figure to trace")}" onclick="showSentenceGrounding(${s.idx})">${esc(s.text)}</span>`;}).join(" ")
     +`<div class="g-legend">
         <span><i style="border-color:var(--green2)"></i>traces to a figure</span>
         <span><i style="border-color:var(--accent)"></i>cites a source</span>
         <span><i style="border-color:var(--amber);border-top-style:dashed"></i>unverified number</span>
-        <span style="color:var(--mut2)">Click any sentence →</span>
+        <span style="color:var(--mut2)">Hover a sentence to see where its numbers come from</span>
       </div>`;
 }
 function gFmtVal(v,isPct){return isPct?((v>0?"+":"")+v+"%"):fmt(v,"USD");}
