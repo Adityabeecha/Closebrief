@@ -70,7 +70,7 @@ def activate_dataset(dataset_id: int, user: CurrentUser = Depends(require_read))
 
 
 @router.patch("/datasets/{dataset_id}")
-def rename_dataset(dataset_id: int, payload: dict, _: CurrentUser = Depends(require_write)) -> dict:
+def rename_dataset(dataset_id: int, payload: dict, user: CurrentUser = Depends(require_write)) -> dict:
     """Rename a dataset and/or set its analytics domain or currency."""
     name = payload.get("name")
     domain = payload.get("domain")
@@ -109,11 +109,19 @@ def rename_dataset(dataset_id: int, payload: dict, _: CurrentUser = Depends(requ
         if "fiscal_year_start" in payload:
             conn.execute("UPDATE datasets SET fiscal_year_start = ? WHERE id = ?", (payload["fiscal_year_start"], dataset_id))
         if "amount_scale" in payload:   # a file 'in thousands' imported as units, fixed in place
+            from app import audit
             from app.compute import derived as derived_metrics
             from app.ingestion.scale import rescale_dataset
-            if rescale_dataset(conn, dataset_id, payload["amount_scale"]):
-                conn.commit()
+            before = conn.execute("SELECT amount_scale FROM datasets WHERE id = ?", (dataset_id,)).fetchone()
+            changed = rescale_dataset(conn, dataset_id, payload["amount_scale"])
+            # Choosing a scale, even the current one, is the confirmation; the log says who and when.
+            conn.execute("UPDATE datasets SET units_confirmed = ? WHERE id = ?", (True, dataset_id))
+            conn.commit()
+            if changed:
                 derived_metrics.refresh(conn, dataset_id)
+            audit.record(conn, "units_confirmed", "dataset", dataset_id, actor_id=user.id, actor_email=user.email,
+                         summary={"from": int((before and before["amount_scale"]) or 1),
+                                  "to": payload["amount_scale"], "kpis_rescaled": changed})
         for key in ("budget_label", "forecast_label"):
             if key in payload:   # "prior year", "non-GAAP", "guidance": what the comparison is
                 label = (payload[key] or "").strip() or None

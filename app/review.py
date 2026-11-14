@@ -39,6 +39,18 @@ def assign(conn, report_id: int, user_id: str | None, email: str | None) -> None
     conn.commit()
 
 
+UNVERIFIED_NEEDS_NOTE = "A number in this draft doesn't match the data. Fix the draft, or approve it with a note saying why the number is right."
+
+
+def ensure_approvable(conn, report_id: int, note: str | None) -> None:
+    """A draft whose figures failed the check is approved only with a written reason, so
+    "approved" never silently sits on a number that doesn't match the data."""
+    from fastapi import HTTPException
+    row = conn.execute("SELECT faithfulness FROM generated_reports WHERE id = ?", (report_id,)).fetchone()
+    if row and row["faithfulness"] == "failed" and not (note or "").strip():
+        raise HTTPException(status_code=422, detail=UNVERIFIED_NEEDS_NOTE)
+
+
 def set_status(conn, report_id: int, status: str) -> None:
     """Set a review decision. "draft" clears it back to unreviewed (undo of an
     approval made by mistake)."""

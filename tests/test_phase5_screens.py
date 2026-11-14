@@ -42,7 +42,7 @@ def test_glance_offers_show_all_beyond_four_movers():
 
 def test_quarter_and_year_views_carry_a_rollup_note():
     assert '<p class="rollup-note" id="rollup-note" hidden></p>' in HTML
-    assert "Commentary is written per month; this ${granularity===\"year\"?\"year\":\"quarter\"} view adds the months up" in JS
+    assert "Commentary is written per ${unit}; this ${granularity===\"year\"?\"year\":\"quarter\"} view adds the ${unit}s up" in JS
     assert 'note.hidden=granularity==="month"' in JS
 
 

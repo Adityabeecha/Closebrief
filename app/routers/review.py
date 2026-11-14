@@ -99,6 +99,12 @@ def review_report(report_id: int, payload: dict, user: CurrentUser = Depends(req
         if _scoped_report(conn, report_id) is None:
             raise HTTPException(status_code=404, detail="Report not found")
         ensure_report_unlocked(conn, report_id)
+        if status == "approved":
+            from app.ingestion.scale import ensure_units_confirmed
+            row = conn.execute("""SELECT m.dataset_id FROM generated_reports gr JOIN metrics m ON m.id = gr.metric_id
+                                  WHERE gr.id = ?""", (report_id,)).fetchone()
+            ensure_units_confirmed(conn, row and row["dataset_id"])
+            review_svc.ensure_approvable(conn, report_id, payload.get("note"))
         review_svc.set_status(conn, report_id, status)
         audit.record(conn, "reopened" if status == "draft" else status, "report", report_id,
                      actor_id=user.id, actor_email=user.email, summary={"note": payload.get("note")})

@@ -25,6 +25,7 @@ from app.close_control import ensure_report_unlocked
 from app.config import session_secret, settings
 from app.datasets import active_dataset_id, current_workspace, set_demo_scope, set_workspace_scope
 from app.db import get_connection
+from app.ingestion.scale import ensure_units_confirmed
 
 router = APIRouter()
 
@@ -91,6 +92,7 @@ def approval_link(payload: dict, user: CurrentUser = Depends(require_write)) -> 
         ds = active_dataset_id(conn)
         if ds is None:
             raise HTTPException(status_code=409, detail="No dataset open")
+        ensure_units_confirmed(conn, ds)
         token, exp = make_token(current_workspace(), ds, period, user.email or user.id)
         audit.record(conn, "approval_link", "close", ds, actor_id=user.id, actor_email=user.email,
                      summary={"period": period, "days": LINK_DAYS})
@@ -111,7 +113,7 @@ def approval_page(t: str) -> HTMLResponse:
         conn.close()
     e = html.escape
     items = "".join(
-        f'''<article data-metric="{e(d["metric"])}"><h3>{e(d["metric"])}<span class="st {e(d["review_status"] or "pending")}">
+        f'''<article data-metric="{e(d["metric"])}" data-failed="{int(d["faithfulness"] == "failed")}"><h3>{e(d["metric"])}<span class="st {e(d["review_status"] or "pending")}">
         {"Approved" if d["review_status"] == "approved" else "Changes requested" if d["review_status"] == "changes_requested" else "Waiting for you"}</span></h3>
         <p class="fig">{e(_fmt(d["value"], d["unit"]))}{f" · {d['budget_var_pct']:+.1f}% vs plan" if d["budget_var_pct"] is not None and d["unit"] != "%" else ""}
         {" · figures checked" if d["faithfulness"] == "passed" else " · figures need review"}</p>
@@ -131,7 +133,8 @@ button.ghost{{background:#fff;color:#1f7a45}}label{{display:block;margin:0 0 16p
 <label>Your name <input id="who" placeholder="e.g. Priya, FP&amp;A manager" autocomplete="name"></label>{items}
 <script>const T={json.dumps(t)};
 async function decide(btn,action){{const who=document.getElementById('who').value.trim();if(!who){{alert('Add your name first');return;}}
- let note=null;if(action==='changes_requested'){{note=prompt('What should change?');if(!note)return;}}
+ const art0=btn.closest('article');let note=null;if(action==='changes_requested'){{note=prompt('What should change?');if(!note)return;}}
+ else if(art0.dataset.failed==='1'){{note=prompt("A number in this draft doesn't match the data. Why is it right?");if(!note)return;}}
  const art=btn.closest('article');btn.disabled=true;
  const r=await fetch('/approve',{{method:'POST',headers:{{'Content-Type':'application/json'}},body:JSON.stringify({{t:T,name:who,metric:art.dataset.metric,action,note}})}});
  const st=art.querySelector('.st');if(r.ok){{st.textContent=action==='approved'?'Approved':'Changes requested';st.className='st '+action;}}else{{st.textContent=(await r.json()).detail||'Failed';}}btn.disabled=false;}}</script></body></html>"""
@@ -155,6 +158,9 @@ def approval_decision(payload: dict) -> dict:
         if draft is None:
             raise HTTPException(status_code=404, detail="No draft for that KPI in this close")
         ensure_report_unlocked(conn, draft["id"])
+        if action == "approved":
+            ensure_units_confirmed(conn, claims["ds"])
+            review_svc.ensure_approvable(conn, draft["id"], note)
         review_svc.set_status(conn, draft["id"], action)
         if note:
             conn.execute("INSERT INTO feedback (report_id, action, reason, user_email) VALUES (?, 'rejected', ?, ?)",

@@ -886,6 +886,14 @@
     ]
   ],
   [
+    "/security",
+    [
+      "GET"
+    ],
+    false,
+    []
+  ],
+  [
     "/templates/{template_id}",
     [
       "GET"

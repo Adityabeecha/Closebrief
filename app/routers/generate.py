@@ -395,6 +395,12 @@ def board_pack(period: str, user: CurrentUser = Depends(require_read)) -> HTMLRe
     # period's own granularity: a quarter or year pack was empty when asked for months.
     from app.routers.close import _granularity_of
     granularity = _granularity_of(period) or "month"
+    conn = get_connection()
+    try:
+        from app.ingestion.scale import ensure_units_confirmed
+        ensure_units_confirmed(conn, active_dataset_id(conn))
+    finally:
+        conn.close()
     facts = list_facts(period=period, granularity=granularity, include_charts=True, user=user)
     conn = get_connection()
     try:
@@ -429,17 +435,6 @@ def board_pack(period: str, user: CurrentUser = Depends(require_read)) -> HTMLRe
     finally:
         conn.close()
     meta = {"dataset_name": ds_name}
-    if ds is not None:
-        conn = get_connection()
-        try:
-            scale = conn.execute("SELECT amount_scale FROM datasets WHERE id = ?", (ds,)).fetchone()
-        finally:
-            conn.close()
-        if re.search(r"thousand|\$ ?000|\(000s?\)|million", ds_name or "", re.I) and int((scale and scale["amount_scale"]) or 1) == 1:
-            # The pack never goes out clean with figures that may read 1,000x too small.
-            meta["warning"] = ("Check the units before sharing: this dataset says it's in thousands or millions, but its "
-                               "amounts are stored as entered, so figures may read 1,000x too small. Set 'Amounts are in' "
-                               "from the dataset menu.")
     doc = build_board_pack_html(facts, period, meta)
     return HTMLResponse(doc)
 
