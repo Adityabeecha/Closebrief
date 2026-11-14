@@ -178,7 +178,10 @@ def test_rollup_export_uses_facts_and_omits_ytd(seeded, granularity, period):
     facts = api.get("/facts", params={"period": period, "granularity": granularity}).json()
     for row, fact in zip(_table(book["KPIs"]), facts):
         assert row["KPI"].value == fact["metric"]
-        assert row["Actual"].value == fact["value"]
+        # Excel stores percentage-formatted cells as fractions; ratio rollups
+        # now have values, so apply the same contract as the monthly export.
+        expected = fact["value"] / 100 if fact["unit"] == "%" and fact["value"] is not None else fact["value"]
+        assert row["Actual"].value == expected
         assert row["Variance"].value == fact["deltas"]["budget_var_abs"]
     assert "Forecast" in headers
 

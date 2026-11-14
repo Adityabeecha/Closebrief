@@ -27,7 +27,7 @@ KPI_LIBRARY = [
     {"name": "EBITDA", "match": r"ebitda", "category": "Profitability", "unit": "USD", "direction_good": "up"},
     {"name": "Logo Churn %", "match": "logo churn|churn.*%", "category": "Retention", "unit": "%", "direction_good": "down"},
     {"name": "Net Revenue Retention", "match": "net revenue retention|\\bnrr\\b", "category": "Retention", "unit": "%", "direction_good": "up"},
-    {"name": "ARR", "match": "^arr$", "category": "Revenue", "unit": "USD", "direction_good": "up"},
+    {"name": "ARR", "match": r"^(?:(?:ending|total|net new) )?arr(?: \(USD\))?$", "category": "Revenue", "unit": "USD", "direction_good": "up"},
     {"name": "MRR", "match": "^mrr$", "category": "Revenue", "unit": "USD", "direction_good": "up"},
     {"name": "DSO", "match": "\\bdso\\b|days sales outstanding", "category": "Working Capital", "unit": "days", "direction_good": "down"},
     {"name": "DPO", "match": "\\bdpo\\b|days payable outstanding", "category": "Working Capital", "unit": "days", "direction_good": "up"},
@@ -72,6 +72,9 @@ def words(name: str) -> str:
 def suggest_kpi(source_metric: str) -> dict | None:
     """Best library match for a source metric name, or None."""
     source_metric = words(source_metric)
+    if _is_count_name(source_metric):
+        return {"name": "Headcount" if source_metric.lower().startswith("headcount") else "Active Customers",
+                "category": "Growth", "unit": "count", "direction_good": "up"}
     for kpi in KPI_LIBRARY:
         if re.search(kpi["match"], source_metric, re.I):
             if kpi.get("unless") is not None and kpi["unless"].search(source_metric):
@@ -105,10 +108,17 @@ _COUNT_UNIT = re.compile(
 )
 
 
+def _is_count_name(name: str) -> bool:
+    return bool(re.match(r"^(?:(?:enterprise )?(?:customers|logos|accounts|users|employees|headcount)\b|#\s*of\b|number of\b)",
+                         name, re.I)) and not re.match(r"^headcount\s*(?:cost|expense|spend)\b", name, re.I)
+
+
 def infer_unit(source_metric: str) -> str | None:
     """Unit from the measure name. An explicit currency suffix wins
     ("closed_won_arr_usd" is money even though it says "won")."""
     source_metric = words(source_metric)
+    if _is_count_name(source_metric):
+        return "count"
     if re.search(r"usd|\$", source_metric, re.I):
         return "USD"
     if _DAYS_UNIT.search(source_metric):
@@ -171,4 +181,6 @@ def suggest_import_defaults(source_metric: str, group: str | None = None, code: 
         out.pop("name", None)
     # How it rolls up into quarters, so the picker can show (and the user change) it.
     out["aggregation_type"] = infer_aggregation_type(source_metric, out["unit"])
+    if _is_count_name(words(source_metric)):
+        out.update(category="Growth", unit="count", direction_good="up", direction_known=True, aggregation_type="balance")
     return out

@@ -226,8 +226,8 @@ def _prefetch_cards(conn, names_by_id: dict[int, str], period: str,
 
 def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_charts: bool = True) -> list[dict]:
     """Cards for a quarter/year period, aggregated from monthly metric_values
-    per each KPI's aggregation rule (flow=SUM, balance=LAST, ratio=unavailable).
-    Deltas are QoQ/YoY-equivalent; budget variance uses summed budgets."""
+    per each KPI's aggregation rule (flow=SUM, balance=LAST, ratio=AVERAGE).
+    Deltas use the same fields as monthly facts, including absolute rate points."""
     kpis = conn.execute(
         """SELECT k.source_metric AS metric, k.display_name, k.category, k.unit,
                   k.direction_good, k.aggregation_type, m.id AS metric_id
@@ -252,6 +252,8 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
     prior = prior_key(period, granularity, fiscal_start)
     yago = year_ago_key(period, granularity, fiscal_start)
     total_months = len(months_in(period, granularity, fiscal_start))
+    notes = dataset_notes(conn, ds)
+    covered = months_in(period, granularity, fiscal_start)
     for k in kpis:
         agg = k["aggregation_type"] or infer_aggregation_type(k["display_name"] or k["metric"], k["unit"])
         rows = all_values.get(k["metric_id"], [])
@@ -290,6 +292,8 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
                 {"period": pk, "value": series[pk]["value"], "budget": series[pk]["budget"]}
                 for pk in sorted(series, key=lambda key: sort_key(key, fiscal_start)) if not series[pk].get("unavailable")
             ]
+        period_notes = [note for month in covered if (note := reason_note(notes, k["metric"], month)) is not None]
+        note = max(period_notes, key=lambda n: n.id) if period_notes else None
         out.append({
             "metric": k["display_name"] or k["metric"], "metric_id": k["metric_id"], "category": k["category"],
             "period": period, "value": cur["value"] if cur else None, "unit": k["unit"], **metadata,
@@ -301,6 +305,8 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
                                                            budget_var_abs=deltas["budget_var_abs"],
                                                            floor=metadata["reason_threshold_abs"]),
             "aggregation_type": agg,
+            "aggregation": {"ratio": "average", "balance": "last"}.get(agg, "sum"),
+            "reason_note": {"id": note.id, "title": note.title} if note and has_data else None,
             "forecast": cur.get("forecast") if has_data else None,
             "budget": cur.get("budget") if has_data else None,
             "has_breakdown": agg != "ratio" and k["unit"] != "%" and breakdown_available(
@@ -311,7 +317,8 @@ def _aggregated_facts(conn, ds: int, period: str, granularity: str, include_char
             "report_id": None, "review_status": None, "assigned_email": None,
             "narrative": None, "sources": [],
             "confidence": None, "faithfulness": None,
-            "chart_data": {"trend": trend} if (include_charts and trend) else None,
+            "chart_data": {"trend": trend, "budget_vs_actual": {"actual": cur["value"], "budget": cur.get("budget")},
+                           "variance_bridge": None} if (include_charts and has_data) else None,
             "trend_streak": None,
         })
     # Movers first (largest absolute budget variance).

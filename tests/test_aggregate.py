@@ -1,4 +1,4 @@
-"""Period aggregation rules (v3.0): flow=SUM, balance=LAST, ratio=unavailable."""
+"""Period aggregation rules: flow=SUM, balance=LAST, ratio=AVERAGE."""
 
 import pytest
 
@@ -39,17 +39,15 @@ def test_balance_metric_takes_last_month():
     assert out["2025-Q1"]["value"] == 520.0           # last month, not the sum
 
 
-def test_ratio_quarter_is_not_mean_of_monthly_percents():
+def test_ratio_quarter_is_average_of_available_monthly_percents():
     pcts = [
         {"period": "2025-01", "value": 60.0, "budget": None},
         {"period": "2025-02", "value": 62.0, "budget": None},
         {"period": "2025-03", "value": 64.0, "budget": None},
     ]
     out = aggregate_series(pcts, "quarter", "ratio")
-    # A quarter margin % is NOT the mean (62.0) — it's marked unavailable, never averaged.
-    assert out["2025-Q1"]["unavailable"] is True
-    assert out["2025-Q1"]["value"] != 62.0
-    assert out["2025-Q1"]["value"] is None
+    assert out["2025-Q1"]["unavailable"] is False
+    assert out["2025-Q1"]["value"] == 62.0
 
 
 def test_ratio_single_month_passes_through():
@@ -88,7 +86,7 @@ def test_days_and_number_aggregation(name, unit, expected):
     assert infer_aggregation_type(name, unit) == expected
 
 
-def test_days_are_unavailable_when_rolled_up():
+def test_days_are_averaged_when_rolled_up():
     out = aggregate_series(MONTHS, "quarter", infer_aggregation_type("DSO", "days"))
-    assert out["2025-Q1"]["unavailable"] is True
-    assert out["2025-Q1"]["value"] is None
+    assert out["2025-Q1"]["unavailable"] is False
+    assert out["2025-Q1"]["value"] == 110.0
