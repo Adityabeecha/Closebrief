@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Security — Closebrief</title>
+<meta name="description" content="Answers for a security or procurement review: AI provider, data location, access, audit trail, and what isn't in place yet.">
+<link rel="canonical" href="https://closebrief.onrender.com/security">
+<link rel="stylesheet" href="/theme.css">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--font-sans);background:var(--bg);color:var(--text);font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent)}
+  .wrap{max-width:720px;margin:0 auto;padding:40px 24px 80px}
+  .back{display:inline-block;margin-bottom:28px;font-size:14px;font-weight:600;color:var(--text-3);text-decoration:none}
+  .back:hover{color:var(--text)}
+  h1{font-size:clamp(32px,4vw,44px);line-height:1.05;letter-spacing:-.035em;font-weight:750}
+  .updated{color:var(--text-3);font-size:14px;margin-top:10px}
+  .lede{font-size:18px;color:var(--text-2);margin-top:20px}
+  h2{font-size:20px;letter-spacing:-.015em;margin:36px 0 10px}
+  p,li{color:var(--text-2)}
+  p+p{margin-top:12px}
+  ul{margin:10px 0 0 20px;display:flex;flex-direction:column;gap:6px}
+  b{color:var(--text)}
+  footer{margin-top:48px;padding-top:20px;border-top:1px solid var(--line);font-size:14px;color:var(--text-3);display:flex;gap:20px;flex-wrap:wrap}
+  footer a{color:var(--text-3)}
+  .no{color:var(--text)}
+  table{border-collapse:collapse;width:100%;margin-top:10px;font-size:15px}
+  td,th{text-align:left;vertical-align:top;padding:8px 10px 8px 0;border-bottom:1px solid var(--line);color:var(--text-2)}
+  th{color:var(--text);font-weight:600}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <a class="back" href="/">← Closebrief</a>
+  <h1>Security and governance</h1>
+  <p class="updated">Last updated 14 November 2026</p>
+  <p class="lede">Short answers to what a finance, IT or procurement review asks before real figures go in. Where something isn't in place, it says so.</p>
+
+  <h2>How the numbers are made</h2>
+  <ul>
+    <li>Every KPI, variance and total is <b>computed in code</b> from your file. The AI never calculates a figure.</li>
+    <li>The AI only writes the words. Every number in a draft is checked against the computed figures; a draft with a number that doesn't match is marked, and it can only be approved with a written reason.</li>
+    <li>A dataset whose name says "thousands" or "millions" while its amounts are stored as entered can't be exported, shared or approved until someone confirms the units.</li>
+  </ul>
+
+  <h2>AI provider</h2>
+  <table>
+    <tr><th>Provider</th><td>OpenAI, through its API.</td></tr>
+    <tr><th>What's sent</th><td>A KPI's computed figures, the notes that explain it, and any text you paste or question you ask. Your uploaded files aren't sent.</td></tr>
+    <tr><th>Training</th><td>OpenAI doesn't train its models on API data. It keeps API data for up to 30 days for abuse monitoring.</td></tr>
+    <tr><th>Hiding names</th><td>Words you list (company, customers, people) are swapped for placeholders before anything is sent, and put back in the reply.</td></tr>
+  </table>
+
+  <h2>Where data lives</h2>
+  <table>
+    <tr><th>Region</th><td>United States.</td></tr>
+    <tr><th>Sub-processors</th><td>
+      <b>Render</b>: runs the app.<br>
+      <b>Supabase</b>: the Postgres database and email sign-in.<br>
+      <b>Upstash</b>: a Redis cache of drafted text, so the same request isn't paid for twice; entries expire on their own.<br>
+      <b>OpenAI</b>: drafting, as above.<br>
+      <b>Google</b>: only if you sign in with Google, or link a Google Sheet.<br>
+      <b>Sentry</b>: crash reports, if error monitoring is switched on.</td></tr>
+    <tr><th>In transit</th><td>HTTPS only, with HSTS.</td></tr>
+    <tr><th>Retention</th><td>Uploaded files are deleted after 7 days; the figures stay with the dataset. Unused workspaces are deleted after 12 months. Full details are on the <a href="/privacy">privacy page</a>.</td></tr>
+  </table>
+
+  <h2>Access</h2>
+  <ul>
+    <li><b>Workspaces are separate.</b> Every query is scoped to your workspace, and Postgres row-level security enforces it again in the database.</li>
+    <li><b>Roles:</b> admins and analysts import, draft and approve; executives and viewers read. Admins set each person's role.</li>
+    <li><b>Approval by link:</b> a manager can approve one close from a signed link without an account. It shows only that close's drafts and expires after 7 days.</li>
+    <li><b>Sign-in:</b> email (through Supabase) or Google. Sessions last up to 12 hours.</li>
+  </ul>
+
+  <h2>Audit trail</h2>
+  <ul>
+    <li>Imports, syncs, drafts, approvals, unit confirmations, locks, exports, approval links and sends are logged with who, when and what. Every edit to a draft is kept as a version you can compare.</li>
+    <li>Each entry is chained to the one before it by a hash, so editing or removing an entry breaks the chain. Admins can re-check the whole chain from the Activity page.</li>
+    <li>The log is kept after a workspace is deleted, so the history can't quietly disappear.</li>
+  </ul>
+
+  <h2>Your data out</h2>
+  <ul>
+    <li>Download everything in a workspace as one file, or delete all of it in one step, from Settings → Workspace and data.</li>
+    <li>Each close also exports to Excel with its figures, commentary and change log.</li>
+  </ul>
+
+  <h2>Not in place yet</h2>
+  <ul>
+    <li class="no"><b>No SOC 2 or other independent audit.</b> Closebrief is a small independent project.</li>
+    <li class="no"><b>No SAML SSO or SCIM.</b> Sign-in is email or Google.</li>
+    <li class="no"><b>No signed DPA and no uptime guarantee (SLA).</b></li>
+  </ul>
+  <p>The <a href="https://github.com/Adityabeecha/Closebrief" rel="noopener">source code</a> is public, so a reviewer can read exactly what happens to the data.</p>
+
+  <h2>Changes</h2>
+  <p>If this page changes, the date at the top changes with it.</p>
+
+  <footer><a href="/">Home</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="https://github.com/Adityabeecha/Closebrief" rel="noopener">Source code</a></footer>
+</main>
+</body>
+</html>

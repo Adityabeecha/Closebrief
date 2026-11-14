@@ -8,11 +8,36 @@ later (Customers >$1M from Amount to Count) undoes or applies the scaling."""
 
 from __future__ import annotations
 
+import re
+
 import pandas as pd
+from fastapi import HTTPException
 
 SCALES = (1, 1000, 1_000_000)
 NON_CURRENCY_UNITS = {"%", "percent", "ratio", "x", "count", "number", "days", ""}
 _SCALED_COLS = ("value", "budget", "forecast", "price", "budget_price")
+
+
+_SAYS_SCALED = re.compile(r"thousand|\$ ?000|\(000s?\)|\bmillion|\$m\b", re.I)
+
+
+def units_unconfirmed(name: str | None, scale, confirmed) -> bool:
+    """The dataset's name says thousands or millions, its amounts are stored as entered,
+    and nobody has said that's right: its figures probably read 1,000x too small."""
+    return int(scale or 1) == 1 and not confirmed and bool(_SAYS_SCALED.search(name or ""))
+
+
+def ensure_units_confirmed(conn, dataset_id) -> None:
+    """Board packs, exports, approval links and approvals stop here until the units are
+    confirmed: a warning above a wrong figure still lets the wrong figure out."""
+    if dataset_id is None:
+        return
+    row = conn.execute("SELECT name, amount_scale, units_confirmed FROM datasets WHERE id = ?",
+                       (dataset_id,)).fetchone()
+    if row and units_unconfirmed(row["name"], row["amount_scale"], row["units_confirmed"]):
+        raise HTTPException(status_code=409, detail=(
+            "Confirm the units first: this dataset says it's in thousands or millions, but its amounts "
+            "are stored as entered. Set 'Amounts are in' from the dataset menu."))
 
 
 def is_currency(unit: str | None) -> bool:

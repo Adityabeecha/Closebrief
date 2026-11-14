@@ -18,10 +18,13 @@ from app.close_control import lock_status, serialize_writes
 from app.close_export import XLSX_TYPE, build_close_workbook, content_disposition
 from app.compute.aggregate import GRANULARITIES, months_in, period_key, sort_key
 from app.compute.availability import has_usable_value, needs_reason
+from app.compute.cadence import LABELS as CADENCE_LABELS
+from app.compute.cadence import dataset_step
 from app.compute.close_views import part_variances
 from app.context.reasons import dataset_notes, reason_recorded
 from app.datasets import active_dataset_id, current_workspace, dataset_metadata, timestamp_text
 from app.db import get_connection
+from app.ingestion.scale import ensure_units_confirmed
 
 router = APIRouter(prefix="/close", tags=["close"])
 
@@ -142,6 +145,14 @@ def _summaries(conn, ds, granularity="month"):
             b["at"] = max(b["at"] or "", shared[month])
     out = [{**_finish(period, b["g"], b["months"], b["shared"], b["at"]), "distinct_kpis": len(b["ids"])}
            for period, b in buckets.items()]
+    if granularity != "month":
+        # A quarterly file has 4 closes a year, not 12: "2026 · 3 of 4 quarters" is a
+        # year to date, and the screens say so instead of passing it off as a full year.
+        step = dataset_step(conn, ds)
+        per = (12 if granularity == "year" else 3) // step or 1
+        for summary in out:
+            summary.update(cadence=CADENCE_LABELS.get(step, "month"), expected_count=per,
+                           partial=len(summary["months"]) < per)
     for summary in out:
         # A quarter is locked when every month it has figures for is locked (Q4 with
         # only October locked is locked; November isn't there to change).
@@ -213,7 +224,7 @@ def status(period: str, granularity: str | None = None, _: CurrentUser = Depends
         s = next((x for x in _summaries(conn, ds, granularity) if x["period"] == period), None)
         if s is None:
             raise HTTPException(status_code=404, detail="No facts for period")
-        steps = _steps(period, s, rollup=granularity != "month")
+        steps = _steps(period, s, rollup=granularity != "month", unit=s.get("cadence", "month"))
         if granularity != "month":
             # Commentary lives on months: send each open step to the earliest
             # month that still needs it (or the latest month once it's done).
@@ -233,9 +244,12 @@ def status(period: str, granularity: str | None = None, _: CurrentUser = Depends
         conn.close()
 
 
-def _steps(period, s, rollup=False):
+_ADJ = {"month": "monthly", "quarter": "quarterly", "year": "annual"}
+
+
+def _steps(period, s, rollup=False, unit="month"):
     """The close checklist for one summary; targets open that close's tabs.
-    In a roll-up, counts are monthly commentaries (KPI x month), so say so."""
+    In a roll-up, counts are monthly (or quarterly) commentaries, so say so."""
     remaining = s["kpis"] - s["approved"]
     pending_drafts = s["drafted"] - s["approved"]
 
@@ -254,12 +268,13 @@ def _steps(period, s, rollup=False):
 
     flagged = s["drafted"] - s["checked"]  # drafts whose figures didn't all pass the check
     undrafted = s["kpis"] - s["drafted"]
-    undrafted_words = ("monthly commentary is", "monthly commentaries are") if rollup else ("KPI is", "KPIs are")
+    adj = _ADJ.get(unit, "monthly")
+    undrafted_words = (f"{adj} commentary is", f"{adj} commentaries are") if rollup else ("KPI is", "KPIs are")
     return [
         step(
             "import",
             "Import actuals and budget",
-            (f"{n(s['distinct_kpis'], 'KPI', 'KPIs')} across {n(len(s['months']), 'month')} imported · open Data to check coverage"
+            (f"{n(s['distinct_kpis'], 'KPI', 'KPIs')} across {n(len(s['months']), unit)} imported · open Data to check coverage"
          if rollup else f"{n(s['kpis'], 'KPI', 'KPIs')} imported · open Data to check coverage"),
             "done",
             s["kpis"],
@@ -414,6 +429,7 @@ def export_close(period: str, granularity: str = "month", user: CurrentUser = De
         ds = active_dataset_id(conn)
         if ds is None:
             raise HTTPException(status_code=404, detail="No active dataset")
+        ensure_units_confirmed(conn, ds)
         covered = _close_months(conn, ds, period, granularity)
         facts = build_facts(conn, ds, period, granularity, user, include_charts=False)
         summary = next((s for s in _summaries(conn, ds, granularity) if s["period"] == period), None)

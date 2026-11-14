@@ -541,8 +541,12 @@ function fmtPeriodTitle(p){
   if(/^\d{4}-\d{2}$/.test(p))return datasetCadence==="quarter"?`Quarter ended ${MONTHS[+p.slice(5,7)-1]} ${p.slice(0,4)}`
     :datasetCadence==="year"?`Year ended ${MONTHS[+p.slice(5,7)-1]} ${p.slice(0,4)}`:`${MONTHS[+p.slice(5,7)-1]} ${p.slice(0,4)} close`;
   if(/^\d{4}-Q\d$/.test(p))return `Q${p.slice(6)} ${fyLabel(p.slice(0,4))} overview`;
-  return `${/^\d{4}$/.test(p)?fyLabel(p):p} overview`;
+  if(/^\d{4}$/.test(p)){const m=typeof closeMonths!=="undefined"&&closeMonths[p];
+    return `${fyLabel(p)} ${m&&m.partial?"year to date":"overview"}`;}
+  return `${p} overview`;
 }
+// "3 of 4 quarters so far" for a year that isn't over (from the server's roll-up).
+function partialNote(m){return m&&m.partial?`${m.month_count} of ${plural(m.expected_count,m.cadence||"month")} so far`:"";}
 // People read periods as "Jun 2026"; ISO stays in values, URLs and API calls.
 // style: "short" (Jun 2026) | "long" (June 2026) | "axis" (Jun 26).
 function fmtPeriod(p,style="short"){
@@ -783,7 +787,8 @@ function renderCloses(){
   if(currentPeriod&&!shown.includes(currentPeriod))shown.push(currentPeriod);
   el.innerHTML=shown.map(p=>{
     const s=closeStateFor(p),[word,cls]=CLOSE_STATUS[s?s.status:"not_started"]||CLOSE_STATUS.not_started;
-    const sub=s&&s.n?`${s.approved} of ${s.n}${granularity==="month"?"":" commentaries"} approved`:"";
+    const so=granularity==="month"?"":partialNote(closeMonths[p]);
+    const sub=[so,s&&s.n?`${s.approved} of ${s.n}${granularity==="month"?"":" commentaries"} approved`:""].filter(Boolean).join(" · ");
     return `<button class="ci" data-p="${esc(p)}" data-act="close" data-arg="${esc(p)}">
       <b>${esc((granularity==="month"&&datasetCadence!=="month"?(datasetCadence==="quarter"?"Q/e ":"Y/e "):"")+fmtPeriod(p,"long"))}</b>${s?`<span class="cs ${cls}">${word}</span>`:""}
       ${sub?`<small>${sub}</small>`:""}${s&&s.n&&!["not_started","empty"].includes(s.status)?`<span class="cbar" aria-hidden="true"><i style="width:${Math.round(s.progress*100)}%"></i></span>`:""}</button>`;
@@ -809,6 +814,7 @@ async function loadCloseMeta(){
   try{const ms=await api(`/close/months?granularity=${granularity}`);closeMonths=Object.fromEntries(ms.map(m=>[m.period,m]));}catch{closeMonths={};}
   try{const runs=await api("/digests/history");closeShared=new Set(runs.map(r=>r.period));}catch{closeShared=new Set();}
   renderCloses();renderMonthHead();
+  if(currentPeriod&&!currentPlace.place&&currentPlace.tab==="overview")setDocTitle(fmtPeriodTitle(currentPeriod));   // "2026 year to date" needs these
   if(currentPeriod&&$("ov-checklist"))paintOverview();   // a roll-up's checklist waits for these
 }
 // This close's state. Months are scored from their facts (fresh after every
@@ -856,7 +862,7 @@ function renderMonthHead(){
   const ds=activeDatasetObj&&datasetDisplayName(activeDatasetObj.name);
   const roll=granularity!=="month"&&closeMonths[currentPeriod];
   $("mh-sub").textContent=(roll
-    ?[ds,`${plural(roll.distinct_kpis??s.n,"KPI","KPIs")} across ${plural(roll.month_count||1,datasetCadence==="quarter"?"quarter":"month")}`,s.n?`${s.approved} of ${plural(s.n,datasetCadence==="quarter"?"quarterly commentary":"monthly commentary",datasetCadence==="quarter"?"quarterly commentaries":"monthly commentaries")} approved`:null]
+    ?[ds,`${plural(roll.distinct_kpis??s.n,"KPI","KPIs")} across ${roll.partial?partialNote(roll):plural(roll.month_count||1,roll.cadence||(datasetCadence==="quarter"?"quarter":"month"))}`,s.n?`${s.approved} of ${plural(s.n,datasetCadence==="quarter"?"quarterly commentary":"monthly commentary",datasetCadence==="quarter"?"quarterly commentaries":"monthly commentaries")} approved`:null]
     :s.loading?[ds,"Loading this close…"]
     :[ds,s.n?`${plural(s.n,"KPI","KPIs")} computed in code`:null,s.n?`${s.approved} of ${s.n} approved`:null]).concat(dataAsOf()).filter(Boolean).join(" · ");
   const locked=closeLocked();
@@ -868,7 +874,8 @@ function renderMonthHead(){
   $("mt-kpis").textContent=(roll&&roll.distinct_kpis)||s.n||"";
   const note=$("rollup-note");
   if(note){note.hidden=granularity==="month";
-    note.textContent=granularity==="month"?"":`Commentary is written per month; this ${granularity==="year"?"year":"quarter"} view adds the months up (amounts are summed, balances use the last month, rates aren't added).`;}
+    const unit=granularity==="month"?"month":(roll&&roll.cadence)||(datasetCadence==="quarter"?"quarter":"month");
+    note.textContent=granularity==="month"?"":`Commentary is written per ${unit}; this ${granularity==="year"?"year":"quarter"} view adds the ${unit}s up (amounts are summed, balances use the last ${unit}, rates aren't added).${roll&&roll.partial?` ${fmtPeriod(currentPeriod)} has ${partialNote(roll)}, so it's a year to date, not a full year.`:""}`;}
   const tab=currentPlace.place?null:currentPlace.tab;
   document.querySelectorAll("#month-tabs a").forEach(a=>{
     a.href=routeHash({tab:a.dataset.tab,period:currentPeriod});
@@ -1648,10 +1655,15 @@ async function reviewReport(status){
     note=await modalInput("Request changes",{label:"What should change?",textarea:true,required:true,
       placeholder:"e.g. say the R&D overspend is timing only; drop the last sentence",okLabel:"Request changes"});
     if(note==null)return;
+  }else if(status==="approved"&&detailFact.faithfulness==="failed"){
+    // A number that doesn't match the data is approved only with a reason, which goes in the log.
+    note=await modalInput("Approve with a number that doesn't match?",{label:"A number in this draft doesn't match the computed figures. Why is it right?",textarea:true,required:true,
+      placeholder:"e.g. the $2.1M is from the signed contract, not this dataset",okLabel:"Approve with note"});
+    if(note==null)return;
   }
   try{
     await api(`/reports/${detailFact.report_id}/review`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({status,note})});
-    if(note)await api("/feedback",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({report_id:detailFact.report_id,action:"rejected",reason:note})}).catch(()=>null);
+    if(note&&status==="changes_requested")await api("/feedback",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({report_id:detailFact.report_id,action:"rejected",reason:note})}).catch(()=>null);
     detailFact.review_status=status;detailFact.change_note=note||detailFact.change_note;renderReviewStrip(detailFact);
     const cf=(currentFacts||[]).find(x=>x.report_id===detailFact.report_id);if(cf)cf.review_status=status;
     toast(status==="approved"?"Commentary approved":"Changes requested");
@@ -1680,8 +1692,8 @@ function paintScaleBanner(id){
     {const sb=$(id),ds=activeDatasetObj;
       if(sb){const bad=scaleMismatch(ds);sb.style.display=bad?"":"none";
         if(bad){const to=/million|\$m/i.test(ds.name)?1000000:1000;
-          sb.innerHTML=`${warnIcon()}<span><b>These amounts may be ${to===1000?"1,000":"1,000,000"}× too small.</b> The dataset says "${esc(to===1000?"thousands":"millions")}" but its amounts are stored as entered, so $947,565 thousand reads as $948K.</span>`
-            +(canReview()?` <button class="btn sm" onclick="setAmountScale(${ds.id},${to})">Set to ${to===1000?"thousands":"millions"}</button>`:"");}}}
+          sb.innerHTML=`${warnIcon()}<span><b>These amounts may be ${to===1000?"1,000":"1,000,000"}× too small.</b> The dataset says "${esc(to===1000?"thousands":"millions")}" but its amounts are stored as entered, so $947,565 thousand reads as $948K. Board packs, exports and approvals are paused until someone confirms the units.</span>`
+            +(canReview()?` <button class="btn sm" onclick="setAmountScale(${ds.id},${to})">Set to ${to===1000?"thousands":"millions"}</button> <button class="btn sm ghost" onclick="setAmountScale(${ds.id},1)">They're already real amounts</button>`:"");}}}
 }
 // A manager approves from a link (no account): it opens this close's drafts only, for 7 days.
 async function approvalLink(){
@@ -1894,16 +1906,16 @@ function toggleKebab(e,id){e.stopPropagation();
 }
 const SCALE_NAMES={1:"units",1000:"thousands",1000000:"millions"};
 // "$ thousands" in the name but amounts stored as entered: the figures read 1,000x too small.
-function scaleMismatch(ds){return !!ds&&(ds.amount_scale||1)===1&&/thousand|\$ ?000|\(000s?\)|\bmillion|\$m\b/i.test(ds.name||"");}
+function scaleMismatch(ds){return !!ds&&(ds.amount_scale||1)===1&&!ds.units_confirmed&&/thousand|\$ ?000|\(000s?\)|\bmillion|\$m\b/i.test(ds.name||"");}
 async function setAmountScale(id,preset){
   const ds=(datasetsCache||[]).find(x=>x.id===id)||{};
   const pick=preset||await _openModalRaw({title:"Amounts are in",okLabel:"Apply",
     body:`<p style="margin:0 0 10px;font-size:14px">If the file reported "$ in thousands", choose Thousands: every currency KPI is multiplied so it reads $947.6M, not $948K. Percentages and counts are left alone. Drafts written with the old figures are sent back for review.</p>
       <select class="modal-field">${[1,1000,1000000].map(v=>`<option value="${v}"${(ds.amount_scale||1)===v?" selected":""}>${SCALE_NAMES[v][0].toUpperCase()+SCALE_NAMES[v].slice(1)}</option>`).join("")}</select>`,
     getValue:()=>+$("modal-body").querySelector("select").value});
-  if(!pick||pick===(ds.amount_scale||1))return;
+  if(!pick||(pick===(ds.amount_scale||1)&&!scaleMismatch(ds)))return;   // same answer still confirms a mismatch
   try{await api(`/datasets/${id}`,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({amount_scale:pick})});
-    toast(`Amounts now in ${SCALE_NAMES[pick]}. Redraft the commentary to use the new figures.`);await loadDatasets();await loadPeriods();}
+    toast(pick===(ds.amount_scale||1)?`Units confirmed: amounts are ${SCALE_NAMES[pick]==="units"?"real amounts":"in "+SCALE_NAMES[pick]}.`:`Amounts now in ${SCALE_NAMES[pick]}. Redraft the commentary to use the new figures.`);await loadDatasets();await loadPeriods();}
   catch(e){toast("Couldn't change it: "+errMsg(e));}
 }
 async function renameDataset(id){
@@ -2203,7 +2215,8 @@ async function loadFacts(){
     renderCards();
     const anom=currentFacts.filter(f=>f.is_anomaly).map(f=>f.metric);
     $("dash-title").textContent=fmtPeriodTitle(currentPeriod);
-    if($("v-dashboard").style.display!=="none")setDocTitle(fmtPeriodTitle(currentPeriod));
+    // The period can change under an open tab (the M/Q/Y toggle): keep the tab title in step.
+    if($("v-dashboard").style.display!=="none"||(!currentPlace.place&&currentPlace.tab==="overview"))setDocTitle(fmtPeriodTitle(currentPeriod));
     const aggNote=granularity==="month"?"":" · commentary is drafted monthly";
     $("dash-sub").innerHTML=`${currentFacts.length} ${currentFacts.length===1?"KPI":"KPIs"} · <b>${anom.length?plural(anom.length,"anomaly","anomalies"):"no anomalies"}</b>${aggNote}`;
     // A "$ thousands" dataset whose amounts were stored as entered reads 1,000x too small:

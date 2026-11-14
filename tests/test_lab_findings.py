@@ -55,9 +55,38 @@ def test_quarter_and_year_board_packs_have_the_kpis(client):  # noqa: F811
         assert "No KPIs with data for this period" not in r.text and "Revenue" in r.text, period
 
 
-def test_board_pack_warns_when_a_thousands_dataset_is_not_scaled(client):  # noqa: F811
+def test_unconfirmed_units_block_sharing_until_someone_confirms(client):  # noqa: F811
     ds = _import(client)
     client.patch(f"/datasets/{ds}", json={"name": "HubSpot (SEC, $ thousands)"})
-    assert "Check the units before sharing" in client.get("/board-pack?period=2026-09").text
-    client.patch(f"/datasets/{ds}", json={"amount_scale": 1000})
-    assert "Check the units before sharing" not in client.get("/board-pack?period=2026-09").text
+    blocked = client.get("/board-pack?period=2026-09")
+    assert blocked.status_code == 409 and "Confirm the units first" in blocked.json()["detail"]
+    assert client.get("/close/export.xlsx?period=2026-09").status_code == 409
+    assert client.post("/close/approval-link", json={"period": "2026-09"}).status_code in (409, 503)
+    conn = get_connection()
+    try:
+        rid = conn.execute("""SELECT gr.id FROM generated_reports gr JOIN metrics m ON m.id = gr.metric_id
+                              WHERE m.dataset_id = ? LIMIT 1""", (ds,)).fetchone()
+    finally:
+        conn.close()
+    if rid:
+        assert client.post(f"/reports/{rid['id']}/review", json={"status": "approved"}).status_code == 409
+    # Keeping "units" is a valid answer too: choosing it is the confirmation, and it's logged.
+    client.patch(f"/datasets/{ds}", json={"amount_scale": 1})
+    ok = client.get("/board-pack?period=2026-09")
+    assert ok.status_code == 200 and "Check the units" not in ok.text
+    body = client.get("/datasets").json()
+    row = next(d for d in (body.get("datasets", body) if isinstance(body, dict) else body) if d["id"] == ds)
+    assert row["units_confirmed"] is True
+    conn = get_connection()
+    try:
+        logged = conn.execute("SELECT summary FROM audit_log WHERE action = 'units_confirmed' AND entity_id = ?",
+                              (str(ds),)).fetchall() or conn.execute(
+            "SELECT summary FROM audit_log WHERE action = 'units_confirmed'").fetchall()
+    finally:
+        conn.close()
+    assert logged
+
+
+def test_a_plain_dataset_is_never_blocked(client):  # noqa: F811
+    _import(client)
+    assert client.get("/board-pack?period=2026-09").status_code == 200

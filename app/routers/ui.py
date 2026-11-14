@@ -38,6 +38,11 @@ def privacy_page() -> FileResponse:
     return FileResponse(_UI_INDEX.parent / "privacy.html", headers={"Cache-Control": "no-cache"})
 
 
+@router.get("/security", include_in_schema=False)
+def security_page() -> FileResponse:
+    return FileResponse(_UI_INDEX.parent / "security.html", headers={"Cache-Control": "no-cache"})
+
+
 @router.get("/terms", include_in_schema=False)
 def terms_page() -> FileResponse:
     return FileResponse(_UI_INDEX.parent / "terms.html", headers={"Cache-Control": "no-cache"})
