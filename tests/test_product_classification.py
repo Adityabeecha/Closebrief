@@ -57,5 +57,3 @@ def test_same_subject_same_kind_conflicts_survive(a, b):
 def test_conflicts_keep_rounding_and_tenfold_ratio_limits(other):
     assert find_conflicts(docs("Enterprise churn from pricing change was $612K.",
                                f"Enterprise churn from pricing change was {other}.")) == []
-
-

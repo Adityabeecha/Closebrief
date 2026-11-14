@@ -90,5 +90,3 @@ def test_generation_receives_explicit_cause_and_upcoming_event_rules():
     assert "cited note names a specific upcoming event" in system
     assert 'Never say "next month"' in system
     assert result.prompt_version == "v7-close-commentary"
-
-
