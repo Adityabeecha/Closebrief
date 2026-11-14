@@ -603,7 +603,19 @@ def _load_computed_fact(conn, metric: str, period: str) -> ComputedFact:
             status_code=404,
             detail=f"No computed facts for metric='{metric}' period='{period}'. Run /compute first.",
         )
-    return fact
+    # Wording context for the draft: what the comparison is called, the cadence and
+    # the team's house style. Figures are unchanged.
+    ds = active_dataset_id(conn)
+    meta = dataset_metadata(conn, ds) if ds is not None else {}
+    from app.compute.cadence import LABELS as _CADENCE
+    from app.datasets import current_workspace
+    from app.style import load_style
+    return fact.model_copy(update={
+        "budget_label": meta.get("budget_label") or "plan",
+        "forecast_label": meta.get("forecast_label") or "forecast",
+        "cadence": _CADENCE[dataset_step(conn, ds)] if ds is not None else "month",
+        "house_style": load_style(conn, current_workspace()),
+    })
 
 
 @router.get("/reports/{report_id}/grounding")

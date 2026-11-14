@@ -40,6 +40,12 @@ class ComputedFact(BaseModel):
     deltas: Deltas
     trend: Optional[Trend] = None
     is_anomaly: bool = False
+    # What the comparison is called ("prior year", "non-GAAP"), how often the data
+    # comes (month/quarter/year) and the team's house style, for the wording only.
+    budget_label: str = "plan"
+    forecast_label: str = "forecast"
+    cadence: str = "month"
+    house_style: Optional[dict] = None
     # P/V/M decomposition components (deterministic, Addendum v1.1 Section 5).
     # None when the data lacks qty/price detail — the narrative must then not
     # claim price/volume/mix causes.

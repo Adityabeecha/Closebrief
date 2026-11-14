@@ -14,7 +14,7 @@ from app.schemas import (
     TrendStreak,
 )
 
-PROMPT_VERSION = "v7-close-commentary"
+PROMPT_VERSION = "v8-close-commentary"
 
 FIGURE_RULES = """Copy figures exactly as supplied, including currency symbols, signs, suffixes and precision. Never calculate or introduce numbers, \
 including numbers from context notes that are absent from Computed facts."""
@@ -330,6 +330,23 @@ def _point_changes(fact: ComputedFact) -> list[str]:
     ]
 
 
+def _wording_rules(fact: ComputedFact) -> list[str]:
+    """How to name things for this dataset and team. Words only; figures are unchanged."""
+    from app.style import style_rules
+
+    label = (getattr(fact, "budget_label", None) or "plan").strip()
+    cadence = getattr(fact, "cadence", None) or "month"
+    out = [f"Comparison: the budget_* figures compare with the analyst's '{label}'. Call it '{label}' "
+           f"(for example 'vs {label}'), not 'budget' or 'plan' unless that is its name."]
+    if cadence != "month":
+        out.append(f"Cadence: this data is reported each {cadence}. 'month_over_month_change' and the prior period "
+                   f"mean the previous {cadence}; say 'last {cadence}' and 'next {cadence}', never 'month'.")
+    rules = style_rules(getattr(fact, "house_style", None))
+    if rules:
+        out.append("House style: " + " ".join(rules))
+    return out
+
+
 def build_user_prompt(
     fact: ComputedFact,
     context: list[ContextSnippet],
@@ -340,6 +357,7 @@ def build_user_prompt(
     lines = [
         f"Metric: {fact.metric}",
         f"Period: {fact.period}",
+        *_wording_rules(fact),
         "Computed facts (the ONLY numbers you may use):",
         f"  - value: {_fmt(fact.value, fact.unit, fact.currency)}",
         f"  - prior_period_value: {_fmt(fact.prior_value, fact.unit, fact.currency)}",

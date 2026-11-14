@@ -1279,7 +1279,7 @@
       <nav class="mtabs" aria-label="Settings">
         <a href="#settings=costs" data-place="costs">Cost and usage</a>
         <a href="#settings=notifications" data-place="notifications">Notifications</a>
-        <a href="#settings=privacy" data-place="privacy">Privacy and data</a>
+        <a href="#settings=privacy" data-place="privacy">Workspace and data</a>
         <a href="#settings=users" data-place="admin" id="st-users">Users</a>
         <a href="#settings=activity" data-place="activity">Activity</a>
       </nav>
@@ -1659,6 +1659,9 @@
               <option value="marketing">Marketing &amp; Growth: acquisition funnel</option>
               <option value="ops" disabled>Operations (coming soon)</option>
             </select></div>
+          <div><label class="lbl" for="imp-plan-label">The budget column is</label>
+            <input id="imp-plan-label" list="plan-labels" value="plan" style="width:150px" title="What the comparison column really is, so commentary doesn't call last year's actuals a budget">
+            <datalist id="plan-labels"><option value="plan"><option value="budget"><option value="prior year"><option value="non-GAAP"><option value="guidance"><option value="forecast"></datalist></div>
           <div><label class="lbl" for="imp-threshold">Explain variances over</label>
             <div style="display:flex;gap:6px;align-items:center"><input id="imp-threshold" type="number" min="0" step="0.5" value="10" style="width:70px" aria-label="Percent threshold"> %
               <span>and</span><input id="imp-floor" type="number" min="0" step="1000" placeholder="any amount" style="width:120px" aria-label="Dollar floor"></div></div>
@@ -1727,7 +1730,18 @@
 
     <!-- ---------- NOTIFICATIONS ---------- -->
     <section id="v-privacy" class="wrap" style="display:none">
-      <div class="head"><div><h1>Privacy and data</h1><div class="sub">Your data stays yours: hide names from the AI, take a full copy, or delete everything.</div></div></div>
+      <div class="head"><div><h1>Workspace and data</h1><div class="sub">How commentary is written, what the AI never sees, and your data: take a full copy or delete everything.</div></div></div>
+      <div class="panel" style="margin-bottom:16px">
+        <h2>House style for commentary</h2>
+        <p class="psub">How drafts are worded for everyone in this workspace. Figures are never changed.</p>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+          <label class="lbl" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="hs-fav"> Say favourable / unfavourable</label>
+          <label class="lbl" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="hs-fwd" checked> Allow a what-to-watch sentence</label>
+          <label class="lbl">At most <select id="hs-max"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select> sentences</label>
+        </div>
+        <input id="hs-instr" maxlength="300" placeholder="Anything else, e.g. Use $M with one decimal; name the department first" style="width:100%;margin-top:10px;font:inherit;padding:8px;border-radius:8px;border:1px solid var(--b08);background:var(--card);color:inherit">
+        <div style="text-align:right;margin-top:8px"><button class="btn primary write-only" onclick="saveStyle()">Save style</button></div>
+      </div>
       <div class="panel" style="margin-bottom:16px">
         <h2>Words hidden from the AI</h2>
         <p class="psub">Company, customer or people names. Before anything is sent to the AI provider they're swapped for placeholders like [Name 1], and swapped back in what it writes. Figures are never changed.</p>

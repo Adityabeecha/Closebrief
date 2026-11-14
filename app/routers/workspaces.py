@@ -234,3 +234,39 @@ def delete_workspace_data(payload: dict, user: CurrentUser = Depends(require_wri
     from app.deps import shared_cache
     shared_cache().bump_namespace()
     return {"datasets_deleted": deleted}
+
+
+@router.get("/workspace/style")
+def get_style(_: CurrentUser = Depends(require_read)) -> dict:
+    from app.datasets import current_workspace
+    from app.style import DEFAULT_STYLE, load_style
+
+    conn = get_connection()
+    try:
+        return load_style(conn, current_workspace()) or dict(DEFAULT_STYLE)
+    finally:
+        conn.close()
+
+
+@router.put("/workspace/style")
+def put_style(payload: dict, user: CurrentUser = Depends(require_write)) -> dict:
+    """The team's house style for commentary (wording, length, forward-looking lines)."""
+    import json as _json
+
+    from app.datasets import current_workspace
+    from app.style import clean_style
+
+    ws = current_workspace()
+    if ws is None:
+        raise HTTPException(status_code=409, detail="Sign in to a workspace to set a house style.")
+    style = clean_style(payload)
+    conn = get_connection()
+    try:
+        conn.execute("UPDATE workspaces SET house_style = ? WHERE id = ?", (_json.dumps(style), ws))
+        conn.commit()
+        audit.record(conn, "style", "workspace", ws, actor_id=user.id, actor_email=user.email, summary=style)
+    finally:
+        conn.close()
+    from app.deps import shared_cache
+    shared_cache().bump_namespace()
+    return style

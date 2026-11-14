@@ -89,6 +89,9 @@ def rename_dataset(dataset_id: int, payload: dict, _: CurrentUser = Depends(requ
             validate_currency(payload["currency"])
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
+    for key in ("budget_label", "forecast_label"):
+        if key in payload and payload[key] is not None and (not isinstance(payload[key], str) or len(payload[key].strip()) > 40):
+            raise HTTPException(status_code=422, detail=f"{key} must be text of up to 40 characters")
     if domain is not None and not registry.has(domain):
         raise HTTPException(status_code=422, detail=f"Unknown domain: {domain}")
     conn = get_connection()
@@ -103,6 +106,10 @@ def rename_dataset(dataset_id: int, payload: dict, _: CurrentUser = Depends(requ
             conn.execute("UPDATE datasets SET currency = ? WHERE id = ?", (payload["currency"], dataset_id))
         if "fiscal_year_start" in payload:
             conn.execute("UPDATE datasets SET fiscal_year_start = ? WHERE id = ?", (payload["fiscal_year_start"], dataset_id))
+        for key in ("budget_label", "forecast_label"):
+            if key in payload:   # "prior year", "non-GAAP", "guidance": what the comparison is
+                label = (payload[key] or "").strip() or None
+                conn.execute(f"UPDATE datasets SET {key} = ? WHERE id = ?", (label, dataset_id))
         if "reason_threshold_pct" in payload:
             conn.execute("UPDATE datasets SET reason_threshold_pct = ? WHERE id = ?",
                          (float(payload["reason_threshold_pct"]), dataset_id))
