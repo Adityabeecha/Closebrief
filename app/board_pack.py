@@ -184,7 +184,7 @@ def collect_facts(conn, dataset_id: int, period: str, trend_window: int = 12) ->
     out = []
     for r in rows:
         rep = conn.execute(
-            """SELECT narrative FROM generated_reports
+            """SELECT narrative, faithfulness FROM generated_reports
                WHERE metric_id = ? AND period = ? AND review_status = 'approved'
                  AND (prompt_version IS NULL OR prompt_version NOT LIKE '%-digest')
                ORDER BY id DESC LIMIT 1""",
@@ -202,6 +202,7 @@ def collect_facts(conn, dataset_id: int, period: str, trend_window: int = 12) ->
             "value": r["value"], "unit": r["unit"], "direction_good": r["direction_good"],
             "has_data": r["value"] is not None, "is_anomaly": bool(r["is_anomaly"]),
             "narrative": rep["narrative"] if rep else None,
+            "faithfulness": rep["faithfulness"] if rep else None,
             "deltas": {"mom_pct": r["mom_pct"], "yoy_pct": r["yoy_pct"],
                        "budget_var_abs": r["budget_var_abs"], "budget_var_pct": r["budget_var_pct"]},
             "chart_data": {"trend": trend},
@@ -295,7 +296,9 @@ def build_board_pack_html(facts: list[dict], period: str, meta: dict | None = No
         f'<div class="sub">{ds_name}</div></div>'
         f'<div class="meta">{ws_line}<div>Generated {generated}</div>'
         f'<div>Deterministic figures · grounded narratives</div></div></div>'
-        f'<div class="summary">{tiles}</div>'
+        + (f'<div style="border:2px solid #b42e2c;background:#faeeed;color:#7a1d1b;padding:10px 14px;border-radius:8px;'
+           f'margin:0 0 14px;font-weight:600">{e(meta["warning"])}</div>' if meta.get("warning") else '')
+        + f'<div class="summary">{tiles}</div>'
         f'<div class="section-label">KPI detail — ordered by variance vs plan</div>'
         f'{body}'
         f'<div class="foot"><span>Closebrief — narrative FP&amp;A</span>'

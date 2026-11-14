@@ -89,6 +89,8 @@ def rename_dataset(dataset_id: int, payload: dict, _: CurrentUser = Depends(requ
             validate_currency(payload["currency"])
         except ValueError as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if "amount_scale" in payload and payload["amount_scale"] not in (1, 1000, 1_000_000):
+        raise HTTPException(status_code=422, detail="amount_scale must be 1, 1000 or 1000000")
     for key in ("budget_label", "forecast_label"):
         if key in payload and payload[key] is not None and (not isinstance(payload[key], str) or len(payload[key].strip()) > 40):
             raise HTTPException(status_code=422, detail=f"{key} must be text of up to 40 characters")
@@ -106,6 +108,12 @@ def rename_dataset(dataset_id: int, payload: dict, _: CurrentUser = Depends(requ
             conn.execute("UPDATE datasets SET currency = ? WHERE id = ?", (payload["currency"], dataset_id))
         if "fiscal_year_start" in payload:
             conn.execute("UPDATE datasets SET fiscal_year_start = ? WHERE id = ?", (payload["fiscal_year_start"], dataset_id))
+        if "amount_scale" in payload:   # a file 'in thousands' imported as units, fixed in place
+            from app.compute import derived as derived_metrics
+            from app.ingestion.scale import rescale_dataset
+            if rescale_dataset(conn, dataset_id, payload["amount_scale"]):
+                conn.commit()
+                derived_metrics.refresh(conn, dataset_id)
         for key in ("budget_label", "forecast_label"):
             if key in payload:   # "prior year", "non-GAAP", "guidance": what the comparison is
                 label = (payload[key] or "").strip() or None
