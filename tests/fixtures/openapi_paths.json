@@ -501,6 +501,60 @@
       }
     }
   },
+  "/ingest/{upload_id}/accounts": {
+    "post": {
+      "summary": "Ingest Accounts",
+      "description": "A trial balance's accounts, each with its total and the P&L line it goes to: the\nline saved from an earlier month, else a suggestion from its code and name.\nBody: {\"name_col\", \"code_col\", \"value_col\" | \"debit_col\"/\"credit_col\", \"sheet\"}.",
+      "operationId": "ingest_accounts_ingest__upload_id__accounts_post",
+      "parameters": [
+        {
+          "name": "upload_id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string",
+            "title": "Upload Id"
+          }
+        }
+      ],
+      "requestBody": {
+        "required": true,
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "additionalProperties": true,
+              "title": "Payload"
+            }
+          }
+        }
+      },
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Response Ingest Accounts Ingest  Upload Id  Accounts Post"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
   "/ingest/{upload_id}/metrics": {
     "get": {
       "summary": "Ingest Metrics",

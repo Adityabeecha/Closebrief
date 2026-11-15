@@ -410,6 +410,15 @@
   .kpi-grid:last-child{border-radius:0 0 var(--r-md) var(--r-md)}
   .map-totals ul,.imp-report ul{margin:6px 0 0 18px;display:flex;flex-direction:column;gap:4px}
   .map-totals label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+  .tb-lines{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 12px}
+  .tb-lines span{border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px;color:var(--text-2)}
+  .tb-lines b{color:var(--text);font-family:var(--font-mono,monospace)}
+  .tb-table{width:100%;border-collapse:collapse;font-size:13px}
+  .tb-table td,.tb-table th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+  .tb-table td.num{text-align:right;font-family:var(--font-mono,monospace);white-space:nowrap}
+  .tb-src{font-size:11px;font-weight:600;color:var(--text-3)}
+  .tb-src.none{color:var(--warn,#b45309)}
+  .tb-scroll{max-height:460px;overflow:auto;border:1px solid var(--line);border-radius:10px}
   .map-totals small,.imp-report small{color:var(--text-3)}
   .receipt-pane{margin-top:16px}
   .receipt-pane h2{font-size:16px;margin-bottom:4px}
@@ -1634,6 +1643,8 @@
             <option value="long">One row per month</option><option value="wide">Months across the top</option></select></div>
           <div><label for="amount-scale" class="lbl">Amounts are in</label><select class="pill-btn" id="amount-scale" title="Filings and management packs often report '$ in thousands'. Currency KPIs are stored as real amounts; percentages and counts are left alone.">
             <option value="1">Units</option><option value="1000">Thousands ($000)</option><option value="1000000">Millions ($M)</option></select></div>
+          <div><span class="lbl">File type</span><label class="pill-btn" style="display:inline-flex;align-items:center;gap:6px;cursor:pointer" title="A raw export from your ERP: one row per account, with an amount or debit and credit columns. You map each account to a P&amp;L line once; next month's file maps itself.">
+            <input type="checkbox" id="tb-mode" onchange="renderMap()"> Trial balance or GL export</label></div>
           <div id="map-month-wrap" hidden><label for="map-month" class="lbl">Month these figures are for</label>
             <input class="pill-btn" type="month" id="map-month" oninput="updateMapHint()"></div>
           <div id="imp-suffix-wrap" style="display:none"><label for="imp-suffix" class="lbl" title="If the target dataset's metrics are named '<name> spend_usd' rather than just '<name>', enter the suffix here so budgets attach to the right one.">Metric name suffix (optional)</label>
@@ -1643,6 +1654,7 @@
         </div>
         <div id="map-holder"></div>
         <div id="map-hint" class="banner info" style="display:none;margin-top:12px"></div>
+        <div id="tb-holder" class="tb-holder" style="display:none;margin-top:16px"></div>
       </div>
       <div id="imp-join-result" style="display:none"></div>
       <div class="write-only" id="imp-kpis" style="display:none">

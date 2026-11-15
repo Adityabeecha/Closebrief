@@ -58,6 +58,11 @@ class MappingSpec(BaseModel):
     amount_scale: int = Field(default=1)
     # A column of reasons/comments next to each line: becomes context notes.
     comment_col: Optional[str] = None
+    # A trial balance or GL export: debit and credit columns instead of one amount,
+    # and each account (by code, else name) mapped to a P&L line or "Exclude".
+    debit_col: Optional[str] = None
+    credit_col: Optional[str] = None
+    account_map: dict[str, str] = Field(default_factory=dict)
 
     @field_validator("amount_scale")
     @classmethod
@@ -285,7 +290,7 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
                 _check_col(df, column, field)
         literal_period = parse_period(mapping.period_literal) if mapping.period_literal else None
         period_col = None if literal_period else _require(mapping, "period_col")
-        if not mapping.value_col and not mapping.value_cols:
+        if not mapping.value_col and not mapping.value_cols and not (mapping.debit_col or mapping.credit_col):
             raise MappingError(_MISSING["value_col"])
         if period_col:
             _check_col(df, period_col, "Period")
@@ -340,8 +345,13 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
             out = pd.concat(parts, ignore_index=True)
         else:
             value_col = mapping.value_col
-            _check_col(df, value_col, "Value")
-            _check_numeric(df, value_col, "Value")
+            for col, what in ((mapping.debit_col, "Debit"), (mapping.credit_col, "Credit")):
+                if col:
+                    _check_col(df, col, what)
+                    _check_numeric(df, col, what)
+            if not (mapping.debit_col or mapping.credit_col):
+                _check_col(df, value_col, "Value")
+                _check_numeric(df, value_col, "Value")
             out = pd.DataFrame()
             out["period"] = _periods_for(df)
             out["_source_row"] = df.index + 1
@@ -350,7 +360,8 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
                 out["metric"] = df[mapping.metric_col].map(sanitize_label)
             else:
                 out["metric"] = sanitize_label(mapping.wide_value_label or value_col)
-            out["value"] = df[value_col].map(coerce_value)
+            from app.ingestion.ledger import net_amounts
+            out["value"] = net_amounts(df, value_col, mapping.debit_col, mapping.credit_col, coerce_value)
             out["budget"] = df[mapping.budget_col].map(coerce_value) if mapping.budget_col else None
             out["forecast"] = df[mapping.forecast_col].map(coerce_value) if mapping.forecast_col else None
             out["quantity"] = df[mapping.quantity_col].map(coerce_value) if mapping.quantity_col else None
@@ -434,6 +445,14 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
         else:
             out["dimensions"] = None
 
+    ledger_report = None
+    if mapping.account_map:
+        # A trial balance: accounts add up into the P&L lines they're mapped to.
+        from app.ingestion.ledger import roll_up
+        out, ledger_report = roll_up(out, mapping.account_map)
+        if out.empty:
+            raise MappingError("No account is mapped to a P&L line. Map at least one account, then import.")
+
     # Capture the full metric set BEFORE dropping null-value rows: a metric
     # that legitimately has data in zero periods (e.g. "<channel> Clicks" for
     # every channel except the one actually tracked) must still exist as a
@@ -459,13 +478,15 @@ def normalize(df: pd.DataFrame, mapping: MappingSpec) -> pd.DataFrame:
     out = out[out["value"].notna()].reset_index(drop=True)
     if out.empty:
         raise MappingError("Mapping produced no valid rows — check the value column and layout")
-    out.attrs["dimension_column"] = mapping.dimension_cols[0] if mapping.dimension_cols else None
+    out.attrs["dimension_column"] = ("Account" if mapping.account_map
+                                      else mapping.dimension_cols[0] if mapping.dimension_cols else None)
     out.attrs["all_metrics"] = all_metrics
     out.attrs["import_report"] = {
         "rows_read": rows_read, "rows_kept": int(out["_source_row"].nunique()),
         "duplicates_dropped": {"count": len(duplicate_rows), "examples": examples},
         "identical_kept": {"count": len(identical_kept), "examples": kept_examples},
         "totals_dropped": df.attrs["totals_dropped"],
+        **({"ledger": ledger_report} if ledger_report else {}),
     }
     out = out.drop(columns="_source_row")
     return out
