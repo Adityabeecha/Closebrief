@@ -114,7 +114,7 @@
   .ws-newbtn{display:flex;align-items:center;gap:8px;width:100%;padding:8px 9px;border-radius:8px;border:1px dashed var(--b12);background:none;color:var(--accent);font-size:13px;font-weight:700;margin-top:4px}
   .ws-newbtn:hover{background:var(--accent-bg)}
 
-  .nav{padding:14px 12px 6px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;flex:1;scrollbar-width:none}
+  .nav{min-height:0;padding:14px 12px 6px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;flex:1;scrollbar-width:none}
   .nav::-webkit-scrollbar{width:0;height:0}
   /* Role-gated nav: Cost/Notifications/User Management are admin-only */
   :root:not([data-role="admin"]) .admin-only{display:none !important}
@@ -257,7 +257,7 @@
   .ctx-hint{margin:0;font-size:12px;color:var(--mut)}
   /* The close path first: forecasts, what-ifs, custom KPIs and correlations are opt-in. */
   body:not(.advanced) .adv{display:none!important}
-  .adv-toggle{display:flex;gap:6px;align-items:center;margin:4px 22px;font-size:12px;color:var(--mut);cursor:pointer}
+  .adv-toggle{flex-shrink:0;display:flex;gap:6px;align-items:center;margin:10px 22px;padding:6px 0;font-size:12px;color:var(--mut);cursor:pointer}
   .prev-comm{margin-top:10px;font-size:13px;color:var(--ink2,inherit)}
   .prev-comm summary{cursor:pointer;color:var(--mut);font-weight:600}
   .prev-comm p{margin:6px 0 0;padding-left:10px;border-left:3px solid var(--b08)}
@@ -1035,6 +1035,7 @@
   .ctx-listcol{background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-lg);padding:10px}
   .ctx-scope{display:flex;gap:6px;padding:2px 2px 10px}
   .ctx-scope:empty{display:none}
+  #nt-form[hidden],#sch-form[hidden]{display:none!important}
   .ctx-scope button{border:1px solid var(--line);background:var(--surface);border-radius:var(--r-pill);padding:5px 12px;font:inherit;font-size:13px;font-weight:600;color:var(--text-2);cursor:pointer}
   .ctx-scope button[aria-pressed=true]{background:var(--text);border-color:var(--text);color:var(--surface)}
   .ctx-list{display:flex;flex-direction:column;gap:2px}
@@ -1334,7 +1335,7 @@
           <button class="btn" onclick="exportWord()">Word</button>
           <button class="btn" onclick="exportExcel(this)">Excel (.xlsx)</button>
           <button class="btn" onclick="exportPPTX()">PowerPoint</button>
-          <button class="btn" onclick="exportPDF()">KPI report (PDF)</button>
+          <button class="btn" onclick="exportPDF()">Print / save as PDF</button>
           <button class="btn primary" onclick="printBoardPack()">Print board pack</button>
         </div>
       </div>
@@ -1426,7 +1427,7 @@
           <div class="chips" id="d-chips" style="margin-top:12px"></div>
           <div class="rev-strip" id="d-rev-strip" style="display:none">
             <span class="rev-badge none" id="d-rev-badge">Not approved yet</span>
-            <button class="btn sm write-only" onclick="reviewReport('approved')">Approve</button>
+            <button class="btn sm write-only" id="d-approve" onclick="reviewReport('approved')">Approve</button>
             <button class="btn sm write-only" onclick="reviewReport('changes_requested')">Request changes</button>
             <button class="btn sm write-only" id="d-edit-btn" onclick="detailFact&&editNarr(detailFact.report_id)">Edit</button>
             <button class="btn sm" id="d-ver-btn" onclick="toggleVersions()">History</button>
@@ -1557,7 +1558,7 @@
     <section id="v-digest" class="wrap" style="display:none">
       <div class="head">
         <div><h1>Executive digest</h1><div class="sub">Built only from approved commentary, biggest movements first</div></div>
-        <div class="head-actions"><button class="write-only btn" onclick="approvalLink()" title="A link your manager can open to approve this close's commentary, no account needed">Get approval link</button><button class="write-only btn primary" id="digest-generate" style="display:none" onclick="sendDigest()">Send to leadership</button></div>
+        <div class="head-actions"><button class="write-only btn" id="digest-approval" onclick="approvalLink()" title="A link your manager can open to approve this close's commentary, no account needed">Get approval link</button><button class="write-only btn primary" id="digest-generate" style="display:none" onclick="sendDigest()">Send to leadership</button></div>
       </div>
       <div id="digest-status"></div>
       <div class="dg-grid">
@@ -1573,6 +1574,8 @@
       <div class="ctx-split">
         <div class="ctx-listcol">
           <div class="ctx-scope" id="ctx-scope" role="group" aria-label="Which notes"></div>
+          <label class="lbl" for="ctx-search">Search notes</label>
+          <input id="ctx-search" type="search" placeholder="Title, body or tags" oninput="renderContextList()" style="width:100%;margin-bottom:10px">
           <div class="ctx-list" id="ctx-rows" aria-label="Context notes"></div>
         </div>
         <div class="ctx-detail">
@@ -1775,7 +1778,7 @@
     </section>
     <section id="v-notifications" class="wrap" style="display:none">
       <div class="head"><div><h1>Notifications</h1><div class="sub">Deliver digests and anomaly alerts to email, Slack, or a webhook</div></div></div>
-      <div class="ctx-form three-col-form write-only">
+      <div class="ctx-form three-col-form write-only" id="nt-form">
         <div><label for="nt-channel" class="lbl">Channel</label>
           <select id="nt-channel" onchange="ntChannelFields()">
             <option value="email">Email</option><option value="slack">Slack</option><option value="webhook">Webhook</option>
@@ -1794,7 +1797,7 @@
 
       <h2 style="font-size:20px;margin:30px 0 4px">Schedules</h2>
       <div class="sub" style="margin-bottom:14px">Run digests and anomaly scans automatically. An external cron calls the app with your scheduler token; see the setup note after adding one.</div>
-      <div class="ctx-form three-col-form write-only">
+      <div class="ctx-form three-col-form write-only" id="sch-form">
         <div><label for="sch-kind" class="lbl">Job</label>
           <select id="sch-kind" onchange="schKindFields()">
             <option value="digest">Scheduled digest</option>

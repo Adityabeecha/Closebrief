@@ -779,7 +779,7 @@ let allPeriods=[], showAllCloses=false;
 function closeProgress(facts,shared){
   const withData=(facts||[]).filter(f=>f.has_data),n=withData.length;
   const drafted=withData.filter(f=>f.narrative).length,approved=withData.filter(f=>f.review_status==="approved").length;
-  const failed=withData.filter(f=>f.faithfulness==="failed").length;
+  const failed=withData.filter(f=>f.faithfulness==="failed"&&f.review_status!=="approved").length;
   const exceptions=withData.filter(f=>(f.is_anomaly||f.faithfulness==="failed")&&f.review_status!=="approved").length;
   const progress=n?Math.round((0.2+0.3*drafted/n+0.4*approved/n+(shared?0.1:0))*100)/100:0;
   const status=!n?"empty":approved===n&&shared?"shared":approved===n?"ready":drafted||approved?"in_progress":"not_started";
@@ -1582,13 +1582,15 @@ function renderForecastChart(fc){
 }
 async function forecastNarrative(){
   const metric=$("fc-metric").value;if(!metric)return;
-  const horizon=+($("fc-horizon").value||3),btn=$("fc-narr-btn"),t=btn.textContent;
+  const horizon=+($("fc-horizon").value||3),btn=$("fc-narr-btn");
+  if(btn.disabled)return;
   btn.disabled=true;btn.textContent="Thinking…";
+  $("fc-narr").innerHTML='<div class="loading" role="status"><span class="spin"></span> Thinking…</div>';
   try{
     const r=await api("/forecast/narrative",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({metric,horizon})});
     $("fc-narr").innerHTML=`<div class="narr">${esc(r.narrative)}</div>`;
-  }catch(e){toast("Narrative unavailable: "+errMsg(e));}
-  finally{btn.disabled=false;btn.textContent=t;}
+  }catch(e){$("fc-narr").innerHTML=`<div class="an-empty" role="alert">${esc("Narrative unavailable: "+errMsg(e))}</div>`;}
+  finally{btn.disabled=false;btn.textContent="Explain this forecast";}
 }
 /* ---- Scenario (what-if) ---- */
 function onLever(){
@@ -1602,6 +1604,7 @@ function runScenario(){
   clearTimeout(_scnT);
   _scnT=setTimeout(async()=>{
     const body={metric,price_pct:+$("scn-price").value,volume_pct:+$("scn-volume").value,mix_pct:+$("scn-mix").value};
+    $("scn-out").innerHTML='<div class="loading" role="status" style="padding:6px 0"><span class="spin"></span> Updating…</div>';
     try{
       const r=await api("/scenario",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
       const unit=(_anMetrics.find(m=>m.name===metric)||{}).unit;
@@ -1623,12 +1626,13 @@ function insertMetricToken(i){
 async function createDerivedKpi(){
   const name=$("kb-name").value.trim(),formula=$("kb-formula").value.trim();
   if(!name||!formula){toast("Name and formula are required");return;}
-  const btn=$("kb-btn");btn.disabled=true;
+  const btn=$("kb-btn");if(btn.disabled)return;btn.disabled=true;
   try{
     await api("/kpis/derived",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({name,formula,unit:$("kb-unit").value,category:$("kb-cat").value.trim()||"Derived",direction_good:$("kb-dir").value})});
     toast("Created “"+name+"”");
     $("kb-name").value="";$("kb-formula").value="";
+    $("kb-unit").value="%";$("kb-cat").value="Derived";$("kb-dir").value="up";
     await loadFacts();                 // recompute pulls the new derived metric onto the board
     _anMetrics=_metricList();_fillMetricSelect("fc-metric");_fillMetricSelect("scn-metric");
     const chips=$("kb-chips");if(chips)chips.innerHTML=_anMetrics.map((m,i)=>`<span class="fchip" role="button" tabindex="0" onclick="insertMetricToken(${i})">${esc(m.name)}</span>`).join("");
@@ -1646,10 +1650,10 @@ function narrMeta(f){
   else if(f.faithfulness==="failed")bits.push("A number doesn't match the data");
   if(f.confidence)bits.push(`Reason: ${{high:"strong",medium:"partial",low:"not given"}[String(f.confidence).toLowerCase()]||"not given"}`);
   if(f.edited)bits.push("edited by analyst");
-  if(f.cost_usd!=null)bits.push(`≈ $${(+f.cost_usd).toFixed(4)}`);
   return bits.join(" · ");
 }
 function renderReviewStrip(f){
+  const approve=$("d-approve");if(approve)approve.style.display=f&&f.review_status==="approved"?"none":"";
   const readonly=$("d-readonly-approval");
   if(readonly){
     readonly.style.display=canReview()?"none":"";
@@ -1685,25 +1689,40 @@ async function reviewReport(status){
     boardPackFor=null;   // the pack carries approved commentary: rebuild it next time it's opened
     const cf=(currentFacts||[]).find(x=>x.report_id===detailFact.report_id);if(cf)cf.review_status=status;
     toast(status==="approved"?"Commentary approved":"Changes requested");
-    overviewFor=null;renderMonthHead();renderCards();loadCloseMeta();
+    if(closeMonths[currentPeriod]){
+      const s=closeProgress(currentFacts,closeShared.has(currentPeriod));
+      Object.assign(closeMonths[currentPeriod],{approved:s.approved,drafted:s.drafted,progress:s.progress,status:s.status});
+    }
+    overviewFor=null;renderMonthHead();renderCards();renderCloses();loadCloseMeta();
   }catch(e){toast("Failed: "+errMsg(e));}
 }
 async function toggleVersions(){
   const box=$("d-versions");
   if(box.style.display!=="none"){box.style.display="none";$("d-ver-btn").textContent="History";return;}
   if(!detailFact||!detailFact.report_id)return;
+  const fact=detailFact,reportId=fact.report_id;
   box.style.display="";$("d-ver-btn").textContent="Hide history";box.innerHTML='<div class="an-empty">Loading…</div>';
   try{
-    const vers=await api(`/reports/${detailFact.report_id}/versions`);
+    const vers=await api(`/reports/${reportId}/versions`);
+    if(detailFact!==fact)return;
     if(!vers.length){box.innerHTML='<div class="an-empty">No prior versions — edits to the narrative create new versions.</div>';return;}
+    const latest=Math.max(...vers.map(v=>v.version));
+    box.onclick=async e=>{
+      const btn=e.target.closest("button[data-version]");
+      if(!btn||btn.disabled||!canReview()||closeLocked()||!detailFact||detailFact.report_id!==reportId)return;
+      const v=vers.find(v=>v.version===+btn.dataset.version);if(!v)return;
+      btn.disabled=true;
+      try{await editNarr(reportId,v.narrative);}finally{btn.disabled=false;}
+    };
     box.innerHTML=vers.map(v=>{
       // diff is an array of unified-diff lines (never a string).
       const lines=Array.isArray(v.diff)?v.diff:(v.diff?String(v.diff).split("\n"):[]);
       const diff=lines.length?`<div class="ver-diff">${lines.map(l=>{const e=esc(l);
         return /^\+/.test(l)&&!/^\+\+\+/.test(l)?`<span class="add">${e}</span>`:/^-/.test(l)&&!/^---/.test(l)?`<span class="del">${e}</span>`:e;}).join("\n")}</div>`:"";
-      return `<div class="ver-item"><div class="ver-head">v${v.version}${v.editor_email?` · ${esc(v.editor_email)}`:""}<span class="when">${esc(v.created_at||"")}</span></div>${diff}</div>`;
+      const restore=v.version<latest&&canReview()&&!closeLocked()?`<button class="btn sm write-only" data-version="${esc(v.version)}">Restore this version</button>`:"";
+      return `<div class="ver-item"><div class="ver-head">v${v.version}${v.editor_email?` · ${esc(v.editor_email)}`:""}<span class="when">${esc(v.created_at||"")}</span></div>${diff}${restore}</div>`;
     }).join("");
-  }catch(e){box.innerHTML=`<div class="an-empty">${esc(errMsg(e))}</div>`;}
+  }catch(e){if(detailFact===fact)box.innerHTML=`<div class="an-empty">${esc(errMsg(e))}</div>`;}
 }
 
 function paintScaleBanner(id){
@@ -1716,12 +1735,15 @@ function paintScaleBanner(id){
 // A manager approves from a link (no account): it opens this close's drafts only, for 7 days.
 async function approvalLink(){
   if(!currentPeriod||granularity!=="month"){toast("Open a month's close to share it for approval");return;}
+  const btn=$("digest-approval");if(btn.disabled)return;
+  const label=btn.textContent;btn.disabled=true;btn.textContent="Working…";
   try{
     const r=await api("/close/approval-link",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({period:currentPeriod})});
     try{await navigator.clipboard.writeText(r.url);}catch{}
     await _openModalRaw({title:"Approval link",okLabel:"Done",getValue:()=>true,
       body:`<p style="margin:0 0 8px;font-size:14px">Send this to whoever approves ${esc(fmtPeriodTitle(currentPeriod))}. They can read the drafts and approve or request changes, for ${r.days} days, without an account. It's copied to your clipboard.</p><input class="modal-field" readonly value="${esc(r.url)}" onclick="this.select()">`});
   }catch(e){toast("Couldn't make the link: "+errMsg(e));}
+  finally{btn.disabled=false;btn.textContent=label;}
 }
 // Advanced tools (Analyze, correlations) are hidden until the analyst asks for them.
 function setAdvanced(on){
@@ -1786,7 +1808,7 @@ async function loadNotifications(){
         <button class="write-only btn sm" onclick="ntTest(${esc(c.id)},this)">Send test</button>
         <button class="write-only ico" title="Delete channel" aria-label="Delete channel" onclick="ntDelete(${esc(c.id)})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">${ICON_PATHS.trash}</svg></button>
       </div>`;
-    }).join(""):screenState("No notification channels yet","Send digests and anomaly alerts to email, Slack or a webhook.","$('nt-target').focus()","Add a channel","empty",{writeOnly:true});
+    }).join(""):screenState("No notification channels yet","Send digests and anomaly alerts to email, Slack or a webhook.",$("nt-form").hidden?"$('nt-form').hidden=false;loadNotifications();$('nt-target').focus()":"","Add a channel","empty",{writeOnly:true});
   }catch(e){if(done())$("nt-list").innerHTML=screenError(e,"loadNotifications()");}
   await schedules;
 }
@@ -1809,7 +1831,7 @@ async function loadSchedules(){
       <label style="font-size:12px;color:var(--ink3);font-weight:600;display:flex;align-items:center;gap:6px">
         <input type="checkbox" ${j.enabled?"checked":""} onchange="schToggle(${esc(j.id)},this.checked)"> Enabled</label>
       <button class="write-only ico" title="Delete schedule" aria-label="Delete schedule" onclick="schDelete(${esc(j.id)})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px">${ICON_PATHS.trash}</svg></button>
-    </div>`).join(""):screenState("No schedules yet","Schedule digests, anomaly scans or board pack emails to run automatically.","$('sch-kind').focus()","Add a schedule","empty",{writeOnly:true});
+    </div>`).join(""):screenState("No schedules yet","Schedule digests, anomaly scans or board pack emails to run automatically.",$("sch-form").hidden?"$('sch-form').hidden=false;loadSchedules();$('sch-kind').focus()":"","Add a schedule","empty",{writeOnly:true});
 }
 async function schCreate(){
   const kind=$("sch-kind").value,cadence=$("sch-cadence").value;
@@ -3158,10 +3180,10 @@ async function rejectNarr(id,btn){
   if(r===null)return;   // cancelled
   feedback(id,"rejected",btn,{reason:r||null});
 }
-async function editNarr(id){
+async function editNarr(id,restoredText){
   const f=currentFacts.find(x=>x.report_id===id);
   const cur=(f&&f.narrative)||"";
-  const t=await modalInput(`Edit commentary${f?": "+f.metric:""}`,{label:"Commentary",value:cur,textarea:true,okLabel:"Save edit"});
+  const t=restoredText??await modalInput(`Edit commentary${f?": "+f.metric:""}`,{label:"Commentary",value:cur,textarea:true,okLabel:"Save edit"});
   if(t==null||!t.trim()||t===cur)return;
   try{
     const r=await api("/feedback",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({report_id:id,action:"edited",edited_text:t})});
@@ -3248,18 +3270,18 @@ function recipientsText(list){
 // Sending is the one step that reaches leadership; the server refuses it until every KPI is approved.
 async function sendDigest(){
   if(!canReview()||digestGenerating||!digestNow||!digestNow.ready)return;
-  const n=digestNow.items.length;
-  let to=null;try{to=await api("/digest/recipients");}catch{to=null;}
-  if(!await modalConfirm(`Send the ${fmtPeriod(currentPeriod,"long")} digest?`,
-    `${plural(n,"item","items")} of approved commentary. ${recipientsText(to)}`,
-    {okLabel:to&&!to.length?"Mark as sent":"Send digest",danger:false}))return;
-  digestGenerating=true;const btn=$("digest-generate");btn.disabled=true;
+  const n=digestNow.items.length,period=currentPeriod;
+  digestGenerating=true;const btn=$("digest-generate"),label=btn.textContent;btn.disabled=true;btn.textContent="Working…";
   try{
-    await api(`/digest/send?period=${encodeURIComponent(currentPeriod)}&top_n=5`,{method:"POST"});
-    toast("Digest sent");closeShared.add(currentPeriod);
+    let to=null;try{to=await api("/digest/recipients");}catch{to=null;}
+    if(!await modalConfirm(`Send the ${fmtPeriod(period,"long")} digest?`,
+      `${plural(n,"item","items")} of approved commentary. ${recipientsText(to)}`,
+      {okLabel:to&&!to.length?"Mark as sent":"Send digest",danger:false}))return;
+    await api(`/digest/send?period=${encodeURIComponent(period)}&top_n=5`,{method:"POST"});
+    toast("Digest sent");closeShared.add(period);
     await loadDigestHistory();loadCloseMeta();
   }catch(e){toast("Couldn't send the digest: "+errMsg(e));}
-  finally{digestGenerating=false;btn.disabled=false;}
+  finally{digestGenerating=false;btn.disabled=false;btn.textContent=label;}
 }
 
 
@@ -3270,7 +3292,7 @@ async function loadContext(){
   if(!done())return;
   ctxDocs=docs;
   if(!docs.length){
-    $("ctx-scope").innerHTML="";$("ctx-view").style.display="none";
+    renderContextList();$("ctx-view").style.display="none";
     if(currentPeriod&&granularity==="month"&&!$("c-date").value)$("c-date").value=currentPeriod;
     $("ctx-rows").innerHTML=currentUser&&["executive","viewer"].includes(currentUser.role)
       ?screenState("No context notes yet","Business events, definitions and policies help explain metric movements. Ask an analyst to add a note.","nav('kpis')","Open KPIs")
@@ -3285,9 +3307,11 @@ const ctxWhen=(d,style)=>d.effective_date?(/^\d{4}-\d{2}$/.test(d.effective_date
 let ctxScope="all",ctxDocs=[],ctxSel=null,ctxComposing=false;
 function renderContextList(){
   const scoped=ctxScope==="close"&&!!currentPeriod;
-  $("ctx-scope").innerHTML=currentPeriod&&ctxScope!=="library"
+  $("ctx-scope").innerHTML=currentPeriod
     ?`<button aria-pressed="${scoped}" onclick="ctxScope='close';renderContextList()">This close · ${ctxDocs.filter(ctxInClose).length}</button><button aria-pressed="${!scoped}" onclick="ctxScope='all';renderContextList()">All notes · ${ctxDocs.length}</button>`:"";
-  const docs=scoped?ctxDocs.filter(ctxInClose):ctxDocs;
+  const query=($("ctx-search")?.value||"").trim().toLowerCase();
+  const docs=(scoped?ctxDocs.filter(ctxInClose):ctxDocs).filter(d=>!query||
+    [d.title,d.body,...(d.metric_tags||[])].filter(Boolean).join(" ").toLowerCase().includes(query));
   if(ctxSel!=null&&!docs.some(d=>d.id===ctxSel))ctxSel=null;
   if(ctxSel==null&&docs.length&&!ctxComposing)ctxSel=docs[0].id;
   $("ctx-rows").innerHTML=docs.map(d=>{
@@ -3295,7 +3319,7 @@ function renderContextList(){
     return `<div class="ctx-item${on?" on":""}">
       <button class="ctx-open" onclick="ctxOpen(${esc(d.id)})"${on?' aria-current="true"':""}><b>${esc(d.title)}</b><small>${esc(d.type.replace("_"," "))} · ${esc(ctxWhen(d))}${d.effective_until==="ongoing"?" onwards":d.effective_until?` to ${esc(fmtPeriod(d.effective_until))}`:""}${d.dataset_id==null?" · every dataset":""}</small></button>
       <button class="row-del write-only" aria-label="Delete ${esc(d.title)}" onclick="delContext(${esc(d.id)})">${XICON}</button></div>`;
-  }).join("")||`<p class="ctx-none">No notes dated in ${esc(fmtPeriod(currentPeriod))}. <button class="linkbtn" onclick="ctxScope='all';renderContextList()">Show all notes</button></p>`;
+  }).join("")||(query?'<p class="ctx-none">No notes match your search.</p>':`<p class="ctx-none">No notes dated in ${esc(fmtPeriod(currentPeriod))}. <button class="linkbtn" onclick="ctxScope='all';renderContextList()">Show all notes</button></p>`);
   paintContextDetail();
 }
 function paintContextDetail(){

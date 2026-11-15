@@ -33,8 +33,9 @@ LOADERS = [
     ("loadContext", "ctx-rows", "async function loadContext(", "async function addContext(", "No context", None),
     ("loadAnalytics", "analytics-state", "function _metricList(", "/* ---- Forecast", "No metrics", "Import data"),
     ("loadCosts", "costs-state", "async function loadCosts(", "function deltaChip(", "No usage", "Open the dashboard"),
-    ("loadNotifications", "nt-list", "async function loadNotifications(", "async function schCreate(", "No notification channels", "Add a channel"),
-    ("loadSchedules", "sch-list", "function schKindFields(", "async function schCreate(", "No schedules", "Add a schedule"),
+    # Creation forms start open, so empty states must not duplicate their actions.
+    ("loadNotifications", "nt-list", "async function loadNotifications(", "async function schCreate(", "No notification channels", None),
+    ("loadSchedules", "sch-list", "function schKindFields(", "async function schCreate(", "No schedules", None),
     ("loadAdmin", "admin-rows", "async function loadAdmin(", "async function setUserRole(", "No users", "Share the sign-in link"),
 ]
 L = {c[0]: c for c in LOADERS}
