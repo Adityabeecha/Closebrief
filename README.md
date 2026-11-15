@@ -21,7 +21,7 @@ the sample close or your own data.
 
 **Step-by-step walkthrough (2:45, with narration):**
 
-VIDEO_PLACEHOLDER
+https://github.com/user-attachments/assets/e0c60456-1f06-4b65-a48e-e39603838072
 
 Filmed on the live app with Datadog's real SEC filing ($ in thousands, quarterly):
 
