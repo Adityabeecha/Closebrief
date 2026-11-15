@@ -71,7 +71,7 @@ def test_an_edit_that_turns_a_number_around_is_flagged(client):  # noqa: F811
     assert bad["direction"] and "17.1%" in bad["direction"][0]
     conn = get_connection()
     try:
-        assert conn.execute("SELECT faithfulness FROM generated_reports WHERE id = ?", (rid,)).fetchone()[0] == "failed"
+        assert conn.execute("SELECT faithfulness FROM generated_reports WHERE id = ?", (rid,)).fetchone()["faithfulness"] == "failed"
     finally:
         conn.close()
 
