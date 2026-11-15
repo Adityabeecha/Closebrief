@@ -130,7 +130,8 @@ app.add_middleware(
 # attach a bearer token to <script src>, so gating it 401s the entire frontend.
 _OPEN_PATHS = {"/", "/app", "/theme.css", "/app.js", "/health", "/auth/config", "/auth/google",
                "/auth/session", "/auth/logout", "/privacy", "/terms", "/openapi.json", "/docs", "/redoc",
-               "/samples/fpa.csv", "/og.png",
+               "/samples/fpa.csv", "/og.png", "/security",
+               "/media/closebrief-tour.mp4", "/media/closebrief-tour.jpg",
                "/approve"}   # a signed link for one close; the token is the permission
 
 
