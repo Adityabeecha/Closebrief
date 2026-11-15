@@ -81,7 +81,7 @@ def _review(fact):
     return status, check
 
 
-def _kpis(book, facts, granularity, currency):
+def _kpis(book, facts, granularity, currency, units_warning=False):
     forecast = any(f["forecast"] is not None for f in facts)
     ytd = granularity == "month" and any(f["ytd"] is not None for f in facts)
     columns = ["Category", "KPI", "Unit", "Actual", "Plan", "Variance", "Variance %"]
@@ -92,7 +92,17 @@ def _kpis(book, facts, granularity, currency):
         columns += ["YTD actual", "YTD plan", "YTD vs plan %", "YTD vs last year %"]
     columns += ["Status", "Figures check", "Commentary"]
     sheet = _sheet(book, "KPIs", columns)
-    sheet.freeze_panes = "C2"
+    header_row = 1
+    if units_warning:
+        sheet.insert_rows(1)
+        _text(sheet.cell(1, 1), "Check the units: this dataset says thousands or millions but amounts are stored as entered. "
+              "Set 'Amounts are in' from the dataset menu.")
+        sheet.cell(1, 1).font = Font(color="FF0000", bold=True)
+        sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(columns))
+        sheet.cell(1, 1).alignment = Alignment(wrap_text=True, vertical="top")
+        sheet.row_dimensions[1].height = 32
+        header_row = 2
+    sheet.freeze_panes = f"C{header_row + 1}"
     for fact in facts:
         unit, delta, annual = fact["unit"], fact["deltas"], fact["ytd"] or {}
         status, check = _review(fact)
@@ -131,7 +141,7 @@ def _kpis(book, facts, granularity, currency):
                 cell.alignment = Alignment(wrap_text=True, vertical="top")
     for name, width in {"KPI": 30, "Category": 22, "Figures check": 26, "Commentary": 80}.items():
         sheet.column_dimensions[get_column_letter(columns.index(name) + 1)].width = width
-    sheet.auto_filter.ref = sheet.dimensions
+    sheet.auto_filter.ref = f"A{header_row}:{get_column_letter(len(columns))}{sheet.max_row}"
 
 
 def _contributors(book, conn, facts, period, covered, currency):
@@ -212,7 +222,11 @@ def build_close_workbook(conn, ds, name, period, granularity, covered, facts, su
     _row(sheet, ["Figures are computed in code. Commentary is included only once approved."])
     sheet.column_dimensions["A"].width = 28
     sheet.column_dimensions["B"].width = 85
-    _kpis(book, facts, granularity, meta["currency"])
+    # The export route stops an unconfirmed mismatch first; this row covers any other caller.
+    from app.ingestion.scale import units_unconfirmed
+    confirmed = conn.execute("SELECT units_confirmed FROM datasets WHERE id = ?", (ds,)).fetchone()
+    units_warning = units_unconfirmed(name, meta["amount_scale"], confirmed and confirmed["units_confirmed"])
+    _kpis(book, facts, granularity, meta["currency"], units_warning=units_warning)
     _contributors(book, conn, facts, period, covered, meta["currency"])
     if changes:
         sheet = _sheet(book, "Changes", ["When", "KPI", "Month", "Field", "Old", "New", "Source", "Who"])

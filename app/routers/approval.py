@@ -116,7 +116,7 @@ def approval_page(t: str) -> HTMLResponse:
         f'''<article data-metric="{e(d["metric"])}" data-failed="{int(d["faithfulness"] == "failed")}"><h3>{e(d["metric"])}<span class="st {e(d["review_status"] or "pending")}">
         {"Approved" if d["review_status"] == "approved" else "Changes requested" if d["review_status"] == "changes_requested" else "Waiting for you"}</span></h3>
         <p class="fig">{e(_fmt(d["value"], d["unit"]))}{f" · {d['budget_var_pct']:+.1f}% vs plan" if d["budget_var_pct"] is not None and d["unit"] != "%" else ""}
-        {" · figures checked" if d["faithfulness"] == "passed" else " · figures need review"}</p>
+        {" · Numbers match the data" if d["faithfulness"] == "passed" else " · A number doesn't match the data"}</p>
         <p>{e(d["narrative"] or "")}</p>
         <div class="act"><button onclick="decide(this,'approved')">Approve</button>
         <button class="ghost" onclick="decide(this,'changes_requested')">Request changes</button></div></article>'''

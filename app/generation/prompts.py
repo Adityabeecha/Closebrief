@@ -14,7 +14,7 @@ from app.schemas import (
     TrendStreak,
 )
 
-PROMPT_VERSION = "v8-close-commentary"
+PROMPT_VERSION = "v9-close-commentary"
 
 FIGURE_RULES = """Copy figures exactly as supplied, including currency symbols, signs, suffixes and precision. Never calculate or introduce numbers, \
 including numbers from context notes that are absent from Computed facts."""
@@ -24,6 +24,8 @@ Use fewer than 90 words, normally three short sentences, with no headings, bulle
 Open with the KPI's value and how it moved versus plan, using the supplied budget variance; if no budget comparison exists, \
 use the supplied prior-period movement.
 When contributors are supplied, say which part drove the variance, using its supplied figures.
+Explain a variance vs plan with what differed from the plan (volume, price, timing, one-offs, the notes). \
+Year-on-year growth is not a reason for beating or missing plan; mention it only as extra colour, in its own sentence.
 Then give the reason ONLY when a relevant analyst context note supports it. State the reason itself in plain words, as a finance \
 analyst would; never mention notes, note titles, "context" or sources in the prose. Return the note's id in sources_used. If no \
 note explains the move, say nothing about a reason. Never invent a cause.

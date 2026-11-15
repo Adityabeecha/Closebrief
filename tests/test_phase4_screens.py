@@ -9,7 +9,7 @@ import pytest
 JS = (Path(__file__).resolve().parents[1] / "ui" / "web" / "app.js").read_text(encoding="utf-8")
 HTML = (Path(__file__).resolve().parents[1] / "ui" / "web" / "index.html").read_text(encoding="utf-8")
 
-PRE = ("const esc=s=>String(s),fmt=(v,u)=>'$'+v,pct=v=>(v>0?'+':v<0?'-':'')+Math.abs(v).toFixed(1)+'%',"
+PRE = ("const displayCurrency='USD',esc=s=>String(s),fmt=(v,u)=>'$'+v,pct=v=>(v>0?'+':v<0?'-':'')+Math.abs(v).toFixed(1)+'%',"
        "plural=(n,w)=>n+' '+w+(n===1?'':'s'),capFirst=s=>s.charAt(0).toUpperCase()+s.slice(1);"
        "let activeDatasetObj={fiscal_year_start:1};const fiscalStart=()=>activeDatasetObj.fiscal_year_start;")
 

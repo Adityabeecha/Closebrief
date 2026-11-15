@@ -36,9 +36,11 @@ def test_figure_check_and_confidence_are_separate_statements():
     # passed": two checks blurred into one contradictory line.
     run_js("const REVIEW_LABELS=", "function renderReviewStrip(", "", """
       assert.equal(narrMeta({faithfulness:'passed',confidence:'low'}),
-                   'Figures checked · Explanation: low confidence');
-      assert.equal(narrMeta({faithfulness:'failed'}),'Figures need review');
+                   'Numbers match the data · Reason: not given');
+      assert.equal(narrMeta({faithfulness:'failed'}),"A number doesn't match the data");
       assert.equal(narrMeta({faithfulness:'unchecked'}),'');
+      for(const [confidence,label] of [['High','strong'],['Medium','partial'],['Low','not given']])
+        assert.equal(narrMeta({confidence}),'Reason: '+label);
       assert.equal(REVIEW_LABELS.none,'Not approved yet');
     """)
 
