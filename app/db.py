@@ -420,7 +420,19 @@ CREATE TABLE IF NOT EXISTS account_maps (
     PRIMARY KEY (workspace_id, account_key)
 );
 """
-_SQLITE_SCHEMA += _IMPORT_RECEIPTS_SCHEMA + _CLOSE_CONTROL_SCHEMA + _BREAKDOWNS_SCHEMA + _ACCOUNT_MAPS_SCHEMA
+# "Revoke approval links" for a close: links issued before revoked_epoch stop working.
+_APPROVAL_REVOCATIONS_SCHEMA = """
+CREATE TABLE IF NOT EXISTS approval_revocations (
+    workspace_id INTEGER,
+    dataset_id INTEGER NOT NULL,
+    period TEXT NOT NULL,
+    revoked_epoch INTEGER NOT NULL,
+    revoked_by TEXT,
+    PRIMARY KEY (dataset_id, period)
+);
+"""
+_SQLITE_SCHEMA += (_IMPORT_RECEIPTS_SCHEMA + _CLOSE_CONTROL_SCHEMA + _BREAKDOWNS_SCHEMA + _ACCOUNT_MAPS_SCHEMA
+                   + _APPROVAL_REVOCATIONS_SCHEMA)
 
 
 def _migrate_dataset_freshness(conn: sqlite3.Connection) -> None:
@@ -530,6 +542,7 @@ _SQLITE_MIGRATIONS = [
     "SELECT date('now'), COALESCE(SUM(cost_usd), 0) FROM llm_calls "
     "WHERE created_at >= date('now') ON CONFLICT (day) DO NOTHING",
     _ACCOUNT_MAPS_SCHEMA.strip().rstrip(";"),
+    _APPROVAL_REVOCATIONS_SCHEMA.strip().rstrip(";"),
 ]
 
 PG_SCHEMA_PATH = Path(__file__).parent / "migrations" / "pg_schema.sql"

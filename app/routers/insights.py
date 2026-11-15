@@ -49,11 +49,14 @@ def _forecast_inputs(metric: str, horizon: int) -> dict:
     finally:
         conn.close()
     values = [h["value"] for h in hist]
-    proj = forecast(values, horizon)
-    periods = next_periods(hist[-1]["period"], horizon)
+    from app.compute.cadence import LABELS, month_index, step_of
+    step = step_of([month_index(str(h["period"])) for h in hist if len(str(h["period"])) >= 7])
+    proj = forecast(values, horizon, season=max(12 // step, 1))   # 4 seasons a year for quarters
+    periods = next_periods(hist[-1]["period"], horizon, step)
     return {
         "metric": metric, "unit": unit, **metadata, "history": hist,
         "projections": [{"period": p, "value": v} for p, v in zip(periods, proj)],
+        "cadence": LABELS.get(step, "month"),
         "mape": backtest_mape(values),
         # Sample size behind the backtest — a 0% MAPE on a handful of points is
         # not real accuracy, so the UI caveats the error when this is small.

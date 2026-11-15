@@ -14,17 +14,18 @@ import numpy as np
 _MONTHS = 12
 
 
-def next_periods(last_period: str, horizon: int) -> list[str]:
-    """Future monthly period labels after `last_period` ('YYYY-MM')."""
+def next_periods(last_period: str, horizon: int, step: int = 1) -> list[str]:
+    """Future period labels after `last_period` ('YYYY-MM'), `step` months apart
+    (3 for a quarterly file: 2026-09 is followed by 2026-12, not 2026-10)."""
     try:
         y, m = (int(x) for x in last_period.split("-")[:2])
     except (ValueError, IndexError):
         return [f"+{i}" for i in range(1, horizon + 1)]
     out = []
     for _ in range(horizon):
-        m += 1
-        if m > 12:
-            m, y = 1, y + 1
+        m += step
+        while m > 12:
+            m, y = m - 12, y + 1
         out.append(f"{y:04d}-{m:02d}")
     return out
 

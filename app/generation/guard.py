@@ -126,6 +126,15 @@ def _is_date_or_duration(match: re.Match, text: str, raw: str, suffix: str, perc
     return bool(_DURATION_AFTER.match(after) or _MONTH_BEFORE.search(before))
 
 
+def mask_names(text: str, fact: ComputedFact) -> str:
+    """The KPI's own name isn't a figure: "Customers >$100K ARR" must not be checked
+    as $100K. Masked with letters of the same length, so positions don't move."""
+    name = (fact.metric or "").strip()
+    if not name or not re.search(r"\d", name):
+        return text
+    return re.sub(re.escape(name), lambda m: "x" * len(m.group()), text, flags=re.I)
+
+
 def _allowed_values(fact: ComputedFact) -> tuple[set[float], set[float]]:
     """Split computed facts into (magnitude_values, percent_values) buckets,
     since a percent figure like "12%" should only be compared against percent
@@ -262,24 +271,51 @@ def _sign(v: float | None) -> int:
     return 0 if v is None or v == 0 else (1 if v > 0 else -1)
 
 
+_BASIS = (("plan", re.compile(r"\b(plan|budget|target|forecast)\b", re.I)),
+          ("yoy", re.compile(r"\b(year|yoy|annual|a year ago)\b", re.I)),
+          ("mom", re.compile(r"\b(last|prior|previous) (month|quarter|period)\b|\b(sequential(ly)?|qoq|mom|"
+                             r"month[- ]on[- ]month|quarter[- ]on[- ]quarter|from (last|the prior))\b", re.I)))
+
+
+def _basis(text: str, match: re.Match) -> str | None:
+    """Which comparison the clause around a number names ("vs plan", "on last quarter",
+    "year over year"), so a figure that equals two changes is judged against the right one."""
+    start = max([0] + [m.end() for m in re.finditer(r"[.;!?]", text[:match.start()])])
+    end_m = re.search(r"[.;!?]", text[match.end():])
+    clause = text[start: match.end() + (end_m.start() if end_m else len(text))]
+    named = [k for k, rx in _BASIS if rx.search(clause)]
+    return named[0] if len(named) == 1 else None
+
+
 def direction_issue(text: str, match: re.Match, value: float, is_percent: bool,
                     fact: ComputedFact) -> str | None:
     """A sentence that says a figure rose when it fell (or the reverse). Only the
     computed changes are judged (vs last period, vs last year, vs plan, bridge
     effects), plus a level reached "to" ("rose to $4.2M") against the change
-    since last period. Returns a plain-English problem, or None."""
+    since last period. When the clause names its comparison, only that change
+    counts. Returns a plain-English problem, or None."""
     claim, after_to = _claimed_direction(text, match)
     if claim == 0:
         return None
     d = fact.deltas
+    rate = (fact.unit or "").lower() in ("%", "percent", "days")
     if is_percent:
-        changes = [d.mom_pct, d.yoy_pct, d.budget_var_pct,
-                   *(c.get("var_pct") for c in fact.contributors or [])]
+        by = {"mom": [d.mom_pct], "yoy": [d.yoy_pct], "plan": [d.budget_var_pct]}
+        other = [c.get("var_pct") for c in fact.contributors or []]
         levels = [fact.value, fact.prior_value] if (fact.unit or "").lower() in ("%", "percent") else []
     else:
-        changes = [d.budget_var_abs, *((fact.variance_bridge or {}).values()),
-                   *(c.get("var_abs") for c in fact.contributors or [])]
+        by = {"mom": [], "yoy": [], "plan": [d.budget_var_abs]}
+        if rate:
+            # A rate's changes are written in points (a days KPI's in days).
+            from app.generation.prompts import percent_kpi_points
+            pts = percent_kpi_points(fact)
+            by["mom"].append(pts["mom"])
+            by["yoy"].append(pts["yoy"])
+        other = [*((fact.variance_bridge or {}).values()), *(c.get("var_abs") for c in fact.contributors or [])]
         levels = [fact.value, fact.prior_value]
+    basis = _basis(text, match)
+    named = basis and any(v is not None and _matches_any(value, {v}, 0.0) for v in by[basis])
+    changes = by[basis] if named else [v for vs in by.values() for v in vs] + other
     signs = [_sign(v) for v in changes if v is not None and _matches_any(value, {v}, 0.0)]
     if after_to and any(v is not None and _matches_any(value, {v}, 0.0) for v in levels):
         signs.append(_sign(d.mom_pct))
@@ -334,6 +370,7 @@ def check_faithfulness(
     context_magnitudes, context_percents = _context_values(context)
 
     unverified: list[float] = []
+    narrative = mask_names(narrative, fact)
     for match in _NUMBER_RE.finditer(narrative):
         raw, suffix, percent = match.group(1), match.group(2), match.group(3)
         norm = _normalize(raw, suffix, percent)
@@ -364,6 +401,7 @@ def check_faithfulness(
 def faithfulness_messages(narrative: str, fact: ComputedFact,
                           context: list[ContextSnippet] | None = None) -> list[str]:
     """Human explanations only; check_faithfulness's numeric contract is unchanged."""
+    narrative = mask_names(narrative, fact)
     passed, unverified = check_faithfulness(narrative, fact, context)
     if passed:
         return []
@@ -409,6 +447,26 @@ def faithfulness_messages(narrative: str, fact: ComputedFact,
     if not messages:
         messages.append("The claimed change doesn't match the computed figures. Review the change against the source data.")
     return list(dict.fromkeys(messages))
+
+
+def direction_problems(text: str, fact: ComputedFact) -> list[str]:
+    """Every computed figure the text calls a rise when it fell, or the reverse
+    ("falling below plan by 38.9%" on a 38.9% overspend). Used on analysts' edits,
+    which keep the draft's numbers but can still turn their meaning around."""
+    text = mask_names(text, fact)
+    magnitudes, percents = _allowed_values(fact)
+    out = []
+    for match in _NUMBER_RE.finditer(text):
+        norm = _normalize(*match.groups())
+        if not norm:
+            continue
+        value, percent = norm
+        if _matches_any(value, percents if percent else magnitudes, .02):
+            went = direction_issue(text, match, value, percent, fact)
+            if went:
+                out.append(f"The text calls {match.group().strip()} a {'fall' if went == 'rose' else 'rise'}, "
+                           f"but the computed figure {went}")
+    return list(dict.fromkeys(out))
 
 
 def figures_not_in(text: str, references: list[str], tolerance_pct: float = 1.0) -> list[float]:
