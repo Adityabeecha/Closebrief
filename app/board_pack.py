@@ -42,6 +42,8 @@ def _fmt(v: float | None, unit: str | None, currency: str | None = "USD") -> str
     if unit == "days":
         return f"{v:,.1f}".rstrip("0").rstrip(".") + (" day" if abs(v) == 1 else " days")
     a, sign, mark = abs(v), "-" if v < 0 else "", symbol(currency)
+    if a >= 1_000_000_000:   # $1.20B, not $1197.09M
+        return f"{sign}{mark}{a / 1_000_000_000:.2f}B"
     if a >= 1_000_000:
         return f"{sign}{mark}{a / 1_000_000:.2f}M"
     if a >= 100_000:
@@ -284,11 +286,11 @@ def build_board_pack_html(facts: list[dict], period: str, meta: dict | None = No
         checked_text, _checked, _total = _checked_narrative(narrative or "", f)
         # One verdict everywhere: the same figure check as the KPI page and the digest (it
         # also accepts figures from the cited notes and the department breakdown).
-        verdict = "Figures checked" if f.get("faithfulness") == "passed" else (
-            "Figures need review" if f.get("faithfulness") == "failed" else "Not checked")
+        verdict = "Numbers match the data" if f.get("faithfulness") == "passed" else (
+            "A number doesn't match the data" if f.get("faithfulness") == "failed" else "Not checked")
         pill = f'<span class="pill">{verdict}</span>' if narrative else ''
         narr = (f'<div class="narr">{checked_text}</div>{pill}' if narrative
-                else '<div class="narr muted">No narrative generated for this metric.</div>')
+                else '<div class="narr muted">Commentary not approved yet. Only approved commentary goes in the pack.</div>')
         anom = '<span class="anom">Anomaly</span>' if f.get("is_anomaly") else ""
         rows.append(
             f'<div class="kpi"><div>'

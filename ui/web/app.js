@@ -1682,6 +1682,7 @@ async function reviewReport(status){
     await api(`/reports/${detailFact.report_id}/review`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({status,note})});
     if(note&&status==="changes_requested")await api("/feedback",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({report_id:detailFact.report_id,action:"rejected",reason:note})}).catch(()=>null);
     detailFact.review_status=status;detailFact.change_note=note||detailFact.change_note;renderReviewStrip(detailFact);
+    boardPackFor=null;   // the pack carries approved commentary: rebuild it next time it's opened
     const cf=(currentFacts||[]).find(x=>x.report_id===detailFact.report_id);if(cf)cf.review_status=status;
     toast(status==="approved"?"Commentary approved":"Changes requested");
     overviewFor=null;renderMonthHead();renderCards();loadCloseMeta();
@@ -3070,7 +3071,7 @@ async function bulkApprove(){
   const msg=failed?`Approved ${approved.length}; ${plural(failed,"draft")} failed, try again`:`Approved ${plural(approved.length,"draft")}`;
   if(approved.length)toastAction(msg,"Undo",()=>undoBulkApprove(approved));else toast(msg);
 }
-function afterBulkReview(){overviewFor=null;renderCards();renderMonthHead();loadCloseMeta();}
+function afterBulkReview(){overviewFor=null;boardPackFor=null;renderCards();renderMonthHead();loadCloseMeta();}
 // Put each draft back to the review state it had before the bulk approval.
 async function undoBulkApprove(approved){
   let failed=0;
