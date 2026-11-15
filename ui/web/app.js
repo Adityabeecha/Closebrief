@@ -536,10 +536,23 @@ const MONTHS=["January","February","March","April","May","June","July","August",
 // named by the fiscal year they END in: with an April start, Apr-Jun 2025 is Q1 FY2026.
 function fiscalStart(){return (typeof activeDatasetObj!=="undefined"&&activeDatasetObj&&activeDatasetObj.fiscal_year_start)||1;}
 function fyLabel(y){return fiscalStart()===1?y:`FY${y}`;}
+// A quarterly file's rows sit on the quarter's last month (2026-09): people call that
+// close "Q3 2026" (Jul–Sep), not "September" and not "Q/e September".
+function cadenceName(p){
+  const y=+p.slice(0,4),m=+p.slice(5,7),fs=fiscalStart(),fy=y+(fs!==1&&m>=fs?1:0);
+  if(datasetCadence==="year")return fyLabel(fy);
+  const q=Math.floor(((m-fs+12)%12)/3)+1;
+  return `Q${q} ${fyLabel(fy)}`;
+}
+function cadenceSpan(p){   // "Jul–Sep 2026" for a quarter ending in September
+  const y=+p.slice(0,4),m=+p.slice(5,7),n=datasetCadence==="year"?12:3,first=(m-n+12)%12;
+  const fy=m-n<0?y-1:y;
+  return `${MONTHS[first].slice(0,3)}${fy!==y?" "+fy:""}–${MONTHS[m-1].slice(0,3)} ${y}`;
+}
 function fmtPeriodTitle(p){
   if(!p)return"Dashboard";
-  if(/^\d{4}-\d{2}$/.test(p))return datasetCadence==="quarter"?`Quarter ended ${MONTHS[+p.slice(5,7)-1]} ${p.slice(0,4)}`
-    :datasetCadence==="year"?`Year ended ${MONTHS[+p.slice(5,7)-1]} ${p.slice(0,4)}`:`${MONTHS[+p.slice(5,7)-1]} ${p.slice(0,4)} close`;
+  if(/^\d{4}-\d{2}$/.test(p))return datasetCadence==="month"?`${MONTHS[+p.slice(5,7)-1]} ${p.slice(0,4)} close`
+    :`${cadenceName(p)} close`;
   if(/^\d{4}-Q\d$/.test(p))return `Q${p.slice(6)} ${fyLabel(p.slice(0,4))} overview`;
   if(/^\d{4}$/.test(p)){const m=typeof closeMonths!=="undefined"&&closeMonths[p];
     return `${fyLabel(p)} ${m&&m.partial?"year to date":"overview"}`;}
@@ -787,10 +800,10 @@ function renderCloses(){
   if(currentPeriod&&!shown.includes(currentPeriod))shown.push(currentPeriod);
   el.innerHTML=shown.map(p=>{
     const s=closeStateFor(p),[word,cls]=CLOSE_STATUS[s?s.status:"not_started"]||CLOSE_STATUS.not_started;
-    const so=granularity==="month"?"":partialNote(closeMonths[p]);
+    const so=granularity==="month"?(datasetCadence!=="month"?cadenceSpan(p):""):partialNote(closeMonths[p]);
     const sub=[so,s&&s.n?`${s.approved} of ${s.n}${granularity==="month"?"":" commentaries"} approved`:""].filter(Boolean).join(" · ");
     return `<button class="ci" data-p="${esc(p)}" data-act="close" data-arg="${esc(p)}">
-      <b>${esc((granularity==="month"&&datasetCadence!=="month"?(datasetCadence==="quarter"?"Q/e ":"Y/e "):"")+fmtPeriod(p,"long"))}</b>${s?`<span class="cs ${cls}">${word}</span>`:""}
+      <b>${esc(granularity==="month"&&datasetCadence!=="month"?cadenceName(p):fmtPeriod(p,"long"))}</b>${s?`<span class="cs ${cls}">${word}</span>`:""}
       ${sub?`<small>${sub}</small>`:""}${s&&s.n&&!["not_started","empty"].includes(s.status)?`<span class="cbar" aria-hidden="true"><i style="width:${Math.round(s.progress*100)}%"></i></span>`:""}</button>`;
   }).join("")+(newest.length>6?`<button class="more" onclick="showAllCloses=!showAllCloses;renderCloses()">${showAllCloses?"Show fewer":`Show all ${newest.length}`}</button>`:"");
   markCloses();
@@ -1120,7 +1133,8 @@ async function boot(){
   appCfg=cfg;
   initSentry(cfg);
   if(cfg.demo_enabled){const b=$("lg-demo");if(b)b.style.display="";const n=$("lg-demo-note");if(n)n.style.display="";}
-  if(cfg.allow_guest){const g=$("lg-guest");if(g)g.style.display="";const n=$("lg-guest-note");if(n)n.style.display="";}
+  // Demo and guest are both read-only looks around: show one door, not two.
+  if(cfg.allow_guest&&!cfg.demo_enabled){const g=$("lg-guest");if(g)g.style.display="";const n=$("lg-guest-note");if(n)n.style.display="";}
   // The home page's "Open the demo close" lands on /app?demo=1: go straight in.
   if(cfg.demo_enabled&&new URLSearchParams(location.search).get("demo")==="1"){
     history.replaceState(null,"",location.pathname+location.hash);enterDemo();return;
