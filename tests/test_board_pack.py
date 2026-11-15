@@ -41,7 +41,7 @@ def test_anomaly_and_missing_narrative_render():
     facts = [_fact("Churn", 4.2, unit="%", anomaly=True, narrative=None)]
     doc = build_board_pack_html(facts, "2025-03", {})
     assert "Anomaly" in doc
-    assert "No narrative generated" in doc
+    assert "Commentary not approved yet" in doc
     assert "4.2%" in doc            # percent formatting
 
 
@@ -109,9 +109,9 @@ def test_pack_uses_closing_ring_fonts_and_checked_figures():
     doc = build_board_pack_html([_fact('Revenue', 1420000, narrative='Revenue was $1.42M.')], '2025-03')
     assert 'Schibsted Grotesk' in doc and 'Red Hat Mono' in doc
     assert 'Every figure computed in code and checked' in doc
-    assert '<mark' in doc and ('Figures checked' in doc or 'Not checked' in doc)
+    assert '<mark' in doc and ('Numbers match the data' in doc or 'Not checked' in doc)
     passed = build_board_pack_html([{**_fact('Revenue', 1420000, narrative='Revenue was $1.42M.'), 'faithfulness': 'passed'}], '2025-03')
-    assert 'Figures checked' in passed and 'of 1 figures' not in passed
+    assert 'Numbers match the data' in passed and 'of 1 figures' not in passed
     assert 'size:A4 portrait' in doc
 
 
@@ -124,3 +124,10 @@ def test_board_pack_uses_readable_dataset_name(stored,display):
     assert display in doc
     if stored != display:
         assert stored not in doc
+
+
+def test_billions_read_as_billions():
+    from app.board_pack import _fmt
+    assert _fmt(1_197_090_000, "USD") == "$1.20B"
+    assert _fmt(-2_500_000_000, "USD") == "-$2.50B"
+    assert _fmt(885_220_000, "USD") == "$885.22M"
