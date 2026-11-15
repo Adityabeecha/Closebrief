@@ -694,6 +694,14 @@
     ]
   ],
   [
+    "/media/{name}",
+    [
+      "GET"
+    ],
+    false,
+    []
+  ],
+  [
     "/notifications/configs",
     [
       "GET"

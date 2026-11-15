@@ -27,3 +27,6 @@ SKILL.md
 htmlcov/
 artifacts/
 node_modules/
+
+# README screenshots: for GitHub, not the app
+docs/images/

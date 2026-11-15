@@ -110,6 +110,11 @@
 
   /* ---- sections ---- */
   section.s{padding:104px 0 0}
+  .tour{padding:72px 0 0}
+  .tour h2{font-size:clamp(26px,3vw,34px);letter-spacing:-.02em;margin:0 0 6px}
+  .tour p{color:var(--text-2);margin:0 0 20px}
+  .tour video{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--line);
+    box-shadow:0 18px 50px rgba(0,0,0,.12);background:#111814}
   .split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:64px;align-items:start}
   h2{font-size:clamp(32px,3.6vw,48px);line-height:1.04;letter-spacing:-.035em;font-weight:750;max-width:16ch;text-wrap:balance}
   .s .lead{font-size:18px;color:var(--text-2);margin-top:16px;max-width:40ch}
@@ -259,6 +264,15 @@
           </div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <section class="tour" id="tour" aria-labelledby="tour-title">
+    <div class="wrap">
+      <h2 id="tour-title">See a close in 30 seconds.</h2>
+      <p>Filmed on the live app with a real SEC filing: import, drafts, number checks, approval and the board pack.</p>
+      <video src="/media/closebrief-tour.mp4" poster="/media/closebrief-tour.jpg" controls muted playsinline loop
+        preload="metadata" aria-label="A 30-second tour of CloseBrief"></video>
     </div>
   </section>
 

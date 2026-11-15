@@ -55,6 +55,18 @@ def share_image() -> FileResponse:
                         headers={"Cache-Control": "public, max-age=86400"})
 
 
+# The 30-second product tour on the home page (filmed on the live app), and its poster.
+_MEDIA = {"closebrief-tour.mp4": "video/mp4", "closebrief-tour.jpg": "image/jpeg"}
+
+
+@router.get("/media/{name}", include_in_schema=False)
+def media(name: str) -> FileResponse:
+    if name not in _MEDIA:
+        raise HTTPException(status_code=404, detail="Not found")
+    return FileResponse(_UI_INDEX.parent / "media" / name, media_type=_MEDIA[name],
+                        headers={"Cache-Control": "public, max-age=86400"})
+
+
 @router.get("/theme.css", include_in_schema=False)
 def ui_theme() -> FileResponse:
     # Design tokens shared by the home page and the app.

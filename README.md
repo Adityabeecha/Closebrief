@@ -14,6 +14,28 @@ commentary.
 CloseBrief does the last mile of month-end, the commentary. It isn't a planning,
 budgeting, or BI tool: your model stays in Excel or your FP&A system.
 
+## See it in action
+
+Try it live at **[closebrief.onrender.com](https://closebrief.onrender.com)**, with
+the sample close or your own data.
+
+**Step-by-step walkthrough (2:45, with narration):**
+
+https://github.com/user-attachments/assets/e0c60456-1f06-4b65-a48e-e39603838072
+
+Filmed on the live app with Datadog's real SEC filing ($ in thousands, quarterly):
+
+| | |
+|---|---|
+| ![Each close opens on a checklist of what's left before it can be shared](docs/images/overview.png) | ![Import: CloseBrief guesses what each column holds; you confirm it and say the file is in thousands](docs/images/import.png) |
+| **Every close opens on a checklist**: what's imported, which movers need a look, which variances need a reason, what's left to approve. | **Import any export**: columns are matched for you, amounts "in thousands" are stored as real amounts, and a raw trial balance works too. |
+| ![A KPI's drafted commentary, every figure traced to the computed facts, with the department breakdown](docs/images/kpi-commentary.png) | ![The board pack: Q3 2026, built from computed figures and approved commentary only](docs/images/board-pack.png) |
+| **Drafts, checked**: every number in the commentary traces to a computed figure, and the departments behind the move are one scroll away. | **Board pack**: print-ready, built only from approved commentary, with Word, Excel, PowerPoint and PDF exports. |
+
+![The year view: 2026 year to date, 3 of 4 quarters, with the quarters added up](docs/images/year-view.png)
+
+**Quarters and years add up for you**: amounts are summed, balances use the last period, and a year that isn't over is labelled as year to date.
+
 ## Main flow
 
 **Import -> review -> add reasons -> approve -> send digest**
