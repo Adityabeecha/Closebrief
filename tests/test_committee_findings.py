@@ -70,7 +70,7 @@ def test_a_quarterly_close_is_titled_by_its_quarter(client):  # noqa: F811
 
 def test_home_page_tour_video_is_served(client):  # noqa: F811
     home = client.get("/").text
-    assert 'src="/media/closebrief-tour.mp4"' in home and "muted" in home
+    assert 'src="/media/closebrief-tour.mp4"' in home and 'poster="/media/closebrief-tour.jpg"' in home
     video = client.get("/media/closebrief-tour.mp4")
     assert video.status_code == 200 and video.headers["content-type"] == "video/mp4" and len(video.content) > 100_000
     assert client.get("/media/closebrief-tour.jpg").headers["content-type"] == "image/jpeg"
