@@ -3215,6 +3215,49 @@
       }
     }
   },
+  "/close/approval-link/revoke": {
+    "post": {
+      "summary": "Revoke Approval Links",
+      "description": "Stop every approval link already sent for this close (sent to the wrong person, say).",
+      "operationId": "revoke_approval_links_close_approval_link_revoke_post",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "additionalProperties": true,
+              "type": "object",
+              "title": "Payload"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "description": "Successful Response",
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Response Revoke Approval Links Close Approval Link Revoke Post"
+              }
+            }
+          }
+        },
+        "422": {
+          "description": "Validation Error",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HTTPValidationError"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
   "/close/approval-link": {
     "post": {
       "summary": "Approval Link",

@@ -1,6 +1,7 @@
+import re
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 Confidence = Literal["High", "Medium", "Low"]
 Faithfulness = Literal["passed", "failed", "unchecked"]
@@ -114,6 +115,31 @@ class ContextDocIn(BaseModel):
     # None: the note's usual window. "YYYY-MM": it covers every period through that month.
     # "ongoing": it applies from effective_date until it's turned off (recurring reasons).
     effective_until: Optional[str] = Field(default=None, pattern=r"^(ongoing|\d{4}-\d{2})$")
+
+    @model_validator(mode="after")
+    def _period_forms(self):
+        """A quarter or a year is a range of months: "2026-Q3" (or "Q3 2026") covers
+        Jul-Sep 2026, "FY2026" or "2026" the whole year. Anything else unreadable is refused
+        rather than saved as a note that applies to nothing."""
+        raw = (self.effective_date or "").strip()
+        if not raw:
+            self.effective_date = None
+            return self
+        if re.fullmatch(r"\d{4}-\d{2}(-\d{2})?", raw):
+            return self
+        q = re.fullmatch(r"(\d{4})[\s\-_/]*Q([1-4])|Q([1-4])[\s\-_/]*(\d{4})", raw, re.I)
+        y = re.fullmatch(r"(?:FY)?\s*(\d{4})", raw, re.I)
+        if q:
+            year, n = (q.group(1), q.group(2)) if q.group(1) else (q.group(4), q.group(3))
+            first = (int(n) - 1) * 3 + 1
+            self.effective_date = f"{year}-{first:02d}"
+            self.effective_until = self.effective_until or f"{year}-{first + 2:02d}"
+            return self
+        if y:
+            self.effective_date = f"{y.group(1)}-01"
+            self.effective_until = self.effective_until or f"{y.group(1)}-12"
+            return self
+        raise ValueError("Effective date must be a month (2026-09), a quarter (2026-Q3) or a year (FY2026)")
 
 
 class ContextDoc(ContextDocIn):

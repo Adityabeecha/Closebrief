@@ -24,6 +24,7 @@ from app.generation.guard import (
     _normalize,
     direction_issue,
     faithfulness_messages,
+    mask_names,
 )
 from app.schemas import ComputedFact, ContextSnippet
 
@@ -105,7 +106,7 @@ def attribute(narrative: str, fact: ComputedFact,
     for idx, text, start, end in _split_sentences(narrative):
         cited_facts, ctx_ids, unverified = [], [], []
         # Numeric attribution: map each figure to the specific fact field.
-        for m in _NUMBER_RE.finditer(text):
+        for m in _NUMBER_RE.finditer(mask_names(text, fact)):
             raw, suffix, percent = m.group(1), m.group(2), m.group(3)
             norm = _normalize(raw, suffix, percent)
             if norm is None:

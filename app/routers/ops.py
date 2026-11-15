@@ -16,7 +16,7 @@ from app.datasets import (
 )
 from app.db import get_connection
 from app.deps import shared_cache, shared_vector_store
-from app.generation.guard import figures_not_in
+from app.generation.guard import direction_problems, figures_not_in
 from app.generation.llm_client import get_llm_client
 from app.routes_common import _ALERT_LATENCIES, _LATENCIES
 from app.schemas import (
@@ -205,7 +205,8 @@ def feedback_endpoint(fb: FeedbackIn, user: CurrentUser = Depends(require_write)
         # Scope the report to the caller's universe (demo vs real) so feedback can
         # never reach across it — the report's dataset must match the request scope.
         exists = conn.execute(
-            f"""SELECT gr.narrative, gr.sources, gr.review_status, gr.faithfulness FROM generated_reports gr
+            f"""SELECT gr.narrative, gr.sources, gr.review_status, gr.faithfulness, gr.metric_id, gr.period
+                FROM generated_reports gr
                 JOIN metrics m ON m.id = gr.metric_id
                 JOIN datasets d ON d.id = m.dataset_id
                 WHERE gr.id = ? AND {_scope_pred('d')}""",
@@ -236,9 +237,14 @@ def feedback_endpoint(fb: FeedbackIn, user: CurrentUser = Depends(require_write)
                 f"SELECT body FROM context_documents WHERE id IN ({','.join('?' * len(cited))})", tuple(cited)
             ).fetchall()] if cited else []
             unverified = figures_not_in(fb.edited_text, [exists["narrative"], *bodies])
+            # The same numbers can still be turned around ("falling below plan" on an
+            # overspend): the edit's rise/fall wording is checked against the computed figures.
+            from app.routers.facts import _fact_by_metric_id
+            fact = _fact_by_metric_id(conn, exists["metric_id"], exists["period"])
+            wrong_way = direction_problems(fb.edited_text, fact) if fact is not None else []
             conn.execute(
                 "UPDATE generated_reports SET faithfulness = ?, review_status = ? WHERE id = ?",
-                ("failed" if unverified else exists["faithfulness"],
+                ("failed" if unverified or wrong_way else exists["faithfulness"],
                  None if exists["review_status"] == "approved" else exists["review_status"], fb.report_id),
             )
         conn.commit()
@@ -247,6 +253,7 @@ def feedback_endpoint(fb: FeedbackIn, user: CurrentUser = Depends(require_write)
         out = {"feedback_id": int(cur.lastrowid)}
         if fb.action == "edited" and fb.edited_text:
             out["unverified"] = unverified
+            out["direction"] = wrong_way
         return out
     finally:
         conn.close()
