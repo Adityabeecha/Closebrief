@@ -248,12 +248,15 @@ def build_board_pack_html(facts: list[dict], period: str, meta: dict | None = No
     e = html.escape
     with_data = [f for f in facts if f.get("has_data")]
     anomalies = [f for f in with_data if f.get("is_anomaly")]
-    # Top movers = largest absolute budget variance (already how /facts sorts).
-    def _absvar(f):
-        v = (f.get("deltas") or {}).get("budget_var_abs")
+    # The largest % variance vs plan, the same rule as the KPI report: dollars would always
+    # crown the biggest line, and a percent of a percent (a margin's) misleads.
+    def _pctvar(f):
+        if (f.get("unit") or "").lower() in ("%", "percent"):
+            return -1.0
+        v = (f.get("deltas") or {}).get("budget_var_pct")
         return abs(v) if v is not None else -1.0
-    movers = sorted(with_data, key=_absvar, reverse=True)
-    top = next((m for m in movers if _absvar(m) >= 0), None)
+    movers = sorted(with_data, key=_pctvar, reverse=True)
+    top = next((m for m in movers if _pctvar(m) >= 0), None)
     top_txt = (f"{e(top['metric'])} {_delta(top, 'budget')} vs plan"
                if top else "–")
 
@@ -267,7 +270,7 @@ def build_board_pack_html(facts: list[dict], period: str, meta: dict | None = No
         f'<div class="tile"><div class="k">Anomalies</div><div class="v">{len(anomalies)}</div>'
         f'<div class="n">{"flagged this period" if anomalies else "none flagged"}</div></div>'
         f'<div class="tile"><div class="k">Largest variance</div><div class="v" style="font-size:15px">{top_txt}</div>'
-        f'<div class="n">biggest swing vs plan</div></div>'
+        f'<div class="n">largest % gap to plan</div></div>'
     )
 
     rows = []

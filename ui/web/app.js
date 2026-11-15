@@ -45,7 +45,8 @@ function reportDelta(label,v,downGood,text){
 function buildReportHTML(facts){
   const withData=facts.filter(f=>f.has_data);
   const anom=withData.filter(f=>f.is_anomaly).length;
-  const mover=withData.filter(f=>f.deltas&&f.deltas.budget_var_pct!=null).sort((a,b)=>Math.abs(b.deltas.budget_var_pct)-Math.abs(a.deltas.budget_var_pct))[0];
+  // Same rule as the board pack: largest % gap to plan, rates (margins) left out.
+  const mover=withData.filter(f=>f.deltas&&f.deltas.budget_var_pct!=null&&!["%","percent"].includes(String(f.unit||"").toLowerCase())).sort((a,b)=>Math.abs(b.deltas.budget_var_pct)-Math.abs(a.deltas.budget_var_pct))[0];
   const cards=withData.map(f=>{
     const dg=f.direction_good==="down",col=catColor(f.category)||"#8a948c";
     const spark=(f.chart_data&&f.chart_data.trend)?sparkline(f.chart_data.trend,f.direction_good,150,40,f.unit):"";
@@ -758,11 +759,11 @@ function nav(t,{fromRoute=false}={}){
       :!currentPeriod?"Start your first close":r.tab==="overview"?fmtPeriodTitle(currentPeriod):`${tabLabel[1]} · ${fmtPeriodTitle(currentPeriod)}`);
   }
   if(v==="overview")renderOverview();
-  if(v==="context"){ctxScope=r.place?"library":"close";loadContext();}
+  if(v==="context"){ctxScope=r.place?"library":"close";document.body.classList.toggle("ctx-close",!r.place);loadContext();}
   if(v==="analytics")loadAnalytics();
   if(v==="digest")loadDigest(false);
   if(v==="boardpack")loadBoardPack();
-  if(v==="import"){renderDataHealth();if(r.place){const rp=$("receipt-pane");if(rp){rp.style.display="none";rp.innerHTML="";}}
+  if(v==="import"){renderDataHealth();paintImportLocks();if(r.place){const rp=$("receipt-pane");if(rp){rp.style.display="none";rp.innerHTML="";}}
     const sp=$("sync-panel");if(sp){sp.hidden=r.place!=="datahub"||importStep!==1;if(!sp.hidden)loadSyncSources();}}
   if(v==="activity")loadActivity();
   if(v==="costs")loadCosts();
@@ -1565,7 +1566,10 @@ function renderForecastChart(fc){
   const hist=fc.history||[],proj=fc.projections||[];
   if(!hist.length&&!proj.length){if(chartReg["c-forecast"]){chartReg["c-forecast"].destroy();delete chartReg["c-forecast"];}box.innerHTML='<div class="an-empty">Not enough history to forecast.</div>';return;}
   const th=chartTheme();
-  const labels=[...hist.map(h=>h.period),...proj.map(p=>p.period)].map(p=>String(p).slice(2));
+  // Quarterly history projects quarters: "Q4 26", not "26-10".
+  const lab=p=>{p=String(p);if(!/^\d{4}-\d{2}$/.test(p))return p.slice(2);
+    return fc.cadence==="quarter"?`Q${Math.floor((+p.slice(5,7)-1)/3)+1} ${p.slice(2,4)}`:fmtPeriod(p,"axis");};
+  const labels=[...hist.map(h=>h.period),...proj.map(p=>p.period)].map(lab);
   const actual=[...hist.map(h=>h.value),...proj.map(()=>null)];
   const forecast=[...hist.map(()=>null),...proj.map(p=>p.value)];
   if(hist.length&&proj.length)forecast[hist.length-1]=hist[hist.length-1].value;   // connect the dashed line to the last actual
@@ -1733,6 +1737,12 @@ function paintScaleBanner(id){
             +(canReview()?` <button class="btn sm" onclick="setAmountScale(${ds.id},${to})">Set to ${to===1000?"thousands":"millions"}</button> <button class="btn sm ghost" onclick="setAmountScale(${ds.id},1)">They're already real amounts</button>`:"");}}}
 }
 // A manager approves from a link (no account): it opens this close's drafts only, for 7 days.
+async function revokeApprovalLinks(){
+  if(!currentPeriod||granularity!=="month")return;
+  if(!await modalConfirm("Revoke approval links?",`Every approval link already sent for ${fmtPeriodTitle(currentPeriod)} stops working. You can send a new one afterwards.`,{okLabel:"Revoke",danger:true}))return;
+  try{await api("/close/approval-link/revoke",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({period:currentPeriod})});
+    toast("Approval links revoked");}catch(e){toast("Couldn't revoke: "+errMsg(e));}
+}
 async function approvalLink(){
   if(!currentPeriod||granularity!=="month"){toast("Open a month's close to share it for approval");return;}
   const btn=$("digest-approval");if(btn.disabled)return;
@@ -2178,6 +2188,7 @@ async function deleteDataset(id){
 let granularity="month";
 function setGranularity(g){
   if(g===granularity)return Promise.resolve();granularity=g;
+  document.body.classList.toggle("rollup",g!=="month");   // commentary is written on the close, not the roll-up
   document.querySelectorAll("#gran-seg button").forEach(b=>{b.classList.toggle("active",b.dataset.g===g);b.setAttribute("aria-pressed",String(b.dataset.g===g));});
   $("closes-label").textContent={month:"Closes",quarter:"Quarters",year:"Years"}[g];showAllCloses=false;
   return loadPeriods().then(()=>{
@@ -2248,7 +2259,9 @@ async function loadFacts(){
   try{
     currentFacts=await api(`/facts?period=${encodeURIComponent(currentPeriod)}&granularity=${granularity}`);
     clearTimeout(_factsSlowT);
-    if(granularity==="month"){const c=(currentFacts.find(f=>f.cadence)||{}).cadence||"month";if(c!==datasetCadence){datasetCadence=c;renderCloses();}}
+    if(granularity==="month"){const c=(currentFacts.find(f=>f.cadence)||{}).cadence||"month";if(c!==datasetCadence){datasetCadence=c;renderCloses();}
+      // A quarterly file's closes already are quarters: a Q view would list them again under another key.
+      const qb=document.querySelector('button[data-g="quarter"]');if(qb)qb.hidden=datasetCadence==="quarter";}
     const cats=[...new Set(currentFacts.map(f=>f.category||"Uncategorized"))].sort();
     assignCatSlots(cats);
     renderCatPills(cats);
@@ -2407,7 +2420,9 @@ async function loadCosts(){
     $("costs-stats").innerHTML=[
       tile("Total spend",'<path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',"var(--green)",fmt(c.total_cost_usd,"USD","USD"),"across all LLM calls"),
       tile("LLM calls",'<path d="M13 2 3 14h7l-1 8 10-12h-7z"/>',"var(--accent)",c.total_llm_calls||0,"generations + digests"),
-      tile("Cache hit rate",'<path d="M21 12a9 9 0 1 1-6.2-8.5"/><path d="M21 3v6h-6"/>',hr>=0.5?"var(--green)":"var(--amber)",hr==null?"—":Math.round(hr*100)+"%",`${cache.hits||0} hits · ${cache.misses||0} misses`),
+      // Drafts are saved, so reading a KPI never calls the model: the cache only catches an
+      // identical request repeated without Regenerate. A low rate is normal, not a fault.
+      tile("Repeat requests served from cache",'<path d="M21 12a9 9 0 1 1-6.2-8.5"/><path d="M21 3v6h-6"/>',"var(--text-3)",hr==null?"—":Math.round(hr*100)+"%",`${cache.hits||0} of ${(cache.hits||0)+(cache.misses||0)} · drafts are saved, so opening a KPI costs nothing; first drafts and Regenerate always call the model`),
       tile("Worst p95 latency",'<path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/>',worstP95>2000?"var(--red)":"var(--accent)",worstP95==null?"—":Math.round(worstP95)+" ms","slowest endpoint"),
       tile("Alert latency p95",'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',al.within_30s===false?"var(--red)":"var(--green)",al.p95_ms==null?"—":(al.p95_ms/1000).toFixed(1)+" s",al.n?`${al.n} alerts · target < 30s`:"no alerts yet"),
     ].join("");
@@ -3187,8 +3202,9 @@ async function editNarr(id,restoredText){
   if(t==null||!t.trim()||t===cur)return;
   try{
     const r=await api("/feedback",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({report_id:id,action:"edited",edited_text:t})});
-    const bad=(r&&r.unverified)||[];
-    toast(bad.length?`Edit saved. ${plural(bad.length,"figure isn't","figures aren't")} in the checked draft or its notes, so it's flagged for review.`
+    const bad=(r&&r.unverified)||[],wrong=(r&&r.direction)||[];
+    toast(wrong.length?`Edit saved, but flagged: ${wrong[0]}.`
+      :bad.length?`Edit saved. ${plural(bad.length,"figure isn't","figures aren't")} in the checked draft or its notes, so it's flagged for review.`
       :f&&f.review_status==="approved"?"Edit saved. It needs approving again.":"Edit saved");
     const metric=f&&f.metric;await loadFacts();overviewFor=null;loadCloseMeta();
     if(metric){const i=shownFacts.findIndex(x=>x.metric===metric);if(i>=0)openDetail(i,{fromRoute:true});}
@@ -3286,6 +3302,13 @@ async function sendDigest(){
 
 
 /* ---------- context ---------- */
+// Locked closes keep their figures through any import: say so before the upload.
+function paintImportLocks(){
+  const el=$("imp-locked");if(!el)return;
+  const locked=Object.values(typeof closeMonths!=="undefined"?closeMonths:{}).filter(m=>m&&m.locked).map(m=>m.label||m.period);
+  el.hidden=!locked.length;
+  el.textContent=locked.length?`${locked.slice(0,4).join(", ")}${locked.length>4?` and ${locked.length-4} more`:""} ${locked.length===1?"is":"are"} locked: an import won't change ${locked.length===1?"its":"their"} figures. Unlock on Overview first to update them.`:"";
+}
 async function loadContext(){
   const done=screenLoading("ctx-rows","Loading the context library…",0,"loadContext()");
   let docs;try{docs=await api("/context");}catch(e){if(done())$("ctx-rows").innerHTML=screenError(e,"loadContext()");return;}
@@ -3318,7 +3341,7 @@ function renderContextList(){
     const on=d.id===ctxSel;
     return `<div class="ctx-item${on?" on":""}">
       <button class="ctx-open" onclick="ctxOpen(${esc(d.id)})"${on?' aria-current="true"':""}><b>${esc(d.title)}</b><small>${esc(d.type.replace("_"," "))} · ${esc(ctxWhen(d))}${d.effective_until==="ongoing"?" onwards":d.effective_until?` to ${esc(fmtPeriod(d.effective_until))}`:""}${d.dataset_id==null?" · every dataset":""}</small></button>
-      <button class="row-del write-only" aria-label="Delete ${esc(d.title)}" onclick="delContext(${esc(d.id)})">${XICON}</button></div>`;
+      <button class="row-del write-only ctx-lockable" aria-label="Delete ${esc(d.title)}" onclick="delContext(${esc(d.id)})">${XICON}</button></div>`;
   }).join("")||(query?'<p class="ctx-none">No notes match your search.</p>':`<p class="ctx-none">No notes dated in ${esc(fmtPeriod(currentPeriod))}. <button class="linkbtn" onclick="ctxScope='all';renderContextList()">Show all notes</button></p>`);
   paintContextDetail();
 }

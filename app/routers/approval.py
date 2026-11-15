@@ -41,8 +41,9 @@ def _secret() -> str:
 
 
 def make_token(workspace_id, dataset_id: int, period: str, by: str) -> tuple[str, int]:
-    exp = int(time.time()) + LINK_DAYS * 86400
-    token = jwt.encode({"aud": _AUD, "ws": workspace_id, "ds": dataset_id, "p": period, "by": by, "exp": exp},
+    now = int(time.time())
+    exp = now + LINK_DAYS * 86400
+    token = jwt.encode({"aud": _AUD, "ws": workspace_id, "ds": dataset_id, "p": period, "by": by, "exp": exp, "iat": now},
                        _secret(), algorithm="HS256")
     return token, exp
 
@@ -82,6 +83,34 @@ def _scope(claims: dict) -> None:
     set_workspace_scope(claims.get("ws"))
 
 
+def ensure_not_revoked(conn, claims: dict) -> None:
+    """A link issued before the close's links were revoked no longer works."""
+    row = conn.execute("SELECT revoked_epoch FROM approval_revocations WHERE dataset_id = ? AND period = ?",
+                       (claims["ds"], claims["p"])).fetchone()
+    if row and int(claims.get("iat") or 0) <= int(row["revoked_epoch"]):
+        raise HTTPException(status_code=410, detail="This approval link was revoked. Ask for a new one.")
+
+
+@router.post("/close/approval-link/revoke")
+def revoke_approval_links(payload: dict, user: CurrentUser = Depends(require_write)) -> dict:
+    """Stop every approval link already sent for this close (sent to the wrong person, say)."""
+    period = str(payload.get("period") or "")
+    conn = get_connection()
+    try:
+        ds = active_dataset_id(conn)
+        if ds is None:
+            raise HTTPException(status_code=409, detail="No dataset open")
+        conn.execute("DELETE FROM approval_revocations WHERE dataset_id = ? AND period = ?", (ds, period))
+        conn.execute("""INSERT INTO approval_revocations (workspace_id, dataset_id, period, revoked_epoch, revoked_by)
+                        VALUES (?, ?, ?, ?, ?)""", (current_workspace(), ds, period, int(time.time()), user.email or user.id))
+        conn.commit()
+        audit.record(conn, "approval_links_revoked", "close", ds, actor_id=user.id, actor_email=user.email,
+                     summary={"period": period})
+    finally:
+        conn.close()
+    return {"period": period, "revoked": True}
+
+
 @router.post("/close/approval-link")
 def approval_link(payload: dict, user: CurrentUser = Depends(require_write)) -> dict:
     period = str(payload.get("period") or "")
@@ -107,19 +136,23 @@ def approval_page(t: str) -> HTMLResponse:
     _scope(claims)
     conn = get_connection()
     try:
+        ensure_not_revoked(conn, claims)
         name = conn.execute("SELECT name FROM datasets WHERE id = ?", (claims["ds"],)).fetchone()
         drafts = _drafts(conn, claims)
+        from app.close_control import locked_months
+        locked = claims["p"] in locked_months(conn, claims["ds"])
     finally:
         conn.close()
     e = html.escape
+    act = "" if locked else ('<div class="act"><button onclick="decide(this,`approved`)">Approve</button>'
+                             '<button class="ghost" onclick="decide(this,`changes_requested`)">Request changes</button></div>')
     items = "".join(
         f'''<article data-metric="{e(d["metric"])}" data-failed="{int(d["faithfulness"] == "failed")}"><h3>{e(d["metric"])}<span class="st {e(d["review_status"] or "pending")}">
         {"Approved" if d["review_status"] == "approved" else "Changes requested" if d["review_status"] == "changes_requested" else "Waiting for you"}</span></h3>
         <p class="fig">{e(_fmt(d["value"], d["unit"]))}{f" · {d['budget_var_pct']:+.1f}% vs plan" if d["budget_var_pct"] is not None and d["unit"] != "%" else ""}
         {" · Numbers match the data" if d["faithfulness"] == "passed" else " · A number doesn't match the data"}</p>
         <p>{e(d["narrative"] or "")}</p>
-        <div class="act"><button onclick="decide(this,'approved')">Approve</button>
-        <button class="ghost" onclick="decide(this,'changes_requested')">Request changes</button></div></article>'''
+        {act}</article>'''
         for d in drafts) or "<p>No commentary has been drafted for this close yet.</p>"
     title = f"{e(name['name'] if name else 'Close')} · {e(claims['p'])}"
     page = f"""<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -130,7 +163,7 @@ h3{{margin:0 0 4px;font-size:16px;display:flex;justify-content:space-between;gap
 .fig{{color:#5c665f;font-size:13px;margin:0 0 8px}}.act{{display:flex;gap:8px}}button{{font:inherit;padding:7px 12px;border-radius:8px;border:1px solid #1f7a45;background:#1f7a45;color:#fff;cursor:pointer}}
 button.ghost{{background:#fff;color:#1f7a45}}label{{display:block;margin:0 0 16px;font-size:14px}}input{{font:inherit;padding:7px;border:1px solid #ccc;border-radius:8px;width:260px}}</style></head>
 <body><h1>Approve commentary</h1><p class="sub">{title} · shared by {e(str(claims.get('by') or ''))}. Figures are computed in code; check the words.</p>
-<label>Your name <input id="who" placeholder="e.g. Priya, FP&amp;A manager" autocomplete="name"></label>{items}
+{'<p class="sub" style="color:#7a5a00"><b>This close is locked.</b> Its commentary is final, so it can only be read here.</p>' if locked else '<label>Your name <input id="who" placeholder="e.g. Priya, FP&amp;A manager" autocomplete="name"></label>'}{items}
 <script>const T={json.dumps(t)};
 async function decide(btn,action){{const who=document.getElementById('who').value.trim();if(!who){{alert('Add your name first');return;}}
  const art0=btn.closest('article');let note=null;if(action==='changes_requested'){{note=prompt('What should change?');if(!note)return;}}
@@ -154,6 +187,7 @@ def approval_decision(payload: dict) -> dict:
     _scope(claims)
     conn = get_connection()
     try:
+        ensure_not_revoked(conn, claims)
         draft = next((d for d in _drafts(conn, claims) if d["metric"] == payload.get("metric")), None)
         if draft is None:
             raise HTTPException(status_code=404, detail="No draft for that KPI in this close")
@@ -167,7 +201,8 @@ def approval_decision(payload: dict) -> dict:
                          (draft["id"], note, f"{who} (via link)"))
             conn.commit()
         audit.record(conn, action, "report", draft["id"], actor_email=f"{who} (via approval link)",
-                     summary={"note": note, "period": claims["p"]})
+                     summary={"note": note, "period": claims["p"], "link_sent_by": claims.get("by"),
+                              "link_sent_at": claims.get("iat")})
     finally:
         conn.close()
     return {"metric": draft["metric"], "review_status": action}

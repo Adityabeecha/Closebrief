@@ -65,6 +65,42 @@ def ensure_commentary_unlocked(conn, dataset_id, period, *, serialize=True):
         raise HTTPException(status_code=409, detail=LOCKED_COMMENTARY)
 
 
+LOCKED_NOTE = ("This note covers a locked close ({period}). Unlock the close to add, change or "
+               "delete its notes, so the reasons behind locked commentary can't change afterwards.")
+
+
+def _month_index(p: str) -> int:
+    return int(p[:4]) * 12 + int(p[5:7]) - 1
+
+
+def note_months(effective_date, effective_until, kind=None):
+    """The months a note speaks for: its month, through its 'until' month; an event note
+    also counts for the two months after; 'ongoing' runs on with no end (None = open)."""
+    if not effective_date or len(str(effective_date)) < 7:
+        return None, None   # undated: a definition or policy for every close
+    start = _month_index(str(effective_date))
+    if effective_until == "ongoing":
+        return start, None
+    if effective_until:
+        return start, max(start, _month_index(effective_until))
+    return start, start + (2 if kind == "event_note" else 0)
+
+
+def ensure_note_unlocked(conn, dataset_ids, effective_date, effective_until, kind=None):
+    """Refuse a note change that would rewrite the reasons for a locked close."""
+    start, end = note_months(effective_date, effective_until, kind)
+    if start is None:
+        return
+    for ds in dataset_ids:
+        if ds is None:
+            continue
+        for period in sorted(locked_months(conn, ds)):
+            if len(period) == 7 and period[4] == "-":
+                i = _month_index(period)
+                if i >= start and (end is None or i <= end):
+                    raise HTTPException(status_code=409, detail=LOCKED_NOTE.format(period=period))
+
+
 def ensure_report_unlocked(conn, report_id):
     row = conn.execute("""SELECT m.dataset_id, gr.period FROM generated_reports gr
                           JOIN metrics m ON m.id=gr.metric_id WHERE gr.id=?""", (report_id,)).fetchone()

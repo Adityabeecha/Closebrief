@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app import audit
 from app.api import require_read, require_write  # noqa: E402
 from app.auth import CurrentUser
+from app.close_control import ensure_note_unlocked
 from app.context.conflicts import find_conflicts
 from app.datasets import active_dataset_id
 from app.db import get_connection
@@ -38,10 +39,20 @@ def context_conflicts(_: CurrentUser = Depends(require_read)) -> list[dict]:
     return find_conflicts(relevant)
 
 
+def _note_datasets(conn, dataset_id, scope):
+    """The datasets a note speaks for: its own, or every dataset for a workspace-wide note."""
+    if scope == "workspace" or (dataset_id is None and scope is None):
+        from app.datasets import list_datasets
+        return [d["id"] for d in list_datasets(conn)]
+    return [dataset_id]
+
+
 @router.post("/context", response_model=ContextDoc, status_code=201)
 def add_context(doc: ContextDocIn, user: CurrentUser = Depends(require_write)) -> ContextDoc:
     conn = get_connection()
     try:
+        ensure_note_unlocked(conn, _note_datasets(conn, active_dataset_id(conn), doc.scope),
+                             doc.effective_date, doc.effective_until, doc.type)
         added = _context_store(conn).add(doc)
         conn.execute(
             "UPDATE context_documents SET created_by = ?, updated_by = ? WHERE id = ?",
@@ -69,7 +80,15 @@ def list_context(_: CurrentUser = Depends(require_read)) -> list[ContextDoc]:
 def update_context(doc_id: int, doc: ContextDocIn, user: CurrentUser = Depends(require_write)) -> ContextDoc:
     conn = get_connection()
     try:
-        updated = _context_store(conn).update(doc_id, doc)
+        store = _context_store(conn)
+        old = store.get(doc_id)
+        if old is not None:
+            # Neither the note as it was nor as it will be may speak for a locked close.
+            was = _note_datasets(conn, old.dataset_id, "workspace" if old.dataset_id is None else "dataset")
+            ensure_note_unlocked(conn, was, old.effective_date, old.effective_until, old.type)
+            will = _note_datasets(conn, old.dataset_id or active_dataset_id(conn), doc.scope)
+            ensure_note_unlocked(conn, will, doc.effective_date, doc.effective_until, doc.type)
+        updated = store.update(doc_id, doc)
         if updated is not None:
             conn.execute(
                 "UPDATE context_documents SET updated_by = ? WHERE id = ?", (user.id, doc_id)
@@ -84,10 +103,18 @@ def update_context(doc_id: int, doc: ContextDocIn, user: CurrentUser = Depends(r
 
 
 @router.delete("/context/{doc_id}", status_code=204)
-def delete_context(doc_id: int, _: CurrentUser = Depends(require_write)) -> None:
+def delete_context(doc_id: int, user: CurrentUser = Depends(require_write)) -> None:
     conn = get_connection()
     try:
-        deleted = _context_store(conn).delete(doc_id)
+        store = _context_store(conn)
+        old = store.get(doc_id)
+        if old is not None:
+            ensure_note_unlocked(conn, _note_datasets(conn, old.dataset_id, "workspace" if old.dataset_id is None else "dataset"),
+                                 old.effective_date, old.effective_until, old.type)
+        deleted = store.delete(doc_id)
+        if deleted:
+            audit.record(conn, "delete", "context", doc_id, actor_id=user.id, actor_email=user.email,
+                         summary={"title": old.title if old else None})
     finally:
         conn.close()
     if not deleted:

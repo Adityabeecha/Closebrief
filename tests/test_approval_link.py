@@ -47,3 +47,29 @@ def test_a_bad_or_other_period_link_is_refused(seeded):
     token = seeded.post("/close/approval-link", json={"period": "2026-08"}).json()["url"].split("t=", 1)[1]
     r = seeded.post("/approve", json={"t": token, "name": "Priya", "metric": "Revenue", "action": "approved"})
     assert r.status_code == 404   # no draft in that close
+
+
+def test_links_can_be_revoked_and_a_locked_close_is_read_only(seeded):
+    import time
+    token = seeded.post("/close/approval-link", json={"period": "2026-09"}).json()["url"].split("t=", 1)[1]
+    assert seeded.get(f"/approve?t={token}").status_code == 200
+    assert seeded.post("/close/approval-link/revoke", json={"period": "2026-09"}).json()["revoked"] is True
+    gone = seeded.get(f"/approve?t={token}")
+    assert gone.status_code == 410 and "revoked" in gone.json()["detail"]
+    assert seeded.post("/approve", json={"t": token, "name": "Priya", "metric": "Revenue",
+                                         "action": "approved"}).status_code == 410
+    time.sleep(1.1)   # a link sent after the revocation works
+    fresh = seeded.post("/close/approval-link", json={"period": "2026-09"}).json()["url"].split("t=", 1)[1]
+    assert seeded.get(f"/approve?t={fresh}").status_code == 200
+
+    conn = get_connection()
+    try:
+        ds = conn.execute("SELECT id FROM datasets ORDER BY id DESC LIMIT 1").fetchone()["id"]
+        conn.execute("INSERT INTO close_locks (dataset_id, period) VALUES (?, '2026-09')", (ds,))
+        conn.commit()
+    finally:
+        conn.close()
+    page = seeded.get(f"/approve?t={fresh}").text
+    assert "This close is locked" in page and "decide(this,`approved`)" not in page
+    assert seeded.post("/approve", json={"t": fresh, "name": "Priya", "metric": "Revenue",
+                                         "action": "approved"}).status_code == 409

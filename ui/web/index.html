@@ -947,6 +947,10 @@
   .ov-lock p{margin:0;flex:1 1 260px;font-size:14px;color:var(--text-2)}
   .ov-lock p b{color:var(--text-1,var(--ink))}
   .ov-lock .warn{flex-basis:100%;color:var(--amber,#b26b00);font-weight:600}
+  .ctx-locked-note{display:none;margin:0 0 14px}
+  .close-locked.ctx-close .ctx-lockable{display:none!important}
+  .close-locked.ctx-close .ctx-locked-note{display:block}
+  .rollup #gen-all,.rollup #d-regen{display:none!important}
   .close-locked #gen-all,.close-locked #d-regen,.close-locked #d-rev-strip .write-only{display:none!important}
   .mh-pill.done{background:var(--verified-wash);color:var(--verified)}
   .mh-pill:empty{display:none}
@@ -1558,7 +1562,7 @@
     <section id="v-digest" class="wrap" style="display:none">
       <div class="head">
         <div><h1>Executive digest</h1><div class="sub">Built only from approved commentary, biggest movements first</div></div>
-        <div class="head-actions"><button class="write-only btn" id="digest-approval" onclick="approvalLink()" title="A link your manager can open to approve this close's commentary, no account needed">Get approval link</button><button class="write-only btn primary" id="digest-generate" style="display:none" onclick="sendDigest()">Send to leadership</button></div>
+        <div class="head-actions"><button class="write-only btn" id="digest-approval" onclick="approvalLink()" title="A link your manager can open to approve this close's commentary, no account needed">Get approval link</button><button class="write-only btn ghost" onclick="revokeApprovalLinks()" title="Stop every approval link already sent for this close">Revoke links</button><button class="write-only btn primary" id="digest-generate" style="display:none" onclick="sendDigest()">Send to leadership</button></div>
       </div>
       <div id="digest-status"></div>
       <div class="dg-grid">
@@ -1570,7 +1574,8 @@
     <!-- ---------- CONTEXT ---------- -->
     <section id="v-context" class="wrap" style="display:none">
       <div class="head"><div><h1>Context library</h1><div class="sub">Notes the commentary cites to explain why a number moved</div></div>
-        <div class="head-actions"><button class="btn write-only" onclick="pasteSource()">Paste a document</button><button class="btn primary write-only" onclick="ctxNew()">New note</button></div></div>
+        <div class="head-actions"><button class="btn write-only ctx-lockable" onclick="pasteSource()">Paste a document</button><button class="btn primary write-only ctx-lockable" onclick="ctxNew()">New note</button></div></div>
+      <div class="banner info ctx-locked-note">This close is locked, so its notes can't change: the reasons behind its commentary stay as they were approved. Unlock the close on Overview to edit them.</div>
       <div class="ctx-split">
         <div class="ctx-listcol">
           <div class="ctx-scope" id="ctx-scope" role="group" aria-label="Which notes"></div>
@@ -1614,6 +1619,7 @@
         <span class="step" id="st-2">2 · Map columns</span>
         <span class="step" id="st-3">3 · Pick KPIs</span>
       </div>
+      <div class="banner info" id="imp-locked" hidden></div>
       <div id="imp-upload" class="write-only">
         <div class="ctx-form" id="imp-mode-row">
           <div><label for="imp-mode" class="lbl">Import as</label>

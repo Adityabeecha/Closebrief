@@ -150,6 +150,16 @@
     ]
   ],
   [
+    "/close/approval-link/revoke",
+    [
+      "POST"
+    ],
+    true,
+    [
+      "require_write"
+    ]
+  ],
+  [
     "/close/changes",
     [
       "GET"
