@@ -416,7 +416,7 @@ CREATE TABLE IF NOT EXISTS account_maps (
     workspace_id INTEGER NOT NULL DEFAULT 0,
     account_key TEXT NOT NULL,
     line TEXT NOT NULL,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (workspace_id, account_key)
 );
 """
