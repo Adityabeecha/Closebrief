@@ -410,7 +410,17 @@ CREATE TABLE IF NOT EXISTS digest_runs (
 """
 
 # Columns added after first release; applied to pre-existing SQLite DBs on startup.
-_SQLITE_SCHEMA += _IMPORT_RECEIPTS_SCHEMA + _CLOSE_CONTROL_SCHEMA + _BREAKDOWNS_SCHEMA
+# A trial balance's accounts mapped to P&L lines, remembered per workspace (0 = none).
+_ACCOUNT_MAPS_SCHEMA = """
+CREATE TABLE IF NOT EXISTS account_maps (
+    workspace_id INTEGER NOT NULL DEFAULT 0,
+    account_key TEXT NOT NULL,
+    line TEXT NOT NULL,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (workspace_id, account_key)
+);
+"""
+_SQLITE_SCHEMA += _IMPORT_RECEIPTS_SCHEMA + _CLOSE_CONTROL_SCHEMA + _BREAKDOWNS_SCHEMA + _ACCOUNT_MAPS_SCHEMA
 
 
 def _migrate_dataset_freshness(conn: sqlite3.Connection) -> None:
@@ -519,6 +529,7 @@ _SQLITE_MIGRATIONS = [
     "INSERT INTO ai_spend_daily (day, cost_usd) "
     "SELECT date('now'), COALESCE(SUM(cost_usd), 0) FROM llm_calls "
     "WHERE created_at >= date('now') ON CONFLICT (day) DO NOTHING",
+    _ACCOUNT_MAPS_SCHEMA.strip().rstrip(";"),
 ]
 
 PG_SCHEMA_PATH = Path(__file__).parent / "migrations" / "pg_schema.sql"

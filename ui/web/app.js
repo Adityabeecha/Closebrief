@@ -3464,6 +3464,8 @@ async function loadSchema(){
   finally{if(cb){cb.disabled=false;cb.textContent=isJoinMode()?`Match & attach ${joinWord()}`:"Confirm columns";}}
   $("layout-sel").value=profile.layout_guess;
   if($("amount-scale"))$("amount-scale").value=String(detectAmountScale());
+  if($("tb-mode")){$("tb-mode").checked=looksLikeTrialBalance(profile.columns);if(tbMode())$("layout-sel").value="long";}
+  if($("tb-holder")){$("tb-holder").style.display="none";$("tb-holder").innerHTML="";}
   renderMapWarnings();
   renderTotalRows();
   renderMap();
@@ -3504,12 +3506,26 @@ function keptTotalLabels(){return [...document.querySelectorAll(".keep-total:che
 function roleFor(c){
   // A text column of reasons ("Comment", "Variance explanation") becomes context notes.
   if(c.dtype&&c.dtype!=="numeric"&&/\b(comments?|commentary|reasons?|explanations?|notes?|remarks?|why)\b/i.test(String(c.column_name||"").replace(/[_\-]+/g," ")))return "comment";
+  const n=String(c.column_name||"").toLowerCase(),tb=typeof tbMode==="function"&&tbMode();
+  if(/\bdebits?\b|^dr$/.test(n))return "debit";
+  if(/\bcredits?\b|^cr$/.test(n))return "credit";
+  if(tb&&/\b(code|no|number|#)\b|account ?id|^(gl |ledger )?account$|^gl\b/.test(n)&&!/name|desc|title/.test(n))return "id";
+  if(tb&&/\b(account|description|name)\b/.test(n)&&c.dtype!=="numeric")return "metric_label";
   return c.redundant_with&&c.guessed_role==="measure"?"ignore":c.guessed_role;
 }
-const ROLES=["period","metric_label","measure","budget","forecast","id","quantity","price","dimension","comment","ignore"];
+const ROLES=["period","metric_label","measure","debit","credit","budget","forecast","id","quantity","price","dimension","comment","ignore"];
+// A trial balance or GL export: accounts, not KPIs. Debit/credit columns or an "account"
+// column with a code next to it say so; the analyst can switch it either way.
+function tbMode(){return !!($("tb-mode")&&$("tb-mode").checked);}
+function looksLikeTrialBalance(cols){
+  const names=(cols||[]).map(c=>String(c.column_name||"").toLowerCase());
+  return names.some(n=>/\bdebits?\b|^dr$/.test(n))&&names.some(n=>/\bcredits?\b|^cr$/.test(n))
+    ||names.some(n=>/\b(gl|ledger) ?(account|code)|account ?(code|no|number|#)/.test(n));
+}
+function roleLabel(r){return tbMode()&&r==="metric_label"?"Account name":tbMode()&&r==="id"?"Account code":ROLE_LABELS[r]||r;}
 // What each role means to someone closing the books; the internal names stay in the API.
 const ROLE_LABELS={period:"Month or date",metric_label:"KPI name",measure:"Actual amount",budget:"Budget or plan",forecast:"Latest forecast",
-  id:"Row ID (not imported)",quantity:"Units sold",price:"Unit price",dimension:"Breakdown (region, product…)",comment:"Reason / comment (becomes a note)",ignore:"Don't import"};
+  debit:"Debit",credit:"Credit",id:"Row ID (not imported)",quantity:"Units sold",price:"Unit price",dimension:"Breakdown (region, product…)",comment:"Reason / comment (becomes a note)",ignore:"Don't import"};
 function renderMap(){
   if(!profile)return;const layout=$("layout-sel").value;
   $("map-holder").innerHTML=`<table class="map"><thead><tr><th>Column</th><th>Type</th><th>Sample</th><th>What it holds</th></tr></thead><tbody>`+
@@ -3517,7 +3533,7 @@ function renderMap(){
       const role=roleFor(c);
       return`<tr><td><b>${esc(c.column_name)}</b>${layout==="wide"&&wp?' <span class="suggest">a month</span>':""}${c.redundant_with&&role==="ignore"&&layout!=="wide"?` <span class="suggest">duplicate of ${esc(c.redundant_with)}</span>`:""}</td>
         <td>${esc(c.dtype)}</td><td class="samp">${c.sample_values.slice(0,3).map(esc).join(" · ")}</td>
-        <td>${layout==="wide"&&wp?'<span class="samp">One month of values</span>':`<select data-col="${esc(c.column_name)}" class="role" aria-label="What column ${esc(c.column_name)} holds" onchange="updateMapHint()">${ROLES.map(r=>`<option value="${r}" ${role===r?"selected":""}>${ROLE_LABELS[r]||r}</option>`).join("")}</select>`}</td></tr>`;
+        <td>${layout==="wide"&&wp?'<span class="samp">One month of values</span>':`<select data-col="${esc(c.column_name)}" class="role" aria-label="What column ${esc(c.column_name)} holds" onchange="updateMapHint()">${ROLES.map(r=>`<option value="${r}" ${role===r?"selected":""}>${roleLabel(r)}</option>`).join("")}</select>`}</td></tr>`;
     }).join("")+`</tbody></table>`;
   updateMapHint();
 }
@@ -3534,6 +3550,11 @@ function mappingProblem(){
   if(needsMonthPick()&&!$("map-month").value)return "This file has no date column. Set one column to “Month or date”, or choose the month the whole file covers.";
   if(isJoinMode()){
     if(!roles.some(r=>r==="measure"||r==="budget"||r==="forecast"))return `Set the column with the ${joinWord()} amounts to “${joinWord()==="forecast"?"Latest forecast":"Budget or plan"}”.`;
+    return null;
+  }
+  if(tbMode()){
+    if(!roles.includes("metric_label")&&!roles.includes("id"))return "Set the account name column to “Account name” (or the code column to “Account code”).";
+    if(!roles.includes("measure")&&!roles.includes("debit")&&!roles.includes("credit"))return "Set the amount column to “Actual amount”, or the debit and credit columns to “Debit” and “Credit”.";
     return null;
   }
   if(!roles.includes("measure"))return "Set the column with the amounts to track to “Actual amount”.";
@@ -3578,6 +3599,7 @@ function buildMappingCore(){
   const measures=by("measure");
   const periodLiteral=sheetPeriod()||(needsMonthPick()&&$("map-month").value)||null;
   const base={layout:"long",period_col:periodLiteral?null:(by("period")[0]||null),period_literal:periodLiteral,metric_col:by("metric_label")[0]||null,budget_col:by("budget")[0]||null,forecast_col:by("forecast")[0]||null,id_col:by("id")[0]||null,dimension_cols:by("dimension"),comment_col:by("comment")[0]||null,keep_labels};
+  if(tbMode())return{...base,metric_col:base.metric_col||base.id_col,value_col:measures[0]||null,debit_col:by("debit")[0]||null,credit_col:by("credit")[0]||null};
   if(isJoinMode()&&!measures.length){
     // Adding a budget or forecast to a dataset: that column is the amount being attached.
     const amount=by(joinWord())[0]||by("budget")[0]||by("forecast")[0];
@@ -3592,13 +3614,16 @@ async function confirmMapping(m){
   const problem=m?null:mappingProblem();
   if(problem){$("imp-result").innerHTML=`<div class="banner err">${warnIcon()}${esc(problem)}</div>`;updateMapHint();return;}
   const mapping=m||buildMapping();
+  if(!m&&tbMode())return showAccountMap(mapping);   // accounts → P&L lines before anything is imported
   $("imp-result").innerHTML='<div class="loading"><span class="spin"></span> Normalizing &amp; computing…</div>';
   try{
     const res=await api(`/ingest/${upload.upload_id}/mapping?save_template=${$("save-tpl").checked}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(mapping)});
     $("imp-result").innerHTML="";
-    const rep=importReportHtml(res.import_report,{breakdown:(mapping.dimension_cols||[])[0]||null});
+    const rep=importReportHtml(res.import_report,{breakdown:mapping.account_map?"Account":(mapping.dimension_cols||[])[0]||null});
+    const led=res.import_report&&res.import_report.ledger;
+    const ledTxt=led?` ${plural(Object.keys(mapping.account_map).length,"account")} rolled into P&amp;L lines${led.accounts_excluded?`, ${plural(led.accounts_excluded,"balance-sheet or excluded account")} left out`:""}${led.accounts_unmapped?`, <b>${plural(led.accounts_unmapped,"account")} not mapped and not counted</b>`:""}. Next month's file maps its accounts by itself.`:"";
     $("norm-summary").className="banner imp-report "+(rep.attention?"warn":"ok");
-    $("norm-summary").innerHTML=`Imported ${plural(res.metrics.length,"KPI","KPIs")} across ${plural(res.periods.length,"period")}.${res.template_id?" The column mapping is saved for next month's file.":""}${res.notes_added?` ${plural(res.notes_added,"reason")} from the comment column saved as notes.`:""}${rep.html}`;
+    $("norm-summary").innerHTML=`Imported ${plural(res.metrics.length,led?"P&amp;L line":"KPI",led?"P&amp;L lines":"KPIs")} across ${plural(res.periods.length,"period")}.${ledTxt}${res.template_id&&!led?" The column mapping is saved for next month's file.":""}${res.notes_added?` ${plural(res.notes_added,"reason")} from the comment column saved as notes.`:""}${rep.html}`;
     // dataset_id is the dataset THIS import created; activeDatasetId is still
     // whatever was selected before (or null) until loadDatasets() runs.
     lastImport={rows:res.rows_normalized,metrics:res.metrics.length,periods:res.periods.length,datasetId:res.dataset_id??null};
@@ -3610,6 +3635,58 @@ async function confirmMapping(m){
     $("imp-name").value=fn.replace(/\.[^.]+$/,"")||"Imported dataset";
     setStep(3);await loadKpiPicker();
   }catch(e){$("imp-result").innerHTML=`<div class="banner err">${warnIcon()}${esc(e.message)}</div>`;}
+}
+// Step between columns and import for a trial balance: each account → a P&L line.
+// Saved lines come back by themselves next month; only new accounts need a look.
+let tbAccounts=null,tbMapping=null,tbLines=[];
+const TB_INCOME=new Set(["Revenue","Other income"]);
+async function showAccountMap(mapping){
+  const box=$("tb-holder");tbMapping=mapping;
+  $("imp-result").innerHTML='<div class="loading"><span class="spin"></span> Reading the accounts…</div>';
+  try{
+    const sheet=$("sheet-pick").style.display!=="none"?$("sheet-sel").value:null;
+    const r=await api(`/ingest/${upload.upload_id}/accounts`,{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({name_col:mapping.metric_col===mapping.id_col?null:mapping.metric_col,code_col:mapping.id_col,value_col:mapping.value_col,
+        debit_col:mapping.debit_col,credit_col:mapping.credit_col,sheet})});
+    $("imp-result").innerHTML="";
+    tbAccounts=r.accounts;tbLines=[...new Set([...r.lines,...r.accounts.map(a=>a.line).filter(Boolean)])];
+    box.style.display="";
+    box.innerHTML=`<h3 style="margin:0 0 4px;font-size:16px">Map ${plural(r.accounts.length,"account")} to P&amp;L lines</h3>
+      <p class="imp-say" style="margin:0">${r.saved?`${plural(r.saved,"account")} already mapped from an earlier month. `:""}Suggestions come from each account's code and name; check them, then import. Balance-sheet accounts are set to Exclude.</p>
+      <div class="tb-lines" id="tb-lines"></div>
+      <label style="font-size:13px;display:inline-flex;gap:6px;align-items:center;margin-bottom:8px"><input type="checkbox" id="tb-check-only" onchange="paintAccountRows()"${r.saved?" checked":""}> Only accounts to check (${r.accounts.filter(a=>a.source!=="saved").length})</label>
+      <div class="tb-scroll"><table class="tb-table"><thead><tr><th>Account</th><th class="num">Net, whole file</th><th>P&amp;L line</th></tr></thead><tbody id="tb-rows"></tbody></table></div>
+      <div style="display:flex;gap:8px;margin-top:12px;align-items:center"><button class="btn primary" id="tb-import" onclick="importTrialBalance()">Import</button>
+        <button class="btn" onclick="$('tb-holder').style.display='none'">Back to columns</button><small id="tb-left" style="color:var(--text-3)"></small></div>`;
+    paintAccountRows();
+    box.scrollIntoView({behavior:"smooth",block:"start"});
+  }catch(e){$("imp-result").innerHTML=`<div class="banner err">${warnIcon()}${esc(errMsg(e))}</div>`;}
+}
+function paintAccountRows(){
+  const only=$("tb-check-only")&&$("tb-check-only").checked;
+  const opts=line=>`<option value="">Choose…</option>`+tbLines.map(l=>`<option ${l===line?"selected":""}>${esc(l)}</option>`).join("")+`<option value="__new">New line…</option>`;
+  $("tb-rows").innerHTML=tbAccounts.map((a,i)=>only&&a.source==="saved"?"":`<tr><td>${esc(a.label)} <span class="tb-src ${a.line?"":"none"}">${a.source==="saved"?"saved":a.line?"suggested":"choose a line"}</span></td>
+    <td class="num">${esc(fmt(a.total,"USD"))}</td><td><select class="pill-btn" aria-label="P&amp;L line for ${esc(a.label)}" onchange="setAccountLine(${i},this)">${opts(a.line)}</select></td></tr>`).join("");
+  paintLineTotals();
+}
+async function setAccountLine(i,sel){
+  let line=sel.value;
+  if(line==="__new"){line=(await modalInput("New P&L line",{label:"Name of the line",placeholder:"e.g. Facilities",okLabel:"Add"})||"").trim();
+    if(!line){sel.value=tbAccounts[i].line||"";return;}
+    if(!tbLines.includes(line))tbLines.splice(tbLines.length-1,0,line);}
+  tbAccounts[i].line=line||null;tbAccounts[i].source=line?"chosen":"none";paintAccountRows();
+}
+function paintLineTotals(){
+  const sums={};tbAccounts.forEach(a=>{if(a.line&&a.line!=="Exclude")sums[a.line]=(sums[a.line]||0)+(TB_INCOME.has(a.line)?-a.total:a.total);});
+  $("tb-lines").innerHTML=Object.entries(sums).map(([l,v])=>`<span>${esc(l)} <b>${esc(fmt(v,"USD"))}</b></span>`).join("")||"<span>No lines yet</span>";
+  const left=tbAccounts.filter(a=>!a.line).length,lines=Object.keys(sums).length;
+  $("tb-left").textContent=left?`${plural(left,"account")} not mapped yet; they'll be left out.`:"Every account is mapped.";
+  $("tb-import").textContent=`Import ${plural(lines,"P&L line")}`;$("tb-import").disabled=!lines;
+}
+async function importTrialBalance(){
+  const account_map=Object.fromEntries(tbAccounts.filter(a=>a.line).map(a=>[a.key,a.line]));
+  $("tb-holder").style.display="none";
+  await confirmMapping({...tbMapping,account_map});
 }
 async function confirmJoinBudget(){
   const targetId=$("imp-target").value;
@@ -3644,7 +3721,11 @@ async function finishBudgetJoin(targetId){
   else await loadPeriods();
   nav("dashboard");
 }
-async function applyTpl(id){const t=await api(`/templates/${id}`);await confirmMapping(t.mapping);toast("Saved mapping applied");}
+async function applyTpl(id){const t=await api(`/templates/${id}`),m=t.mapping||{};
+  // A trial balance still stops at its accounts: saved lines fill in, new accounts get a look.
+  if(m.debit_col||m.credit_col||(m.account_map&&Object.keys(m.account_map).length)){
+    if($("tb-mode"))$("tb-mode").checked=true;const{account_map:_drop,...cols}=m;await showAccountMap(cols);return;}
+  await confirmMapping(m);toast("Saved mapping applied");}
 function humanizeKpiName(source){
   const raw=String(source||"").trim(),acronyms={arr:"ARR",mrr:"MRR",mql:"MQL",mqls:"MQLs",sql:"SQL",sqls:"SQLs",cogs:"COGS",cac:"CAC",ltv:"LTV",ebitda:"EBITDA",roi:"ROI",roas:"ROAS",nps:"NPS",usd:"USD",eur:"EUR",gbp:"GBP"};
   if(!raw.includes("_")&&raw!==raw.toLowerCase())return raw;

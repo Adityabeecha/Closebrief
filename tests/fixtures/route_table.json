@@ -556,6 +556,16 @@
     ]
   ],
   [
+    "/ingest/{upload_id}/accounts",
+    [
+      "POST"
+    ],
+    true,
+    [
+      "require_write"
+    ]
+  ],
+  [
     "/ingest/{upload_id}/join-budget",
     [
       "POST"

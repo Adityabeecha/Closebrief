@@ -157,6 +157,10 @@ def ingest_mapping(upload_id: str, mapping: MappingSpec, save_template: bool = F
         summary = store_normalized(conn, canonical, dataset_id, replace=bool(existing),
                                    actor_id=user.id, actor_email=user.email)
         mark_scaled(conn, dataset_id, scaled, mapping.amount_scale)
+        if mapping.account_map:   # next month's trial balance maps itself
+            from app.datasets import current_workspace
+            from app.ingestion.ledger import save_map
+            save_map(conn, current_workspace(), mapping.account_map)
         comments = comments_from_frame(df, mapping)
         conn.execute(
             "UPDATE uploads SET mapping = ? WHERE id = ?",
@@ -166,7 +170,8 @@ def ingest_mapping(upload_id: str, mapping: MappingSpec, save_template: bool = F
 
         template_id = None
         if save_template:
-            template_id = save_mapping_template(conn, up["column_signature"], mapping.model_dump())
+            # A trial balance's account lines live in account_maps (per account), not the template.
+            template_id = save_mapping_template(conn, up["column_signature"], mapping.model_dump(exclude={"account_map"}))
 
         facts = derived_metrics.refresh(conn, dataset_id, actor_id=user.id, actor_email=user.email,
                                         report=summary["import_report"])
@@ -248,6 +253,37 @@ def ingest_join_budget(upload_id: str, payload: dict,
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     finally:
         conn.close()
+
+
+@router.post("/ingest/{upload_id}/accounts")
+def ingest_accounts(upload_id: str, payload: dict, _: CurrentUser = Depends(require_write)) -> dict:
+    """A trial balance's accounts, each with its total and the P&L line it goes to: the
+    line saved from an earlier month, else a suggestion from its code and name.
+    Body: {"name_col", "code_col", "value_col" | "debit_col"/"credit_col", "sheet"}."""
+    from app.datasets import current_workspace
+    from app.ingestion.ledger import EXCLUDE, LINES, list_accounts, saved_map
+    from app.ingestion.mapping import coerce_value
+
+    cols = {k: (payload.get(k) or None) for k in ("name_col", "code_col", "value_col", "debit_col", "credit_col")}
+    if not (cols["name_col"] or cols["code_col"]):
+        raise HTTPException(status_code=422, detail="Choose the column with the account name or code.")
+    if not (cols["value_col"] or cols["debit_col"] or cols["credit_col"]):
+        raise HTTPException(status_code=422, detail="Choose the amount column, or the debit and credit columns.")
+    conn = get_connection()
+    try:
+        try:
+            df = load_upload_frame(conn, upload_id, payload.get("sheet") or None)
+        except UploadError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        missing = [c for c in cols.values() if c and c not in df.columns]
+        if missing:
+            raise HTTPException(status_code=422, detail=f"Column not found: {missing[0]}")
+        accounts = list_accounts(df, saved=saved_map(conn, current_workspace()), coerce=coerce_value, **cols)
+    finally:
+        conn.close()
+    return {"accounts": accounts, "lines": [*LINES, EXCLUDE],
+            "saved": sum(a["source"] == "saved" for a in accounts),
+            "unmapped": sum(a["line"] is None for a in accounts)}
 
 
 _GROUP_DIM = re.compile(r"account_?(group|type|class|section)|^(group|class|section|category)$", re.I)
