@@ -13,27 +13,39 @@ WARNING = ("Check the units: this dataset says thousands or millions but amounts
            "Set 'Amounts are in' from the dataset menu.")
 
 
-@pytest.mark.parametrize("name", ["$ thousands", "$ 000", "Revenue (000s)", "MILLIONS"])
-@pytest.mark.parametrize("scale", [1, 1000])
-def test_export_warns_only_for_unscaled_named_units(seeded, name, scale):  # noqa: F811
+def _name_dataset(ds, name, scale, confirmed=False):
     conn = get_connection()
     try:
-        conn.execute("UPDATE datasets SET name=?, amount_scale=?, currency='USD'", (name, scale))
+        conn.execute("UPDATE datasets SET name=?, amount_scale=?, currency='USD', units_confirmed=? WHERE id=?",
+                     (name, scale, confirmed, ds))
         conn.commit()
     finally:
         conn.close()
-    sheet = _book(seeded[0])["KPIs"]
-    if scale == 1:
-        assert sheet["A1"].value == WARNING
-        assert sheet["A1"].font.color.rgb == "00FF0000"
-        assert sheet.freeze_panes == "C3"
-        assert sheet.auto_filter.ref.startswith("A2:")
-    else:
-        assert sheet["A1"].value == "Category"
-        assert WARNING not in [row[0].value for row in sheet]
-    header_row = 2 if scale == 1 else 1
-    headers = [cell.value for cell in sheet[header_row]]
-    rows = [dict(zip(headers, [c.value for c in row])) for row in sheet.iter_rows(min_row=header_row + 1)]
+
+
+@pytest.mark.parametrize("name", ["$ thousands", "$ 000", "Revenue (000s)", "MILLIONS"])
+def test_export_is_blocked_until_the_units_are_confirmed(seeded, name):  # noqa: F811
+    api, ds, _ = seeded
+    _name_dataset(ds, name, 1)
+    blocked = api.get("/close/export.xlsx", params={"period": "2025-12"})
+    assert blocked.status_code == 409 and "Confirm the units first" in blocked.json()["detail"]
+    # Keeping "units" is a valid answer: once confirmed, the export goes out clean.
+    assert api.patch(f"/datasets/{ds}", json={"amount_scale": 1}).status_code == 200
+    _name_dataset(ds, "Café:/Close?", 1, confirmed=True)   # leave the shared fixture as it was
+
+
+@pytest.mark.parametrize("scale,confirmed", [(1000, False), (1, True)])
+def test_a_confirmed_export_has_no_warning_and_keeps_usd(seeded, scale, confirmed):  # noqa: F811
+    api, ds, _ = seeded
+    _name_dataset(ds, "$ thousands", scale, confirmed)
+    try:
+        sheet = _book(api)["KPIs"]
+    finally:
+        _name_dataset(ds, "Café:/Close?", 1, confirmed=True)
+    assert sheet["A1"].value == "Category"
+    assert WARNING not in [row[0].value for row in sheet]
+    headers = [cell.value for cell in sheet[1]]
+    rows = [dict(zip(headers, [c.value for c in row])) for row in sheet.iter_rows(min_row=2)]
     revenue = next(r for r in rows if r["KPI"] == "Revenue")
     assert revenue["Unit"] == "USD"
     assert revenue["Actual"] == 1000  # Export never rescales computed amounts.

@@ -222,7 +222,10 @@ def build_close_workbook(conn, ds, name, period, granularity, covered, facts, su
     _row(sheet, ["Figures are computed in code. Commentary is included only once approved."])
     sheet.column_dimensions["A"].width = 28
     sheet.column_dimensions["B"].width = 85
-    units_warning = meta["amount_scale"] == 1 and bool(re.search(r"thousand|\$\s*000|\(000s\)|million", name or "", re.I))
+    # The export route stops an unconfirmed mismatch first; this row covers any other caller.
+    from app.ingestion.scale import units_unconfirmed
+    confirmed = conn.execute("SELECT units_confirmed FROM datasets WHERE id = ?", (ds,)).fetchone()
+    units_warning = units_unconfirmed(name, meta["amount_scale"], confirmed and confirmed["units_confirmed"])
     _kpis(book, facts, granularity, meta["currency"], units_warning=units_warning)
     _contributors(book, conn, facts, period, covered, meta["currency"])
     if changes:
