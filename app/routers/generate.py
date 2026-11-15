@@ -435,6 +435,13 @@ def board_pack(period: str, user: CurrentUser = Depends(require_read)) -> HTMLRe
     finally:
         conn.close()
     meta = {"dataset_name": ds_name}
+    if ds is not None:
+        from app.board_pack import cadence_title
+        conn = get_connection()
+        try:
+            meta["period_title"] = cadence_title(conn, ds, period)   # "Q3 2026", not "September 2026"
+        finally:
+            conn.close()
     doc = build_board_pack_html(facts, period, meta)
     return HTMLResponse(doc)
 

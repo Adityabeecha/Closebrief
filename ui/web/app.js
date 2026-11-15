@@ -948,7 +948,7 @@ function paintOverview(){
     const plan=f.deltas&&f.deltas.budget_var_pct,v=plan!=null?plan:f.deltas&&f.deltas.mom_pct;return {f,v,plan:plan!=null};
   }).filter(x=>x.v!=null).sort((a,b)=>Math.abs(b.v)-Math.abs(a.v));
   const allMovers=movers.length;if(!glanceAll)movers.splice(4);
-  $("ov-glance-title").textContent=`${fmtPeriod(currentPeriod,"long")} at a glance`;
+  $("ov-glance-title").textContent=`${granularity==="month"&&typeof datasetCadence!=="undefined"&&datasetCadence!=="month"&&/^\d{4}-\d{2}$/.test(currentPeriod||"")?cadenceName(currentPeriod):fmtPeriod(currentPeriod,"long")} at a glance`;
   $("ov-glance").innerHTML=movers.length?`<div class="glance">${movers.map(({f,v,plan})=>{
     const good=v===0?null:(f.direction_good==="down"?v<0:v>0);
     return `<button data-act="metric" data-arg="${esc(f.metric)}"><span>${esc(f.metric)}</span><b>${fmt(f.value,f.unit)} <span class="${good===null?"":good?"c-ok":"c-exc"}">${deltaText(f,plan?"budget":"mom")||pct(v)}</span><span class="visually-hidden"> ${plan?(globalThis.vsPlan?vsPlan():"vs plan"):"vs prior period"}</span></b></button>`;}).join("")}</div>`

@@ -10,7 +10,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font
 from openpyxl.utils import get_column_letter
 
-from app.board_pack import _period_title
+from app.board_pack import _period_title, cadence_title
 from app.compute.close_views import contributors
 from app.datasets import dataset_metadata
 from app.digest.digest import last_sent_at
@@ -196,7 +196,7 @@ def build_close_workbook(conn, ds, name, period, granularity, covered, facts, su
     if status != "Shared" and summary.get("kpis") and summary["approved"] == summary["kpis"]:
         status = "Ready"
     rows = [
-        ("Close", f"{_period_title(period)} close"),
+        ("Close", f"{cadence_title(conn, ds, period) if granularity == 'month' else _period_title(period)} close"),
         ("Dataset", display_name(name)),
         ("Currency", meta["currency"]),
         ("Fiscal year start month", meta["fiscal_year_start"]),

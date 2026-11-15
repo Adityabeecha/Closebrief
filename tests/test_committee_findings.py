@@ -52,3 +52,17 @@ def test_security_page_is_public_and_honest(client):  # noqa: F811
     for words in ("OpenAI", "row-level security", "No SOC 2", "No SAML SSO", "United States"):
         assert words in r.text
     assert 'href="/security"' in client.get("/privacy").text
+
+
+def test_a_quarterly_close_is_titled_by_its_quarter(client):  # noqa: F811
+    from app.board_pack import cadence_title
+    ds = _import(client)
+    client.patch(f"/datasets/{ds}", json={"amount_scale": 1})   # confirm units so the pack builds
+    pack = client.get("/board-pack?period=2026-09").text
+    assert "Q3 2026<br>Board Pack" in pack and "September 2026" not in pack
+    conn = get_connection()
+    try:
+        assert cadence_title(conn, ds, "2026-09") == "Q3 2026"
+        assert cadence_title(conn, None, "2026-09") == "September 2026"
+    finally:
+        conn.close()
